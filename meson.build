@@ -37,7 +37,15 @@ else
     thread_dependency = cc.find_library('pthread')
 endif
 
-dav1d_inc_dirs = include_directories('include')
+dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
+
+#
+# Option handling
+#
+dav1d_bitdepths = get_option('bitdepths')
+foreach bitdepth : dav1d_bitdepths
+    cdata.set('CONFIG_@0@BPC'.format(bitdepth), 1)
+endforeach
 
 #
 # OS/Compiler feature detection
@@ -121,13 +129,100 @@ config_h_target = configure_file(output: 'config.h', configuration: cdata)
 
 subdir('include')
 
+#
+# dav1d library
+#
+libdav1d_tmpl_sources = files(
+    'src/ipred.c',
+    'src/itx.c',
+    'src/ipred_prepare.c',
+    'src/lf_apply.c',
+    'src/loopfilter.c',
+    'src/mc.c',
+    'src/cdef_apply.c',
+    'src/cdef.c',
+    'src/lr_apply.c',
+    'src/looprestoration.c',
+    'src/recon.c'
+)
+
+# Build a helper library for each bitdepth
+bitdepth_objs = []
+foreach bitdepth : dav1d_bitdepths
+    bitdepth_lib = static_library(
+        'dav1d_bitdepth_@0@'.format(bitdepth),
+        libdav1d_tmpl_sources, config_h_target,
+        include_directories: dav1d_inc_dirs,
+        c_args: ['-DBITDEPTH=@0@'.format(bitdepth), stackalign_flag],
+        install: false,
+        build_by_default: false,
+    )
+    bitdepth_objs += bitdepth_lib.extract_all_objects()
+endforeach
+
+entrypoints_src = files(
+    'src/lib.c',
+    'src/thread_task.c'
+)
+entrypoints_lib = static_library(
+    'libdav1dentrypoint',
+    entrypoints_src,
+    include_directories: dav1d_inc_dirs,
+    c_args: [stackrealign_flag],
+    install: false,
+)
+entrypoints_objs = entrypoints_lib.extract_all_objects()
+
+libdav1d_sources = files(
+    'src/picture.c',
+    'src/data.c',
+    'src/ref.c',
+    'src/getbits.c',
+    'src/obu.c',
+    'src/decode.c',
+    'src/cdf.c',
+    'src/msac.c',
+    'src/tables.c',
+    'src/scan.c',
+    'src/dequant_tables.c',
+    'src/intra_edge.c',
+    'src/lf_mask.c',
+    'src/ref_mvs.c',
+    'src/warpmv.c',
+    'src/wedge.c',
+    'src/qm.c',
+)
+
 libdav1d = library('dav1d',
-    rev_target,
+    libdav1d_sources, rev_target,
     version: '0.0.1',
+    objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
     c_args: [stackalign_flag],
     dependencies: thread_dependency,
     install: true
+)
+
+install_subdir('include/dav1d/', install_dir: 'include')
+
+#
+# dav1d cli tool
+#
+dav1d_sources = files(
+    'tools/dav1d.c',
+    'tools/dav1d_cli_parse.c',
+    'tools/input/input.c',
+    'tools/input/ivf.c',
+    'tools/output/md5.c',
+    'tools/output/output.c',
+    'tools/output/y4m2.c',
+    'tools/output/yuv.c'
+)
+
+dav1d = executable('dav1d',
+    dav1d_sources, rev_target,
+    link_with: libdav1d,
+    include_directories: [dav1d_inc_dirs, include_directories('tools')]
 )
 
 #

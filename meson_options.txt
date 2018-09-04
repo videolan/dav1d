@@ -1,0 +1,6 @@
+# General options
+
+option('bitdepths',
+    type: 'array',
+    choices: ['8', '10'],
+    description: 'Enable only specified bitdepths')
