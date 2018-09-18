@@ -120,18 +120,18 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
 
 
 static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
-                      const int plane, const int unit_w,
-                      const int first_stripe_h, const int next_stripe_h,
-                      const int row_h, const Av1RestorationUnit *const lr,
-                      enum LrEdgeFlags edges)
+                      const int plane, const int unit_w, const int row_h,
+                      const Av1RestorationUnit *const lr, enum LrEdgeFlags edges)
 {
     const Dav1dDSPContext *const dsp = f->dsp;
+    const int ss_ver = !!plane * f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int sbrow_has_bottom = (edges & LR_HAVE_BOTTOM);
     const pixel *lpf = f->lf.lr_lpf_line_ptr[plane] + x;
     const ptrdiff_t p_stride = f->cur.p.stride[!!plane];
     const ptrdiff_t lpf_stride = sizeof(pixel) * f->b4_stride * 4;
 
-    int stripe_h = first_stripe_h;
+    // The first stripe of the frame is shorter by 8 luma pixel rows.
+    int stripe_h = imin((64 - 8 * !y) >> ss_ver, row_h - y);
 
     // FIXME [8] might be easier for SIMD
     int16_t filterh[7], filterv[7];
@@ -164,10 +164,10 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
         }
 
         y += stripe_h;
-        edges |= LR_HAVE_TOP;
         if (y + stripe_h > row_h && sbrow_has_bottom) break;
         p += stripe_h * PXSTRIDE(p_stride);
-        stripe_h = imin(next_stripe_h, row_h - y);
+        edges |= LR_HAVE_TOP;
+        stripe_h = imin(64 >> ss_ver, row_h - y);
         if (stripe_h == 0) break;
         lpf += 4 * PXSTRIDE(lpf_stride);
     }
@@ -198,6 +198,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     const int half_unit_size = unit_size >> 1;
     const int max_unit_size = unit_size + half_unit_size;
 
+    // Y coordinate of the sbrow (y is 8 luma pixel rows above row_y)
     const int row_y = y + ((8 >> ss_ver) * !!y);
 
     // FIXME This is an ugly hack to lookup the proper AV1Filter unit for
@@ -213,9 +214,9 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     // Merge last restoration unit if its height is < half_unit_size
     if (ruy > 0) ruy -= (ruy << unit_size_log2) + half_unit_size > h;
 
-    const int proc_h = 64 >> ss_ver;
-    const int stripe_h = proc_h - ((8 >> ss_ver) * !y);
-    const int filter_h = imin(stripe_h + proc_h * f->seq_hdr.sb128, h - y);
+    // The first stripe of the frame is shorter by 8 luma pixel rows.
+    const int filter_h =
+        imin(((1 << (6 + f->seq_hdr.sb128)) - 8 * !y) >> ss_ver, h - y);
 
     pixel pre_lr_border[filter_h * 3];
     pixel post_lr_border[filter_h * 3];
@@ -250,8 +251,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
             backup3xU(pre_lr_border, p + unit_w - 3, p_stride, filter_h);
         }
         if (lr->type != RESTORATION_NONE) {
-            lr_stripe(f, p, x, y, plane, unit_w, stripe_h, proc_h,
-                      row_h, lr, edges);
+            lr_stripe(f, p, x, y, plane, unit_w, row_h, lr, edges);
         }
         if (edges & LR_HAVE_LEFT) {
             restore3xU(p - 3, p_stride, post_lr_border, filter_h);
