@@ -40,7 +40,7 @@
 #define validate_input_or_ret_with_msg(x, r, ...) \
     if (!(x)) { \
         fprintf(stderr, "Input validation check \'%s\' failed in %s!\n", \
-                #x, __PRETTY_FUNCTION__); \
+                #x, __func__); \
         fprintf(stderr, __VA_ARGS__); \
         debug_abort(); \
         return r; \
@@ -49,7 +49,7 @@
 #define validate_input_or_ret(x, r) \
     if (!(x)) { \
         fprintf(stderr, "Input validation check \'%s\' failed in %s!\n", \
-                #x, __PRETTY_FUNCTION__); \
+                #x, __func__); \
         debug_abort(); \
         return r; \
     }
