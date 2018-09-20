@@ -28,9 +28,9 @@
 #ifndef __DAV1D_SRC_PICTURE_H__
 #define __DAV1D_SRC_PICTURE_H__
 
-#include <pthread.h>
 #include <stdatomic.h>
 
+#include "src/thread.h"
 #include "dav1d/picture.h"
 
 #include "src/thread_data.h"

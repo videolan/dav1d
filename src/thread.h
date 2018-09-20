@@ -25,15 +25,39 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_THREAD_DATA_H__
-#define __DAV1D_SRC_THREAD_DATA_H__
+#ifndef __DAV1D_THREAD_H__
+# define __DAV1D_THREAD_H__
 
-#include "src/thread.h"
+#if defined(_WIN32) && !defined(HAVE_PTHREAD_H)
 
-struct thread_data {
-    pthread_t thread;
-    pthread_cond_t cond;
-    pthread_mutex_t lock;
-};
+#include <windows.h>
 
-#endif /* __DAV1D_SRC_THREAD_DATA_H__ */
+typedef CRITICAL_SECTION pthread_mutex_t;
+typedef CONDITION_VARIABLE pthread_cond_t;
+typedef void *pthread_t;
+typedef void *pthread_mutexattr_t;
+typedef void *pthread_condattr_t;
+typedef void *pthread_attr_t;
+
+void pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr);
+void pthread_mutex_destroy(pthread_mutex_t* mutex);
+void pthread_mutex_lock(pthread_mutex_t* mutex);
+void pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
+void pthread_cond_destroy(pthread_cond_t* cond);
+void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+void pthread_cond_signal(pthread_cond_t* cond);
+void pthread_cond_broadcast(pthread_cond_t* cond);
+
+int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
+                   void*(*proc)(void*), void* param);
+void pthread_join(pthread_t thread, void** res);
+
+#else
+
+#include <pthread.h>
+
+#endif
+
+#endif // __DAV1D_THREAD_H__

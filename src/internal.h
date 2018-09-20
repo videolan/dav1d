@@ -28,7 +28,6 @@
 #ifndef __DAV1D_SRC_INTERNAL_H__
 #define __DAV1D_SRC_INTERNAL_H__
 
-#include <pthread.h>
 #include <stdatomic.h>
 
 #include "dav1d/data.h"
@@ -54,6 +53,7 @@ typedef struct Dav1dTileContext Dav1dTileContext;
 #include "src/picture.h"
 #include "src/recon.h"
 #include "src/ref_mvs.h"
+#include "src/thread.h"
 
 typedef struct Dav1dDSPContext {
     Dav1dIntraPredDSPContext ipred;

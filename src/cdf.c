@@ -28,9 +28,9 @@
 #include "config.h"
 
 #include <assert.h>
-#include <pthread.h>
 #include <string.h>
 
+#include "src/thread.h"
 #include "common/intops.h"
 
 #include "src/cdf.h"

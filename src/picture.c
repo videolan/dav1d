@@ -39,6 +39,7 @@
 
 #include "src/picture.h"
 #include "src/ref.h"
+#include "src/thread.h"
 
 static int picture_alloc_with_edges(Dav1dPicture *const p,
                                     const int w, const int h,

@@ -34,7 +34,10 @@ cc = meson.get_compiler('c')
 if not meson.is_cross_build() 
     thread_dependency = dependency('threads')
 else
-    thread_dependency = cc.find_library('pthread')
+    thread_dependency = cc.find_library('pthread', required: false)
+endif
+if thread_dependency.found()
+    cdata.set('HAVE_PTHREAD_H', 1)
 endif
 
 dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
@@ -192,6 +195,10 @@ libdav1d_sources = files(
     'src/wedge.c',
     'src/qm.c',
 )
+
+if host_machine.system() == 'windows'
+    libdav1d_sources += files('src/win32/thread.c')
+endif
 
 libdav1d = library('dav1d',
     libdav1d_sources, rev_target,

@@ -53,7 +53,6 @@ void *dav1d_frame_task(void *const data) {
         decode_frame(f);
     }
 
-    pthread_exit(NULL);
     return NULL;
 }
 
@@ -132,6 +131,5 @@ void *dav1d_tile_task(void *const data) {
         }
     }
 
-    pthread_exit(NULL);
     return NULL;
 }
