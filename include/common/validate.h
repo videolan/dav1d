@@ -37,11 +37,11 @@
 #define debug_abort abort
 #endif
 
-#define validate_input_or_ret_with_msg(x, r, msg...) \
+#define validate_input_or_ret_with_msg(x, r, ...) \
     if (!(x)) { \
         fprintf(stderr, "Input validation check \'%s\' failed in %s!\n", \
                 #x, __PRETTY_FUNCTION__); \
-        fprintf(stderr, msg); \
+        fprintf(stderr, __VA_ARGS__); \
         debug_abort(); \
         return r; \
     }
