@@ -84,21 +84,26 @@ if not cc.check_header('stdatomic.h')
     error('Atomics not supported')
 endif
 
-if cc.has_argument('-mpreferred-stack-boundary=5')
-    stackalign_flag = '-mpreferred-stack-boundary=5'
-    stackrealign_flag = '-mincoming-stack-boundary=4'
+if host_machine.cpu_family().startswith('x86')
+    if cc.has_argument('-mpreferred-stack-boundary=5')
+        stackalign_flag = ['-mpreferred-stack-boundary=5']
+        stackrealign_flag = ['-mincoming-stack-boundary=4']
 # When cross compiling for win64 gcc refuses to use -mpreferred-stack-boundary
 # with a value which isn't 3 or 4. However, when cross compiling with clang, 5 is
 # accepted.
-elif (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86_64'
-and cc.has_argument('-mpreferred-stack-boundary=4'))
-    stackalign_flag = '-mpreferred-stack-boundary=4'
-    stackrealign_flag = '-mincoming-stack-boundary=4'
-elif cc.has_argument('-mstack-alignment=32')
-    stackalign_flag = '-mstack-alignment=32'
-    stackrealign_flag = '-mstackrealign'
+    elif (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86_64'
+    and cc.has_argument('-mpreferred-stack-boundary=4'))
+        stackalign_flag = ['-mpreferred-stack-boundary=4']
+        stackrealign_flag = ['-mincoming-stack-boundary=4']
+    elif cc.has_argument('-mstack-alignment=32')
+        stackalign_flag = ['-mstack-alignment=32']
+        stackrealign_flag = ['-mstackrealign']
+    else
+        error('Failed to specify stack alignment')
+    endif
 else
-    error('Failed to specify stack alignment')
+    stackalign_flag = []
+    stackrealign_flag = []
 endif
 
 if cc.has_argument('-fvisibility=hidden')
@@ -156,7 +161,7 @@ foreach bitdepth : dav1d_bitdepths
         'dav1d_bitdepth_@0@'.format(bitdepth),
         libdav1d_tmpl_sources, config_h_target,
         include_directories: dav1d_inc_dirs,
-        c_args: ['-DBITDEPTH=@0@'.format(bitdepth), stackalign_flag],
+        c_args: ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
         install: false,
         build_by_default: false,
     )
@@ -171,7 +176,7 @@ entrypoints_lib = static_library(
     'libdav1dentrypoint',
     entrypoints_src,
     include_directories: dav1d_inc_dirs,
-    c_args: [stackrealign_flag],
+    c_args: stackrealign_flag,
     install: false,
 )
 entrypoints_objs = entrypoints_lib.extract_all_objects()
