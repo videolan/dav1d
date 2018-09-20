@@ -36,7 +36,7 @@
 #include "src/levels.h"
 
 #define decl_loopfilter_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, int mb_lim, int lim, int hev_thr);
+void (name)(pixel *dst, ptrdiff_t stride, int mb_lim, int lim, int hev_thr)
 typedef decl_loopfilter_fn(*loopfilter_fn);
 
 typedef struct Dav1dLoopFilterDSPContext {

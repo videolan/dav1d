@@ -40,7 +40,7 @@
  *   see ipred_prepare.h for more detailed documentation.
  */
 #define decl_angular_ipred_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, int angle);
+void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, int angle)
 typedef decl_angular_ipred_fn(*angular_ipred_fn);
 
 /*

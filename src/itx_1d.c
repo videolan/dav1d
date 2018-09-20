@@ -802,9 +802,9 @@ static void inv_flipadst##sz##_1d(const coef *const in, const ptrdiff_t in_s, \
     inv_adst##sz##_1d(in, in_s, &out[(sz - 1) * out_s], -out_s); \
 }
 
-flip_inv_adst(4);
-flip_inv_adst(8);
-flip_inv_adst(16);
+flip_inv_adst(4)
+flip_inv_adst(8)
+flip_inv_adst(16)
 
 #undef flip_inv_adst
 
