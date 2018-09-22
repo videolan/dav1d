@@ -193,7 +193,7 @@ entrypoints_src = files(
 )
 entrypoints_lib = static_library(
     'libdav1dentrypoint',
-    entrypoints_src,
+    entrypoints_src, rev_target,
     include_directories: dav1d_inc_dirs,
     c_args: stackrealign_flag,
     install: false,
@@ -280,7 +280,7 @@ foreach bitdepth : dav1d_bitdepths
 endforeach
 
 libdav1d = library('dav1d',
-    libdav1d_sources, rev_target, nasm_objs,
+    libdav1d_sources, nasm_objs,
     version: '0.0.1',
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
