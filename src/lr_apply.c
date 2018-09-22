@@ -124,10 +124,11 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
                       const Av1RestorationUnit *const lr, enum LrEdgeFlags edges)
 {
     const Dav1dDSPContext *const dsp = f->dsp;
-    const int ss_ver = !!plane * f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    const int chroma = !!plane;
+    const int ss_ver = chroma & (f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420);
     const int sbrow_has_bottom = (edges & LR_HAVE_BOTTOM);
     const pixel *lpf = f->lf.lr_lpf_line_ptr[plane] + x;
-    const ptrdiff_t p_stride = f->cur.p.stride[!!plane];
+    const ptrdiff_t p_stride = f->cur.p.stride[chroma];
     const ptrdiff_t lpf_stride = sizeof(pixel) * f->b4_stride * 4;
 
     // The first stripe of the frame is shorter by 8 luma pixel rows.
@@ -190,8 +191,10 @@ static void restore3xU(pixel *dst, const ptrdiff_t dst_stride, const pixel *src,
 static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
                      const int w, const int h, const int row_h, const int plane)
 {
-    const int ss_ver = !!plane * f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
-    const ptrdiff_t p_stride = f->cur.p.stride[!!plane];
+    const int chroma = !!plane;
+    const int ss_ver = chroma & (f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420);
+    const int ss_hor = chroma & (f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444);
+    const ptrdiff_t p_stride = f->cur.p.stride[chroma];
 
     const int unit_size_log2 = f->frame_hdr.restoration.unit_size[!!plane];
     const int unit_size = 1 << unit_size_log2;
@@ -208,7 +211,8 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     // with a 4:2:0 chroma subsampling, do we store the filter information at
     // the AV1Filter unit located at (128,128) or (256,256)
     // TODO Support chroma subsampling.
-    const int shift = plane ? 6 : 7;
+    const int shift_ver = 7 - ss_ver;
+    const int shift_hor = 7 - ss_hor;
 
     int ruy = (row_y >> unit_size_log2);
     // Merge last restoration unit if its height is < half_unit_size
@@ -239,8 +243,8 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
         // AV1Filter unit.
         const int unit_idx = ((ruy & 16) >> 3) + ((rux & 16) >> 4);
         const Av1RestorationUnit *const lr =
-            &f->lf.mask[(((ruy << unit_size_log2) >> shift) * f->sb128w) +
-                        (x >> shift)].lr[plane][unit_idx];
+            &f->lf.mask[(((ruy << (unit_size_log2)) >> shift_ver) * f->sb128w) +
+                        (x >> shift_hor)].lr[plane][unit_idx];
 
         if (edges & LR_HAVE_LEFT) {
             restore3xU(p - 3, p_stride, pre_lr_border, filter_h);
