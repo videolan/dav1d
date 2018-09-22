@@ -45,10 +45,16 @@
 #include "src/thread_task.h"
 #include "src/wedge.h"
 
-void dav1d_init(void) {
+static void init_internal(void) {
     av1_init_wedge_masks();
     av1_init_interintra_masks();
     av1_init_qm_tables();
+}
+
+static pthread_once_t initted = PTHREAD_ONCE_INIT;
+
+void dav1d_init(void) {
+    pthread_once(&initted, init_internal);
 }
 
 const char *dav1d_version(void) {
