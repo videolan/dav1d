@@ -30,7 +30,10 @@
 
 #include <assert.h>
 #include <stdlib.h>
+
+#ifdef HAVE_ALIGNED_MALLOC
 #include <malloc.h>
+#endif
 
 /*
  * Allocate 32-byte aligned memory. The return value can be released
