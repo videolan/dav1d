@@ -604,12 +604,12 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
 #endif
 
     // delta q
-    hdr->delta_q_present = hdr->quant.yac ? get_bits(gb, 1) : 0;
-    hdr->delta_q_res_log2 = hdr->delta_q_present ? get_bits(gb, 2) : 0;
-    hdr->delta_lf_present = hdr->delta_q_present && !hdr->allow_intrabc &&
+    hdr->delta.q.present = hdr->quant.yac ? get_bits(gb, 1) : 0;
+    hdr->delta.q.res_log2 = hdr->delta.q.present ? get_bits(gb, 2) : 0;
+    hdr->delta.lf.present = hdr->delta.q.present && !hdr->allow_intrabc &&
                             get_bits(gb, 1);
-    hdr->delta_lf_res_log2 = hdr->delta_lf_present ? get_bits(gb, 2) : 0;
-    hdr->delta_lf_multi = hdr->delta_lf_present ? get_bits(gb, 1) : 0;
+    hdr->delta.lf.res_log2 = hdr->delta.lf.present ? get_bits(gb, 2) : 0;
+    hdr->delta.lf.multi = hdr->delta.lf.present ? get_bits(gb, 1) : 0;
 #if DEBUG_FRAME_HDR
     printf("HDR: post-delta_q_lf_flags: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);

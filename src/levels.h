@@ -465,11 +465,17 @@ typedef struct Av1FrameHeader {
         Av1SegmentationDataSet seg_data;
         int lossless[NUM_SEGMENTS], qidx[NUM_SEGMENTS];
     } segmentation;
-    int delta_q_present;
-    int delta_q_res_log2;
-    int delta_lf_present;
-    int delta_lf_res_log2;
-    int delta_lf_multi;
+    struct {
+        struct {
+            int present;
+            int res_log2;
+        } q;
+        struct {
+            int present;
+            int res_log2;
+            int multi;
+        } lf;
+    } delta;
     int all_lossless;
     struct {
         int level_y[2];

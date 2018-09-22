@@ -850,7 +850,7 @@ static void decode_b(Dav1dTileContext *const t,
         !(t->by & (31 >> !f->seq_hdr.sb128)))
     {
         const int prev_qidx = ts->last_qidx;
-        const int have_delta_q = f->frame_hdr.delta_q_present &&
+        const int have_delta_q = f->frame_hdr.delta.q.present &&
             (bs != (f->seq_hdr.sb128 ? BS_128x128 : BS_64x64) || !b->skip);
         if (have_delta_q) {
             int delta_q = msac_decode_symbol_adapt(&ts->msac, ts->cdf.m.delta_q, 4);
@@ -860,7 +860,7 @@ static void decode_b(Dav1dTileContext *const t,
             }
             if (delta_q) {
                 if (msac_decode_bool(&ts->msac, 128 << 7)) delta_q = -delta_q;
-                delta_q *= 1 << f->frame_hdr.delta_q_res_log2;
+                delta_q *= 1 << f->frame_hdr.delta.q.res_log2;
             }
             ts->last_qidx = iclip(ts->last_qidx + delta_q, 1, 255);
             if (have_delta_q && DEBUG_BLOCK_INFO)
@@ -879,20 +879,20 @@ static void decode_b(Dav1dTileContext *const t,
         // delta_lf
         int8_t prev_delta_lf[4];
         memcpy(prev_delta_lf, ts->last_delta_lf, 4);
-        if (have_delta_q && f->frame_hdr.delta_lf_present) {
-            const int n_lfs = f->frame_hdr.delta_lf_multi ?
+        if (have_delta_q && f->frame_hdr.delta.lf.present) {
+            const int n_lfs = f->frame_hdr.delta.lf.multi ?
                 f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 ? 4 : 2 : 1;
 
             for (int i = 0; i < n_lfs; i++) {
                 int delta_lf = msac_decode_symbol_adapt(&ts->msac,
-                                ts->cdf.m.delta_lf[i + f->frame_hdr.delta_lf_multi], 4);
+                                ts->cdf.m.delta_lf[i + f->frame_hdr.delta.lf.multi], 4);
                 if (delta_lf == 3) {
                     const int n_bits = 1 + msac_decode_bools(&ts->msac, 3);
                     delta_lf = msac_decode_bools(&ts->msac, n_bits) + 1 + (1 << n_bits);
                 }
                 if (delta_lf) {
                     if (msac_decode_bool(&ts->msac, 128 << 7)) delta_lf = -delta_lf;
-                    delta_lf *= 1 << f->frame_hdr.delta_lf_res_log2;
+                    delta_lf *= 1 << f->frame_hdr.delta.lf.res_log2;
                 }
                 ts->last_delta_lf[i] = iclip(ts->last_delta_lf[i] + delta_lf, -63, 63);
                 if (have_delta_q && DEBUG_BLOCK_INFO)

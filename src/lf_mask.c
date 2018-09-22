@@ -390,13 +390,13 @@ void dav1d_calc_lf_values(uint8_t (*const lflvl_values)[4][8][2],
         dav1d_calc_lf_value(lflvl_values[s][0], 0, hdr->loopfilter.level_y[0],
                             lf_delta[0], segd ? segd->delta_lf_y_v : 0, mr_deltas);
         dav1d_calc_lf_value(lflvl_values[s][1], 0, hdr->loopfilter.level_y[1],
-                            lf_delta[hdr->delta_lf_multi ? 1 : 0],
+                            lf_delta[hdr->delta.lf.multi ? 1 : 0],
                             segd ? segd->delta_lf_y_h : 0, mr_deltas);
         dav1d_calc_lf_value(lflvl_values[s][2], 1, hdr->loopfilter.level_u,
-                            lf_delta[hdr->delta_lf_multi ? 2 : 0],
+                            lf_delta[hdr->delta.lf.multi ? 2 : 0],
                             segd ? segd->delta_lf_u : 0, mr_deltas);
         dav1d_calc_lf_value(lflvl_values[s][3], 1, hdr->loopfilter.level_v,
-                            lf_delta[hdr->delta_lf_multi ? 3 : 0],
+                            lf_delta[hdr->delta.lf.multi ? 3 : 0],
                             segd ? segd->delta_lf_v : 0, mr_deltas);
     }
 }
