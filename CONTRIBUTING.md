@@ -44,4 +44,4 @@ Please read [How to Write a Git Commit Message](https://chris.beams.io/posts/git
 
 ## Patent license
 
-You need to read and understand the [AV1 patents license](doc/PATENTS), before committing.
+You need to read, understand, and agree to the [AV1 patents license](doc/PATENTS), before committing.
