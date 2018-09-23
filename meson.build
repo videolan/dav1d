@@ -119,7 +119,8 @@ elif cc.has_function('_aligned_malloc', prefix: '#include <malloc.h>')
     cdata.set('HAVE_ALIGNED_MALLOC', 1)
 endif
 
-if get_option('optimization') != '0'
+if (get_option('buildtype') != 'debug' and
+    get_option('buildtype') != 'plain')
     add_project_arguments('-fomit-frame-pointer', '-ffast-math',
         language: 'c')
 endif
