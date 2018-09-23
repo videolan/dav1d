@@ -55,12 +55,8 @@ endforeach
 #
 
 feature_defines = [
-    ['_REENTRANT',                  1], # Define so that reentrant versions of several functions get declared
-    ['_THREAD_SAFE',                1], # Same as _REENTANT for some other OSes
     ['_GNU_SOURCE',                 1], # Enable GNU extensions on systems that have them
-    ['_POSIX_PTHREAD_SEMANTICS',    1], # Enable threading extensions on Solaris
-    ['__EXTENSIONS__',              1], # Enable general extensions on Solaris
-    ['_FILE_OFFSET_BITS',           64], # Define to 64 for large files support
+    ['_POSIX_C_SOURCE',             '200809L'], #IEEE Std 1003.1
 ]
 
 if host_machine.system() == 'windows'
@@ -69,14 +65,6 @@ if host_machine.system() == 'windows'
             ['UNICODE',                     1], # Define to 1 for Unicode (Wide Chars) APIs
             ['_UNICODE',                    1], # Define to 1 for Unicode (Wide Chars) APIs
             ['__USE_MINGW_ANSI_STDIO',      1], # Define to force use of MinGW printf
-            ['_ISOC99_SOURCE',              1], # Extensions to ISO C89 from ISO C99
-            ['_ISOC11_SOURCE',              1], # Extensions to ISO C99 from ISO C11
-            ['_POSIX_SOURCE',               1], # IEEE Std 1003.1
-            ['_POSIX_C_SOURCE',             '200809L'], #IEEE Std 1003.1
-            ['_XOPEN_SOURCE',               700], # POSIX and XPG 7th edition
-            ['_XOPEN_SOURCE_EXTENDED',      1], # XPG things and X/Open Unix extensions
-            ['_BSD_SOURCE',                 1], # ISO C, POSIX, and 4.3BSD things
-            ['_SVID_SOURCE',                1], # ISO C, POSIX, and SVID things
     ]
 endif
 
