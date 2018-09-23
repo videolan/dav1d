@@ -1,0 +1,6 @@
+/build*
+/Session.vim
+[._]*.swp
+*~
+tags
+.DS_Store
