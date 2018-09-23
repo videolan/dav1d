@@ -153,34 +153,36 @@ int dav1d_decode(Dav1dContext *const c,
     validate_input_or_ret(c != NULL, -EINVAL);
     validate_input_or_ret(out != NULL, -EINVAL);
 
-    while (!in) {
+    if (!in) {
         if (c->n_fc == 1) return -EAGAIN;
 
         // flush
-        const unsigned next = c->frame_thread.next;
-        Dav1dFrameContext *const f = &c->fc[next];
+        int flush_count = 0;
+        do {
+            const unsigned next = c->frame_thread.next;
+            Dav1dFrameContext *const f = &c->fc[next];
 
-        pthread_mutex_lock(&f->frame_thread.td.lock);
-        while (f->n_tile_data > 0)
-            pthread_cond_wait(&f->frame_thread.td.cond,
-                              &f->frame_thread.td.lock);
-        pthread_mutex_unlock(&f->frame_thread.td.lock);
-        Dav1dThreadPicture *const out_delayed =
-            &c->frame_thread.out_delayed[next];
-        if (out_delayed->p.data[0]) {
+            pthread_mutex_lock(&f->frame_thread.td.lock);
+            while (f->n_tile_data > 0)
+                pthread_cond_wait(&f->frame_thread.td.cond,
+                                  &f->frame_thread.td.lock);
+            pthread_mutex_unlock(&f->frame_thread.td.lock);
+            Dav1dThreadPicture *const out_delayed =
+                &c->frame_thread.out_delayed[next];
             if (++c->frame_thread.next == c->n_fc)
                 c->frame_thread.next = 0;
-            if (out_delayed->visible) {
-                dav1d_picture_ref(out, &out_delayed->p);
+            if (out_delayed->p.data[0]) {
+                if (out_delayed->visible) {
+                    dav1d_picture_ref(out, &out_delayed->p);
+                }
+                dav1d_thread_picture_unref(out_delayed);
+                if (out->data[0]) {
+                    return 0;
+                }
+                // else continue
             }
-            dav1d_thread_picture_unref(out_delayed);
-            if (out->data[0]) {
-                return 0;
-            }
-            // else continue
-        } else {
-            return -EAGAIN;
-        }
+        } while (++flush_count < c->n_fc);
+        return -EAGAIN;
     }
 
     while (in->sz > 0) {
