@@ -27,21 +27,33 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "common/intops.h"
 
 #include "src/cdef.h"
 
-static const int8_t cdef_directions[8 /* dir */][2 /* pass */][2 /* y, x */] = {
-    { { -1, 1 }, { -2,  2 } },
-    { {  0, 1 }, { -1,  2 } },
-    { {  0, 1 }, {  0,  2 } },
-    { {  0, 1 }, {  1,  2 } },
-    { {  1, 1 }, {  2,  2 } },
-    { {  1, 0 }, {  2,  1 } },
-    { {  1, 0 }, {  2,  0 } },
-    { {  1, 0 }, {  2, -1 } }
+static const int8_t cdef_directions4[8 /* dir */][2 /* pass */] = {
+    { -1 * 8 + 1, -2 * 8 + 2 },
+    {  0 * 8 + 1, -1 * 8 + 2 },
+    {  0 * 8 + 1,  0 * 8 + 2 },
+    {  0 * 8 + 1,  1 * 8 + 2 },
+    {  1 * 8 + 1,  2 * 8 + 2 },
+    {  1 * 8 + 0,  2 * 8 + 1 },
+    {  1 * 8 + 0,  2 * 8 + 0 },
+    {  1 * 8 + 0,  2 * 8 - 1 }
+};
+
+static const int8_t cdef_directions8[8 /* dir */][2 /* pass */] = {
+    { -1 * 16 + 1, -2 * 16 + 2 },
+    {  0 * 16 + 1, -1 * 16 + 2 },
+    {  0 * 16 + 1,  0 * 16 + 2 },
+    {  0 * 16 + 1,  1 * 16 + 2 },
+    {  1 * 16 + 1,  2 * 16 + 2 },
+    {  1 * 16 + 0,  2 * 16 + 1 },
+    {  1 * 16 + 0,  2 * 16 + 0 },
+    {  1 * 16 + 0,  2 * 16 - 1 }
 };
 static const uint8_t cdef_pri_taps[2][2] = { { 4, 2 }, { 3, 3 } };
 static const uint8_t cdef_sec_taps[2][2] = { { 2, 1 }, { 2, 1 } };
@@ -78,10 +90,15 @@ static void cdef_filter_block_c(pixel *const dst, const ptrdiff_t dst_stride,
                                 const int sec_strength, const int dir,
                                 const int damping, const enum CdefEdgeFlags edges)
 {
-    const ptrdiff_t tmp_stride = w + 4;
+    const ptrdiff_t tmp_stride = 16 >> (w == 4);
     uint16_t tmp[tmp_stride * (h + 4)];
+    uint16_t *tmp2 = tmp + 2 * tmp_stride + 2;
     const uint8_t *const pri_taps = cdef_pri_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
     const uint8_t *const sec_taps = cdef_sec_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
+    const int8_t (*cdef_directions)[2];
+
+    assert(w == 4 || w == 8);
+    cdef_directions = w == 4 ? cdef_directions4 : cdef_directions8;
 
     // fill extended input buffer
     int x_start = -2, x_end = w + 2, y_start = -2, y_end = h + 2;
@@ -104,10 +121,10 @@ static void cdef_filter_block_c(pixel *const dst, const ptrdiff_t dst_stride,
     }
     for (int y = y_start; y < 0; y++)
         for (int x = x_start; x < x_end; x++)
-            tmp[(y + 2) * tmp_stride + (x + 2)] = top[y & 1][x];
+            tmp2[y * tmp_stride + x] = top[y & 1][x];
     for (int y = 0; y < y_end; y++)
         for (int x = x_start; x < x_end; x++)
-            tmp[(y + 2) * tmp_stride + (x + 2)] = dst[y * PXSTRIDE(dst_stride) + x];
+            tmp2[y * tmp_stride + x] = dst[y * PXSTRIDE(dst_stride) + x];
 
     // run actual filter
     for (int y = 0; y < h; y++) {
@@ -116,23 +133,21 @@ static void cdef_filter_block_c(pixel *const dst, const ptrdiff_t dst_stride,
             const int px = dst[y * PXSTRIDE(dst_stride) + x];
             int max = px, min = px;
             for (int k = 0; k < 2; k++) {
-#define extpx(y, x) tmp[((y) + 2) * tmp_stride + ((x) + 2)]
-                const int8_t *const off1 = cdef_directions[dir][k];
-                const int p0 = extpx(y + off1[0], x + off1[1]);
-                const int p1 = extpx(y - off1[0], x - off1[1]);
+                const int8_t off1 = cdef_directions[dir][k];
+                const int p0 = tmp2[y * tmp_stride + x + off1];
+                const int p1 = tmp2[y * tmp_stride + x - off1];
                 sum += pri_taps[k] * constrain(p0 - px, pri_strength, damping);
                 sum += pri_taps[k] * constrain(p1 - px, pri_strength, damping);
                 if (p0 != CDEF_VERY_LARGE) max = imax(p0, max);
                 if (p1 != CDEF_VERY_LARGE) max = imax(p1, max);
                 min = imin(p0, min);
                 min = imin(p1, min);
-                const int8_t *const off2 = cdef_directions[(dir + 2) & 7][k];
-                const int s0 = extpx(y + off2[0], x + off2[1]);
-                const int s1 = extpx(y - off2[0], x - off2[1]);
-                const int8_t *const off3 = cdef_directions[(dir + 6) & 7][k];
-                const int s2 = extpx(y + off3[0], x + off3[1]);
-                const int s3 = extpx(y - off3[0], x - off3[1]);
-#undef extpx
+                const int8_t off2 = cdef_directions[(dir + 2) & 7][k];
+                const int s0 = tmp2[y * tmp_stride + x + off2];
+                const int s1 = tmp2[y * tmp_stride + x - off2];
+                const int8_t off3 = cdef_directions[(dir + 6) & 7][k];
+                const int s2 = tmp2[y * tmp_stride + x + off3];
+                const int s3 = tmp2[y * tmp_stride + x - off3];
                 if (s0 != CDEF_VERY_LARGE) max = imax(s0, max);
                 if (s1 != CDEF_VERY_LARGE) max = imax(s1, max);
                 if (s2 != CDEF_VERY_LARGE) max = imax(s2, max);
