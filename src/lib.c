@@ -221,8 +221,8 @@ void dav1d_close(Dav1dContext *const c) {
             pthread_mutex_unlock(&f->frame_thread.td.lock);
             pthread_join(f->frame_thread.td.thread, NULL);
             freep(&f->frame_thread.b);
-            dav1d_free_aligned(&f->frame_thread.pal_idx);
-            dav1d_free_aligned(&f->frame_thread.cf);
+            dav1d_freep_aligned(&f->frame_thread.pal_idx);
+            dav1d_freep_aligned(&f->frame_thread.cf);
             freep(&f->frame_thread.tile_start_off);
             freep(&f->frame_thread.pal);
             freep(&f->frame_thread.cbi);
