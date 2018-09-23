@@ -102,7 +102,7 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
             src -= src_stride * 3;
             do {
                 for (int x = 0; x < w; x++)
-                    mid_ptr[x] = FILTER_8TAP_RND(src, x, fh, 1, 3);
+                    mid_ptr[x] = FILTER_8TAP_RND(src, x, fh, 1, 2);
 
                 mid_ptr += 128;
                 src += src_stride;
@@ -111,7 +111,7 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
             mid_ptr = mid + 128 * 3;
             do {
                 for (int x = 0; x < w; x++)
-                    dst[x] = FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 11);
+                    dst[x] = FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 10);
 
                 mid_ptr += 128;
                 dst += dst_stride;
@@ -119,7 +119,7 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
         } else {
             do {
                 for (int x = 0; x < w; x++) {
-                    const int px = FILTER_8TAP_RND(src, x, fh, 1, 3);
+                    const int px = FILTER_8TAP_RND(src, x, fh, 1, 2);
                     dst[x] = iclip_pixel((px + 8) >> 4);
                 }
 
@@ -130,7 +130,7 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
     } else if (fv) {
         do {
             for (int x = 0; x < w; x++)
-                dst[x] = FILTER_8TAP_CLIP(src, x, fv, src_stride, 7);
+                dst[x] = FILTER_8TAP_CLIP(src, x, fv, src_stride, 6);
 
             dst += dst_stride;
             src += src_stride;
@@ -155,7 +155,7 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
             src -= src_stride * 3;
             do {
                 for (int x = 0; x < w; x++)
-                    mid_ptr[x] = FILTER_8TAP_RND(src, x, fh, 1, 3);
+                    mid_ptr[x] = FILTER_8TAP_RND(src, x, fh, 1, 2);
 
                 mid_ptr += 128;
                 src += src_stride;
@@ -164,7 +164,7 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
             mid_ptr = mid + 128 * 3;
             do {
                 for (int x = 0; x < w; x++)
-                    tmp[x] = FILTER_8TAP_RND(mid_ptr, x, fv, 128, 7);
+                    tmp[x] = FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6);
 
                 mid_ptr += 128;
                 tmp += w;
@@ -172,7 +172,7 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
         } else {
             do {
                 for (int x = 0; x < w; x++)
-                    tmp[x] = FILTER_8TAP_RND(src, x, fh, 1, 3);
+                    tmp[x] = FILTER_8TAP_RND(src, x, fh, 1, 2);
 
                 tmp += w;
                 src += src_stride;
@@ -181,7 +181,7 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
     } else if (fv) {
         do {
             for (int x = 0; x < w; x++)
-                tmp[x] = FILTER_8TAP_RND(src, x, fv, src_stride, 3);
+                tmp[x] = FILTER_8TAP_RND(src, x, fv, src_stride, 2);
 
             tmp += w;
             src += src_stride;
