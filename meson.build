@@ -56,7 +56,7 @@ endforeach
 
 feature_defines = [
     ['_GNU_SOURCE',                 1], # Enable GNU extensions on systems that have them
-    ['_POSIX_C_SOURCE',             '200809L'], #IEEE Std 1003.1
+    ['_POSIX_C_SOURCE',             '200112L'], # POSIX.1–2001 (IEEE Std 1003.1-2001)
 ]
 
 if host_machine.system() == 'windows'
@@ -100,8 +100,7 @@ else
     warning('Compiler does not support -fvisibility=hidden, all symbols will be public!')
 endif
 
-if cc.has_function('posix_memalign', prefix: '#include <stdlib.h>', args: ['-D_POSIX_C_SOURCE=200112'])
-    feature_defines += [['POSIX_C_SOURCE', 200112]]
+if cc.has_function('posix_memalign', prefix: '#include <stdlib.h>', args: ['-D_POSIX_C_SOURCE=200112L'])
     cdata.set('HAVE_POSIX_MEMALIGN', 1)
 elif cc.has_function('_aligned_malloc', prefix: '#include <malloc.h>')
     cdata.set('HAVE_ALIGNED_MALLOC', 1)
