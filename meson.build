@@ -237,7 +237,8 @@ dav1d_sources = files(
 dav1d = executable('dav1d',
     dav1d_sources, rev_target,
     link_with: libdav1d,
-    include_directories: [dav1d_inc_dirs, include_directories('tools')]
+    include_directories: [dav1d_inc_dirs, include_directories('tools')],
+    install: true,
 )
 
 #
