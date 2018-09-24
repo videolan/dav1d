@@ -24,7 +24,7 @@
 
 project('dav1d', ['c'],
     version: '0.0.1',
-    default_options: ['c_std=c11'],
+    default_options: ['c_std=c99'],
     meson_version: '>= 0.47.0')
 
 dav1d_src_root = meson.current_source_dir()
