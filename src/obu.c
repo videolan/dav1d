@@ -590,10 +590,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
                     hdr->segmentation.seg_data.preskip = 1;
                 }
             }
+        } else if (hdr->primary_ref_frame == PRIMARY_REF_NONE) {
+            memset(&hdr->segmentation.seg_data, 0, sizeof(Av1SegmentationDataSet));
         } else {
             const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
             hdr->segmentation.seg_data = c->refs[pri_ref].seg_data;
         }
+    } else if (hdr->primary_ref_frame == PRIMARY_REF_NONE) {
+        memset(&hdr->segmentation.seg_data, 0, sizeof(Av1SegmentationDataSet));
     } else {
         const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
         hdr->segmentation.seg_data = c->refs[pri_ref].seg_data;
