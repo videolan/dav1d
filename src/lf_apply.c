@@ -220,12 +220,14 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
                                     int sby, const int start_of_tile_row)
 {
     int x, have_left;
+    // Don't filter outside the frame
+    const int hy4 = (f->cur.p.p.h + 3) >> 2;
     const int have_top = sby > 0;
     const int is_sb64 = !f->seq_hdr.sb128;
     const int starty4 = (sby & is_sb64) << 4;
     const int sbsz = 32 >> is_sb64;
     const int sbl2 = 5 - is_sb64;
-    const int endy4 = starty4 + imin(f->bh - sby * f->sb_step, sbsz);
+    const int endy4 = starty4 + imin(hy4 - sby * f->sb_step, sbsz);
     const int halign = (f->bh + 31) & ~31;
     const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;

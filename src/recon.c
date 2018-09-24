@@ -521,11 +521,13 @@ static void mc(Dav1dTileContext *const t,
     if (refp != &f->cur) // i.e. not for intrabc
         dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
                                   PLANE_TYPE_Y + !!pl);
-    if (dx < 3 || dx + bw4 * h_mul + 4 > f->bw * h_mul ||
-        dy < 3 || dy + bh4 * v_mul + 4 > f->bh * v_mul)
+    if (dx < 3 || dx + bw4 * h_mul + 4 > ((f->cur.p.p.w + ss_hor) >> ss_hor) ||
+        dy < 3 || dy + bh4 * v_mul + 4 > ((f->cur.p.p.h + ss_ver) >> ss_ver))
     {
         emu_edge(t->emu_edge, 160 * sizeof(pixel), refp->p.data[pl], ref_stride,
-                 bw4 * h_mul + 7, bh4 * v_mul + 7, f->bw * h_mul, f->bh * v_mul,
+                 bw4 * h_mul + 7, bh4 * v_mul + 7,
+                 (f->cur.p.p.w + ss_hor) >> ss_hor,
+                 (f->cur.p.p.h + ss_ver) >> ss_ver,
                  dx - 3, dy - 3);
         ref = &t->emu_edge[160 * 3 + 3];
         ref_stride = 160 * sizeof(pixel);
@@ -632,7 +634,8 @@ static void warp_affine(Dav1dTileContext *const t,
     const int h_mul = 4 >> ss_hor, v_mul = 4 >> ss_ver;
     assert(!((b_dim[0] * h_mul) & 7) && !((b_dim[1] * v_mul) & 7));
     const int32_t *const mat = wmp->matrix;
-    const int width = f->bw * h_mul, height = f->bh * v_mul;
+    const int width = (f->cur.p.p.w + ss_hor) >> ss_hor;
+    const int height = (f->cur.p.p.h + ss_ver) >> ss_ver;
 
     for (int y = 0; y < b_dim[1] * v_mul; y += 8) {
         for (int x = 0; x < b_dim[0] * h_mul; x += 8) {
