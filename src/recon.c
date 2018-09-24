@@ -518,8 +518,9 @@ static void mc(Dav1dTileContext *const t,
     ptrdiff_t ref_stride = refp->p.stride[!!pl];
     const pixel *ref;
 
-    dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
-                              PLANE_TYPE_Y + !!pl);
+    if (refp != &f->cur) // i.e. not for intrabc
+        dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
+                                  PLANE_TYPE_Y + !!pl);
     if (dx < 3 || dx + bw4 * h_mul + 4 > f->bw * h_mul ||
         dy < 3 || dy + bh4 * v_mul + 4 > f->bh * v_mul)
     {
