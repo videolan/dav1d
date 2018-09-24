@@ -800,7 +800,7 @@ cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
         ypx += PXSTRIDE(stride) << ss_ver;
     }
     for (; y < height; y++) {
-        memcpy(ac, &ac[-32], width * sizeof(*ac));
+        memcpy(ac, &ac[-width], width * sizeof(*ac));
         ac += width;
     }
 

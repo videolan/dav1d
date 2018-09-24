@@ -884,6 +884,7 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                                                       b->cfl_alpha,
                                                       cbh4 * 4);
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
+                    ac_dump(ac, 4*cbw4, 4*cbh4, "ac");
                     hex_dump(uv_dst[0], stride, cbw4 * 4, cbh4 * 4, "u-cfl-pred");
                     hex_dump(uv_dst[1], stride, cbw4 * 4, cbh4 * 4, "v-cfl-pred");
                 }

@@ -72,4 +72,15 @@ static inline void coef_dump(const coef *buf, const int w, const int h,
     }
 }
 
+static inline void ac_dump(const int16_t *buf, int w, int h, const char *what)
+{
+    printf("%s\n", what);
+    while (h--) {
+        for (int x = 0; x < w; x++)
+            printf(" %03d", buf[x]);
+        buf += w;
+        printf("\n");
+    }
+}
+
 #endif /* __DAV1D_COMMON_DUMP_H__ */
