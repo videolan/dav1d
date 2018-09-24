@@ -40,32 +40,41 @@ enum LrRestorePlanes {
     LR_RESTORE_V = 1 << 2,
 };
 
+// The loop filter buffer stores 12 rows of pixels. A superblock block will
+// contain at most 2 stripes. Each stripe requires 4 rows pixels (2 above
+// and 2 below) the final 4 rows are used to swap the bottom of the last
+// stripe with the top of the next super block row.
 static void backup_lpf(pixel *dst, ptrdiff_t dst_stride,
                        const pixel *src, ptrdiff_t src_stride,
-                       const int first_stripe_h, const int next_stripe_h,
-                       int row, const int row_h, const int w, const int h)
+                       const int ss_ver, const int sb128,
+                       int row, const int row_h, const int w)
 {
     src_stride = PXSTRIDE(src_stride);
     dst_stride = PXSTRIDE(dst_stride);
+
+    // The first stripe of the frame is shorter by 8 luma pixel rows.
+    int stripe_h = (64 - 8 * !row) >> ss_ver;
+
     if (row) {
+        const int top = 4 << sb128;
         // Copy the top part of the stored loop filtered pixels from the
         // previous sb row needed above the first stripe of this sb row.
-        pixel_copy(&dst[dst_stride *  0], &dst[dst_stride *  8], w);
-        pixel_copy(&dst[dst_stride *  1], &dst[dst_stride *  9], w);
-        pixel_copy(&dst[dst_stride *  2], &dst[dst_stride * 10], w);
-        pixel_copy(&dst[dst_stride *  3], &dst[dst_stride * 11], w);
+        pixel_copy(&dst[dst_stride *  0], &dst[dst_stride *  top], w);
+        pixel_copy(&dst[dst_stride *  1], &dst[dst_stride * (top + 1)], w);
+        pixel_copy(&dst[dst_stride *  2], &dst[dst_stride * (top + 2)], w);
+        pixel_copy(&dst[dst_stride *  3], &dst[dst_stride * (top + 3)], w);
     }
 
-    int stripe_h = first_stripe_h;
     dst += 4 * dst_stride;
     src += (stripe_h - 2) * src_stride;
+
     for (; row + stripe_h <= row_h; row += stripe_h) {
         for (int i = 0; i < 4; i++) {
             pixel_copy(dst, src, w);
             dst += dst_stride;
             src += src_stride;
         }
-        stripe_h = next_stripe_h;
+        stripe_h = 64 >> ss_ver;
         src += (stripe_h - 4) * src_stride;
     }
 }
@@ -73,7 +82,6 @@ static void backup_lpf(pixel *dst, ptrdiff_t dst_stride,
 void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
                                /*const*/ pixel *const src[3], const int sby)
 {
-    const int stripe_h = 64 - (8 * !sby);
     const ptrdiff_t offset = 8 * !!sby;
     const ptrdiff_t *const src_stride = f->cur.p.stride;
 
@@ -89,8 +97,8 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
         const int row_h = imin((sby + 1) << (6 + f->seq_hdr.sb128), h);
         const int y_stripe = (sby << (6 + f->seq_hdr.sb128)) - offset;
         backup_lpf(f->lf.lr_lpf_line_ptr[0], sizeof(pixel) * f->b4_stride * 4,
-                   src[0] - offset * PXSTRIDE(src_stride[0]),
-                   src_stride[0], stripe_h, 64, y_stripe, row_h, w, h);
+                   src[0] - offset * PXSTRIDE(src_stride[0]), src_stride[0],
+                   0, f->seq_hdr.sb128, y_stripe, row_h, w);
     }
     if (restore_planes & (LR_RESTORE_U | LR_RESTORE_V)) {
         const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
@@ -98,22 +106,19 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
         const int h = f->bh << (2 - ss_ver);
         const int w = f->bw << (2 - ss_hor);
         const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr.sb128), h);
-        const int stripe_h_uv = stripe_h >> ss_ver;
         const ptrdiff_t offset_uv = offset >> ss_ver;
         const int y_stripe =
             (sby << ((6 - ss_ver) + f->seq_hdr.sb128)) - offset_uv;
 
         if (restore_planes & LR_RESTORE_U) {
             backup_lpf(f->lf.lr_lpf_line_ptr[1], sizeof(pixel) * f->b4_stride * 4,
-                       src[1] - offset_uv * PXSTRIDE(src_stride[1]),
-                       src_stride[1], stripe_h_uv, 32, y_stripe,
-                       row_h, w, h);
+                       src[1] - offset_uv * PXSTRIDE(src_stride[1]), src_stride[1],
+                       ss_ver, f->seq_hdr.sb128, y_stripe, row_h, w);
         }
         if (restore_planes & LR_RESTORE_V) {
             backup_lpf(f->lf.lr_lpf_line_ptr[2], sizeof(pixel) * f->b4_stride * 4,
-                       src[2] - offset_uv * PXSTRIDE(src_stride[1]),
-                       src_stride[1], stripe_h_uv, 32, y_stripe,
-                       row_h, w, h);
+                       src[2] - offset_uv * PXSTRIDE(src_stride[1]), src_stride[1],
+                       ss_ver, f->seq_hdr.sb128, y_stripe, row_h, w);
         }
     }
 }
