@@ -55,7 +55,6 @@ endforeach
 #
 
 feature_defines = [
-    ['_GNU_SOURCE',                 1], # Enable GNU extensions on systems that have them
     ['_POSIX_C_SOURCE',             '200112L'], # POSIX.1–2001 (IEEE Std 1003.1-2001)
 ]
 
