@@ -125,4 +125,23 @@ void pthread_join(pthread_t thread, void** res)
     free(th);
 }
 
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+{
+    BOOL fPending = FALSE;
+    BOOL fStatus;
+
+    fStatus = InitOnceBeginInitialize(once_control, 0, &fPending, NULL);
+    if (fStatus != TRUE)
+        return EINVAL;
+
+    if (fPending == TRUE)
+        init_routine();
+
+    fStatus = InitOnceComplete(once_control, 0, NULL);
+    if (!fStatus)
+        return EINVAL;
+
+    return 0;
+}
+
 #endif

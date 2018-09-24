@@ -32,8 +32,11 @@
 
 #include <windows.h>
 
+#define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
+
 typedef CRITICAL_SECTION pthread_mutex_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
+typedef INIT_ONCE pthread_once_t;
 typedef void *pthread_t;
 typedef void *pthread_mutexattr_t;
 typedef void *pthread_condattr_t;
@@ -53,6 +56,8 @@ void pthread_cond_broadcast(pthread_cond_t* cond);
 int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
                    void*(*proc)(void*), void* param);
 void pthread_join(pthread_t thread, void** res);
+
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
 
 #else
 
