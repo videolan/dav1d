@@ -58,7 +58,7 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this pr
 
 # Compile
 
-1. Install [Meson](https://mesonbuild.com/)
+1. Install [Meson](https://mesonbuild.com/) (0.47 or higher)
 2. Run `meson build --buildtype release`
 3. Build with `ninja -C build`
 
