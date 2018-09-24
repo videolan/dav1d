@@ -2786,8 +2786,8 @@ int submit_frame(Dav1dContext *const c) {
         dav1d_thread_picture_ref(out_delayed, &f->cur);
     }
 
-    f->bw = (f->frame_hdr.width + 3) >> 2;
-    f->bh = (f->frame_hdr.height + 3) >> 2;
+    f->bw = ((f->frame_hdr.width + 7) >> 3) << 1;
+    f->bh = ((f->frame_hdr.height + 7) >> 3) << 1;
     f->sb128w = (f->bw + 31) >> 5;
     f->sb128h = (f->bh + 31) >> 5;
     f->sb_shift = 4 + f->seq_hdr.sb128;
