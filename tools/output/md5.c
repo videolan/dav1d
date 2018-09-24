@@ -206,7 +206,7 @@ static void md5_close(MD5Context *const md5) {
                 md5->abcd[i] >> 24);
     fprintf(md5->f, "\n");
 
-    if (md5->f != stdin)
+    if (md5->f != stdout)
         fclose(md5->f);
 }
 

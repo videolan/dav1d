@@ -43,7 +43,7 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
                      const Dav1dPictureParameters *p, const unsigned fps[2])
 {
     if (!strcmp(file, "-")) {
-        c->f = stdin;
+        c->f = stdout;
     } else if (!(c->f = fopen(file, "w"))) {
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
@@ -100,7 +100,7 @@ error:
 }
 
 static void y4m2_close(Y4m2OutputContext *const c) {
-    if (c->f != stdin)
+    if (c->f != stdout)
         fclose(c->f);
 }
 
