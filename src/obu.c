@@ -862,7 +862,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
-    hdr->film_grain.present = seqhdr->film_grain_present && get_bits(gb, 1);
+    hdr->film_grain.present = seqhdr->film_grain_present &&
+                              (hdr->show_frame || hdr->showable_frame) &&
+                              get_bits(gb, 1);
     if (hdr->film_grain.present) {
         hdr->film_grain.seed = get_bits(gb, 16);
         hdr->film_grain.update = hdr->frame_type != INTER_FRAME || get_bits(gb, 1);

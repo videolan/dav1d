@@ -307,7 +307,7 @@ static inline int get_jnt_comp_ctx(const int order_hint_n_bits,
                                    const int yb4, const int xb4)
 {
     const unsigned d0 = abs(get_poc_diff(order_hint_n_bits, ref0poc, poc));
-    const unsigned d1 = abs(get_poc_diff(order_hint_n_bits, ref1poc, poc));
+    const unsigned d1 = abs(get_poc_diff(order_hint_n_bits, poc, ref1poc));
     const int offset = d0 == d1;
     const int a_ctx = a->comp_type[xb4] >= COMP_INTER_AVG ||
                       a->ref[0][xb4] == 6;
