@@ -2,7 +2,7 @@ stages:
     - build
 
 build-debian:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20180923094753
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180925105518
     stage: build
     tags:
         - debian
