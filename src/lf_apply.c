@@ -249,7 +249,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
             lflvl[x].filter_y[0][y][0] &= ~mask;
             lflvl[x].filter_y[0][y][imin(idx, lpf_y[y - starty4])] |= mask;
         }
-        for (int y = starty4 >> ss_ver; y < (endy4 >> ss_ver); y++) {
+        for (int y = starty4 >> ss_ver; y < ((endy4 + ss_ver) >> ss_ver); y++) {
             const int idx = !!(lflvl[x].filter_uv[0][y][1] & uv_mask);
             lflvl[x].filter_uv[0][y][1] &= ~uv_mask;
             lflvl[x].filter_uv[0][y][0] &= ~uv_mask;
