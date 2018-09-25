@@ -4,3 +4,8 @@ option('bitdepths',
     type: 'array',
     choices: ['8', '10'],
     description: 'Enable only specified bitdepths')
+
+option('build_asm',
+    type: 'boolean',
+    value: true,
+    description: 'Build asm files, if available')

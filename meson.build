@@ -29,6 +29,7 @@ project('dav1d', ['c'],
 
 dav1d_src_root = meson.current_source_dir()
 cdata = configuration_data()
+cdata_asm = configuration_data()
 cc = meson.get_compiler('c')
 
 if not meson.is_cross_build() 
@@ -75,22 +76,55 @@ if host_machine.cpu_family().startswith('x86')
     if cc.has_argument('-mpreferred-stack-boundary=5')
         stackalign_flag = ['-mpreferred-stack-boundary=5']
         stackrealign_flag = ['-mincoming-stack-boundary=4']
-# When cross compiling for win64 gcc refuses to use -mpreferred-stack-boundary
-# with a value which isn't 3 or 4. However, when cross compiling with clang, 5 is
-# accepted.
-    elif (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86_64'
-    and cc.has_argument('-mpreferred-stack-boundary=4'))
+        cdata_asm.set('STACK_ALIGNMENT', 32)
+        cdata.set('STACK_ALIGNMENT', 32)
+    elif cc.has_argument('-mpreferred-stack-boundary=4')
         stackalign_flag = ['-mpreferred-stack-boundary=4']
         stackrealign_flag = ['-mincoming-stack-boundary=4']
+        cdata_asm.set('STACK_ALIGNMENT', 16)
+        cdata.set('STACK_ALIGNMENT', 16)
     elif cc.has_argument('-mstack-alignment=32')
         stackalign_flag = ['-mstack-alignment=32']
         stackrealign_flag = ['-mstackrealign']
+        cdata_asm.set('STACK_ALIGNMENT', 32)
+        cdata.set('STACK_ALIGNMENT', 32)
     else
-        error('Failed to specify stack alignment')
+        if host_machine.cpu_family() == 'x86_64'
+            cdata_asm.set('STACK_ALIGNMENT', 16)
+            cdata.set('STACK_ALIGNMENT', 16)
+        else
+            cdata_asm.set('STACK_ALIGNMENT', 4)
+            cdata.set('STACK_ALIGNMENT', 4)
+        endif
     endif
 else
     stackalign_flag = []
     stackrealign_flag = []
+endif
+
+if host_machine.cpu_family().startswith('x86')
+    cdata.set10('ARCH_X86', true)
+    if host_machine.cpu_family() == 'x86_64'
+        cdata_asm.set10('ARCH_X86_64', true)
+        cdata.set10('ARCH_X86_64', true)
+        cdata_asm.set10('ARCH_X86_32', false)
+        cdata.set10('ARCH_X86_32', false)
+
+        cdata_asm.set10('PIC', true)
+    else
+        cdata_asm.set10('ARCH_X86_64', false)
+        cdata.set10('ARCH_X86_64', false)
+        cdata_asm.set10('ARCH_X86_32', true)
+        cdata.set10('ARCH_X86_32', true)
+    endif
+else
+    cdata.set10('ARCH_X86', false)
+    cdata.set10('ARCH_X86_64', false)
+    cdata.set10('ARCH_X86_32', false)
+endif
+
+if cc.symbols_have_underscore_prefix()
+    cdata_asm.set10('PREFIX', true)
 endif
 
 if cc.has_argument('-fvisibility=hidden')
@@ -122,11 +156,19 @@ foreach f : feature_defines
    cdata.set(f.get(0), f.get(1))
 endforeach
 
+is_asm_enabled = (get_option('build_asm') == true and
+    host_machine.cpu_family().startswith('x86'))
+cdata.set10('HAVE_ASM', is_asm_enabled)
+
 #
 # Generate config headers
 #
 
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
+
+if is_asm_enabled
+    config_asm_target = configure_file(output: 'config.asm', output_format: 'nasm', configuration: cdata_asm)
+endif
 
 subdir('include')
 
@@ -195,12 +237,48 @@ libdav1d_sources = files(
     'src/qm.c',
 )
 
+if is_asm_enabled
+
+    libdav1d_sources_asm = []
+
+    nasm = find_program('nasm')
+
+    if host_machine.system() == 'windows'
+        nasm_format = 'win'
+    elif host_machine.system() == 'darwin'
+        nasm_format = 'macho'
+    else
+        nasm_format = 'elf'
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        nasm_format += '64'
+    else
+        nasm_format += '32'
+    endif
+
+    nasm_gen = generator(nasm,
+        output: '@BASENAME@.obj',
+        depfile: '@BASENAME@.obj.ndep',
+        arguments: [
+            '-f', nasm_format,
+            '-I', '@CURRENT_SOURCE_DIR@/',
+            '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
+            '@EXTRA_ARGS@',
+            '@INPUT@',
+            '-o', '@OUTPUT@'
+        ])
+
+    nasm_objs = nasm_gen.process(libdav1d_sources_asm)
+else
+    nasm_objs = []
+endif
+
 if host_machine.system() == 'windows'
     libdav1d_sources += files('src/win32/thread.c')
 endif
 
 libdav1d = library('dav1d',
-    libdav1d_sources, rev_target,
+    libdav1d_sources, rev_target, nasm_objs,
     version: '0.0.1',
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
