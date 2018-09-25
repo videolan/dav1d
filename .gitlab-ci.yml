@@ -2,11 +2,29 @@ stages:
     - build
 
 build-debian:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20180925105518
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180925152615
     stage: build
     tags:
         - debian
         - amd64
     script:
         - meson build --buildtype release
+        - ninja -v -C build
+
+build-win32:
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180925152615
+    stage: build
+    tags:
+        - win32
+    script:
+        - meson build --buildtype release --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+        - ninja -v -C build
+
+build-win64:
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180925152615
+    stage: build
+    tags:
+        - win64
+    script:
+        - meson build --buildtype release --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
         - ninja -v -C build
