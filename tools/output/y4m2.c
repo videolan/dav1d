@@ -44,7 +44,7 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
 {
     if (!strcmp(file, "-")) {
         c->f = stdout;
-    } else if (!(c->f = fopen(file, "w"))) {
+    } else if (!(c->f = fopen(file, "wb"))) {
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
     }

@@ -49,7 +49,7 @@ static int ivf_open(IvfInputContext *const c, const char *const file,
     uint8_t hdr[32];
 
     memset(c, 0, sizeof(*c));
-    if (!(c->f = fopen(file, "r"))) {
+    if (!(c->f = fopen(file, "rb"))) {
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
     } else if ((res = fread(hdr, 32, 1, c->f)) != 1) {

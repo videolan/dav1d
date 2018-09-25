@@ -76,7 +76,7 @@ static int md5_open(MD5Context *const md5, const char *const file,
 {
     if (!strcmp(file, "-")) {
         md5->f = stdout;
-    } else if (!(md5->f = fopen(file, "w"))) {
+    } else if (!(md5->f = fopen(file, "wb"))) {
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
     }

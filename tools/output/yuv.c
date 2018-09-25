@@ -45,7 +45,7 @@ static int yuv_open(YuvOutputContext *const c, const char *const file,
 {
     if (!strcmp(file, "-")) {
         c->f = stdout;
-    } else if (!(c->f = fopen(file, "w"))) {
+    } else if (!(c->f = fopen(file, "wb"))) {
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
     }
