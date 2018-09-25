@@ -136,10 +136,10 @@ error:
         if (c->fc) {
             for (int n = 0; n < c->n_fc; n++)
                 if (c->fc[n].tc)
-                    free(c->fc[n].tc);
-            free(c->fc);
+                    dav1d_free_aligned(c->fc[n].tc);
+            dav1d_free_aligned(c->fc);
         }
-        free(c);
+        dav1d_freep_aligned(c_out);
     }
     fprintf(stderr, "Failed to allocate memory: %s\n", strerror(errno));
     return -ENOMEM;
