@@ -66,6 +66,11 @@
 #define NOINLINE __attribute__((noinline))
 #endif /* !_MSC_VER */
 
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#    define dav1d_uninit(x) x=x
+#else
+#    define dav1d_uninit(x) x
+#endif
 
  #ifdef _MSC_VER
  #include <intrin.h>
