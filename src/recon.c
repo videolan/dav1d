@@ -1488,8 +1488,7 @@ void bytefn(filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
 void bytefn(backup_ipred_edge)(Dav1dTileContext *const t) {
     const Dav1dFrameContext *const f = t->f;
     Dav1dTileState *const ts = t->ts;
-    const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
-    const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+    const int monochrome = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I400;
     const int sby = t->by >> f->sb_shift;
     const int sby_off = f->sb128w * 128 * sby;
     const int x_off = ts->tiling.col_start;
@@ -1499,10 +1498,16 @@ void bytefn(backup_ipred_edge)(Dav1dTileContext *const t) {
                     ((t->by + f->sb_step) * 4 - 1) * PXSTRIDE(f->cur.p.stride[0]);
     pixel_copy(&f->ipred_edge[0][sby_off + x_off * 4], y,
                4 * (ts->tiling.col_end - x_off));
-    const ptrdiff_t uv_off = (x_off * 4 >> ss_hor) +
-        (((t->by + f->sb_step) * 4 >> ss_ver) - 1) * PXSTRIDE(f->cur.p.stride[1]);
-    for (int pl = 1; pl <= 2; pl++)
-        pixel_copy(&f->ipred_edge[pl][sby_off + (x_off * 4 >> ss_hor)],
-                   &((const pixel *) f->cur.p.data[pl])[uv_off],
-                   4 * (ts->tiling.col_end - x_off) >> ss_hor);
+
+    if (!monochrome) {
+        const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+        const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+
+        const ptrdiff_t uv_off = (x_off * 4 >> ss_hor) +
+                (((t->by + f->sb_step) * 4 >> ss_ver) - 1) * PXSTRIDE(f->cur.p.stride[1]);
+        for (int pl = 1; pl <= 2; pl++)
+            pixel_copy(&f->ipred_edge[pl][sby_off + (x_off * 4 >> ss_hor)],
+                       &((const pixel *) f->cur.p.data[pl])[uv_off],
+                       4 * (ts->tiling.col_end - x_off) >> ss_hor);
+    }
 }
