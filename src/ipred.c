@@ -454,7 +454,7 @@ z1_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     angle &= 511;
     assert(angle < 90);
     const int dx = dr_intra_derivative[angle];
-    pixel top_out[(width + height) * 2];
+    pixel top_out[(64 + 64) * 2];
     const pixel *top;
     int max_base_x;
     const int upsample_above = get_upsample(width + height, 90 - angle, is_sm);
@@ -519,7 +519,7 @@ z2_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     const int dx = dr_intra_derivative[180 - angle];
     const int upsample_left = get_upsample(width + height, 180 - angle, is_sm);
     const int upsample_above = get_upsample(width + height, angle - 90, is_sm);
-    pixel edge[width * 2 + height * 2 + 1];
+    pixel edge[64 * 2 + 64 * 2 + 1];
     pixel *const topleft = &edge[height * 2];
 
     if (upsample_above) {
@@ -597,7 +597,7 @@ z3_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     angle &= 511;
     assert(angle > 180);
     const int dy = dr_intra_derivative[270 - angle];
-    pixel left_out[(width + height) * 2];
+    pixel left_out[(64 + 64) * 2];
     const pixel *left;
     int max_base_y;
     const int upsample_left = get_upsample(width + height, angle - 180, is_sm);
