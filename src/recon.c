@@ -1237,8 +1237,8 @@ void bytefn(recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize bs,
                                                     0, uvdst, f->cur.p.stride[1],
                                                     top_sb_edge, m,
                                                     &angle, cbw4, cbh4, tl_edge);
-                    dsp->ipred.intra_pred[ii_tx][m](tmp, cbw4 * 4, tl_edge, 0);
-                    dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp, cbw4 * 4,
+                    dsp->ipred.intra_pred[ii_tx][m](tmp, cbw4 * 4 * sizeof(pixel), tl_edge, 0);
+                    dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp, cbw4 * 4 * sizeof(pixel),
                                   cbw4 * 4, cbh4 * 4, ii_mask, cbw4 * 4);
                 }
             }

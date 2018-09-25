@@ -133,25 +133,39 @@ dc_lfn(width, height,, unsigned dc = (width + height) >> 1; \
                            dc += topleft[-(i + 1)]; \
                        dc_gen)
 
+#if BITDEPTH == 8
+#define MULTIPLIER_1x2 0x5556
+#define MULTIPLIER_1x4 0x3334
+#define BASE_SHIFT 16
+#else
+#define MULTIPLIER_1x2 0xAAAB
+#define MULTIPLIER_1x4 0x6667
+#define BASE_SHIFT 17
+#endif
+
 dc2d_lfn( 4,  4, dc >>= 3)
-dc2d_lfn( 4,  8, dc = iclip_pixel(0x5556 * dc >> 18))
-dc2d_lfn( 4, 16, dc = iclip_pixel(0x3334 * dc >> 18))
-dc2d_lfn( 8,  4, dc = iclip_pixel(0x5556 * dc >> 18))
+dc2d_lfn( 4,  8, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 2)))
+dc2d_lfn( 4, 16, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 2)))
+dc2d_lfn( 8,  4, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 2)))
 dc2d_lfn( 8,  8, dc >>= 4)
-dc2d_lfn( 8, 16, dc = iclip_pixel(0x5556 * dc >> 19))
-dc2d_lfn( 8, 32, dc = iclip_pixel(0x3334 * dc >> 19))
-dc2d_lfn(16,  4, dc = iclip_pixel(0x3334 * dc >> 18))
-dc2d_lfn(16,  8, dc = iclip_pixel(0x5556 * dc >> 19))
+dc2d_lfn( 8, 16, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 3)))
+dc2d_lfn( 8, 32, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 3)))
+dc2d_lfn(16,  4, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 2)))
+dc2d_lfn(16,  8, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 3)))
 dc2d_lfn(16, 16, dc >>= 5)
-dc2d_lfn(16, 32, dc = iclip_pixel(0x5556 * dc >> 20))
-dc2d_lfn(16, 64, dc = iclip_pixel(0x3334 * dc >> 20))
-dc2d_lfn(32,  8, dc = iclip_pixel(0x3334 * dc >> 19))
-dc2d_lfn(32, 16, dc = iclip_pixel(0x5556 * dc >> 20))
+dc2d_lfn(16, 32, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 4)))
+dc2d_lfn(16, 64, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 4)))
+dc2d_lfn(32,  8, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 3)))
+dc2d_lfn(32, 16, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 4)))
 dc2d_lfn(32, 32, dc >>= 6)
-dc2d_lfn(32, 64, dc = iclip_pixel(0x5556 * dc >> 21))
-dc2d_lfn(64, 16, dc = iclip_pixel(0x3334 * dc >> 20))
-dc2d_lfn(64, 32, dc = iclip_pixel(0x5556 * dc >> 21))
+dc2d_lfn(32, 64, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 5)))
+dc2d_lfn(64, 16, dc = iclip_pixel(MULTIPLIER_1x4 * dc >> (BASE_SHIFT + 4)))
+dc2d_lfn(64, 32, dc = iclip_pixel(MULTIPLIER_1x2 * dc >> (BASE_SHIFT + 5)))
 dc2d_lfn(64, 64, dc >>= 7)
+
+#undef MULTIPLIER_1x2
+#undef MULTIPLIER_1x4
+#undef BASE_SHIFT
 
 #define dc128_lfn(width, height) \
 dc_lfn(width, height, 128, const unsigned dc = (1 << BITDEPTH) >> 1)

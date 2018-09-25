@@ -136,16 +136,16 @@ loop_filter(pixel *dst, int E, int I, int H,
                 int f = iclip_diff(p1 - q1), f1, f2;
                 f = iclip_diff(3 * (q0 - p0) + f);
 
-                f1 = imin(f + 4, 127) >> 3;
-                f2 = imin(f + 3, 127) >> 3;
+                f1 = imin(f + 4, (128 << (BITDEPTH - 8)) - 1) >> 3;
+                f2 = imin(f + 3, (128 << (BITDEPTH - 8)) - 1) >> 3;
 
                 dst[strideb * -1] = iclip_pixel(p0 + f2);
                 dst[strideb * +0] = iclip_pixel(q0 - f1);
             } else {
                 int f = iclip_diff(3 * (q0 - p0)), f1, f2;
 
-                f1 = imin(f + 4, 127) >> 3;
-                f2 = imin(f + 3, 127) >> 3;
+                f1 = imin(f + 4, (128 << (BITDEPTH - 8)) - 1) >> 3;
+                f2 = imin(f + 3, (128 << (BITDEPTH - 8)) - 1) >> 3;
 
                 dst[strideb * -1] = iclip_pixel(p0 + f2);
                 dst[strideb * +0] = iclip_pixel(q0 - f1);
