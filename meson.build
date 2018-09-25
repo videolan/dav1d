@@ -238,8 +238,12 @@ libdav1d_sources = files(
 )
 
 if is_asm_enabled
-
-    libdav1d_sources_asm = []
+    libdav1d_sources += files(
+        'src/x86/cpu.c',
+    )
+    libdav1d_sources_asm = files(
+        'src/x86/cpuid.asm',
+    )
 
     nasm = find_program('nasm')
 
