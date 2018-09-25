@@ -111,7 +111,12 @@ if (get_option('buildtype') != 'debug' and
         language: 'c')
 endif
 
-add_project_arguments('-Wundef', language: 'c')
+warning_flags = [
+  '-Wundef',
+  '-Wvla', # should be '-Werror=vla
+]
+
+add_project_arguments(cc.get_supported_arguments(warning_flags), language: 'c')
 
 foreach f : feature_defines
    cdata.set(f.get(0), f.get(1))
