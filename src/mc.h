@@ -101,4 +101,7 @@ typedef struct Dav1dMCDSPContext {
 void dav1d_mc_dsp_init_8bpc(Dav1dMCDSPContext *c);
 void dav1d_mc_dsp_init_10bpc(Dav1dMCDSPContext *c);
 
+void dav1d_mc_dsp_init_x86_8bpc(Dav1dMCDSPContext *c);
+void dav1d_mc_dsp_init_x86_10bpc(Dav1dMCDSPContext *c);
+
 #endif /* __DAV1D_SRC_MC_H__ */

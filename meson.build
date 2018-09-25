@@ -189,20 +189,6 @@ libdav1d_tmpl_sources = files(
     'src/recon.c'
 )
 
-# Build a helper library for each bitdepth
-bitdepth_objs = []
-foreach bitdepth : dav1d_bitdepths
-    bitdepth_lib = static_library(
-        'dav1d_bitdepth_@0@'.format(bitdepth),
-        libdav1d_tmpl_sources, config_h_target,
-        include_directories: dav1d_inc_dirs,
-        c_args: ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
-        install: false,
-        build_by_default: false,
-    )
-    bitdepth_objs += bitdepth_lib.extract_all_objects()
-endforeach
-
 entrypoints_src = files(
     'src/lib.c',
     'src/thread_task.c'
@@ -241,8 +227,12 @@ if is_asm_enabled
     libdav1d_sources += files(
         'src/x86/cpu.c',
     )
+    libdav1d_tmpl_sources += files(
+        'src/x86/mc_init.c',
+    )
     libdav1d_sources_asm = files(
         'src/x86/cpuid.asm',
+        'src/x86/mc.asm',
     )
 
     nasm = find_program('nasm')
@@ -280,6 +270,20 @@ endif
 if host_machine.system() == 'windows'
     libdav1d_sources += files('src/win32/thread.c')
 endif
+
+# Build a helper library for each bitdepth
+bitdepth_objs = []
+foreach bitdepth : dav1d_bitdepths
+    bitdepth_lib = static_library(
+        'dav1d_bitdepth_@0@'.format(bitdepth),
+        libdav1d_tmpl_sources, config_h_target,
+        include_directories: dav1d_inc_dirs,
+        c_args: ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
+        install: false,
+        build_by_default: false,
+    )
+    bitdepth_objs += bitdepth_lib.extract_all_objects()
+endforeach
 
 libdav1d = library('dav1d',
     libdav1d_sources, rev_target, nasm_objs,
