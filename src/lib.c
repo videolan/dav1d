@@ -209,8 +209,11 @@ int dav1d_decode(Dav1dContext *const c,
     return -EAGAIN;
 }
 
-void dav1d_close(Dav1dContext *const c) {
-    validate_input(c != NULL);
+void dav1d_close(Dav1dContext **const c_out) {
+    validate_input(c_out != NULL);
+
+    Dav1dContext *const c = *c_out;
+    if (!c) return;
 
     for (int n = 0; n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
@@ -295,5 +298,5 @@ void dav1d_close(Dav1dContext *const c) {
         if (c->refs[n].segmap)
             dav1d_ref_dec(c->refs[n].segmap);
     }
-    dav1d_free_aligned(c);
+    dav1d_freep_aligned(c_out);
 }

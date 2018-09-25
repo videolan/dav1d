@@ -167,7 +167,7 @@ int main(const int argc, char *const *const argv) {
         fprintf(stderr, "No data decoded\n");
         res = 1;
     }
-    dav1d_close(c);
+    dav1d_close(&c);
 
     return res;
 }

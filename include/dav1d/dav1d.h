@@ -80,8 +80,8 @@ DAV1D_API int dav1d_open(Dav1dContext **c_out, const Dav1dSettings *s);
 DAV1D_API int dav1d_decode(Dav1dContext *c, Dav1dData *in, Dav1dPicture *out);
 
 /**
- * Close decoder instance, free all associated memory.
+ * Close decoder instance, free all associated memory, and set $c_out to NULL.
  */
-DAV1D_API void dav1d_close(Dav1dContext *c);
+DAV1D_API void dav1d_close(Dav1dContext **c_out);
 
 #endif /* __DAV1D_H__ */
