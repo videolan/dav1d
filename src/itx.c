@@ -49,7 +49,9 @@ inv_txfm_add_c(pixel *dst, const ptrdiff_t stride,
 {
     int i, j;
     const ptrdiff_t sh = imin(h, 32), sw = imin(w, 32);
-    coef tmp[w * h], out[h], in_mem[w];
+    assert((h >= 4 || h <= 64) && (w >= 4 || w <= 64));
+    // Maximum value for h and w is 64
+    coef tmp[4096 /* w * h */], out[64 /* h */], in_mem[64 /* w */];
     const int is_rect2 = w * 2 == h || h * 2 == w;
 
     if (w != sw) memset(&in_mem[sw], 0, (w - sw) * sizeof(*in_mem));
