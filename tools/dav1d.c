@@ -94,7 +94,7 @@ int main(const int argc, char *const *const argv) {
     }
 
     if (!cli_settings.quiet)
-        fprintf(stderr, "dav1d %s - by Two Orioles\n", DAV1D_VERSION);
+        fprintf(stderr, "dav1d %s - by VideoLAN\n", DAV1D_VERSION);
 
     //getc(stdin);
     if (cli_settings.limit != 0 && cli_settings.limit < total)
