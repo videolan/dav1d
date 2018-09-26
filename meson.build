@@ -171,6 +171,7 @@ entrypoints_lib = static_library(
     include_directories: dav1d_inc_dirs,
     c_args: stackrealign_flag,
     install: false,
+    build_by_default: false,
 )
 entrypoints_objs = entrypoints_lib.extract_all_objects()
 
