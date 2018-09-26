@@ -36,50 +36,43 @@
 #include "config.h"
 #include "src/thread.h"
 
-void pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr)
+void pthread_mutex_init(pthread_mutex_t* mutex,
+                        const pthread_mutexattr_t* attr)
 {
     (void)attr;
     InitializeCriticalSection(mutex);
 }
 
-void pthread_mutex_destroy(pthread_mutex_t* mutex)
-{
+void pthread_mutex_destroy(pthread_mutex_t* mutex) {
     DeleteCriticalSection(mutex);
 }
 
-void pthread_mutex_lock(pthread_mutex_t* mutex)
-{
+void pthread_mutex_lock(pthread_mutex_t* mutex) {
     EnterCriticalSection(mutex);
 }
 
-void pthread_mutex_unlock(pthread_mutex_t* mutex)
-{
+void pthread_mutex_unlock(pthread_mutex_t* mutex) {
     LeaveCriticalSection(mutex);
 }
 
-void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr)
-{
+void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
     (void)attr;
     InitializeConditionVariable(cond);
 }
 
-void pthread_cond_destroy(pthread_cond_t* cond)
-{
+void pthread_cond_destroy(pthread_cond_t* cond) {
     (void)cond;
 }
 
-void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
-{
+void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
     SleepConditionVariableCS(cond, mutex, INFINITE);
 }
 
-void pthread_cond_signal(pthread_cond_t* cond)
-{
+void pthread_cond_signal(pthread_cond_t* cond) {
     WakeConditionVariable(cond);
 }
 
-void pthread_cond_broadcast(pthread_cond_t* cond)
-{
+void pthread_cond_broadcast(pthread_cond_t* cond) {
     WakeAllConditionVariable(cond);
 }
 
@@ -90,14 +83,14 @@ typedef struct dav1d_win32_thread_t {
     void* res;
 } dav1d_win32_thread_t;
 
-static unsigned __stdcall dav1d_thread_entrypoint(void* data)
-{
+static unsigned __stdcall dav1d_thread_entrypoint(void* data) {
     dav1d_win32_thread_t* t = data;
-    t->res = t->proc( t->param );
+    t->res = t->proc(t->param);
     return 0;
 }
 
-int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void*(*proc)(void*), void* param)
+int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
+                   void*(*proc)(void*), void* param)
 {
     dav1d_win32_thread_t* th = *thread = malloc(sizeof(*th));
     if (th == NULL)
@@ -115,8 +108,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void*(*proc)(v
     return 0;
 }
 
-void pthread_join(pthread_t thread, void** res)
-{
+void pthread_join(pthread_t thread, void** res) {
     dav1d_win32_thread_t* th = thread;
     WaitForSingleObject(th->h, INFINITE);
 
@@ -125,8 +117,7 @@ void pthread_join(pthread_t thread, void** res)
     free(th);
 }
 
-int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
-{
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
     BOOL fPending = FALSE;
     BOOL fStatus;
 
