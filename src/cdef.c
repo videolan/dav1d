@@ -91,7 +91,8 @@ static void cdef_filter_block_c(pixel *const dst, const ptrdiff_t dst_stride,
                                 const int damping, const enum CdefEdgeFlags edges)
 {
     const ptrdiff_t tmp_stride = 16 >> (w == 4);
-    uint16_t tmp[tmp_stride * (h + 4)];
+    assert((w == 4 || w == 8) && (h == 4 || h == 8));
+    uint16_t tmp[192];  // 16*12 is the maximum value of tmp_stride * (h + 4)
     uint16_t *tmp2 = tmp + 2 * tmp_stride + 2;
     const uint8_t *const pri_taps = cdef_pri_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
     const uint8_t *const sec_taps = cdef_sec_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
