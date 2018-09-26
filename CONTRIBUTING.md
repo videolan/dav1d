@@ -1,4 +1,4 @@
-# Dav1d contribution guide
+# dav1d contribution guide
 
 ## CoC
 The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this project.
