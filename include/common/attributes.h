@@ -51,6 +51,27 @@
 #define ALIGN_STK_16(type, var, sz1d, sznd) \
     ALIGN(type var[sz1d]sznd, 16)
 
+ #ifdef _MSC_VER
+ #include <intrin.h>
+
+static inline int ctz(const unsigned int mask) {
+    unsigned long idx;
+    _BitScanForward(&idx, mask);
+    return idx;
+}
+
+static inline int clz(const unsigned int mask) {
+    unsigned long leading_zero = 0;
+    _BitScanReverse(&leading_zero, mask);
+    return (31 - leading_zero);
+}
+
+static inline int clzll(const unsigned long long mask) {
+    unsigned long leading_zero = 0;
+    _BitScanReverse64(&leading_zero, mask);
+    return (63 - leading_zero);
+}
+#else /* !_MSC_VER */
 static inline int ctz(const unsigned int mask) {
     return __builtin_ctz(mask);
 }
@@ -62,5 +83,6 @@ static inline int clz(const unsigned int mask) {
 static inline int clzll(const unsigned long long mask) {
     return __builtin_clzll(mask);
 }
+#endif /* !_MSC_VER */
 
 #endif /* __DAV1D_COMMON_ATTRIBUTES_H__ */
