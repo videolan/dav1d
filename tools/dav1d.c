@@ -32,7 +32,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "dav1d/data.h"
 

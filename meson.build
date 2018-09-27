@@ -137,6 +137,10 @@ elif cc.has_function('_aligned_malloc', prefix: '#include <malloc.h>')
     cdata.set('HAVE_ALIGNED_MALLOC', 1)
 endif
 
+if cc.check_header('unistd.h')
+    cdata.set('HAVE_UNISTD_H', 1)
+endif
+
 if (get_option('buildtype') != 'debug' and
     get_option('buildtype') != 'plain')
     add_project_arguments('-fomit-frame-pointer', '-ffast-math',
