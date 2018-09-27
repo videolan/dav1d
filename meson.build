@@ -70,6 +70,9 @@ if not cc.check_header('stdatomic.h')
     error('Atomics not supported')
 endif
 
+stackalign_flag = []
+stackrealign_flag = []
+
 if host_machine.cpu_family().startswith('x86')
     if cc.has_argument('-mpreferred-stack-boundary=5')
         stackalign_flag = ['-mpreferred-stack-boundary=5']
@@ -95,9 +98,6 @@ if host_machine.cpu_family().startswith('x86')
             cdata.set('STACK_ALIGNMENT', 4)
         endif
     endif
-else
-    stackalign_flag = []
-    stackrealign_flag = []
 endif
 
 if host_machine.cpu_family().startswith('x86')
