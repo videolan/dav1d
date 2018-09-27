@@ -1,8 +1,10 @@
 # dav1d
 
-**dav1d** is a new **AV1** cross-platform **D**ecoder, open-source, and focused on speed and correctness.
+**dav1d** is a new **AV1** cross-platform **d**ecoder, open-source, and focused on speed and correctness.
 
 The canonical repository URL for this repo is https://code.videolan.org/videolan/dav1d
+
+This project is partially funded by the *Alliance for Open Media*/**AOM**.
 
 ## Goal and Features
 
@@ -34,7 +36,8 @@ By the end of 2018, we hope to have a completely usable version that will be fas
 Currently, we are looking for help from:
 - C developers,
 - asm developers,
-- platform-specific developers.
+- platform-specific developers,
+- testers.
 
 Our contributions guidelines are strict. We want to build a coherent codebase to simplify maintenance and achieve the highest possible speed.
 
@@ -66,7 +69,7 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this pr
 
 This project is partially funded by the *Alliance for Open Media*/**AOM** and is supported by TwoOrioles and VideoLabs.
 
-These 2 companies can provide support and integration help, should you need it.
+These companies can provide support and integration help, should you need it.
 
 
 # FAQ
