@@ -1088,13 +1088,14 @@ int parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             Dav1dThreadPicture *const out_delayed =
                 &c->frame_thread.out_delayed[next];
             if (out_delayed->p.data[0]) {
-                if (out_delayed->visible)
+                if (out_delayed->visible && !out_delayed->flushed)
                     dav1d_picture_ref(&c->out, &out_delayed->p);
                 dav1d_thread_picture_unref(out_delayed);
             }
             dav1d_thread_picture_ref(out_delayed,
                                      &c->refs[c->frame_hdr.existing_frame_idx].p);
             out_delayed->visible = 1;
+            out_delayed->flushed = 0;
             pthread_mutex_unlock(&f->frame_thread.td.lock);
         }
         c->have_frame_hdr = 0;

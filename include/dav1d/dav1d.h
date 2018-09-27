@@ -84,4 +84,9 @@ DAV1D_API int dav1d_decode(Dav1dContext *c, Dav1dData *in, Dav1dPicture *out);
  */
 DAV1D_API void dav1d_close(Dav1dContext **c_out);
 
+/**
+ * Flush all delayed frames in decoder, to be used when seeking.
+ */
+DAV1D_API void dav1d_flush(Dav1dContext *c);
+
 #endif /* __DAV1D_H__ */

@@ -2688,7 +2688,7 @@ int submit_frame(Dav1dContext *const c) {
                               &f->frame_thread.td.lock);
         out_delayed = &c->frame_thread.out_delayed[next];
         if (out_delayed->p.data[0]) {
-            if (out_delayed->visible)
+            if (out_delayed->visible && !out_delayed->flushed)
                 dav1d_picture_ref(&c->out, &out_delayed->p);
             dav1d_thread_picture_unref(out_delayed);
         }

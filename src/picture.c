@@ -102,6 +102,7 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
                                  (void **) &p->progress);
 
     p->visible = visible;
+    p->flushed = 0;
     if (t) {
         atomic_init(&p->progress[0], 0);
         atomic_init(&p->progress[1], 0);
@@ -128,6 +129,7 @@ void dav1d_thread_picture_ref(Dav1dThreadPicture *dst,
     dst->t = src->t;
     dst->visible = src->visible;
     dst->progress = src->progress;
+    dst->flushed = src->flushed;
 }
 
 void dav1d_picture_unref(Dav1dPicture *const p) {

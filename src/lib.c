@@ -178,7 +178,7 @@ int dav1d_decode(Dav1dContext *const c,
             if (++c->frame_thread.next == c->n_fc)
                 c->frame_thread.next = 0;
             if (out_delayed->p.data[0]) {
-                if (out_delayed->visible) {
+                if (out_delayed->visible && !out_delayed->flushed) {
                     dav1d_picture_ref(out, &out_delayed->p);
                 }
                 dav1d_thread_picture_unref(out_delayed);
@@ -213,6 +213,13 @@ int dav1d_decode(Dav1dContext *const c,
     }
 
     return -EAGAIN;
+}
+
+void dav1d_flush(Dav1dContext *const c) {
+    if (c->n_fc == 1) return;
+
+    for (int n = 0; n < c->n_fc; n++)
+        c->frame_thread.out_delayed[n].flushed = 1;
 }
 
 void dav1d_close(Dav1dContext **const c_out) {
