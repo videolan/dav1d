@@ -979,9 +979,9 @@ void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
 
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_4X4  ] = cfl_ac_8x4_to_4x4_c;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_4X8  ] = cfl_ac_8x8_to_4x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X4 ] = cfl_ac_16x4_to_8x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_8X8 ] = cfl_ac_16x8_to_8x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X16] = cfl_ac_16x16_to_8x16_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X4  ] = cfl_ac_16x4_to_8x4_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_8X8  ] = cfl_ac_16x8_to_8x8_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X16 ] = cfl_ac_16x16_to_8x16_c;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_16X8 ] = cfl_ac_32x8_to_16x8_c;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_16X16] = cfl_ac_32x16_to_16x16_c;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_16X32] = cfl_ac_32x32_to_16x32_c;
