@@ -227,10 +227,11 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     const int starty4 = (sby & is_sb64) << 4;
     const int sbsz = 32 >> is_sb64;
     const int sbl2 = 5 - is_sb64;
-    const int endy4 = starty4 + imin(hy4 - sby * f->sb_step, sbsz);
     const int halign = (f->bh + 31) & ~31;
     const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+    const int endy4 = starty4 + imin(hy4 - sby * f->sb_step, sbsz);
+    const int uv_endy4 = (endy4 + ss_ver) >> ss_ver;
 
     // fix lpf strength at tile col boundaries
     const uint8_t *lpf_y = &f->lf.tx_lpf_right_edge[0][sby << sbl2];
@@ -249,7 +250,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
             lflvl[x].filter_y[0][y][0] &= ~mask;
             lflvl[x].filter_y[0][y][imin(idx, lpf_y[y - starty4])] |= mask;
         }
-        for (int y = starty4 >> ss_ver; y < ((endy4 + ss_ver) >> ss_ver); y++) {
+        for (int y = starty4 >> ss_ver; y < uv_endy4; y++) {
             const int idx = !!(lflvl[x].filter_uv[0][y][1] & uv_mask);
             lflvl[x].filter_uv[0][y][1] &= ~uv_mask;
             lflvl[x].filter_uv[0][y][0] &= ~uv_mask;
@@ -317,7 +318,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
         filter_plane_cols_uv(f, have_left, level_ptr, f->b4_stride,
                              lflvl[x].filter_uv[0],
                              &p[1][uv_off], &p[2][uv_off], f->cur.p.stride[1],
-                             starty4 >> ss_ver, endy4 >> ss_ver);
+                             starty4 >> ss_ver, uv_endy4);
     }
 
     level_ptr = f->lf.level + f->b4_stride * sby * sbsz;
@@ -327,6 +328,6 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
         filter_plane_rows_uv(f, have_top, level_ptr, f->b4_stride,
                              lflvl[x].filter_uv[1],
                              &p[1][uv_off], &p[2][uv_off], f->cur.p.stride[1],
-                             starty4 >> ss_ver, endy4 >> ss_ver);
+                             starty4 >> ss_ver, uv_endy4);
     }
 }
