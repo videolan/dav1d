@@ -3,6 +3,10 @@
 ## CoC
 The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this project.
 
+## ToDo
+
+Todo list can be found [on the wiki](https://code.videolan.org/videolan/dav1d/wikis/task-list).
+
 ## Codebase language
 
 The codebase is developed with the following assumptions:
