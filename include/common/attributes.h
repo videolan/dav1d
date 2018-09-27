@@ -36,8 +36,13 @@
  * becomes:
  * ALIGN(uint8_t var[1][2][3][4], alignment).
  */
+#ifdef _MSC_VER
+#define ALIGN(ll, a) \
+    __declspec(align(a)) ll
+#else
 #define ALIGN(line, align) \
     line __attribute__((aligned(align)))
+#endif
 
 /*
  * API for stack alignment (ALIGN_STK_$align()) of variables like:
