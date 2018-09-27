@@ -449,20 +449,20 @@ static void read_pal_plane(Dav1dTileContext *const t, Av1Block *const b,
 
     if (DEBUG_BLOCK_INFO) {
         printf("Post-pal[pl=%d,sz=%d,cache_size=%d,used_cache=%d]: r=%d, cache=",
-               pl, b->pal_sz[pl], n_cache, n_used_cache, ts->msac.rng);
+               pl, pal_sz, n_cache, n_used_cache, ts->msac.rng);
         for (int n = 0; n < n_cache; n++)
             printf("%c%02x", n ? ' ' : '[', cache[n]);
         printf("%s, pal=", n_cache ? "]" : "[]");
-        for (int n = 0; n < b->pal_sz[0]; n++)
+        for (int n = 0; n < pal_sz; n++)
             printf("%c%02x", n ? ' ' : '[', pal[n]);
         printf("]\n");
     }
 }
 
 static void read_pal_uv(Dav1dTileContext *const t, Av1Block *const b,
-                        const int sz_ctx, const int cbx4, const int cby4)
+                        const int sz_ctx, const int bx4, const int by4)
 {
-    read_pal_plane(t, b, 1, sz_ctx, cbx4, cby4);
+    read_pal_plane(t, b, 1, sz_ctx, bx4, by4);
 
     // V pal coding
     Dav1dTileState *const ts = t->ts;
@@ -1013,8 +1013,8 @@ static void decode_b(Dav1dTileContext *const t,
                     msac_decode_bool_adapt(&ts->msac, ts->cdf.m.pal_uv[pal_ctx]);
                 if (DEBUG_BLOCK_INFO)
                     printf("Post-uv_pal[%d]: r=%d\n", use_uv_pal, ts->msac.rng);
-                if (use_uv_pal)
-                    read_pal_uv(t, b, sz_ctx, cbx4, cby4);
+                if (use_uv_pal) // see aomedia bug 2183 for why we use luma coordinates
+                    read_pal_uv(t, b, sz_ctx, bx4, by4);
             }
         }
 
@@ -1118,17 +1118,22 @@ static void decode_b(Dav1dTileContext *const t,
         if (has_chroma) {
             memset(&t->l.uvmode[cby4], b->uv_mode, cbh4);
             memset(&t->a->uvmode[cbx4], b->uv_mode, cbw4);
-            memset(&t->pal_sz_uv[1][cby4], b->pal_sz[1], cbh4);
-            memset(&t->pal_sz_uv[0][cbx4], b->pal_sz[1], cbw4);
+            // see aomedia bug 2183 for why we use luma coordinates here
+            memset(&t->pal_sz_uv[1][by4], b->pal_sz[1], bh4);
+            memset(&t->pal_sz_uv[0][bx4], b->pal_sz[1], bw4);
             if (b->pal_sz[1]) for (int pl = 1; pl < 3; pl++) {
                 uint16_t *const pal = f->frame_thread.pass ?
                     f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
                                         ((t->bx >> 1) + (t->by & 1))][pl] : t->pal[pl];
-                for (int x = 0; x < cbw4; x++)
-                    memcpy(t->al_pal[0][cbx4 + x][pl], pal, 16);
-                for (int y = 0; y < cbh4; y++)
-                    memcpy(t->al_pal[1][cby4 + y][pl], pal, 16);
+                // see aomedia bug 2183 for why we use luma coordinates here
+                for (int x = 0; x < bw4; x++)
+                    memcpy(t->al_pal[0][bx4 + x][pl], pal, 16);
+                for (int y = 0; y < bh4; y++)
+                    memcpy(t->al_pal[1][by4 + y][pl], pal, 16);
             }
+        } else { // see aomedia bug 2183 for why we reset this
+            memset(&t->pal_sz_uv[1][by4], 0, bh4);
+            memset(&t->pal_sz_uv[0][bx4], 0, bw4);
         }
         if ((f->frame_hdr.frame_type & 1) || f->frame_hdr.allow_intrabc) {
             memset(&t->a->tx[bx4], t_dim->lw, bw4);
@@ -1196,11 +1201,12 @@ static void decode_b(Dav1dTileContext *const t,
         memset(&t->a->mode[bx4], DC_PRED, bw4);
         memset(&t->l.pal_sz[by4], 0, bh4);
         memset(&t->a->pal_sz[bx4], 0, bw4);
+        // see aomedia bug 2183 for why this is outside if (has_chroma)
+        memset(&t->pal_sz_uv[1][by4], 0, bh4);
+        memset(&t->pal_sz_uv[0][bx4], 0, bw4);
         if (has_chroma) {
             memset(&t->l.uvmode[cby4], DC_PRED, cbh4);
             memset(&t->a->uvmode[cbx4], DC_PRED, cbw4);
-            memset(&t->pal_sz_uv[1][cby4], 0, cbh4);
-            memset(&t->pal_sz_uv[0][cbx4], 0, cbw4);
         }
     } else {
         // inter-specific mode/mv coding
@@ -1696,11 +1702,12 @@ static void decode_b(Dav1dTileContext *const t,
         }
         memset(&t->l.pal_sz[by4], 0, bh4);
         memset(&t->a->pal_sz[bx4], 0, bw4);
+        // see aomedia bug 2183 for why this is outside if (has_chroma)
+        memset(&t->pal_sz_uv[1][by4], 0, bh4);
+        memset(&t->pal_sz_uv[0][bx4], 0, bw4);
         if (has_chroma) {
             memset(&t->l.uvmode[cby4], DC_PRED, cbh4);
             memset(&t->a->uvmode[cbx4], DC_PRED, cbw4);
-            memset(&t->pal_sz_uv[1][cby4], 0, cbh4);
-            memset(&t->pal_sz_uv[0][cbx4], 0, cbw4);
         }
         memset(&t->a->tx_intra[bx4], b_dim[2], bw4);
         memset(&t->l.tx_intra[by4], b_dim[3], bh4);
