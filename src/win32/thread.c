@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-#if defined(_WIN32) && !defined(HAVE_PTHREAD_H)
+#if defined(_WIN32)
 
 #include <windows.h>
 #include <process.h>

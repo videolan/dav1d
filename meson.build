@@ -37,9 +37,6 @@ if not meson.is_cross_build()
 else
     thread_dependency = cc.find_library('pthread', required: false)
 endif
-if thread_dependency.found()
-    cdata.set('HAVE_PTHREAD_H', 1)
-endif
 
 dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
 
