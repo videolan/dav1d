@@ -305,6 +305,10 @@ dav1d_sources = files(
     'tools/output/yuv.c'
 )
 
+if cc.get_id() == 'msvc'
+    dav1d_sources += files('tools/compat/getopt.c')
+endif
+
 dav1d = executable('dav1d',
     dav1d_sources, rev_target,
     link_with: libdav1d,
