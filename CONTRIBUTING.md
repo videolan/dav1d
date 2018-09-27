@@ -43,6 +43,7 @@ Please read [How to Write a Git Commit Message](https://chris.beams.io/posts/git
 ## Submit requests (WIP)
 
 - Code
+- Check [code style](https://code.videolan.org/videolan/dav1d/wikis/Coding-style)
 - Test
 - Try
 - Submit patches
