@@ -130,7 +130,7 @@ loop_filter(pixel *dst, int E, int I, int H,
             int hev = abs(p1 - p0) > H || abs(q1 - q0) > H;
 
 #define iclip_diff(v) iclip(v, -128 * (1 << (BITDEPTH - 8)), \
-                                127 * (1 << (BITDEPTH - 8)))
+                                128 * (1 << (BITDEPTH - 8)) - 1)
 
             if (hev) {
                 int f = iclip_diff(p1 - q1), f1, f2;
