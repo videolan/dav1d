@@ -27,27 +27,28 @@
 
 #include "config.h"
 
+#include "common/attributes.h"
 #include "src/scan.h"
 
-static const int16_t av1_default_scan_4x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_4x4[], 32) = {
      0,  4,  1,  2,
      5,  8, 12,  9,
      6,  3,  7, 10,
     13, 14, 11, 15,
 };
-static const int16_t av1_mrow_scan_4x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_4x4[], 32) = {
      0,  4,  8, 12,
      1,  5,  9, 13,
      2,  6, 10, 14,
      3,  7, 11, 15,
 };
-static const int16_t av1_mcol_scan_4x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_4x4[], 32) = {
      0,  1,  2,  3,
      4,  5,  6,  7,
      8,  9, 10, 11,
     12, 13, 14, 15,
 };
-static const int16_t av1_default_scan_4x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_4x8[], 32) = {
      0,  8,  1, 16,
      9,  2, 24, 17,
     10,  3, 25, 18,
@@ -57,7 +58,7 @@ static const int16_t av1_default_scan_4x8[] __attribute__((aligned(32))) = {
     14,  7, 29, 22,
     15, 30, 23, 31,
 };
-static const int16_t av1_mrow_scan_4x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_4x8[], 32) = {
      0,  8, 16, 24,
      1,  9, 17, 25,
      2, 10, 18, 26,
@@ -67,7 +68,7 @@ static const int16_t av1_mrow_scan_4x8[] __attribute__((aligned(32))) = {
      6, 14, 22, 30,
      7, 15, 23, 31,
 };
-static const int16_t av1_mcol_scan_4x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_4x8[], 32) = {
      0,  1,  2,  3,
      4,  5,  6,  7,
      8,  9, 10, 11,
@@ -77,7 +78,7 @@ static const int16_t av1_mcol_scan_4x8[] __attribute__((aligned(32))) = {
     24, 25, 26, 27,
     28, 29, 30, 31,
 };
-static const int16_t av1_default_scan_4x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_4x16[], 32) = {
      0, 16,  1, 32,
     17,  2, 48, 33,
     18,  3, 49, 34,
@@ -95,7 +96,7 @@ static const int16_t av1_default_scan_4x16[] __attribute__((aligned(32))) = {
     30, 15, 61, 46,
     31, 62, 47, 63,
 };
-static const int16_t av1_mrow_scan_4x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_4x16[], 32) = {
      0, 16, 32, 48,
      1, 17, 33, 49,
      2, 18, 34, 50,
@@ -113,7 +114,7 @@ static const int16_t av1_mrow_scan_4x16[] __attribute__((aligned(32))) = {
     14, 30, 46, 62,
     15, 31, 47, 63,
 };
-static const int16_t av1_mcol_scan_4x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_4x16[], 32) = {
      0,  1,  2,  3,
      4,  5,  6,  7,
      8,  9, 10, 11,
@@ -131,25 +132,25 @@ static const int16_t av1_mcol_scan_4x16[] __attribute__((aligned(32))) = {
     56, 57, 58, 59,
     60, 61, 62, 63,
 };
-static const int16_t av1_default_scan_8x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_8x4[], 32) = {
      0,  1,  4,  2,  5,  8,  3,  6,
      9, 12,  7, 10, 13, 16, 11, 14,
     17, 20, 15, 18, 21, 24, 19, 22,
     25, 28, 23, 26, 29, 27, 30, 31,
 };
-static const int16_t av1_mrow_scan_8x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_8x4[], 32) = {
      0,  4,  8, 12, 16, 20, 24, 28,
      1,  5,  9, 13, 17, 21, 25, 29,
      2,  6, 10, 14, 18, 22, 26, 30,
      3,  7, 11, 15, 19, 23, 27, 31,
 };
-static const int16_t av1_mcol_scan_8x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_8x4[], 32) = {
      0,  1,  2,  3,  4,  5,  6,  7,
      8,  9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 23,
     24, 25, 26, 27, 28, 29, 30, 31,
 };
-static const int16_t av1_default_scan_8x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_8x8[], 32) = {
      0,  8,  1,  2,  9, 16, 24, 17,
     10,  3,  4, 11, 18, 25, 32, 40,
     33, 26, 19, 12,  5,  6, 13, 20,
@@ -159,7 +160,7 @@ static const int16_t av1_default_scan_8x8[] __attribute__((aligned(32))) = {
     23, 31, 38, 45, 52, 59, 60, 53,
     46, 39, 47, 54, 61, 62, 55, 63,
 };
-static const int16_t av1_mrow_scan_8x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_8x8[], 32) = {
      0,  8, 16, 24, 32, 40, 48, 56,
      1,  9, 17, 25, 33, 41, 49, 57,
      2, 10, 18, 26, 34, 42, 50, 58,
@@ -169,7 +170,7 @@ static const int16_t av1_mrow_scan_8x8[] __attribute__((aligned(32))) = {
      6, 14, 22, 30, 38, 46, 54, 62,
      7, 15, 23, 31, 39, 47, 55, 63,
 };
-static const int16_t av1_mcol_scan_8x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_8x8[], 32) = {
      0,  1,  2,  3,  4,  5,  6,  7,
      8,  9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 23,
@@ -179,7 +180,7 @@ static const int16_t av1_mcol_scan_8x8[] __attribute__((aligned(32))) = {
     48, 49, 50, 51, 52, 53, 54, 55,
     56, 57, 58, 59, 60, 61, 62, 63,
 };
-static const int16_t av1_default_scan_8x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_8x16[], 32) = {
       0,  16,   1,  32,  17,   2,  48,  33,
      18,   3,  64,  49,  34,  19,   4,  80,
      65,  50,  35,  20,   5,  96,  81,  66,
@@ -197,7 +198,7 @@ static const int16_t av1_default_scan_8x16[] __attribute__((aligned(32))) = {
      47, 123, 108,  93,  78,  63, 124, 109,
      94,  79, 125, 110,  95, 126, 111, 127,
 };
-static const int16_t av1_mrow_scan_8x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_8x16[], 32) = {
       0,  16,  32,  48,  64,  80,  96, 112,
       1,  17,  33,  49,  65,  81,  97, 113,
       2,  18,  34,  50,  66,  82,  98, 114,
@@ -215,7 +216,7 @@ static const int16_t av1_mrow_scan_8x16[] __attribute__((aligned(32))) = {
      14,  30,  46,  62,  78,  94, 110, 126,
      15,  31,  47,  63,  79,  95, 111, 127,
 };
-static const int16_t av1_mcol_scan_8x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_8x16[], 32) = {
       0,   1,   2,   3,   4,   5,   6,   7,
       8,   9,  10,  11,  12,  13,  14,  15,
      16,  17,  18,  19,  20,  21,  22,  23,
@@ -233,7 +234,7 @@ static const int16_t av1_mcol_scan_8x16[] __attribute__((aligned(32))) = {
     112, 113, 114, 115, 116, 117, 118, 119,
     120, 121, 122, 123, 124, 125, 126, 127,
 };
-static const int16_t av1_default_scan_8x32[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_8x32[], 32) = {
       0,  32,   1,  64,  33,   2,  96,  65,
      34,   3, 128,  97,  66,  35,   4, 160,
     129,  98,  67,  36,   5, 192, 161, 130,
@@ -267,25 +268,25 @@ static const int16_t av1_default_scan_8x32[] __attribute__((aligned(32))) = {
      95, 251, 220, 189, 158, 127, 252, 221,
     190, 159, 253, 222, 191, 254, 223, 255,
 };
-static const int16_t av1_default_scan_16x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_16x4[], 32) = {
      0,  1,  4,  2,  5,  8,  3,  6,  9, 12,  7, 10, 13, 16, 11, 14,
     17, 20, 15, 18, 21, 24, 19, 22, 25, 28, 23, 26, 29, 32, 27, 30,
     33, 36, 31, 34, 37, 40, 35, 38, 41, 44, 39, 42, 45, 48, 43, 46,
     49, 52, 47, 50, 53, 56, 51, 54, 57, 60, 55, 58, 61, 59, 62, 63,
 };
-static const int16_t av1_mrow_scan_16x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_16x4[], 32) = {
      0,  4,  8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60,
      1,  5,  9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61,
      2,  6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62,
      3,  7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63,
 };
-static const int16_t av1_mcol_scan_16x4[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_16x4[], 32) = {
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
     32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
     48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
 };
-static const int16_t av1_default_scan_16x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_16x8[], 32) = {
       0,   1,   8,   2,   9,  16,   3,  10,  17,  24,   4,  11,  18,  25,  32,   5,
      12,  19,  26,  33,  40,   6,  13,  20,  27,  34,  41,  48,   7,  14,  21,  28,
      35,  42,  49,  56,  15,  22,  29,  36,  43,  50,  57,  64,  23,  30,  37,  44,
@@ -295,7 +296,7 @@ static const int16_t av1_default_scan_16x8[] __attribute__((aligned(32))) = {
      99, 106, 113, 120,  79,  86,  93, 100, 107, 114, 121,  87,  94, 101, 108, 115,
     122,  95, 102, 109, 116, 123, 103, 110, 117, 124, 111, 118, 125, 119, 126, 127,
 };
-static const int16_t av1_mrow_scan_16x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_16x8[], 32) = {
       0,   8,  16,  24,  32,  40,  48,  56,  64,  72,  80,  88,  96, 104, 112, 120,
       1,   9,  17,  25,  33,  41,  49,  57,  65,  73,  81,  89,  97, 105, 113, 121,
       2,  10,  18,  26,  34,  42,  50,  58,  66,  74,  82,  90,  98, 106, 114, 122,
@@ -305,7 +306,7 @@ static const int16_t av1_mrow_scan_16x8[] __attribute__((aligned(32))) = {
       6,  14,  22,  30,  38,  46,  54,  62,  70,  78,  86,  94, 102, 110, 118, 126,
       7,  15,  23,  31,  39,  47,  55,  63,  71,  79,  87,  95, 103, 111, 119, 127,
 };
-static const int16_t av1_mcol_scan_16x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_16x8[], 32) = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,
      16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,
      32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,
@@ -315,7 +316,7 @@ static const int16_t av1_mcol_scan_16x8[] __attribute__((aligned(32))) = {
      96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
     112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
 };
-static const int16_t av1_default_scan_16x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_16x16[], 32) = {
       0,  16,   1,   2,  17,  32,  48,  33,  18,   3,   4,  19,  34,  49,  64,  80,
      65,  50,  35,  20,   5,   6,  21,  36,  51,  66,  81,  96, 112,  97,  82,  67,
      52,  37,  22,   7,   8,  23,  38,  53,  68,  83,  98, 113, 128, 144, 129, 114,
@@ -333,7 +334,7 @@ static const int16_t av1_default_scan_16x16[] __attribute__((aligned(32))) = {
     188, 173, 158, 143, 159, 174, 189, 204, 219, 234, 249, 250, 235, 220, 205, 190,
     175, 191, 206, 221, 236, 251, 252, 237, 222, 207, 223, 238, 253, 254, 239, 255,
 };
-static const int16_t av1_mrow_scan_16x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mrow_scan_16x16[], 32) = {
       0,  16,  32,  48,  64,  80,  96, 112, 128, 144, 160, 176, 192, 208, 224, 240,
       1,  17,  33,  49,  65,  81,  97, 113, 129, 145, 161, 177, 193, 209, 225, 241,
       2,  18,  34,  50,  66,  82,  98, 114, 130, 146, 162, 178, 194, 210, 226, 242,
@@ -351,7 +352,7 @@ static const int16_t av1_mrow_scan_16x16[] __attribute__((aligned(32))) = {
      14,  30,  46,  62,  78,  94, 110, 126, 142, 158, 174, 190, 206, 222, 238, 254,
      15,  31,  47,  63,  79,  95, 111, 127, 143, 159, 175, 191, 207, 223, 239, 255,
 };
-static const int16_t av1_mcol_scan_16x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_mcol_scan_16x16[], 32) = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,
      16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,
      32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,
@@ -369,7 +370,7 @@ static const int16_t av1_mcol_scan_16x16[] __attribute__((aligned(32))) = {
     224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
     240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255,
 };
-static const int16_t av1_default_scan_16x32[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_16x32[], 32) = {
       0,  32,   1,  64,  33,   2,  96,  65,  34,   3, 128,  97,  66,  35,   4, 160,
     129,  98,  67,  36,   5, 192, 161, 130,  99,  68,  37,   6, 224, 193, 162, 131,
     100,  69,  38,   7, 256, 225, 194, 163, 132, 101,  70,  39,   8, 288, 257, 226,
@@ -403,7 +404,7 @@ static const int16_t av1_default_scan_16x32[] __attribute__((aligned(32))) = {
     380, 349, 318, 287, 505, 474, 443, 412, 381, 350, 319, 506, 475, 444, 413, 382,
     351, 507, 476, 445, 414, 383, 508, 477, 446, 415, 509, 478, 447, 510, 479, 511,
 };
-static const int16_t av1_default_scan_32x8[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_32x8[], 32) = {
       0,   1,   8,   2,   9,  16,   3,  10,  17,  24,   4,  11,  18,  25,  32,   5,  12,  19,  26,  33,  40,   6,  13,  20,  27,  34,  41,  48,   7,  14,  21,  28,
      35,  42,  49,  56,  15,  22,  29,  36,  43,  50,  57,  64,  23,  30,  37,  44,  51,  58,  65,  72,  31,  38,  45,  52,  59,  66,  73,  80,  39,  46,  53,  60,
      67,  74,  81,  88,  47,  54,  61,  68,  75,  82,  89,  96,  55,  62,  69,  76,  83,  90,  97, 104,  63,  70,  77,  84,  91,  98, 105, 112,  71,  78,  85,  92,
@@ -413,7 +414,7 @@ static const int16_t av1_default_scan_32x8[] __attribute__((aligned(32))) = {
     195, 202, 209, 216, 175, 182, 189, 196, 203, 210, 217, 224, 183, 190, 197, 204, 211, 218, 225, 232, 191, 198, 205, 212, 219, 226, 233, 240, 199, 206, 213, 220,
     227, 234, 241, 248, 207, 214, 221, 228, 235, 242, 249, 215, 222, 229, 236, 243, 250, 223, 230, 237, 244, 251, 231, 238, 245, 252, 239, 246, 253, 247, 254, 255,
 };
-static const int16_t av1_default_scan_32x16[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_32x16[], 32) = {
       0,   1,  16,   2,  17,  32,   3,  18,  33,  48,   4,  19,  34,  49,  64,   5,  20,  35,  50,  65,  80,   6,  21,  36,  51,  66,  81,  96,   7,  22,  37,  52,
      67,  82,  97, 112,   8,  23,  38,  53,  68,  83,  98, 113, 128,   9,  24,  39,  54,  69,  84,  99, 114, 129, 144,  10,  25,  40,  55,  70,  85, 100, 115, 130,
     145, 160,  11,  26,  41,  56,  71,  86, 101, 116, 131, 146, 161, 176,  12,  27,  42,  57,  72,  87, 102, 117, 132, 147, 162, 177, 192,  13,  28,  43,  58,  73,
@@ -431,7 +432,7 @@ static const int16_t av1_default_scan_32x16[] __attribute__((aligned(32))) = {
     381, 396, 411, 426, 441, 456, 471, 486, 501, 367, 382, 397, 412, 427, 442, 457, 472, 487, 502, 383, 398, 413, 428, 443, 458, 473, 488, 503, 399, 414, 429, 444,
     459, 474, 489, 504, 415, 430, 445, 460, 475, 490, 505, 431, 446, 461, 476, 491, 506, 447, 462, 477, 492, 507, 463, 478, 493, 508, 479, 494, 509, 495, 510, 511,
 };
-static const int16_t av1_default_scan_32x32[] __attribute__((aligned(32))) = {
+static const int16_t ALIGN(av1_default_scan_32x32[], 32) = {
        0,   32,    1,    2,   33,   64,   96,   65,   34,    3,    4,   35,   66,   97,  128,  160,  129,   98,   67,   36,    5,    6,   37,   68,   99,  130,  161,  192,  224,  193,  162,  131,
      100,   69,   38,    7,    8,   39,   70,  101,  132,  163,  194,  225,  256,  288,  257,  226,  195,  164,  133,  102,   71,   40,    9,   10,   41,   72,  103,  134,  165,  196,  227,  258,
      289,  320,  352,  321,  290,  259,  228,  197,  166,  135,  104,   73,   42,   11,   12,   43,   74,  105,  136,  167,  198,  229,  260,  291,  322,  353,  384,  416,  385,  354,  323,  292,
