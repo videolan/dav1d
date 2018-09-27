@@ -55,6 +55,17 @@ void (name)(int16_t *ac, const pixel *y, ptrdiff_t stride, \
 typedef decl_cfl_ac_fn(*cfl_ac_fn);
 
 /*
+ * dst[x,y] = dc + alpha * ac[x,y]
+ * - alpha contains a q3 scalar in [-16,16] range;
+ * - dc_pred[] is the first line of the plane's DC prediction
+ */
+#define decl_cfl_pred_1_fn(name) \
+void (name)(pixel *dst, ptrdiff_t stride, \
+            const int16_t *ac, const pixel *dc_pred, \
+            const int8_t alpha, const int height)
+typedef decl_cfl_pred_1_fn(*cfl_pred_1_fn);
+
+/*
  * dst[plane][x,y] = dc[plane] + alpha[plane] * ac[x,y]
  * - alphas contains two q3 scalars (one for each plane) in [-16,16] range;
  * - dc_pred[] is the first line of each plane's DC prediction, the second plane
@@ -80,6 +91,7 @@ typedef struct Dav1dIntraPredDSPContext {
 
     // chroma-from-luma
     cfl_ac_fn cfl_ac[3 /* 420, 422, 444 */][N_RECT_TX_SIZES /* chroma tx size */];
+    cfl_pred_1_fn cfl_pred_1[4];
     cfl_pred_fn cfl_pred[4];
 
     // palette

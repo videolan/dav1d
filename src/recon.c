@@ -870,8 +870,13 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                                                     top_sb_edge, DC_PRED, &angle,
                                                     cfl_uv_t_dim->w,
                                                     cfl_uv_t_dim->h, edge);
-                    dsp->ipred.intra_pred[cfl_uvtx][m](&uv_pred[32 * pl],
-                                                       0, edge, 0);
+                    if (b->cfl_alpha[pl] == 0) {
+                      dsp->ipred.intra_pred[cfl_uvtx][m](uv_dst[pl], stride,
+                                                         edge, 0);
+                    } else {
+                      dsp->ipred.intra_pred[cfl_uvtx][m](&uv_pred[32 * pl],
+                                                         0, edge, 0);
+                    }
                 }
                 const int furthest_r =
                     ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
@@ -881,11 +886,25 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                                  [cfl_uvtx](ac, y_src, f->cur.p.stride[0],
                                             cbw4 - (furthest_r >> ss_hor),
                                             cbh4 - (furthest_b >> ss_ver));
-                dsp->ipred.cfl_pred[cfl_uv_t_dim->lw](uv_dst[0],
-                                                      uv_dst[1], stride,
-                                                      ac, uv_pred,
-                                                      b->cfl_alpha,
-                                                      cbh4 * 4);
+                if (b->cfl_alpha[0] == 0) {
+                  dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[1],
+                                                          stride, ac,
+                                                          &uv_pred[32],
+                                                          b->cfl_alpha[1],
+                                                          cbh4 * 4);
+                } else if (b->cfl_alpha[1] == 0) {
+                  dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[0],
+                                                          stride, ac,
+                                                          uv_pred,
+                                                          b->cfl_alpha[0],
+                                                          cbh4 * 4);
+                } else {
+                  dsp->ipred.cfl_pred[cfl_uv_t_dim->lw](uv_dst[0],
+                                                        uv_dst[1], stride,
+                                                        ac, uv_pred,
+                                                        b->cfl_alpha,
+                                                        cbh4 * 4);
+                }
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                     ac_dump(ac, 4*cbw4, 4*cbh4, "ac");
                     hex_dump(uv_dst[0], stride, cbw4 * 4, cbh4 * 4, "u-cfl-pred");
