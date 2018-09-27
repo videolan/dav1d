@@ -9,6 +9,7 @@ build-debian:
         - amd64
     script:
         - meson build --buildtype release
+        - ninja -v -C build include/version.h
         - ninja -v -C build
 
 build-win32:
@@ -18,6 +19,7 @@ build-win32:
         - win32
     script:
         - meson build --buildtype release --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+        - ninja -v -C build include/version.h
         - ninja -v -C build
 
 build-win64:
@@ -27,4 +29,5 @@ build-win64:
         - win64
     script:
         - meson build --buildtype release --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
+        - ninja -v -C build include/version.h
         - ninja -v -C build
