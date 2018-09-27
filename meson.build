@@ -32,10 +32,11 @@ cdata = configuration_data()
 cdata_asm = configuration_data()
 cc = meson.get_compiler('c')
 
-if not meson.is_cross_build() 
+# On windows, we use a compatibility layer to emulate pthread
+if host_machine.system() != 'windows'
     thread_dependency = dependency('threads')
 else
-    thread_dependency = cc.find_library('pthread', required: false)
+    thread_dependency = declare_dependency(sources: ['src/win32/thread.c'])
 endif
 
 dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
@@ -262,10 +263,6 @@ if is_asm_enabled
     nasm_objs = nasm_gen.process(libdav1d_sources_asm)
 else
     nasm_objs = []
-endif
-
-if host_machine.system() == 'windows'
-    libdav1d_sources += files('src/win32/thread.c')
 endif
 
 # Build a helper library for each bitdepth
