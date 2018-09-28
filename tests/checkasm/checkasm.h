@@ -36,6 +36,9 @@
 #include "include/common/attributes.h"
 #include "include/common/intops.h"
 
+void checkasm_check_mc_8bpc(void);
+void checkasm_check_mc_10bpc(void);
+
 void *checkasm_check_func(void *func, const char *name, ...);
 int checkasm_bench_func(void);
 void checkasm_fail_func(const char *msg, ...);

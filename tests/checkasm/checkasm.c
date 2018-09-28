@@ -52,6 +52,8 @@ static const struct {
     const char *name;
     void (*func)(void);
 } tests[] = {
+    { "mc_8bpc", checkasm_check_mc_8bpc },
+    { "mc_10bpc", checkasm_check_mc_10bpc },
     { NULL }
 };
 
