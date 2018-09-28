@@ -314,7 +314,6 @@ endif
 
 libdav1d_private = static_library('dav1d_private',
     libdav1d_sources, nasm_objs,
-    version: meson.project_version(),
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
     c_args: [stackalign_flag],
@@ -323,7 +322,7 @@ libdav1d_private = static_library('dav1d_private',
 )
 
 libdav1d = library('dav1d',
-    version: '0.0.1',
+    version: meson.project_version(),
     link_whole: libdav1d_private,
     dependencies: thread_dependency,
     install: true,
