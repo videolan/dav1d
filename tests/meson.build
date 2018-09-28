@@ -34,7 +34,10 @@ endif
 if is_asm_enabled
     checkasm_sources = files('checkasm/checkasm.c')
 
-    checkasm_tmpl_sources = files('checkasm/mc.c')
+    checkasm_tmpl_sources = files(
+        'checkasm/itx.c',
+        'checkasm/mc.c',
+    )
 
     checkasm_bitdepth_objs = []
     foreach bitdepth : dav1d_bitdepths
@@ -58,6 +61,8 @@ if is_asm_enabled
         checkasm_nasm_objs = nasm_gen.process(files('checkasm/x86/checkasm.asm'))
     endif
 
+    m_lib = cc.find_library('m', required: false)
+
     checkasm = executable('checkasm',
         checkasm_sources,
         checkasm_nasm_objs,
@@ -71,7 +76,7 @@ if is_asm_enabled
         include_directories: dav1d_inc_dirs,
         c_args: [stackalign_flag, stackrealign_flag],
         build_by_default: false,
-        dependencies : [thread_dependency],
+        dependencies : [thread_dependency, m_lib],
         )
 
     test('checkasm test', checkasm)

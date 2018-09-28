@@ -36,6 +36,8 @@
 #include "include/common/attributes.h"
 #include "include/common/intops.h"
 
+void checkasm_check_itx_8bpc(void);
+void checkasm_check_itx_10bpc(void);
 void checkasm_check_mc_8bpc(void);
 void checkasm_check_mc_10bpc(void);
 

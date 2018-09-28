@@ -51,6 +51,8 @@ static const struct {
     const char *name;
     void (*func)(void);
 } tests[] = {
+    { "itx_8bpc", checkasm_check_itx_8bpc },
+    { "itx_10bpc", checkasm_check_itx_10bpc },
     { "mc_8bpc", checkasm_check_mc_8bpc },
     { "mc_10bpc", checkasm_check_mc_10bpc },
     { 0 }
@@ -253,7 +255,7 @@ static void *checkasm_malloc(const size_t size) {
 
 /* Get the suffix of the specified cpu flag */
 static const char *cpu_suffix(const unsigned cpu) {
-    for (int i = sizeof(cpus) / sizeof(*cpus) - 2; i >= 0; i--)
+    for (int i = (int)(sizeof(cpus) / sizeof(*cpus)) - 2; i >= 0; i--)
         if (cpu & cpus[i].flag)
             return cpus[i].suffix;
 
@@ -411,11 +413,6 @@ int main(int argc, char *argv[]) {
 #endif
     int ret = 0;
 
-    /*if (!tests[0].func || !cpus[0].flag) {
-        fprintf(stderr, "checkasm: no tests to perform\n");
-        return 0;
-    }*/
-
     while (argc > 1) {
         if (!strncmp(argv[1], "--bench", 7)) {
 #ifndef readtime
@@ -445,7 +442,9 @@ int main(int argc, char *argv[]) {
     for (int i = 0; cpus[i].flag; i++)
         check_cpu_flag(cpus[i].name, cpus[i].flag);
 
-    if (state.num_failed) {
+    if (!state.num_checked) {
+        fprintf(stderr, "checkasm: no tests to perform\n");
+    } else if (state.num_failed) {
         fprintf(stderr, "checkasm: %d of %d tests have failed\n",
                 state.num_failed, state.num_checked);
         ret = 1;
