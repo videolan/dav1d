@@ -285,7 +285,7 @@ endforeach
 
 libdav1d = library('dav1d',
     libdav1d_sources, nasm_objs,
-    version: '0.0.1',
+    version: meson.project_version(),
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
     c_args: [stackalign_flag],
@@ -325,7 +325,7 @@ dav1d = executable('dav1d',
 #
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries: libdav1d,
-    version: '0.0.1',
+    version: meson.project_version(),
     name: 'libdav1d',
     filebase: 'dav1d',
     description: 'AV1 decoding library'
