@@ -25,22 +25,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_X86_CPU_H__
-#define __DAV1D_SRC_X86_CPU_H__
+#ifndef __DAV1D_SRC_CPU_H__
+#define __DAV1D_SRC_CPU_H__
 
-enum CpuFlags {
-    DAV1D_X86_CPU_FLAG_SSE = 1 << 0,
-    DAV1D_X86_CPU_FLAG_SSE2 = 1 << 1,
-    DAV1D_X86_CPU_FLAG_SSE3 = 1 << 2,
-    DAV1D_X86_CPU_FLAG_SSSE3 = 1 << 3,
-    DAV1D_X86_CPU_FLAG_SSE41 = 1 << 4,
-    DAV1D_X86_CPU_FLAG_SSE42 = 1 << 5,
-    DAV1D_X86_CPU_FLAG_AVX = 1 << 6,
-    DAV1D_X86_CPU_FLAG_AVX2 = 1 << 7,
-    DAV1D_X86_CPU_FLAG_AVX512 = 1 << 8, /* F + CD + BW + DQ + VL */
-};
+#include "config.h"
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(unsigned mask);
+#if ARCH_X86
+#include "src/x86/cpu.h"
+#else
+#define dav1d_get_cpu_flags 0
+#define dav1d_set_cpu_flags_mask(mask) while (0)
+#endif
 
-#endif /* __DAV1D_SRC_X86_CPU_H__ */
+#endif /* __DAV1D_SRC_CPU_H__ */

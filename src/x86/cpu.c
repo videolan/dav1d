@@ -32,9 +32,9 @@
 void dav1d_cpu_cpuid(uint32_t *info, int leaf);
 uint64_t dav1d_cpu_xgetbv(int xcr);
 
-static enum CpuFlags get_cpu_flags_x86(void) {
+static unsigned get_cpu_flags(void) {
     uint32_t info[4], n_ids;
-    enum CpuFlags flags = 0;
+    unsigned flags = 0;
 
     dav1d_cpu_cpuid(info, 0);
     n_ids = info[0];
@@ -66,13 +66,19 @@ static enum CpuFlags get_cpu_flags_x86(void) {
     return flags;
 }
 
-enum CpuFlags dav1d_get_cpu_flags_x86(void) {
-    static enum CpuFlags flags;
+static unsigned flags_mask = -1;
+
+unsigned dav1d_get_cpu_flags(void) {
+    static unsigned flags;
     static uint8_t checked = 0;
 
     if (!checked) {
-        flags = get_cpu_flags_x86();
+        flags = get_cpu_flags();
         checked = 1;
     }
-    return flags;
+    return flags & flags_mask;
+}
+
+void dav1d_set_cpu_flags_mask(const unsigned mask) {
+    flags_mask = mask;
 }

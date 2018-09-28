@@ -25,10 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-
+#include "src/cpu.h"
 #include "src/mc.h"
-#include "src/x86/cpu.h"
 
 decl_mc_fn(dav1d_put_8tap_regular_avx2);
 decl_mc_fn(dav1d_put_8tap_regular_smooth_avx2);
@@ -62,7 +60,7 @@ void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->mc[type] = dav1d_put_##name##_##suffix
 #define init_mct_fn(type, name, suffix) \
     c->mct[type] = dav1d_prep_##name##_##suffix
-    const enum CpuFlags flags = dav1d_get_cpu_flags_x86();
+    const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
