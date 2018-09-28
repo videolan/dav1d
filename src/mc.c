@@ -30,12 +30,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/attributes.h"
 #include "common/intops.h"
 
 #include "src/mc.h"
 #include "src/tables.h"
 
-static __attribute__((noinline)) void
+static NOINLINE void
 put_c(pixel *dst, const ptrdiff_t dst_stride,
       const pixel *src, const ptrdiff_t src_stride, const int w, int h)
 {
@@ -47,7 +48,7 @@ put_c(pixel *dst, const ptrdiff_t dst_stride,
     } while (--h);
 }
 
-static __attribute__((noinline)) void
+static NOINLINE void
 prep_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
        const int w, int h)
 {
@@ -84,7 +85,7 @@ prep_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
         dav1d_mc_subpel_filters[filter_type >> 2][my - 1] : \
         dav1d_mc_subpel_filters[3 + ((filter_type >> 2) & 1)][my - 1]; \
 
-static __attribute__((noinline)) void
+static NOINLINE void
 put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
            const pixel *src, ptrdiff_t src_stride,
            const int w, int h, const int mx, const int my,
@@ -139,7 +140,7 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
         put_c(dst, dst_stride, src, src_stride, w, h);
 }
 
-static __attribute__((noinline)) void
+static NOINLINE void
 prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
             const int w, int h, const int mx, const int my,
             const int filter_type)

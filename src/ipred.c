@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/attributes.h"
 #include "common/intops.h"
 
 #include "src/ipred.h"
@@ -56,7 +57,7 @@ l_fn(64, 16) \
 l_fn(64, 32) \
 l_fn(64, 64)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 splat_dc_c(pixel *dst, const ptrdiff_t stride,
            const int w, const int h, const unsigned dc)
 {
@@ -172,7 +173,7 @@ dc_lfn(width, height, 128, const unsigned dc = (1 << BITDEPTH) >> 1)
 
 sz_grid(dc128_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 v_c(pixel *dst, const ptrdiff_t stride,
     const pixel *const topleft, const int width, const int height)
 {
@@ -191,7 +192,7 @@ static void v_##width##x##height##_##c(pixel *dst, const ptrdiff_t stride, \
 
 sz_grid(v_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 h_c(pixel *dst, const ptrdiff_t stride,
     const pixel *const topleft, const int width, const int height)
 {
@@ -210,7 +211,7 @@ static void h_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
 
 sz_grid(h_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 paeth_c(pixel *dst, const ptrdiff_t stride, const pixel *const tl_ptr,
         const int width, const int height)
 {
@@ -262,7 +263,7 @@ static const uint8_t sm_weight_arrays[] = {
     13, 12, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 4,
 };
 
-static __attribute__((noinline)) void
+static NOINLINE void
 smooth_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
          const int width, const int height)
 {
@@ -292,7 +293,7 @@ static void smooth_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
 
 sz_grid(smooth_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 smooth_v_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
            const int width, const int height)
 {
@@ -319,7 +320,7 @@ static void smooth_v_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, 
 
 sz_grid(smooth_v_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 smooth_h_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
            const int width, const int height)
 {
@@ -460,7 +461,7 @@ static void upsample_edge(pixel *const out, const int hsz,
     out[i * 2] = in[iclip(i, from, to - 1)];
 }
 
-static __attribute__((noinline)) void
+static NOINLINE void
 z1_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
      int angle, const int width, const int height)
 {
@@ -522,7 +523,7 @@ static void z1_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
 
 sz_grid(z1_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 z2_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
      int angle, const int width, const int height)
 {
@@ -603,7 +604,7 @@ static void z2_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
 
 sz_grid(z2_lfn)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 z3_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
      int angle, const int width, const int height)
 {
@@ -717,7 +718,7 @@ static const int8_t av1_filter_intra_taps[5][8][8] = {
     },
 };
 
-static __attribute__((noinline)) void
+static NOINLINE void
 filter_intra_c(pixel *dst, const ptrdiff_t stride,
                const pixel *const topleft_in,
                int filt_idx, const int width, const int height)
@@ -787,7 +788,7 @@ filter_lfn( 8, 32)
 filter_lfn(16, 32)
 filter_lfn(32, 32)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
          const int w_pad, const int h_pad, const int width, const int height,
          const int ss_hor, const int ss_ver, const int log2sz)
@@ -878,7 +879,7 @@ cfl_ac_fn(32,  8, 32,  8, 0, 0, 8)
 cfl_ac_fn(32, 16, 32, 16, 0, 0, 9)
 cfl_ac_fn(32, 32, 32, 32, 0, 0, 10)
 
-static __attribute__((noinline)) void
+static NOINLINE void
 cfl_pred_c(pixel *dstU, pixel *dstV, const ptrdiff_t stride,
            const int16_t *ac, const pixel *const dc_pred,
            const int8_t *const alphas, const int width, const int height)

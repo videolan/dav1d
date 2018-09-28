@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common/attributes.h"
 #include "common/intops.h"
 
 #include "src/itx.h"
@@ -41,7 +42,7 @@
 typedef void (*itx_1d_fn)(const coef *in, ptrdiff_t in_s,
                           coef *out, ptrdiff_t out_s);
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_txfm_add_c(pixel *dst, const ptrdiff_t stride,
                coef *const coeff, const int eob,
                const int w, const int h, const int shift1, const int shift2,

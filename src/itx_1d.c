@@ -30,7 +30,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static void __attribute__((noinline))
+#include "common/attributes.h"
+
+static void NOINLINE
 inv_dct4_1d(const coef *const in, const ptrdiff_t in_s,
             coef *const out, const ptrdiff_t out_s)
 {
@@ -48,7 +50,7 @@ inv_dct4_1d(const coef *const in, const ptrdiff_t in_s,
     out[3 * out_s] = t0 - t3;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_dct8_1d(const coef *const in, const ptrdiff_t in_s,
             coef *const out, const ptrdiff_t out_s)
 {
@@ -82,7 +84,7 @@ inv_dct8_1d(const coef *const in, const ptrdiff_t in_s,
     out[7 * out_s] = tmp[0] - t7;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_dct16_1d(const coef *const in, const ptrdiff_t in_s,
              coef *const out, const ptrdiff_t out_s)
 {
@@ -150,7 +152,7 @@ inv_dct16_1d(const coef *const in, const ptrdiff_t in_s,
     out[15 * out_s] = tmp[0] - t15a;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_dct32_1d(const coef *const in, const ptrdiff_t in_s,
              coef *const out, const ptrdiff_t out_s)
 {
@@ -296,7 +298,7 @@ inv_dct32_1d(const coef *const in, const ptrdiff_t in_s,
     out[31 * out_s] = tmp[ 0] - t31;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_dct64_1d(const coef *const in, const ptrdiff_t in_s,
              coef *const out, const ptrdiff_t out_s)
 {
@@ -620,7 +622,7 @@ inv_dct64_1d(const coef *const in, const ptrdiff_t in_s,
     out[63 * out_s] = tmp[ 0] - t63a;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_adst4_1d(const coef *const in, const ptrdiff_t in_s,
              coef *const out, const ptrdiff_t out_s)
 {
@@ -638,7 +640,7 @@ inv_adst4_1d(const coef *const in, const ptrdiff_t in_s,
     out[3 * out_s] = (t0 + t1 - t3 + 2048) >> 12;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_adst8_1d(const coef *const in, const ptrdiff_t in_s,
              coef *const out, const ptrdiff_t out_s)
 {
@@ -686,7 +688,7 @@ inv_adst8_1d(const coef *const in, const ptrdiff_t in_s,
     out[5 * out_s] = -(((t6 - t7) * 2896 + 2048) >> 12);
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_adst16_1d(const coef *const in, const ptrdiff_t in_s,
               coef *const out, const ptrdiff_t out_s)
 {
@@ -808,7 +810,7 @@ flip_inv_adst(16)
 
 #undef flip_inv_adst
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_identity4_1d(const coef *const in, const ptrdiff_t in_s,
                  coef *const out, const ptrdiff_t out_s)
 {
@@ -816,7 +818,7 @@ inv_identity4_1d(const coef *const in, const ptrdiff_t in_s,
         out[out_s * i] = (in[in_s * i] * 5793 + 2048) >> 12;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_identity8_1d(const coef *const in, const ptrdiff_t in_s,
                  coef *const out, const ptrdiff_t out_s)
 {
@@ -824,7 +826,7 @@ inv_identity8_1d(const coef *const in, const ptrdiff_t in_s,
         out[out_s * i] = in[in_s * i] * 2;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_identity16_1d(const coef *const in, const ptrdiff_t in_s,
                   coef *const out, const ptrdiff_t out_s)
 {
@@ -832,7 +834,7 @@ inv_identity16_1d(const coef *const in, const ptrdiff_t in_s,
         out[out_s * i] = (in[in_s * i] * 2 * 5793 + 2048) >> 12;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_identity32_1d(const coef *const in, const ptrdiff_t in_s,
                   coef *const out, const ptrdiff_t out_s)
 {
@@ -840,7 +842,7 @@ inv_identity32_1d(const coef *const in, const ptrdiff_t in_s,
         out[out_s * i] = in[in_s * i] * 4;
 }
 
-static void __attribute__((noinline))
+static void NOINLINE
 inv_wht4_1d(const coef *const in, const ptrdiff_t in_s,
             coef *const out, const ptrdiff_t out_s,
             const int pass)

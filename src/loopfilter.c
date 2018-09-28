@@ -29,11 +29,12 @@
 
 #include <stdlib.h>
 
+#include "common/attributes.h"
 #include "common/intops.h"
 
 #include "src/loopfilter.h"
 
-static __attribute__((noinline)) void
+static NOINLINE void
 loop_filter(pixel *dst, int E, int I, int H,
             const ptrdiff_t stridea, const ptrdiff_t strideb, const int wd)
 {

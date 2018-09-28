@@ -51,6 +51,17 @@
 #define ALIGN_STK_16(type, var, sz1d, sznd) \
     ALIGN(type var[sz1d]sznd, 16)
 
+/*
+ * Forbid inlining of a function:
+ * static NOINLINE void func() {}
+ */
+#ifdef _MSC_VER
+#define NOINLINE __declspec(noinline)
+#else /* !_MSC_VER */
+#define NOINLINE __attribute__((noinline))
+#endif /* !_MSC_VER */
+
+
  #ifdef _MSC_VER
  #include <intrin.h>
 
