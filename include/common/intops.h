@@ -30,6 +30,8 @@
 
 #include <stdint.h>
 
+#include "common/attributes.h"
+
 static inline int imax(const int a, const int b) {
     return a > b ? a : b;
 }
@@ -51,11 +53,11 @@ static inline int apply_sign(const int v, const int s) {
 }
 
 static inline int ulog2(const unsigned v) {
-    return 31 - __builtin_clz(v);
+    return 31 - clz(v);
 }
 
 static inline int u64log2(const uint64_t v) {
-    return 63 - __builtin_clzll(v);
+    return 63 - clzll(v);
 }
 
 static inline unsigned rl16(const uint8_t *const ptr) {

@@ -32,7 +32,7 @@ typedef MsacContext od_ec_dec;
 
 static inline int get_msb(unsigned int n) {
     assert(n != 0);
-    return 31 ^ __builtin_clz(n);
+    return 31 ^ clz(n);
 }
 
 #define EC_PROB_SHIFT 6
