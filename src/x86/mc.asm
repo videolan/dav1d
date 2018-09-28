@@ -26,7 +26,7 @@
 %include "config.asm"
 %include "ext/x86/x86inc.asm"
 
-%if ARCH_X86_64 && UNIX64 ; FIXME: Windows
+%if ARCH_X86_64
 
 SECTION_RODATA 32
 
@@ -127,7 +127,7 @@ SECTION .text
 
 INIT_XMM avx2
 DECLARE_REG_TMP 4, 6, 7
-cglobal put_bilin, 4, 8, 8, dst, ds, src, ss, w, h, mxy
+cglobal put_bilin, 4, 8, 0, dst, ds, src, ss, w, h, mxy
     movifnidn          mxyd, r6m ; mx
     lea                  t2, [put_avx2]
     tzcnt                wd, wm
@@ -235,6 +235,7 @@ INIT_YMM avx2
     ; = ((16 - mx) * src[x] + mx * src[x + 1] + 8) >> 4
     imul               mxyd, 0xff01
     vbroadcasti128       m4, [bilin_h_shuf8]
+    WIN64_SPILL_XMM       7
     add                mxyd, 16 << 8
     movd                xm5, mxyd
     mov                mxyd, r7m ; my
@@ -375,6 +376,8 @@ INIT_YMM avx2
     RET
 .v:
     movzx                wd, word [t2+wq*2+table_offset(put, _bilin_v)]
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM       8
     imul               mxyd, 0xff01
     vpbroadcastd         m7, [pw_2048]
     add                mxyd, 16 << 8
@@ -535,6 +538,8 @@ INIT_YMM avx2
     ; (16 * src[x] + (my * (src[x + src_stride] - src[x])) + 128) >> 8
     ; = (src[x] + ((my * (src[x + src_stride] - src[x])) >> 4) + 8) >> 4
     movzx                wd, word [t2+wq*2+table_offset(put, _bilin_hv)]
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM       8
     shl                mxyd, 11 ; can't shift by 12 due to signed overflow
     vpbroadcastd         m7, [pw_2048]
     movd                xm6, mxyd
@@ -658,6 +663,9 @@ INIT_YMM avx2
     pshufb               m1, m4
     pmaddubsw            m0, m5
     pmaddubsw            m1, m5
+%if WIN64
+    movaps              r4m, xmm8
+%endif
 %%loop:
     add                srcq, ssq
     movu                xm2,     [srcq+8*1]
@@ -670,7 +678,6 @@ INIT_YMM avx2
     paddw                m3, m1
     mova                 m1, m2
     pmulhrsw             m8, m3, m7
-ASSERT UNIX64 ; using an additional vector register here
     movu                xm2,     [srcq+8*0]
     vinserti128          m2, m2, [srcq+8*2], 1
     pshufb               m2, m4
@@ -686,6 +693,9 @@ ASSERT UNIX64 ; using an additional vector register here
     add                dstq, dsq
     dec                  hd
     jg %%loop
+%if WIN64
+    movaps             xmm8, r4m
+%endif
 %endmacro
     PUT_BILIN_HV_W32
     RET
@@ -719,7 +729,7 @@ ASSERT UNIX64 ; using an additional vector register here
     RET
 
 DECLARE_REG_TMP 3, 5, 6
-cglobal prep_bilin, 3, 7, 7, tmp, src, stride, w, h, mxy, stride3
+cglobal prep_bilin, 3, 7, 0, tmp, src, stride, w, h, mxy, stride3
     movifnidn          mxyd, r5m ; mx
     lea                  t2, [prep_avx2]
     tzcnt                wd, wm
@@ -1019,6 +1029,7 @@ cglobal prep_bilin, 3, 7, 7, tmp, src, stride, w, h, mxy, stride3
     jg .h_w128
     RET
 .v:
+    WIN64_SPILL_XMM       7
     movzx                wd, word [t2+wq*2+table_offset(prep, _bilin_v)]
     imul               mxyd, 0xff01
     add                mxyd, 16 << 8
@@ -1206,6 +1217,8 @@ cglobal prep_bilin, 3, 7, 7, tmp, src, stride, w, h, mxy, stride3
 .hv:
     ; (16 * src[x] + (my * (src[x + src_stride] - src[x])) + 8) >> 4
     ; = src[x] + (((my * (src[x + src_stride] - src[x])) + 8) >> 4)
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM       7
     movzx                wd, word [t2+wq*2+table_offset(prep, _bilin_hv)]
     shl                mxyd, 11
     movd                xm6, mxyd
@@ -1408,7 +1421,11 @@ cglobal prep_bilin, 3, 7, 7, tmp, src, stride, w, h, mxy, stride3
 %assign FILTER_SMOOTH  (1*15 << 16) | 4*15
 %assign FILTER_SHARP   (2*15 << 16) | 3*15
 
+%if WIN64
+DECLARE_REG_TMP 4, 5
+%else
 DECLARE_REG_TMP 7, 8
+%endif
 %macro PUT_8TAP_FN 3 ; type, type_h, type_v
 cglobal put_8tap_%1
     mov                 t0d, FILTER_%2
@@ -1428,7 +1445,7 @@ PUT_8TAP_FN sharp_regular,  SHARP,   REGULAR
 PUT_8TAP_FN sharp,          SHARP,   SHARP
 PUT_8TAP_FN sharp_smooth,   SHARP,   SMOOTH
 
-cglobal put_8tap, 4, 9, 16, dst, ds, src, ss, w, h, mx, my, ss3
+cglobal put_8tap, 4, 9, 0, dst, ds, src, ss, w, h, mx, my, ss3
     imul                mxd, mxm, 0x010101
     add                 mxd, t0d ; 8tap_h, mx, 4tap_h
     imul                myd, mym, 0x010101
@@ -1445,11 +1462,15 @@ cglobal put_8tap, 4, 9, 16, dst, ds, src, ss, w, h, mx, my, ss3
     add                  wq, r8
     lea                  r6, [ssq*3]
     lea                  r7, [dsq*3]
+%if WIN64
+    pop                  r8
+%endif
     jmp                  wq
 .h:
     test                myd, 0xf00
     jnz .hv
     vpbroadcastd         m5, [pw_34] ; 2 + (8 << 2)
+    WIN64_SPILL_XMM      11
     cmp                  wd, 4
     jl .h_w2
     vbroadcasti128       m6, [subpel_h_shufA]
@@ -1577,6 +1598,8 @@ cglobal put_8tap, 4, 9, 16, dst, ds, src, ss, w, h, mx, my, ss3
     jg .h_loop
     RET
 .v:
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM      16
     movzx               mxd, myb
     shr                 myd, 16
     cmp                  hd, 4
@@ -1791,6 +1814,8 @@ cglobal put_8tap, 4, 9, 16, dst, ds, src, ss, w, h, mx, my, ss3
     jg .v_w16_loop0
     RET
 .hv:
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM      16
     cmp                  wd, 4
     jg .hv_w8
     movzx               mxd, mxb
@@ -2058,7 +2083,11 @@ cglobal put_8tap, 4, 9, 16, dst, ds, src, ss, w, h, mx, my, ss3
     jg .hv_w8_loop0
     RET
 
+%if WIN64
+DECLARE_REG_TMP 6, 4
+%else
 DECLARE_REG_TMP 6, 7
+%endif
 %macro PREP_8TAP_FN 3 ; type, type_h, type_v
 cglobal prep_8tap_%1
     mov                 t0d, FILTER_%2
@@ -2078,7 +2107,7 @@ PREP_8TAP_FN sharp_regular,  SHARP,   REGULAR
 PREP_8TAP_FN sharp,          SHARP,   SHARP
 PREP_8TAP_FN sharp_smooth,   SHARP,   SMOOTH
 
-cglobal prep_8tap, 3, 8, 16, tmp, src, stride, w, h, mx, my, stride3
+cglobal prep_8tap, 3, 8, 0, tmp, src, stride, w, h, mx, my, stride3
     imul                mxd, mxm, 0x010101
     add                 mxd, t0d ; 8tap_h, mx, 4tap_h
     imul                myd, mym, 0x010101
@@ -2094,12 +2123,16 @@ cglobal prep_8tap, 3, 8, 16, tmp, src, stride, w, h, mx, my, stride3
     movzx                wd, word [r7+wq*2+table_offset(prep,)]
     add                  wq, r7
     lea                  r6, [strideq*3]
+%if WIN64
+    pop                  r7
+%endif
     jmp                  wq
 .h:
     test                myd, 0xf00
     jnz .hv
     vbroadcasti128       m5, [subpel_h_shufA]
     vpbroadcastd         m4, [pw_8192]
+    WIN64_SPILL_XMM      10
     cmp                  wd, 4
     je .h_w4
     tzcnt                wd, wd
@@ -2202,6 +2235,8 @@ cglobal prep_8tap, 3, 8, 16, tmp, src, stride, w, h, mx, my, stride3
     jg .h_loop
     RET
 .v:
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM      16
     movzx               mxd, myb ; Select 4-tap/8-tap filter multipliers.
     shr                 myd, 16  ; Note that the code is 8-tap only, having
     cmp                  hd, 4   ; a separate 4-tap code path for (4|8|16)x4
@@ -2384,6 +2419,8 @@ cglobal prep_8tap, 3, 8, 16, tmp, src, stride, w, h, mx, my, stride3
     jg .v_w16_loop0
     RET
 .hv:
+    %assign stack_offset stack_offset - stack_size_padded
+    WIN64_SPILL_XMM      16
     cmp                  wd, 4
     jg .hv_w8
     movzx               mxd, mxb
