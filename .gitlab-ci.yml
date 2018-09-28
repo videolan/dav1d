@@ -2,7 +2,7 @@ stages:
     - build
 
 build-debian:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20180927123816
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
     stage: build
     tags:
         - debian
@@ -12,7 +12,7 @@ build-debian:
         - ninja -v -C build
 
 build-win32:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20180927123816
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
     stage: build
     tags:
         - win32
@@ -31,7 +31,7 @@ build-win32:
         expire_in: 1 week
 
 build-win64:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20180927123816
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
     stage: build
     tags:
         - win64
