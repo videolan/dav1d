@@ -92,8 +92,16 @@ endif
 
 # Header checks
 
+stdatomic_dependency = []
 if not cc.check_header('stdatomic.h')
-    error('Atomics not supported')
+    if cc.get_id() == 'msvc'
+        # we have a custom replacement for MSVC
+        stdatomic_dependency = declare_dependency(
+            include_directories : include_directories('include/compat'),
+        )
+    else
+        error('Atomics not supported')
+    endif
 endif
 
 if cc.check_header('unistd.h')
