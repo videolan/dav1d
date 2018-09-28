@@ -44,7 +44,9 @@ else
     thread_dependency = declare_dependency(sources: ['src/win32/thread.c'])
 endif
 
-dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
+if cc.has_function('getopt_long', prefix : '#include <getopt.h>')
+    cdata.set('HAVE_GETOPT_H',1)
+endif
 
 #
 # Option handling
@@ -170,6 +172,11 @@ cdata.set10('HAVE_ASM', is_asm_enabled)
 #
 # Generate config headers
 #
+if cdata.has('HAVE_GETOPT_H')
+    dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
+else
+    dav1d_inc_dirs = include_directories(['include', 'include/dav1d', 'include/compat'])
+endif
 
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
 
@@ -331,7 +338,7 @@ dav1d_sources = files(
     'tools/output/yuv.c'
 )
 
-if cc.get_id() == 'msvc'
+if not cdata.has('HAVE_GETOPT_H')
     dav1d_sources += files('tools/compat/getopt.c')
 endif
 

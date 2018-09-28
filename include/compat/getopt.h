@@ -50,8 +50,6 @@ extern int optreset;
  * specific block, only when *not* __UNISTD_H_SOURCED__, in which
  * to declare the extended API.
  */
-#endif /* !defined(__GETOPT_H__) */
-
 #if !defined(__UNISTD_H_SOURCED__) && !defined(__GETOPT_LONG_H__)
 #define __GETOPT_LONG_H__
 
@@ -93,3 +91,5 @@ extern int getopt_long_only(int nargc, char * const *nargv, const char *options,
 #endif
 
 #endif /* !defined(__UNISTD_H_SOURCED__) && !defined(__GETOPT_LONG_H__) */
+
+#endif /* !defined(__GETOPT_H__) */
