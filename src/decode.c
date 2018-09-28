@@ -2551,7 +2551,7 @@ int decode_frame(Dav1dFrameContext *const f) {
                 {
                     t->by = sby << (4 + f->seq_hdr.sb128);
                     for (int tile_col = 0; tile_col < f->frame_hdr.tiling.cols; tile_col++) {
-                        t->ts = &f->ts[tile_row * f->frame_hdr.tiling.rows + tile_col];
+                        t->ts = &f->ts[tile_row * f->frame_hdr.tiling.cols + tile_col];
 
                         int res;
                         if ((res = decode_tile_sbrow(t)))
