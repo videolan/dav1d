@@ -451,20 +451,15 @@ static void selfguided_filter(int32_t *dst, const ptrdiff_t dst_stride,
 
     src += 3 * PXSTRIDE(src_stride) + 3;
     if (n == 25) {
-        for (int j = 0; j < h; j+=2) {
+        int j = 0;
+#define SIX_NEIGHBORS(P, i, stride)\
+    ((P[i - stride]     + P[i + stride]) * 6 +   \
+     (P[i - 1 - stride] + P[i - 1 + stride] +    \
+      P[i + 1 - stride] + P[i + 1 + stride]) * 5)
+        for (; j < h - 1; j+=2) {
             for (int i = 0; i < w; i++) {
-                const int32_t a = (B[i - tmp_stride] +
-                                   B[i + tmp_stride]) * 6 +
-                                  (B[i - 1 - tmp_stride] +
-                                   B[i - 1 + tmp_stride] +
-                                   B[i + 1 - tmp_stride] +
-                                   B[i + 1 + tmp_stride]) * 5;
-                const int32_t b = (A[i - tmp_stride] +
-                                   A[i + tmp_stride]) * 6 +
-                                  (A[i - 1 - tmp_stride] +
-                                   A[i - 1 + tmp_stride] +
-                                   A[i + 1 - tmp_stride] +
-                                   A[i + 1 + tmp_stride]) * 5;
+                const int32_t a = SIX_NEIGHBORS(B, i, tmp_stride);
+                const int32_t b = SIX_NEIGHBORS(A, i, tmp_stride);
                 dst[i] = (a * src[i] + b + (1 << 8)) >> 9;
             }
             dst += dst_stride;
@@ -481,27 +476,23 @@ static void selfguided_filter(int32_t *dst, const ptrdiff_t dst_stride,
             B += tmp_stride;
             A += tmp_stride;
         }
+        if (j + 1 == h) { // Last row, when number of rows is odd
+            for (int i = 0; i < w; i++) {
+                const int32_t a = SIX_NEIGHBORS(B, i, tmp_stride);
+                const int32_t b = SIX_NEIGHBORS(A, i, tmp_stride);
+                dst[i] = (a * src[i] + b + (1 << 8)) >> 9;
+            }
+        }
+#undef SIX_NEIGHBORS
     } else {
+#define EIGHT_NEIGHBORS(P, i, stride)\
+    ((P[i] + P[i - 1] + P[i + 1] + P[i - tmp_stride] + P[i + tmp_stride]) * 4 + \
+     (P[i - 1 - tmp_stride] + P[i - 1 + tmp_stride] +                           \
+      P[i + 1 - tmp_stride] + P[i + 1 + tmp_stride]) * 3)
         for (int j = 0; j < h; j++) {
             for (int i = 0; i < w; i++) {
-                const int32_t a =
-                    (B[i] + B[i - 1] + B[i + 1] +
-                     B[i - tmp_stride] +
-                     B[i + tmp_stride]) * 4 +
-                    (B[i - 1 - tmp_stride] +
-                     B[i - 1 + tmp_stride] +
-                     B[i + 1 - tmp_stride] +
-                     B[i + 1 + tmp_stride]) * 3;
-
-                const int32_t b =
-                    (A[i] + A[i - 1] + A[i + 1] +
-                     A[i - tmp_stride] +
-                     A[i + tmp_stride]) * 4 +
-                    (A[i - 1 - tmp_stride] +
-                     A[i - 1 + tmp_stride] +
-                     A[i + 1 - tmp_stride] +
-                     A[i + 1 + tmp_stride]) * 3;
-
+                const int32_t a = EIGHT_NEIGHBORS(B, i, stride);
+                const int32_t b = EIGHT_NEIGHBORS(A, i, stride);
                 dst[i] = (a * src[i] + b + (1 << 8)) >> 9;
             }
             dst += dst_stride;
@@ -510,6 +501,7 @@ static void selfguided_filter(int32_t *dst, const ptrdiff_t dst_stride,
             A += tmp_stride;
         }
     }
+#undef NINE_NEIGHBORS
 }
 
 static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
