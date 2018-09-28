@@ -159,7 +159,7 @@ void dav1d_thread_picture_wait(const Dav1dThreadPicture *const p,
 
     // convert to luma units; include plane delay from loopfilters; clip
     const int ss_ver = p->p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
-    y_unclipped <<= plane_type & ss_ver; // we rely here on PLANE_TYPE_UV being 1
+    y_unclipped *= 1 << (plane_type & ss_ver); // we rely here on PLANE_TYPE_UV being 1
     y_unclipped += (plane_type != PLANE_TYPE_BLOCK) * 8; // delay imposed by loopfilter
     const int y = iclip(y_unclipped, 0, p->p.p.h - 1);
     atomic_uint *const progress = &p->progress[plane_type != PLANE_TYPE_BLOCK];
