@@ -51,7 +51,7 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
 
     static const char *const ss_names[][2] = {
         [DAV1D_PIXEL_LAYOUT_I400] = { "mono", "mono10" },
-        [DAV1D_PIXEL_LAYOUT_I420] = { "420jpeg", "420p10" },
+        [DAV1D_PIXEL_LAYOUT_I420] = { NULL, "420p10" },
         [DAV1D_PIXEL_LAYOUT_I422] = { "422", "422p10" },
         [DAV1D_PIXEL_LAYOUT_I444] = { "444", "444p10" }
     };
