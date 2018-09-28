@@ -65,6 +65,11 @@ int dav1d_data_wrap(Dav1dData *const buf, uint8_t *const ptr, const size_t sz,
 }
 
 void dav1d_data_unref(Dav1dData *const buf) {
-    dav1d_ref_dec(buf->ref);
+    validate_input(buf != NULL);
+
+    if (buf->ref) {
+        validate_input(buf->data != NULL);
+        dav1d_ref_dec(buf->ref);
+    }
     memset(buf, 0, sizeof(*buf));
 }
