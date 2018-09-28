@@ -27,6 +27,11 @@ project('dav1d', ['c'],
     default_options: ['c_std=c99'],
     meson_version: '>= 0.47.0')
 
+dav1d_version_array    = meson.project_version().split('.')
+dav1d_version_major    = dav1d_version_array[0]
+dav1d_version_minor    = dav1d_version_array[1]
+dav1d_version_revision = dav1d_version_array[2]
+
 dav1d_src_root = meson.current_source_dir()
 cdata = configuration_data()
 cdata_asm = configuration_data()
