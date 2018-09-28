@@ -48,6 +48,22 @@ int dav1d_data_create(Dav1dData *const buf, const size_t sz) {
     return 0;
 }
 
+int dav1d_data_wrap(Dav1dData *const buf, uint8_t *const ptr, const size_t sz,
+                    void (*free_callback)(uint8_t *data, void *user_data),
+                    void *user_data)
+{
+    validate_input_or_ret(buf != NULL, -EINVAL);
+    validate_input_or_ret(ptr != NULL, -EINVAL);
+    validate_input_or_ret(free_callback != NULL, -EINVAL);
+
+    buf->ref = dav1d_ref_wrap(ptr, sz, free_callback, user_data);
+    if (!buf->ref) return -ENOMEM;
+    buf->data = ptr;
+    buf->sz = sz;
+
+    return 0;
+}
+
 void dav1d_data_unref(Dav1dData *const buf) {
     dav1d_ref_dec(buf->ref);
     memset(buf, 0, sizeof(*buf));

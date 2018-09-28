@@ -45,6 +45,18 @@ typedef struct Dav1dData {
 DAV1D_API int dav1d_data_create(Dav1dData *data, size_t sz);
 
 /**
+ * Wrap an existing data packet.
+ * $ptr/$sz are the pointer and size of the data to be wrapped.
+ * $free_callback/$user_data are a function and function argument to be
+ * called when we release our last reference to this data. In this callback,
+ * $data will be the $ptr argument to this function, and $user_data will be
+ * the $user_data input argument to this function.
+ */
+DAV1D_API int dav1d_data_wrap(Dav1dData *data, uint8_t *ptr, size_t sz,
+                              void (*free_callback)(uint8_t *data, void *user_data),
+                              void *user_data);
+
+/**
  * Free data.
  */
 DAV1D_API void dav1d_data_unref(Dav1dData *buf);
