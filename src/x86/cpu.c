@@ -33,7 +33,7 @@ void dav1d_cpu_cpuid(uint32_t *info, int leaf);
 uint64_t dav1d_cpu_xgetbv(int xcr);
 
 static unsigned get_cpu_flags(void) {
-    uint32_t info[4], n_ids;
+    uint32_t info[4] = {0}, n_ids;
     unsigned flags = 0;
 
     dav1d_cpu_cpuid(info, 0);
