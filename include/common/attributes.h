@@ -51,4 +51,16 @@
 #define ALIGN_STK_16(type, var, sz1d, sznd) \
     ALIGN(type var[sz1d]sznd, 16)
 
+static inline int ctz(const unsigned int mask) {
+    return __builtin_ctz(mask);
+}
+
+static inline int clz(const unsigned int mask) {
+    return __builtin_clz(mask);
+}
+
+static inline int clzll(const unsigned long long mask) {
+    return __builtin_clzll(mask);
+}
+
 #endif /* __DAV1D_COMMON_ATTRIBUTES_H__ */
