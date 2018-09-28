@@ -408,13 +408,13 @@ static inline int av1_get_fwd_ref_2_ctx(const BlockContext *const a,
     int cnt[2] = { 0 };
 
     if (have_top && !a->intra[xb4]) {
-        if (a->ref[0][xb4] - 2U < 2) cnt[a->ref[0][xb4] - 2]++;
-        if (a->comp_type[xb4] && a->ref[1][xb4] - 2U < 2) cnt[a->ref[1][xb4] - 2]++;
+        if ((a->ref[0][xb4] ^ 2U) < 2) cnt[a->ref[0][xb4] - 2]++;
+        if (a->comp_type[xb4] && (a->ref[1][xb4] ^ 2U) < 2) cnt[a->ref[1][xb4] - 2]++;
     }
 
     if (have_left && !l->intra[yb4]) {
-        if (l->ref[0][yb4] - 2U < 2) cnt[l->ref[0][yb4] - 2]++;
-        if (l->comp_type[yb4] && l->ref[1][yb4] - 2U < 2) cnt[l->ref[1][yb4] - 2]++;
+        if ((l->ref[0][yb4] ^ 2U) < 2) cnt[l->ref[0][yb4] - 2]++;
+        if (l->comp_type[yb4] && (l->ref[1][yb4] ^ 2U) < 2) cnt[l->ref[1][yb4] - 2]++;
     }
 
     return cnt[0] == cnt[1] ? 1 : cnt[0] < cnt[1] ? 0 : 2;

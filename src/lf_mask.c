@@ -111,13 +111,17 @@ static inline void mask_edges_inter(uint32_t (*masks)[32][3],
         for (y = 0; y < h4; y++) {
             int ltx = txa[0][0][y][0];
             int step = txa[0][1][y][0];
-            for (x = step, mask = 1U << (bx4 + step);
-                 x < w4; x += step, mask <<= step)
-            {
-                const int rtx = txa[0][0][y][x];
-                masks[0][by4 + y][imin(rtx, ltx)] |= mask;
-                ltx = rtx;
-                step = txa[0][1][y][x];
+            if (step < w4) {
+                x = step;
+                mask = 1U << (bx4 + step);
+                do {
+                    const int rtx = txa[0][0][y][x];
+                    masks[0][by4 + y][imin(rtx, ltx)] |= mask;
+                    ltx = rtx;
+                    step = txa[0][1][y][x];
+                    x += step;
+                    mask <<= step;
+                } while (x < w4);
             }
         }
 
