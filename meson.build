@@ -288,6 +288,23 @@ foreach bitdepth : dav1d_bitdepths
     bitdepth_objs += bitdepth_lib.extract_all_objects()
 endforeach
 
+if host_machine.system() == 'windows'
+    winmod = import('windows')
+    rc_data = configuration_data()
+    rc_data.set('VERSION_MAJOR', dav1d_version_major)
+    rc_data.set('VERSION_MINOR', dav1d_version_minor)
+    rc_data.set('VERSION_REVISION', dav1d_version_revision)
+    rc_data.set('VERSION_EXTRA', '0')
+    rc_data.set('COPYRIGHT_YEARS', '2018')
+
+    rc_file = configure_file(input: 'src/dav1d.rc.in',
+                output: 'dav1d.rc', configuration: rc_data)
+    rc_source = winmod.compile_resources(rc_file,
+                    include_directories: include_directories('src'))
+    libdav1d_sources += rc_source
+    #entrypoints_objs += rc_source
+endif
+
 libdav1d = library('dav1d',
     libdav1d_sources, nasm_objs,
     version: meson.project_version(),
