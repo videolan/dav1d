@@ -173,9 +173,9 @@ cdata.set10('HAVE_ASM', is_asm_enabled)
 # Generate config headers
 #
 if cdata.has('HAVE_GETOPT_H')
-    dav1d_inc_dirs = include_directories(['include', 'include/dav1d'])
+    dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d'])
 else
-    dav1d_inc_dirs = include_directories(['include', 'include/dav1d', 'include/compat'])
+    dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d', 'include/compat'])
 endif
 
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
@@ -269,7 +269,7 @@ if is_asm_enabled
         depfile: '@BASENAME@.obj.ndep',
         arguments: [
             '-f', nasm_format,
-            '-I', '@CURRENT_SOURCE_DIR@/',
+            '-I', '@SOURCE_DIR@/',
             '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
             '@EXTRA_ARGS@',
             '@INPUT@',
@@ -312,14 +312,21 @@ if host_machine.system() == 'windows'
     #entrypoints_objs += rc_source
 endif
 
-libdav1d = library('dav1d',
+libdav1d_private = static_library('dav1d_private',
     libdav1d_sources, nasm_objs,
     version: meson.project_version(),
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
     c_args: [stackalign_flag],
     dependencies: thread_dependency,
-    install: true
+    install: false,
+    build_by_default: false,
+)
+
+libdav1d = library('dav1d',
+    version: '0.0.1',
+    link_whole: libdav1d_private,
+    install: true,
 )
 
 install_subdir('include/dav1d/', install_dir: 'include')
@@ -348,6 +355,8 @@ dav1d = executable('dav1d',
     include_directories: [dav1d_inc_dirs, include_directories('tools')],
     install: true,
 )
+
+subdir('tests')
 
 #
 # pkg-config boilerplate
