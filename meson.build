@@ -318,7 +318,6 @@ libdav1d_private = static_library('dav1d_private',
     objects: [bitdepth_objs, entrypoints_objs],
     include_directories: dav1d_inc_dirs,
     c_args: [stackalign_flag],
-    dependencies: thread_dependency,
     install: false,
     build_by_default: false,
 )
@@ -326,6 +325,7 @@ libdav1d_private = static_library('dav1d_private',
 libdav1d = library('dav1d',
     version: '0.0.1',
     link_whole: libdav1d_private,
+    dependencies: thread_dependency,
     install: true,
 )
 
