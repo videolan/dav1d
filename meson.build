@@ -269,7 +269,7 @@ if is_asm_enabled
         depfile: '@BASENAME@.obj.ndep',
         arguments: [
             '-f', nasm_format,
-            '-I', '@SOURCE_DIR@/',
+            '-I', '@SOURCE_DIR@/src/',
             '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
             '@EXTRA_ARGS@',
             '@INPUT@',
