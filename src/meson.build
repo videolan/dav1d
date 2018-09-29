@@ -83,9 +83,11 @@ if is_asm_enabled
             'arm/cpu.c',
         )
         libdav1d_tmpl_sources += files(
+            'arm/mc_init.c',
         )
         if host_machine.cpu_family() == 'aarch64'
             libdav1d_tmpl_sources += files(
+                'arm/64/mc.S',
             )
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_tmpl_sources += files(

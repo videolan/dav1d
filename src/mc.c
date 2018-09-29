@@ -532,7 +532,11 @@ void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
     c->warp8x8  = warp_affine_8x8_c;
     c->warp8x8t = warp_affine_8x8t_c;
 
-#if HAVE_ASM && ARCH_X86
+#if HAVE_ASM
+#if ARCH_AARCH64 || ARCH_ARM
+    bitfn(dav1d_mc_dsp_init_arm)(c);
+#elif ARCH_X86
     bitfn(dav1d_mc_dsp_init_x86)(c);
+#endif
 #endif
 }
