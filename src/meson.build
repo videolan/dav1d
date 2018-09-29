@@ -192,10 +192,17 @@ libdav1d_private = static_library('dav1d_private',
 )
 
 # The final dav1d library
+if host_machine.system() == 'windows'
+    dav1d_soversion = ''
+else
+    dav1d_soversion = dav1d_version_major
+endif
+
 libdav1d = library('dav1d',
     version : meson.project_version(),
     link_whole : libdav1d_private,
     dependencies : thread_dependency,
     include_directories : dav1d_inc_dirs,
+    soversion : dav1d_soversion,
     install : true,
 )
