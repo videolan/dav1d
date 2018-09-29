@@ -55,26 +55,23 @@ void (name)(int16_t *ac, const pixel *y, ptrdiff_t stride, \
 typedef decl_cfl_ac_fn(*cfl_ac_fn);
 
 /*
- * dst[x,y] = dc + alpha * ac[x,y]
+ * dst[x,y] += alpha * ac[x,y]
  * - alpha contains a q3 scalar in [-16,16] range;
- * - dc_pred[] is the first line of the plane's DC prediction
  */
 #define decl_cfl_pred_1_fn(name) \
 void (name)(pixel *dst, ptrdiff_t stride, \
-            const int16_t *ac, const pixel *dc_pred, \
-            const int8_t alpha, const int height)
+            const int16_t *ac, const int8_t alpha, \
+            const int height)
 typedef decl_cfl_pred_1_fn(*cfl_pred_1_fn);
 
 /*
- * dst[plane][x,y] = dc[plane] + alpha[plane] * ac[x,y]
+ * dst[plane][x,y] += alpha[plane] * ac[x,y]
  * - alphas contains two q3 scalars (one for each plane) in [-16,16] range;
- * - dc_pred[] is the first line of each plane's DC prediction, the second plane
- *   starting at an offset of 16 * sizeof(pixel) bytes.
  */
 #define decl_cfl_pred_fn(name) \
 void (name)(pixel *u_dst, pixel *v_dst, ptrdiff_t stride, \
-            const int16_t *ac, const pixel *dc_pred, \
-            const int8_t *const alphas, const int height)
+            const int16_t *ac, const int8_t *const alphas, \
+            const int height)
 typedef decl_cfl_pred_fn(*cfl_pred_fn);
 
 /*

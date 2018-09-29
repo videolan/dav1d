@@ -836,7 +836,6 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                 assert(!init_x && !init_y);
 
                 int16_t *const ac = t->scratch.ac;
-                ALIGN_STK_32(pixel, uv_pred, 2 * 32,);
                 pixel *y_src = ((pixel *) f->cur.p.data[0]) + 4 * (t->bx & ~ss_hor) +
                                  4 * (t->by & ~ss_ver) * PXSTRIDE(f->cur.p.stride[0]);
                 const ptrdiff_t uv_off = 4 * ((t->bx >> ss_hor) +
@@ -870,13 +869,7 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                                                     top_sb_edge, DC_PRED, &angle,
                                                     cfl_uv_t_dim->w,
                                                     cfl_uv_t_dim->h, edge);
-                    if (b->cfl_alpha[pl]) {
-                      dsp->ipred.intra_pred[cfl_uvtx][m](&uv_pred[32 * pl],
-                                                         0, edge, 0);
-                    } else {
-                      dsp->ipred.intra_pred[cfl_uvtx][m](uv_dst[pl], stride,
-                                                         edge, 0);
-                    }
+                    dsp->ipred.intra_pred[cfl_uvtx][m](uv_dst[pl], stride, edge, 0);
                 }
                 const int furthest_r =
                     ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
@@ -889,14 +882,12 @@ void bytefn(recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
                 if (b->cfl_alpha[0] && b->cfl_alpha[1]) {
                   dsp->ipred.cfl_pred[cfl_uv_t_dim->lw](uv_dst[0],
                                                         uv_dst[1], stride,
-                                                        ac, uv_pred,
-                                                        b->cfl_alpha,
+                                                        ac, b->cfl_alpha,
                                                         cbh4 * 4);
                 } else {
                   const int pl = !b->cfl_alpha[0];
                   dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[pl],
                                                           stride, ac,
-                                                          &uv_pred[32 * pl],
                                                           b->cfl_alpha[pl],
                                                           cbh4 * 4);
                 }

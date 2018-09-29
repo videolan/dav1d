@@ -881,14 +881,13 @@ cfl_ac_fn(32, 32, 32, 32, 0, 0, 10)
 
 static NOINLINE void
 cfl_pred_1_c(pixel *dst, const ptrdiff_t stride, const int16_t *ac,
-             const pixel *const dc_pred, const int8_t alpha,
-             const int width, const int height)
+             const int8_t alpha, const int width, const int height)
 {
+    const pixel dc = *dst;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             const int diff = alpha * ac[x];
-            dst[x] = iclip_pixel(dc_pred[0] + apply_sign((abs(diff) + 32) >> 6,
-                                                         diff));
+            dst[x] = iclip_pixel(dc + apply_sign((abs(diff) + 32) >> 6, diff));
         }
         ac += width;
         dst += PXSTRIDE(stride);
@@ -899,11 +898,10 @@ cfl_pred_1_c(pixel *dst, const ptrdiff_t stride, const int16_t *ac,
 static void cfl_pred_1_##width##xN_c(pixel *const dst, \
                                      const ptrdiff_t stride, \
                                      const int16_t *const ac, \
-                                     const pixel *const dc_pred, \
                                      const int8_t alpha, \
                                      const int height) \
 { \
-    cfl_pred_1_c(dst, stride, ac, dc_pred, alpha, width, height); \
+    cfl_pred_1_c(dst, stride, ac, alpha, width, height); \
 }
 
 cfl_pred_1_fn( 4)
@@ -912,18 +910,16 @@ cfl_pred_1_fn(16)
 cfl_pred_1_fn(32)
 
 static NOINLINE void
-cfl_pred_c(pixel *dstU, pixel *dstV, const ptrdiff_t stride,
-           const int16_t *ac, const pixel *const dc_pred,
+cfl_pred_c(pixel *dstU, pixel *dstV, const ptrdiff_t stride, const int16_t *ac,
            const int8_t *const alphas, const int width, const int height)
 {
+    const pixel dcU = *dstU, dcV = *dstV;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             const int diff1 = alphas[0] * ac[x];
-            dstU[x] = iclip_pixel(dc_pred[ 0] + apply_sign((abs(diff1) + 32) >> 6,
-                                                           diff1));
+            dstU[x] = iclip_pixel(dcU + apply_sign((abs(diff1) + 32) >> 6, diff1));
             const int diff2 = alphas[1] * ac[x];
-            dstV[x] = iclip_pixel(dc_pred[32] + apply_sign((abs(diff2) + 32) >> 6,
-                                                           diff2));
+            dstV[x] = iclip_pixel(dcV + apply_sign((abs(diff2) + 32) >> 6, diff2));
         }
         ac += width;
         dstU += PXSTRIDE(stride);
@@ -936,11 +932,10 @@ static void cfl_pred_##width##xN_c(pixel *const dstU, \
                                    pixel *const dstV, \
                                    const ptrdiff_t stride, \
                                    const int16_t *const ac, \
-                                   const pixel *const dc_pred, \
                                    const int8_t *const alphas, \
                                    const int height) \
 { \
-    cfl_pred_c(dstU, dstV, stride, ac, dc_pred, alphas, width, height); \
+    cfl_pred_c(dstU, dstV, stride, ac, alphas, width, height); \
 }
 
 cfl_pred_fn( 4)
