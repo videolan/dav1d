@@ -54,7 +54,7 @@ static const struct {
 } tests[] = {
     { "mc_8bpc", checkasm_check_mc_8bpc },
     { "mc_10bpc", checkasm_check_mc_10bpc },
-    { NULL }
+    { 0 }
 };
 
 /* List of cpu flags to check */
@@ -74,7 +74,7 @@ static const struct {
     { "AVX2",    "avx2",   DAV1D_X86_CPU_FLAG_AVX2 },
     { "AVX-512", "avx512", DAV1D_X86_CPU_FLAG_AVX512 },
 #endif
-    { NULL }
+    { 0 }
 };
 
 typedef struct CheckasmFuncVersion {
