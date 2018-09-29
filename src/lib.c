@@ -139,7 +139,7 @@ int dav1d_open(Dav1dContext **const c_out,
 error:
     if (c) {
         if (c->fc) {
-            for (int n = 0; n < c->n_fc; n++)
+            for (unsigned n = 0; n < c->n_fc; n++)
                 if (c->fc[n].tc)
                     dav1d_free_aligned(c->fc[n].tc);
             dav1d_free_aligned(c->fc);
@@ -162,7 +162,7 @@ int dav1d_decode(Dav1dContext *const c,
         if (c->n_fc == 1) return -EAGAIN;
 
         // flush
-        int flush_count = 0;
+        unsigned flush_count = 0;
         do {
             const unsigned next = c->frame_thread.next;
             Dav1dFrameContext *const f = &c->fc[next];
@@ -217,7 +217,7 @@ int dav1d_decode(Dav1dContext *const c,
 void dav1d_flush(Dav1dContext *const c) {
     if (c->n_fc == 1) return;
 
-    for (int n = 0; n < c->n_fc; n++)
+    for (unsigned n = 0; n < c->n_fc; n++)
         c->frame_thread.out_delayed[n].flushed = 1;
 }
 
@@ -227,7 +227,7 @@ void dav1d_close(Dav1dContext **const c_out) {
     Dav1dContext *const c = *c_out;
     if (!c) return;
 
-    for (int n = 0; n < c->n_fc; n++) {
+    for (unsigned n = 0; n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
 
         // clean-up threading stuff
@@ -293,7 +293,7 @@ void dav1d_close(Dav1dContext **const c_out) {
     }
     dav1d_free_aligned(c->fc);
     if (c->n_fc > 1) {
-        for (int n = 0; n < c->n_fc; n++)
+        for (unsigned n = 0; n < c->n_fc; n++)
             if (c->frame_thread.out_delayed[n].p.data[0])
                 dav1d_thread_picture_unref(&c->frame_thread.out_delayed[n]);
         free(c->frame_thread.out_delayed);

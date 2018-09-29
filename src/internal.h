@@ -66,7 +66,7 @@ typedef struct Dav1dDSPContext {
 
 struct Dav1dContext {
     Dav1dFrameContext *fc;
-    int n_fc;
+    unsigned n_fc;
 
     // cache of OBUs that make up a single frame before we submit them
     // to a frame worker to be decoded
