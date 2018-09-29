@@ -33,49 +33,116 @@ dav1d_version_minor    = dav1d_version_array[1]
 dav1d_version_revision = dav1d_version_array[2]
 
 dav1d_src_root = meson.current_source_dir()
-cdata = configuration_data()
-cdata_asm = configuration_data()
 cc = meson.get_compiler('c')
 
-# On windows, we use a compatibility layer to emulate pthread
-if host_machine.system() != 'windows'
-    thread_dependency = dependency('threads')
-else
-    thread_dependency = declare_dependency(sources: ['src/win32/thread.c'])
-endif
+# Configuratin data for config.h
+cdata = configuration_data()
 
-if cc.has_function('getopt_long', prefix : '#include <getopt.h>')
-    cdata.set('HAVE_GETOPT_H',1)
-endif
+# Configuration data for config.asm
+cdata_asm = configuration_data()
+
+# Include directories
+dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d'])
+
+
 
 #
 # Option handling
 #
+
+# Bitdepth option
 dav1d_bitdepths = get_option('bitdepths')
 foreach bitdepth : dav1d_bitdepths
     cdata.set('CONFIG_@0@BPC'.format(bitdepth), 1)
 endforeach
 
+# ASM option
+is_asm_enabled = (get_option('build_asm') == true and
+    host_machine.cpu_family().startswith('x86'))
+cdata.set10('HAVE_ASM', is_asm_enabled)
+
+
+
 #
-# OS/Compiler feature detection
+# OS/Compiler checks and defines
 #
 
-feature_defines = [
-    ['_POSIX_C_SOURCE',             '200112L'], # POSIX.1–2001 (IEEE Std 1003.1-2001)
-]
+# Arguments in test_args will be used even on feature tests
+test_args = []
+
+# Define _POSIX_C_SOURCE to POSIX.1–2001 (IEEE Std 1003.1-2001)
+test_args  += '-D_POSIX_C_SOURCE=200112L'
+add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
 
 if host_machine.system() == 'windows'
-    feature_defines += [
-            ['_WIN32_WINNT',                0x0601],
-            ['UNICODE',                     1], # Define to 1 for Unicode (Wide Chars) APIs
-            ['_UNICODE',                    1], # Define to 1 for Unicode (Wide Chars) APIs
-            ['__USE_MINGW_ANSI_STDIO',      1], # Define to force use of MinGW printf
-    ]
+    cdata.set('_WIN32_WINNT',           '0x0601')
+    cdata.set('UNICODE',                1) # Define to 1 for Unicode (Wide Chars) APIs
+    cdata.set('_UNICODE',               1) # Define to 1 for Unicode (Wide Chars) APIs
+    cdata.set('__USE_MINGW_ANSI_STDIO', 1) # Define to force use of MinGW printf
 endif
+
+# On Windows, we use a compatibility layer to emulate pthread
+if host_machine.system() == 'windows'
+    thread_dependency = declare_dependency(sources : files('src/win32/thread.c'))
+else
+    thread_dependency = dependency('threads')
+endif
+
+
+# Header checks
 
 if not cc.check_header('stdatomic.h')
     error('Atomics not supported')
 endif
+
+if cc.check_header('unistd.h')
+    cdata.set('HAVE_UNISTD_H', 1)
+endif
+
+
+# Function checks
+
+if not cc.has_function('getopt_long', prefix : '#include <getopt.h>', args : test_args)
+    getopt_dependency = declare_dependency(
+        sources: files('tools/compat/getopt.c'),
+        include_directories : include_directories('include/compat'),
+    )
+else
+    getopt_dependency = []
+endif
+
+if cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
+    cdata.set('HAVE_POSIX_MEMALIGN', 1)
+elif cc.has_function('_aligned_malloc', prefix : '#include <malloc.h>', args : test_args)
+    cdata.set('HAVE_ALIGNED_MALLOC', 1)
+endif
+
+
+# Compiler flag tests
+
+if cc.has_argument('-fvisibility=hidden')
+    add_project_arguments('-fvisibility=hidden', language: 'c')
+else
+    warning('Compiler does not support -fvisibility=hidden, all symbols will be public!')
+endif
+
+# Compiler flags that should be set
+# But when the compiler does not supports them
+# it is not an error and silently tolerated
+optional_arguments = [
+  '-Wundef',
+  '-Wvla', # should be '-Werror=vla
+]
+
+if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
+    optional_arguments += '-fomit-frame-pointer'
+    optional_arguments += '-ffast-math'
+endif
+
+add_project_arguments(cc.get_supported_arguments(optional_arguments), language : 'c')
+
+
+# Stack alignments flags
 
 stackalign_flag = []
 stackrealign_flag = []
@@ -132,122 +199,21 @@ if cc.symbols_have_underscore_prefix()
     cdata_asm.set10('PREFIX', true)
 endif
 
-if cc.has_argument('-fvisibility=hidden')
-    add_project_arguments('-fvisibility=hidden', language: 'c')
-else
-    warning('Compiler does not support -fvisibility=hidden, all symbols will be public!')
-endif
-
-if cc.has_function('posix_memalign', prefix: '#include <stdlib.h>', args: ['-D_POSIX_C_SOURCE=200112L'])
-    cdata.set('HAVE_POSIX_MEMALIGN', 1)
-elif cc.has_function('_aligned_malloc', prefix: '#include <malloc.h>')
-    cdata.set('HAVE_ALIGNED_MALLOC', 1)
-endif
-
-if cc.check_header('unistd.h')
-    cdata.set('HAVE_UNISTD_H', 1)
-endif
-
-if (get_option('buildtype') != 'debug' and
-    get_option('buildtype') != 'plain')
-    add_project_arguments('-fomit-frame-pointer', '-ffast-math',
-        language: 'c')
-endif
-
-warning_flags = [
-  '-Wundef',
-  '-Wvla', # should be '-Werror=vla
-]
-
-add_project_arguments(cc.get_supported_arguments(warning_flags), language: 'c')
-
-foreach f : feature_defines
-   cdata.set(f.get(0), f.get(1))
-endforeach
-
-is_asm_enabled = (get_option('build_asm') == true and
-    host_machine.cpu_family().startswith('x86'))
-cdata.set10('HAVE_ASM', is_asm_enabled)
-
-#
-# Generate config headers
-#
-if cdata.has('HAVE_GETOPT_H')
-    dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d'])
-else
-    dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d', 'include/compat'])
-endif
-
+# Generate config.h
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
 
+
+
+#
+# ASM specific stuff
+#
 if is_asm_enabled
+
+    # Generate config.asm
     config_asm_target = configure_file(output: 'config.asm', output_format: 'nasm', configuration: cdata_asm)
-endif
 
-subdir('include')
 
-#
-# dav1d library
-#
-libdav1d_tmpl_sources = files(
-    'src/ipred.c',
-    'src/itx.c',
-    'src/ipred_prepare.c',
-    'src/lf_apply.c',
-    'src/loopfilter.c',
-    'src/mc.c',
-    'src/cdef_apply.c',
-    'src/cdef.c',
-    'src/lr_apply.c',
-    'src/looprestoration.c',
-    'src/recon.c'
-)
-
-entrypoints_src = files(
-    'src/lib.c',
-    'src/thread_task.c'
-)
-entrypoints_lib = static_library(
-    'libdav1dentrypoint',
-    entrypoints_src, rev_target,
-    include_directories: dav1d_inc_dirs,
-    c_args: stackrealign_flag,
-    install: false,
-    build_by_default: false,
-)
-entrypoints_objs = entrypoints_lib.extract_all_objects()
-
-libdav1d_sources = files(
-    'src/picture.c',
-    'src/data.c',
-    'src/ref.c',
-    'src/getbits.c',
-    'src/obu.c',
-    'src/decode.c',
-    'src/cdf.c',
-    'src/msac.c',
-    'src/tables.c',
-    'src/scan.c',
-    'src/dequant_tables.c',
-    'src/intra_edge.c',
-    'src/lf_mask.c',
-    'src/ref_mvs.c',
-    'src/warpmv.c',
-    'src/wedge.c',
-    'src/qm.c',
-)
-
-if is_asm_enabled
-    libdav1d_sources += files(
-        'src/x86/cpu.c',
-    )
-    libdav1d_tmpl_sources += files(
-        'src/x86/mc_init.c',
-    )
-    libdav1d_sources_asm = files(
-        'src/x86/cpuid.asm',
-        'src/x86/mc.asm',
-    )
+    # NASM compiler support
 
     nasm = find_program('nasm')
 
@@ -275,90 +241,26 @@ if is_asm_enabled
             '@INPUT@',
             '-o', '@OUTPUT@'
         ])
-
-    nasm_objs = nasm_gen.process(libdav1d_sources_asm)
-else
-    nasm_objs = []
 endif
 
-# Build a helper library for each bitdepth
-bitdepth_objs = []
-foreach bitdepth : dav1d_bitdepths
-    bitdepth_lib = static_library(
-        'dav1d_bitdepth_@0@'.format(bitdepth),
-        libdav1d_tmpl_sources, config_h_target,
-        include_directories: dav1d_inc_dirs,
-        c_args: ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
-        install: false,
-        build_by_default: false,
-    )
-    bitdepth_objs += bitdepth_lib.extract_all_objects()
-endforeach
 
-if host_machine.system() == 'windows'
-    winmod = import('windows')
-    rc_data = configuration_data()
-    rc_data.set('VERSION_MAJOR', dav1d_version_major)
-    rc_data.set('VERSION_MINOR', dav1d_version_minor)
-    rc_data.set('VERSION_REVISION', dav1d_version_revision)
-    rc_data.set('VERSION_EXTRA', '0')
-    rc_data.set('COPYRIGHT_YEARS', '2018')
-
-    rc_file = configure_file(input: 'src/dav1d.rc.in',
-                output: 'dav1d.rc', configuration: rc_data)
-    rc_source = winmod.compile_resources(rc_file,
-                    include_directories: include_directories('src'))
-    libdav1d_sources += rc_source
-    #entrypoints_objs += rc_source
-endif
-
-libdav1d_private = static_library('dav1d_private',
-    libdav1d_sources, nasm_objs,
-    objects: [bitdepth_objs, entrypoints_objs],
-    include_directories: dav1d_inc_dirs,
-    c_args: [stackalign_flag],
-    install: false,
-    build_by_default: false,
-)
-
-libdav1d = library('dav1d',
-    version: meson.project_version(),
-    link_whole: libdav1d_private,
-    dependencies: thread_dependency,
-    install: true,
-)
-
-install_subdir('include/dav1d/', install_dir: 'include')
 
 #
-# dav1d cli tool
-#
-dav1d_sources = files(
-    'tools/dav1d.c',
-    'tools/dav1d_cli_parse.c',
-    'tools/input/input.c',
-    'tools/input/ivf.c',
-    'tools/output/md5.c',
-    'tools/output/output.c',
-    'tools/output/y4m2.c',
-    'tools/output/yuv.c'
-)
+# Include subdir meson.build files
+# The order is important!
 
-if not cdata.has('HAVE_GETOPT_H')
-    dav1d_sources += files('tools/compat/getopt.c')
-endif
+subdir('include')
 
-dav1d = executable('dav1d',
-    dav1d_sources, rev_target,
-    link_with: libdav1d,
-    include_directories: [dav1d_inc_dirs, include_directories('tools')],
-    install: true,
-)
+subdir('src')
+
+subdir('tools')
 
 subdir('tests')
 
+
+
 #
-# pkg-config boilerplate
+# Generate pkg-config .pc file
 #
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries: libdav1d,
