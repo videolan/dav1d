@@ -1,3 +1,12 @@
+#
+# Build definition for the dav1d tests
+#
+
+# Leave subdir if tests are disabled
+if not get_option('build_tests')
+    subdir_done()
+endif
+
 if is_asm_enabled
     checkasm_sources = files('checkasm/checkasm.c')
 
