@@ -10,6 +10,7 @@ build-debian:
     script:
         - meson build --buildtype release
         - ninja -C build
+        - cd build && meson test -v
 
 build-win32:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
