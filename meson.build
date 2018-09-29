@@ -24,7 +24,8 @@
 
 project('dav1d', ['c'],
     version: '0.0.1',
-    default_options: ['c_std=c99'],
+    default_options: ['c_std=c99',
+                      'warning_level=2'],
     meson_version: '>= 0.47.0')
 
 dav1d_version_array    = meson.project_version().split('.')
