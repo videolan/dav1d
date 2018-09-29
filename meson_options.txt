@@ -9,3 +9,8 @@ option('build_asm',
     type: 'boolean',
     value: true,
     description: 'Build asm files, if available')
+
+option('build_tools',
+    type: 'boolean',
+    value: true,
+    description: 'Build dav1d cli tools')

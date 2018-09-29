@@ -26,6 +26,11 @@
 # Build definition for the dav1d tools
 #
 
+# Leave subdir if tools are disabled
+if not get_option('build_tools')
+    subdir_done()
+endif
+
 # dav1d cli tool sources
 dav1d_sources = files(
     'dav1d.c',
