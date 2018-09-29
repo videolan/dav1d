@@ -53,6 +53,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
                    void*(*proc)(void*), void* param)
 {
     dav1d_win32_thread_t* th = *thread = malloc(sizeof(*th));
+    (void)attr;
     if (th == NULL)
         return ENOMEM;
     th->proc = proc;
