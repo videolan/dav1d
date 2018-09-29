@@ -280,7 +280,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
 
             uint32_t *const uv_vmask = lflvl[x].filter_uv[1][starty4 >> ss_ver];
             const unsigned uv_vm = uv_vmask[0] | uv_vmask[1];
-            for (unsigned mask = 1, i = 0; i < (32 >> ss_hor); mask <<= 1, i++) {
+            for (unsigned mask = 1, i = 0; i < (32U >> ss_hor); mask <<= 1, i++) {
                 if (!(uv_vm & mask)) continue;
                 const int idx = !!(uv_vmask[1] & mask);
                 uv_vmask[1] &= ~mask;
