@@ -29,6 +29,7 @@
 # libdav1d source files
 libdav1d_sources = files(
     'picture.c',
+    'cpu.c',
     'data.c',
     'ref.c',
     'getbits.c',
@@ -73,26 +74,42 @@ libdav1d_entrypoints_sources = files(
 )
 
 # ASM specific sources
+libdav1d_nasm_objs = []
 if is_asm_enabled
+    if (host_machine.cpu_family() == 'aarch64' or
+        host_machine.cpu_family().startswith('arm'))
 
-    libdav1d_sources += files(
-        'x86/cpu.c',
-    )
+        libdav1d_sources += files(
+            'arm/cpu.c',
+        )
+        libdav1d_tmpl_sources += files(
+        )
+        if host_machine.cpu_family() == 'aarch64'
+            libdav1d_tmpl_sources += files(
+            )
+        elif host_machine.cpu_family().startswith('arm')
+            libdav1d_tmpl_sources += files(
+            )
+        endif
+    elif host_machine.cpu_family().startswith('x86')
 
-    libdav1d_tmpl_sources += files(
-        'x86/mc_init.c',
-    )
+        libdav1d_sources += files(
+            'x86/cpu.c',
+        )
 
-    # NASM source files
-    libdav1d_sources_asm = files(
-        'x86/cpuid.asm',
-        'x86/mc.asm',
-    )
+        libdav1d_tmpl_sources += files(
+            'x86/mc_init.c',
+        )
 
-    # Compile the ASM sources with NASM
-    libdav1d_nasm_objs = nasm_gen.process(libdav1d_sources_asm)
-else
-    libdav1d_nasm_objs = []
+        # NASM source files
+        libdav1d_sources_asm = files(
+            'x86/cpuid.asm',
+            'x86/mc.asm',
+        )
+
+        # Compile the ASM sources with NASM
+        libdav1d_nasm_objs = nasm_gen.process(libdav1d_sources_asm)
+    endif
 endif
 
 

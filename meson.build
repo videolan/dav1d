@@ -59,7 +59,9 @@ endforeach
 
 # ASM option
 is_asm_enabled = (get_option('build_asm') == true and
-    host_machine.cpu_family().startswith('x86'))
+    (host_machine.cpu_family().startswith('x86')) or
+     host_machine.cpu_family() == 'aarch64'       or
+     host_machine.cpu_family().startswith('arm'))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
 
@@ -183,6 +185,21 @@ if host_machine.cpu_family().startswith('x86')
     endif
 endif
 
+cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64')
+cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm'))
+if (is_asm_enabled and
+    (host_machine.cpu_family() == 'aarch64' or
+     host_machine.cpu_family().startswith('arm')))
+
+   as_func_code = '''__asm__ (
+".func meson_test"
+".endfunc"
+);
+'''
+    have_as_func = cc.compiles(as_func_code)
+    cdata.set10('HAVE_AS_FUNC', have_as_func)
+endif
+
 if host_machine.cpu_family().startswith('x86')
     cdata.set10('ARCH_X86', true)
     if host_machine.cpu_family() == 'x86_64'
@@ -205,6 +222,7 @@ else
 endif
 
 if cc.symbols_have_underscore_prefix()
+    cdata.set10('PREFIX', true)
     cdata_asm.set10('PREFIX', true)
 endif
 
@@ -216,7 +234,7 @@ config_h_target = configure_file(output: 'config.h', configuration: cdata)
 #
 # ASM specific stuff
 #
-if is_asm_enabled
+if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     # Generate config.asm
     config_asm_target = configure_file(output: 'config.asm', output_format: 'nasm', configuration: cdata_asm)

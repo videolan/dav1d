@@ -1,6 +1,6 @@
 /*
  * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018, Janne Grunau
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,18 +25,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_CPU_H__
-#define __DAV1D_SRC_CPU_H__
+#ifndef __DAV1D_SRC_ARM_CPU_H__
+#define __DAV1D_SRC_ARM_CPU_H__
 
-#include "config.h"
+enum CpuFlags {
+    DAV1D_ARM_CPU_FLAG_NEON = 1 << 0,
+};
 
-#if ARCH_AARCH64 || ARCH_ARM
-#include "src/arm/cpu.h"
-#elif ARCH_X86
-#include "src/x86/cpu.h"
-#endif
+unsigned dav1d_get_cpu_flags_arm(void);
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(const unsigned mask);
-
-#endif /* __DAV1D_SRC_CPU_H__ */
+#endif /* __DAV1D_SRC_ARM_CPU_H__ */

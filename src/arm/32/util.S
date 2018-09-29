@@ -1,6 +1,7 @@
-/*
+/******************************************************************************
  * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2015 Martin Storsjo
+ * Copyright © 2015 Janne Grunau
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,20 +24,27 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *****************************************************************************/
 
-#ifndef __DAV1D_SRC_CPU_H__
-#define __DAV1D_SRC_CPU_H__
+#ifndef __DAVID_SRC_ARM_32_UTIL_S__
+#define __DAVID_SRC_ARM_32_UTIL_S__
 
 #include "config.h"
+#include "src/arm/asm.S"
 
-#if ARCH_AARCH64 || ARCH_ARM
-#include "src/arm/cpu.h"
-#elif ARCH_X86
-#include "src/x86/cpu.h"
+.macro movrel rd, val
+#if defined(PIC)
+    ldr         \rd,  1f
+    b           2f
+1:
+@ FIXME: thumb
+    .word       \val - (2f + 8)
+2:
+    add         \rd,  \rd,  pc
+#else
+    movw        \rd, #:lower16:\val
+    movt        \rd, #:upper16:\val
 #endif
+.endm
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(const unsigned mask);
-
-#endif /* __DAV1D_SRC_CPU_H__ */
+#endif /* __DAVID_SRC_ARM_32_UTIL_S__ */

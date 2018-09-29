@@ -49,7 +49,14 @@ if is_asm_enabled
         checkasm_bitdepth_objs += checkasm_bitdepth_lib.extract_all_objects()
     endforeach
 
-    checkasm_nasm_objs = nasm_gen.process(files('checkasm/x86/checkasm.asm'))
+    checkasm_nasm_objs = []
+    if host_machine.cpu_family() == 'aarch64'
+        checkasm_sources += files('checkasm/arm/checkasm_64.S')
+    elif host_machine.cpu_family().startswith('arm')
+        checkasm_sources += files('checkasm/arm/checkasm_32.S')
+    elif host_machine.cpu_family().startswith('x86')
+        checkasm_nasm_objs = nasm_gen.process(files('checkasm/x86/checkasm.asm'))
+    endif
 
     checkasm = executable('checkasm', checkasm_sources, checkasm_nasm_objs,
         objects: [checkasm_bitdepth_objs],

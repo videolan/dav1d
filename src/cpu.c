@@ -25,18 +25,30 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_CPU_H__
-#define __DAV1D_SRC_CPU_H__
+#include <stdint.h>
 
 #include "config.h"
+#include "src/cpu.h"
 
+static unsigned flags_mask = -1;
+
+unsigned dav1d_get_cpu_flags(void) {
+    static unsigned flags;
+    static uint8_t checked = 0;
+
+    if (!checked) {
 #if ARCH_AARCH64 || ARCH_ARM
-#include "src/arm/cpu.h"
-#elif ARCH_X86
-#include "src/x86/cpu.h"
+        flags = dav1d_get_cpu_flags_arm();
+#elif ARCH_X86 && HAVE_ASM
+        flags = dav1d_get_cpu_flags_x86();
+#else
+        flags = 0;
 #endif
+        checked = 1;
+    }
+    return flags & flags_mask;
+}
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(const unsigned mask);
-
-#endif /* __DAV1D_SRC_CPU_H__ */
+void dav1d_set_cpu_flags_mask(const unsigned mask) {
+    flags_mask = mask;
+}

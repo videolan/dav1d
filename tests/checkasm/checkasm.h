@@ -92,6 +92,7 @@ static inline uint64_t readtime(void) {
 }
 #define readtime readtime
 #endif
+#endif
 
 /* Verifies that clobbered callee-saved registers
  * are properly saved and restored */
@@ -122,13 +123,34 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
 #define declare_new(ret, ...)\
     ret (*checked_call)(void *, __VA_ARGS__) = (void *)checkasm_checked_call;
 #define call_new(...) checked_call(func_new, __VA_ARGS__)
+#elif ARCH_ARM
+/* Use a dummy argument, to offset the real parameters by 2, not only 1.
+ * This makes sure that potential 8-byte-alignment of parameters is kept
+ * the same even when the extra parameters have been removed. */
+void checkasm_checked_call_vfp(void *func, int dummy, ...);
+#define declare_new(ret, ...)\
+    ret (*checked_call)(void *, int dummy, __VA_ARGS__) =\
+    (void *)checkasm_checked_call_vfp;
+#define call_new(...) checked_call(func_new, 0, __VA_ARGS__)
+#elif ARCH_AARCH64 && !defined(__APPLE__)
+void checkasm_stack_clobber(uint64_t clobber, ...);
+#define declare_new(ret, ...)\
+    ret (*checked_call)(void *, int, int, int, int, int, int, int,\
+                        __VA_ARGS__) =\
+    (void *)checkasm_checked_call;
+#define CLOB (UINT64_C(0xdeadbeefdeadbeef))
+#define call_new(...)\
+    (checkasm_stack_clobber(CLOB, CLOB, CLOB, CLOB, CLOB, CLOB,\
+                            CLOB, CLOB, CLOB, CLOB, CLOB, CLOB,\
+                            CLOB, CLOB, CLOB, CLOB, CLOB, CLOB,\
+                            CLOB, CLOB, CLOB, CLOB, CLOB),\
+     checked_call(func_new, 0, 0, 0, 0, 0, 0, 0, __VA_ARGS__))
 #endif
-#else
+#else /* HAVE_ASM */
 #define declare_new(ret, ...)
 /* Call the function */
 #define call_new(...) ((func_type *)func_new)(__VA_ARGS__)
-#endif
-#endif
+#endif /* HAVE_ASM */
 
 /* Benchmark the function */
 #ifdef readtime

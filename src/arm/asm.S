@@ -1,6 +1,6 @@
 /*
  * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018, Janne Grunau
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,18 +25,70 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_CPU_H__
-#define __DAV1D_SRC_CPU_H__
+#ifndef __DAV1D_SRC_ARM_ASM_S__
+#define __DAV1D_SRC_ARM_ASM_S__
 
 #include "config.h"
 
-#if ARCH_AARCH64 || ARCH_ARM
-#include "src/arm/cpu.h"
-#elif ARCH_X86
-#include "src/x86/cpu.h"
+#ifndef PRIVATE_PREFIX
+#define PRIVATE_PREFIX dav1d_
 #endif
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(const unsigned mask);
+#define PASTE(a,b) a ## b
+#define CONCAT(a,b) PASTE(a,b)
 
-#endif /* __DAV1D_SRC_CPU_H__ */
+#ifdef PREFIX
+#define EXTERN CONCAT(_,PRIVATE_PREFIX)
+#else
+#define EXTERN PRIVATE_PREFIX
+#endif
+
+.macro function name, export=0, align=2
+    .macro endfunc
+#ifdef __ELF__
+        .size   \name, . - \name
+#endif
+#if HAVE_AS_FUNC
+        .endfunc
+#endif
+        .purgem endfunc
+    .endm
+    .text
+    .align \align
+  .if \export
+    .global EXTERN\name
+#ifdef __ELF__
+    .type   EXTERN\name, %function
+#endif
+#if HAVE_AS_FUNC
+    .func   EXTERN\name
+#endif
+EXTERN\name:
+  .else
+#ifdef __ELF__
+    .type \name, %function
+#endif
+#if HAVE_AS_FUNC
+    .func \name
+#endif
+  .endif
+\name:
+.endm
+
+.macro  const   name, align=2
+    .macro endconst
+#ifdef __ELF__
+        .size   \name, . - \name
+#endif
+        .purgem endconst
+    .endm
+#if !defined(__MACH__)
+        .section        .rodata
+#else
+        .const_data
+#endif
+        .align          \align
+\name:
+.endm
+
+#endif /* __DAV1D_SRC_ARM_ASM_S__ */

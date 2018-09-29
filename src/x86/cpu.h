@@ -40,7 +40,6 @@ enum CpuFlags {
     DAV1D_X86_CPU_FLAG_AVX512 = 1 << 8, /* F + CD + BW + DQ + VL */
 };
 
-unsigned dav1d_get_cpu_flags(void);
-void dav1d_set_cpu_flags_mask(unsigned mask);
+unsigned dav1d_get_cpu_flags_x86(void);
 
 #endif /* __DAV1D_SRC_X86_CPU_H__ */
