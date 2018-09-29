@@ -25,10 +25,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tests/checkasm/checkasm.h"
 #include "src/levels.h"
 #include "src/mc.h"
-
-#include "tests/checkasm/checkasm.h"
 
 static const char *const filter_names[] = {
     "8tap_regular",        "8tap_regular_smooth", "8tap_regular_sharp",

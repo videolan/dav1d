@@ -24,10 +24,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "config.h"
 
 #include <stdint.h>
 
-#include "config.h"
 #include "src/cpu.h"
 
 static unsigned flags_mask = -1;

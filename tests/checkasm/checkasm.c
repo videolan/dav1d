@@ -24,6 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "tests/checkasm/checkasm.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -32,8 +33,6 @@
 #include <time.h>
 
 #include "src/cpu.h"
-
-#include "tests/checkasm/checkasm.h"
 
 #ifdef _WIN32
 #include <windows.h>
