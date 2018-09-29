@@ -36,46 +36,6 @@
 #include "config.h"
 #include "src/thread.h"
 
-void pthread_mutex_init(pthread_mutex_t* mutex,
-                        const pthread_mutexattr_t* attr)
-{
-    (void)attr;
-    InitializeCriticalSection(mutex);
-}
-
-void pthread_mutex_destroy(pthread_mutex_t* mutex) {
-    DeleteCriticalSection(mutex);
-}
-
-void pthread_mutex_lock(pthread_mutex_t* mutex) {
-    EnterCriticalSection(mutex);
-}
-
-void pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    LeaveCriticalSection(mutex);
-}
-
-void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
-    (void)attr;
-    InitializeConditionVariable(cond);
-}
-
-void pthread_cond_destroy(pthread_cond_t* cond) {
-    (void)cond;
-}
-
-void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
-    SleepConditionVariableCS(cond, mutex, INFINITE);
-}
-
-void pthread_cond_signal(pthread_cond_t* cond) {
-    WakeConditionVariable(cond);
-}
-
-void pthread_cond_broadcast(pthread_cond_t* cond) {
-    WakeAllConditionVariable(cond);
-}
-
 typedef struct dav1d_win32_thread_t {
     HANDLE h;
     void* param;

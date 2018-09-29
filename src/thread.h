@@ -42,22 +42,51 @@ typedef void *pthread_mutexattr_t;
 typedef void *pthread_condattr_t;
 typedef void *pthread_attr_t;
 
-void pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr);
-void pthread_mutex_destroy(pthread_mutex_t* mutex);
-void pthread_mutex_lock(pthread_mutex_t* mutex);
-void pthread_mutex_unlock(pthread_mutex_t* mutex);
-
-void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
-void pthread_cond_destroy(pthread_cond_t* cond);
-void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
-void pthread_cond_signal(pthread_cond_t* cond);
-void pthread_cond_broadcast(pthread_cond_t* cond);
-
 int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
                    void*(*proc)(void*), void* param);
 void pthread_join(pthread_t thread, void** res);
 
 int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
+
+static inline void pthread_mutex_init(pthread_mutex_t* mutex,
+                                      const pthread_mutexattr_t* attr)
+{
+    (void)attr;
+    InitializeCriticalSection(mutex);
+}
+
+static inline void pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
+}
+
+static inline void pthread_mutex_lock(pthread_mutex_t* mutex) {
+    EnterCriticalSection(mutex);
+}
+
+static inline void pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    LeaveCriticalSection(mutex);
+}
+
+static inline void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
+    (void)attr;
+    InitializeConditionVariable(cond);
+}
+
+static inline void pthread_cond_destroy(pthread_cond_t* cond) {
+    (void)cond;
+}
+
+static inline void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+    SleepConditionVariableCS(cond, mutex, INFINITE);
+}
+
+static inline void pthread_cond_signal(pthread_cond_t* cond) {
+    WakeConditionVariable(cond);
+}
+
+static inline void pthread_cond_broadcast(pthread_cond_t* cond) {
+    WakeAllConditionVariable(cond);
+}
 
 #else
 
