@@ -18,6 +18,8 @@ BEGIN
       VALUE "ProductVersion", VERSION_NUMBER_STR
       VALUE "FileVersion", VERSION_NUMBER_STR
       VALUE "FileDescription", "dav1d AV1 decoder"
+      VALUE "InternalName", "dav1d"
+      VALUE "OriginalFilename", "libdav1d-@VERSION_MAJOR@.dll"
       VALUE "LegalCopyright", "Copyright \251 @COPYRIGHT_YEARS@ VideoLAN and dav1d Authors"
     END
   END
