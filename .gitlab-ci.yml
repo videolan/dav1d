@@ -60,3 +60,24 @@ build-win64:
         paths:
             - build/dav1d_install/
         expire_in: 1 week
+
+build-debian-aarch64:
+    stage: build
+    tags:
+        - aarch64
+        - debian
+    script:
+        - meson build --buildtype release
+        - ninja -C build
+        - cd build && meson test -v
+
+build-debian-aarch64-clang-5:
+    stage: build
+    tags:
+        - aarch64
+        - clang5
+        - debian
+    script:
+        - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
+        - ninja -C build
+        - cd build && meson test -v
