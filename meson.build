@@ -237,6 +237,7 @@ if is_asm_enabled
         arguments: [
             '-f', nasm_format,
             '-I', '@SOURCE_DIR@/src/',
+            '-I', '@0@/'.format(meson.current_build_dir()),
             '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
             '@EXTRA_ARGS@',
             '@INPUT@',
