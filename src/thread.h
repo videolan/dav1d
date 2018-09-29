@@ -34,7 +34,7 @@
 
 #define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
 
-typedef CRITICAL_SECTION pthread_mutex_t;
+typedef SRWLOCK pthread_mutex_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
 typedef INIT_ONCE pthread_once_t;
 typedef void *pthread_t;
@@ -52,19 +52,19 @@ static inline void pthread_mutex_init(pthread_mutex_t* mutex,
                                       const pthread_mutexattr_t* attr)
 {
     (void)attr;
-    InitializeCriticalSection(mutex);
+    InitializeSRWLock(mutex);
 }
 
 static inline void pthread_mutex_destroy(pthread_mutex_t* mutex) {
-    DeleteCriticalSection(mutex);
+    (void)mutex;
 }
 
 static inline void pthread_mutex_lock(pthread_mutex_t* mutex) {
-    EnterCriticalSection(mutex);
+    AcquireSRWLockExclusive(mutex);
 }
 
 static inline void pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    LeaveCriticalSection(mutex);
+    ReleaseSRWLockExclusive(mutex);
 }
 
 static inline void pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
@@ -77,7 +77,7 @@ static inline void pthread_cond_destroy(pthread_cond_t* cond) {
 }
 
 static inline void pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
-    SleepConditionVariableCS(cond, mutex, INFINITE);
+    SleepConditionVariableSRW(cond, mutex, INFINITE, 0);
 }
 
 static inline void pthread_cond_signal(pthread_cond_t* cond) {
