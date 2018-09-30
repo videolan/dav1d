@@ -1253,7 +1253,8 @@ void bytefn(recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize bs,
         t->tl_4x4_filter = filter_2d;
     } else {
         const enum Filter2d filter_2d = b->filter2d;
-        coef (*tmp)[bw4 * bh4 * 16] = (coef (*)[bw4 * bh4 * 16]) t->scratch.compinter;
+        // Maximum super block size is 128x128
+        coef (*tmp)[128 * 128] = (coef (*)[128 * 128]) t->scratch.compinter;
         int jnt_weight;
         uint8_t *const seg_mask = t->scratch_seg_mask;
         const uint8_t *mask;
