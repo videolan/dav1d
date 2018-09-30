@@ -145,6 +145,9 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
                             CLOB, CLOB, CLOB, CLOB, CLOB, CLOB,\
                             CLOB, CLOB, CLOB, CLOB, CLOB),\
      checked_call(func_new, 0, 0, 0, 0, 0, 0, 0, __VA_ARGS__))
+#else
+#define declare_new(ret, ...)
+#define call_new(...) ((func_type *)func_new)(__VA_ARGS__)
 #endif
 #else /* HAVE_ASM */
 #define declare_new(ret, ...)
