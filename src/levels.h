@@ -40,13 +40,6 @@ enum ObuType {
     OBU_PADDING   = 15,
 };
 
-enum FrameType {
-    KEY_FRAME       = 0,
-    INTER_FRAME     = 1,
-    INTRAONLY_FRAME = 2,
-    S_FRAME         = 3,
-} FRAME_TYPE;
-
 enum TxfmSize {
     TX_4X4,
     TX_8X8,
@@ -421,7 +414,7 @@ typedef struct Av1FrameHeader {
     int show_existing_frame;
     int existing_frame_idx;
     int frame_id;
-    enum FrameType frame_type;
+    enum Dav1dFrameType frame_type;
     int show_frame;
     int showable_frame;
     int error_resilient_mode;

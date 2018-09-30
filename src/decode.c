@@ -2779,6 +2779,7 @@ int submit_frame(Dav1dContext *const c) {
     }
 
     f->cur.p.poc = f->frame_hdr.frame_offset;
+    f->cur.p.p.type = f->frame_hdr.frame_type;
     f->cur.p.p.pri = f->seq_hdr.pri;
     f->cur.p.p.trc = f->seq_hdr.trc;
     f->cur.p.p.mtrx = f->seq_hdr.mtrx;

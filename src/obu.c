@@ -340,13 +340,13 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         goto end;
     }
 
-    hdr->frame_type = seqhdr->reduced_still_picture_header ? KEY_FRAME : get_bits(gb, 2);
+    hdr->frame_type = seqhdr->reduced_still_picture_header ? DAV1D_FRAME_TYPE_KEY : get_bits(gb, 2);
     hdr->show_frame = seqhdr->reduced_still_picture_header || get_bits(gb, 1);
     if (!hdr->show_frame)
         hdr->showable_frame = get_bits(gb, 1);
     hdr->error_resilient_mode =
-        (hdr->frame_type == KEY_FRAME && hdr->show_frame) ||
-        hdr->frame_type == S_FRAME ||
+        (hdr->frame_type == DAV1D_FRAME_TYPE_KEY && hdr->show_frame) ||
+        hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ||
         seqhdr->reduced_still_picture_header || get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
     printf("HDR: post-frametype_bits: off=%ld\n",
@@ -363,7 +363,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->frame_id = get_bits(gb, seqhdr->frame_id_n_bits);
 
     hdr->frame_size_override = seqhdr->reduced_still_picture_header ? 0 :
-                               hdr->frame_type == S_FRAME ? 1 : get_bits(gb, 1);
+                               hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 1 : get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
     printf("HDR: post-frame_size_override_flag: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
@@ -373,7 +373,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->primary_ref_frame = !hdr->error_resilient_mode && hdr->frame_type & 1 ?
                              get_bits(gb, 3) : PRIMARY_REF_NONE;
 
-    if (hdr->frame_type == KEY_FRAME) {
+    if (hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
         hdr->refresh_frame_flags = hdr->show_frame ? 0xff : get_bits(gb, 8);
         if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
         hdr->allow_intrabc = hdr->allow_screen_content_tools &&
@@ -384,14 +384,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
             for (int i = 0; i < 8; i++)
                 get_bits(gb, seqhdr->order_hint_n_bits);
 
-        if (hdr->frame_type == INTRAONLY_FRAME) {
+        if (hdr->frame_type == DAV1D_FRAME_TYPE_INTRA) {
             hdr->refresh_frame_flags = get_bits(gb, 8);
             if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
             hdr->allow_intrabc = hdr->allow_screen_content_tools &&
                              /* FIXME: no superres scaling && */ get_bits(gb, 1);
         } else {
             hdr->allow_intrabc = 0;
-            hdr->refresh_frame_flags = hdr->frame_type == S_FRAME ? 0xff :
+            hdr->refresh_frame_flags = hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 0xff :
                                        get_bits(gb, 8);
             hdr->frame_ref_short_signaling =
                 seqhdr->order_hint && get_bits(gb, 1);
@@ -867,7 +867,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
                               get_bits(gb, 1);
     if (hdr->film_grain.present) {
         hdr->film_grain.seed = get_bits(gb, 16);
-        hdr->film_grain.update = hdr->frame_type != INTER_FRAME || get_bits(gb, 1);
+        hdr->film_grain.update = hdr->frame_type != DAV1D_FRAME_TYPE_INTER || get_bits(gb, 1);
         if (!hdr->film_grain.update) {
             const int refidx = get_bits(gb, 3);
             int i;

@@ -40,6 +40,13 @@ enum Dav1dPixelLayout {
     DAV1D_PIXEL_LAYOUT_I444, ///< 4:4:4 planar
 };
 
+enum Dav1dFrameType {
+    DAV1D_FRAME_TYPE_KEY = 0,    ///< Key Intra frame
+    DAV1D_FRAME_TYPE_INTER = 1,  ///< Inter frame
+    DAV1D_FRAME_TYPE_INTRA = 2,  ///< Non key Intra frame
+    DAV1D_FRAME_TYPE_SWITCH = 3, ///< Switch Inter frame
+};
+
 enum Dav1dColorPrimaries {
     DAV1D_COLOR_PRI_BT709 = 1,
     DAV1D_COLOR_PRI_UNKNOWN = 2,
@@ -103,6 +110,7 @@ typedef struct Dav1dPictureParameters {
     int w; ///< width (in pixels)
     int h; ///< height (in pixels)
     enum Dav1dPixelLayout layout; ///< format of the picture
+    enum Dav1dFrameType type; ///< type of the picture
     int bpc; ///< bits per pixel component (8 or 10)
 
     enum Dav1dColorPrimaries pri; ///< color primaries (av1)
