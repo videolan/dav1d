@@ -2056,7 +2056,7 @@ static void setup_tile(Dav1dTileState *const ts,
     }
 
     if (f->n_tc > 1)
-        atomic_init(&ts->progress, 0);
+        atomic_init(&ts->progress, row_sb_start);
 }
 
 int decode_tile_sbrow(Dav1dTileContext *const t) {
