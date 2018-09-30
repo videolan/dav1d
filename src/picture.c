@@ -161,7 +161,7 @@ void dav1d_thread_picture_wait(const Dav1dThreadPicture *const p,
     const int ss_ver = p->p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
     y_unclipped *= 1 << (plane_type & ss_ver); // we rely here on PLANE_TYPE_UV being 1
     y_unclipped += (plane_type != PLANE_TYPE_BLOCK) * 8; // delay imposed by loopfilter
-    const int y = iclip(y_unclipped, 0, p->p.p.h - 1);
+    const int y = iclip(y_unclipped, 1, p->p.p.h);
     atomic_uint *const progress = &p->progress[plane_type != PLANE_TYPE_BLOCK];
 
     if (atomic_load_explicit(progress, memory_order_acquire) >= y)
