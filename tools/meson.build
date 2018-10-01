@@ -43,17 +43,11 @@ dav1d_sources = files(
     'output/yuv.c',
 )
 
-if host_machine.system() == 'windows'
-    dav1d_link_with_lib = libdav1d_private
-else
-    dav1d_link_with_lib = libdav1d
-endif
-
 dav1d = executable('dav1d',
     dav1d_sources,
     rev_target,
 
-    link_with : dav1d_link_with_lib,
+    link_with : libdav1d,
     include_directories : [dav1d_inc_dirs],
     dependencies : [getopt_dependency, thread_dependency],
     install : true,

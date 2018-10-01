@@ -58,12 +58,20 @@ if is_asm_enabled
         checkasm_nasm_objs = nasm_gen.process(files('checkasm/x86/checkasm.asm'))
     endif
 
-    checkasm = executable('checkasm', checkasm_sources, checkasm_nasm_objs,
-        objects: [checkasm_bitdepth_objs],
+    checkasm = executable('checkasm',
+        checkasm_sources,
+        checkasm_nasm_objs,
+        libdav1d_nasm_objs,
+
+        objects: [
+            checkasm_bitdepth_objs,
+            libdav1d.extract_all_objects(recursive: true),
+            ],
+
         include_directories: dav1d_inc_dirs,
-        link_with: libdav1d_private,
         c_args: [stackalign_flag, stackrealign_flag],
         build_by_default: false,
+        dependencies : [thread_dependency],
         )
 
     test('checkasm test', checkasm)

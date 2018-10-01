@@ -86,9 +86,11 @@ endif
 
 # On Windows, we use a compatibility layer to emulate pthread
 if host_machine.system() == 'windows'
-    thread_dependency = declare_dependency(sources : files('src/win32/thread.c'))
+    thread_dependency = []
+    thread_compat_dep = declare_dependency(sources : files('src/win32/thread.c'))
 else
     thread_dependency = dependency('threads')
+    thread_compat_dep = []
 endif
 
 

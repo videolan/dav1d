@@ -171,10 +171,14 @@ foreach bitdepth : dav1d_bitdepths
     ).extract_all_objects()
 endforeach
 
-# Static private helper library
-# This is primarily needed to link with tests so that
-# the tests can use all symbols, even the non-exported.
-libdav1d_private = static_library('dav1d_private',
+# The final dav1d library
+if host_machine.system() == 'windows'
+    dav1d_soversion = ''
+else
+    dav1d_soversion = dav1d_version_major
+endif
+
+libdav1d = library('dav1d',
     libdav1d_sources,
     libdav1d_nasm_objs,
     libdav1d_rc_obj,
@@ -185,24 +189,13 @@ libdav1d_private = static_library('dav1d_private',
         ],
 
     include_directories : dav1d_inc_dirs,
-    dependencies : [stdatomic_dependency],
+    dependencies : [
+        stdatomic_dependency,
+        thread_dependency,
+        thread_compat_dep,
+        ],
     c_args : [stackalign_flag],
-    install : false,
-    build_by_default : false,
-)
-
-# The final dav1d library
-if host_machine.system() == 'windows'
-    dav1d_soversion = ''
-else
-    dav1d_soversion = dav1d_version_major
-endif
-
-libdav1d = library('dav1d',
     version : meson.project_version(),
-    link_whole : libdav1d_private,
-    dependencies : thread_dependency,
-    include_directories : dav1d_inc_dirs,
     soversion : dav1d_soversion,
     install : true,
 )
