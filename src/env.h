@@ -76,8 +76,7 @@ static inline int get_intra_ctx(const BlockContext *const a,
 static inline int get_tx_ctx(const BlockContext *const a,
                              const BlockContext *const l,
                              const TxfmInfo *const max_tx,
-                             const int yb4, const int xb4,
-                             const int have_top, const int have_left)
+                             const int yb4, const int xb4)
 {
     return (l->tx_intra[yb4] >= max_tx->lh) + (a->tx_intra[xb4] >= max_tx->lw);
 }

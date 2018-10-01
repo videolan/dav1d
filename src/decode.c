@@ -1066,8 +1066,7 @@ static void decode_b(Dav1dTileContext *const t,
             b->uvtx = av1_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
             t_dim = &av1_txfm_dimensions[b->tx];
             if (f->frame_hdr.txfm_mode == TX_SWITCHABLE && t_dim->max > TX_4X4) {
-                const int tctx = get_tx_ctx(t->a, &t->l, t_dim, by4, bx4,
-                                            have_top, have_left);
+                const int tctx = get_tx_ctx(t->a, &t->l, t_dim, by4, bx4);
                 uint16_t *const tx_cdf = ts->cdf.m.txsz[t_dim->max - 1][tctx];
                 int depth = msac_decode_symbol_adapt(&ts->msac, tx_cdf,
                                                      imin(t_dim->max + 1, 3));
