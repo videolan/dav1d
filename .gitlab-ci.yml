@@ -12,6 +12,17 @@ build-debian:
         - ninja -C build
         - cd build && meson test -v
 
+build-debian-static:
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
+    stage: build
+    tags:
+        - debian
+        - amd64
+    script:
+        - meson build --buildtype release --default-library static
+        - ninja -C build
+        - cd build && meson test -v
+
 build-win32:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
     stage: build
