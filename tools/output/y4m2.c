@@ -55,17 +55,17 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
         [DAV1D_PIXEL_LAYOUT_I422] = { "422", "422p10" },
         [DAV1D_PIXEL_LAYOUT_I444] = { "444", "444p10" }
     };
-    
+
     static const char *const chr_names_8bpc_i420[] = {
         [DAV1D_CHR_UNKNOWN] = "420jpeg",
         [DAV1D_CHR_VERTICAL] = "420mpeg2",
         [DAV1D_CHR_COLOCATED] = "420paldv"
     };
-    
+
     const char *const ss_name = p->layout == DAV1D_PIXEL_LAYOUT_I420 && p->bpc == 8 ?
-        chr_names_8bpc_i420[p->chr > 2 ? DAV1D_CHR_UNKNOWN : p->chr] : 
+        chr_names_8bpc_i420[p->chr > 2 ? DAV1D_CHR_UNKNOWN : p->chr] :
         ss_names[p->layout][p->bpc > 8];
-    
+
     fprintf(c->f, "YUV4MPEG2 W%d H%d C%s Ip F%d:%d\n",
             p->w, p->h, ss_name, fps[0], fps[1]);
 
