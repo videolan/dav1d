@@ -50,7 +50,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb) {
 #define DEBUG_SEQ_HDR 0
 
     hdr->profile = get_bits(gb, 3);
-    if (hdr->profile > 2U) goto error;
+    if (hdr->profile > 2) goto error;
 #if DEBUG_SEQ_HDR
     printf("SEQHDR: post-profile: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);

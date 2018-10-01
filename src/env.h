@@ -221,11 +221,11 @@ static inline int get_comp_ctx(const BlockContext *const a,
                     return 4;
                 } else {
                     // 4U means intra (-1) or bwd (>= 4)
-                    return 2 + (l->ref[0][yb4] >= 4U);
+                    return 2 + ((unsigned)l->ref[0][yb4] >= 4U);
                 }
             } else if (l->comp_type[yb4]) {
                 // 4U means intra (-1) or bwd (>= 4)
-                return 2 + (a->ref[0][xb4] >= 4U);
+                return 2 + ((unsigned)a->ref[0][xb4] >= 4U);
             } else {
                 return (l->ref[0][yb4] >= 4) ^ (a->ref[0][xb4] >= 4);
             }
