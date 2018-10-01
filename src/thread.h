@@ -42,11 +42,15 @@ typedef void *pthread_mutexattr_t;
 typedef void *pthread_condattr_t;
 typedef void *pthread_attr_t;
 
-int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
-                   void*(*proc)(void*), void* param);
-void pthread_join(pthread_t thread, void** res);
+int dav1d_pthread_create(pthread_t* thread, const pthread_attr_t* attr,
+                         void*(*proc)(void*), void* param);
+void dav1d_pthread_join(pthread_t thread, void** res);
+int dav1d_pthread_once(pthread_once_t *once_control,
+                       void (*init_routine)(void));
 
-int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
+#define pthread_create dav1d_pthread_create
+#define pthread_join   dav1d_pthread_join
+#define pthread_once   dav1d_pthread_once
 
 static inline void pthread_mutex_init(pthread_mutex_t* mutex,
                                       const pthread_mutexattr_t* attr)

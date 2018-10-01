@@ -49,8 +49,8 @@ static unsigned __stdcall dav1d_thread_entrypoint(void* data) {
     return 0;
 }
 
-int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
-                   void*(*proc)(void*), void* param)
+int dav1d_pthread_create(pthread_t* thread, const pthread_attr_t* attr,
+                         void*(*proc)(void*), void* param)
 {
     dav1d_win32_thread_t* th = *thread = malloc(sizeof(*th));
     (void)attr;
@@ -69,7 +69,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
     return 0;
 }
 
-void pthread_join(pthread_t thread, void** res) {
+void dav1d_pthread_join(pthread_t thread, void** res) {
     dav1d_win32_thread_t* th = thread;
     WaitForSingleObject(th->h, INFINITE);
 
@@ -78,7 +78,9 @@ void pthread_join(pthread_t thread, void** res) {
     free(th);
 }
 
-int pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
+int dav1d_pthread_once(pthread_once_t *once_control,
+                       void (*init_routine)(void))
+{
     BOOL fPending = FALSE;
     BOOL fStatus;
 
