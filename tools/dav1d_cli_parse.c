@@ -58,7 +58,7 @@ static const struct option long_opts[] = {
     { "skip",           1, NULL, 's' },
     { "framethreads",   1, NULL, ARG_FRAME_THREADS },
     { "tilethreads",    1, NULL, ARG_TILE_THREADS },
-    { NULL },
+    { NULL,             0, NULL, 0 },
 };
 
 static void usage(const char *const app, const char *const reason, ...) {
