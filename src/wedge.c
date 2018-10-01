@@ -83,35 +83,35 @@ static const wedge_code_type wedge_codebook_16_heqw[16] = {
     { WEDGE_OBLIQUE117, 2, 4 }, { WEDGE_OBLIQUE117, 6, 4 },
 };
 
-static uint8_t wedge_masks_444_32x32[2][16][32 * 32];
-static uint8_t wedge_masks_444_32x16[2][16][32 * 16];
-static uint8_t wedge_masks_444_32x8[2][16][32 * 8];
-static uint8_t wedge_masks_444_16x32[2][16][16 * 32];
-static uint8_t wedge_masks_444_16x16[2][16][16 * 16];
-static uint8_t wedge_masks_444_16x8[2][16][16 * 8];
-static uint8_t wedge_masks_444_8x32[2][16][8 * 32];
-static uint8_t wedge_masks_444_8x16[2][16][8 * 16];
-static uint8_t wedge_masks_444_8x8[2][16][8 * 8];
+static uint8_t wedge_masks_444_32x32[2 * 16 * 32 * 32];
+static uint8_t wedge_masks_444_32x16[2 * 16 * 32 * 16];
+static uint8_t wedge_masks_444_32x8[ 2 * 16 * 32 *  8];
+static uint8_t wedge_masks_444_16x32[2 * 16 * 16 * 32];
+static uint8_t wedge_masks_444_16x16[2 * 16 * 16 * 16];
+static uint8_t wedge_masks_444_16x8[ 2 * 16 * 16 *  8];
+static uint8_t wedge_masks_444_8x32[ 2 * 16 *  8 * 32];
+static uint8_t wedge_masks_444_8x16[ 2 * 16 *  8 * 16];
+static uint8_t wedge_masks_444_8x8[  2 * 16 *  8 *  8];
 
-static uint8_t wedge_masks_422_16x32[2][16][16 * 32];
-static uint8_t wedge_masks_422_16x16[2][16][16 * 16];
-static uint8_t wedge_masks_422_16x8[2][16][16 * 8];
-static uint8_t wedge_masks_422_8x32[2][16][8 * 32];
-static uint8_t wedge_masks_422_8x16[2][16][8 * 16];
-static uint8_t wedge_masks_422_8x8[2][16][8 * 8];
-static uint8_t wedge_masks_422_4x32[2][16][4 * 32];
-static uint8_t wedge_masks_422_4x16[2][16][4 * 16];
-static uint8_t wedge_masks_422_4x8[2][16][4 * 8];
+static uint8_t wedge_masks_422_16x32[2 * 16 * 16 * 32];
+static uint8_t wedge_masks_422_16x16[2 * 16 * 16 * 16];
+static uint8_t wedge_masks_422_16x8[ 2 * 16 * 16 *  8];
+static uint8_t wedge_masks_422_8x32[ 2 * 16 *  8 * 32];
+static uint8_t wedge_masks_422_8x16[ 2 * 16 *  8 * 16];
+static uint8_t wedge_masks_422_8x8[  2 * 16 *  8 *  8];
+static uint8_t wedge_masks_422_4x32[ 2 * 16 *  4 * 32];
+static uint8_t wedge_masks_422_4x16[ 2 * 16 *  4 * 16];
+static uint8_t wedge_masks_422_4x8[  2 * 16 *  4 *  8];
 
-static uint8_t wedge_masks_420_16x16[2][16][16 * 16];
-static uint8_t wedge_masks_420_16x8[2][16][16 * 8];
-static uint8_t wedge_masks_420_16x4[2][16][16 * 4];
-static uint8_t wedge_masks_420_8x16[2][16][8 * 16];
-static uint8_t wedge_masks_420_8x8[2][16][8 * 8];
-static uint8_t wedge_masks_420_8x4[2][16][8 * 4];
-static uint8_t wedge_masks_420_4x16[2][16][4 * 16];
-static uint8_t wedge_masks_420_4x8[2][16][4 * 8];
-static uint8_t wedge_masks_420_4x4[2][16][4 * 4];
+static uint8_t wedge_masks_420_16x16[2 * 16 * 16 * 16];
+static uint8_t wedge_masks_420_16x8[ 2 * 16 * 16 *  8];
+static uint8_t wedge_masks_420_16x4[ 2 * 16 * 16 *  4];
+static uint8_t wedge_masks_420_8x16[ 2 * 16 *  8 * 16];
+static uint8_t wedge_masks_420_8x8[  2 * 16 *  8 *  8];
+static uint8_t wedge_masks_420_8x4[  2 * 16 *  8 *  4];
+static uint8_t wedge_masks_420_4x16[ 2 * 16 *  4 * 16];
+static uint8_t wedge_masks_420_4x8[  2 * 16 *  4 *  8];
+static uint8_t wedge_masks_420_4x4[  2 * 16 *  4 *  4];
 
 const uint8_t *wedge_masks[N_BS_SIZES][3][2][16];
 
@@ -173,10 +173,8 @@ static void fill2d_16x2(uint8_t *dst, const int w, const int h,
                         const enum BlockSize bs,
                         const uint8_t (*const master)[64 * 64],
                         const wedge_code_type *const cb,
-                        uint8_t (*masks_444)[16][w * h],
-                        uint8_t (*masks_422)[16][w * h >> 1],
-                        uint8_t (*masks_420)[16][w * h >> 2],
-                        const unsigned signs)
+                        uint8_t *masks_444, uint8_t *masks_422,
+                        uint8_t *masks_420, const unsigned signs)
 {
     uint8_t *ptr = dst;
     for (int n = 0; n < 16; n++) {
@@ -186,17 +184,28 @@ static void fill2d_16x2(uint8_t *dst, const int w, const int h,
     }
     for (int n = 0, off = 0; n < 16; n++, off += w * h)
         invert(ptr + off, dst + off, w, h);
+
+    const int n_stride_444 = (w * h);
+    const int n_stride_422 = n_stride_444 >> 1;
+    const int n_stride_420 = n_stride_444 >> 2;
+    const int sign_stride_444 = 16 * n_stride_444;
+    const int sign_stride_422 = 16 * n_stride_422;
+    const int sign_stride_420 = 16 * n_stride_420;
     // assign pointers in externally visible array
     for (int n = 0; n < 16; n++) {
         const int sign = (signs >> n) & 1;
-        wedge_masks[bs][0][0][n] = masks_444[ sign][n];
-        wedge_masks[bs][0][1][n] = masks_444[ sign][n];
-        wedge_masks[bs][1][0][n] = masks_422[ sign][n];
-        wedge_masks[bs][1][1][n] = masks_422[!sign][n];
-        wedge_masks[bs][2][0][n] = masks_420[ sign][n];
-        wedge_masks[bs][2][1][n] = masks_420[!sign][n];
-    }
-    for (int n = 0; n < 16; n++) {
+        wedge_masks[bs][0][0][n] = &masks_444[ sign * sign_stride_444];
+        // not using !sign is intentional here, since 444 does not require
+        // any rounding since no chroma subsampling is applied.
+        wedge_masks[bs][0][1][n] = &masks_444[ sign * sign_stride_444];
+        wedge_masks[bs][1][0][n] = &masks_422[ sign * sign_stride_422];
+        wedge_masks[bs][1][1][n] = &masks_422[!sign * sign_stride_422];
+        wedge_masks[bs][2][0][n] = &masks_420[ sign * sign_stride_420];
+        wedge_masks[bs][2][1][n] = &masks_420[!sign * sign_stride_420];
+        masks_444 += n_stride_444;
+        masks_422 += n_stride_422;
+        masks_420 += n_stride_420;
+
         // since the pointers come from inside, we know that
         // violation of the const is OK here. Any other approach
         // means we would have to duplicate the sign correction
