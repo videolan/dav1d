@@ -142,7 +142,7 @@ endif
 # it is not an error and silently tolerated
 optional_arguments = [
   '-Wundef',
-  '-Wvla', # should be '-Werror=vla
+  '-Werror=vla',
 ]
 
 if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
