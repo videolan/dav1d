@@ -200,7 +200,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb) {
 #endif
 
     const int hbd = dav1d_get_bits(gb, 1);
-    hdr->bpc = hdr->profile == 2 && hbd ? 10 + 2 * dav1d_get_bits(gb, 1): 8 + 2 * hbd;
+    hdr->bpc = hdr->profile == 2 && hbd ? 10U + 2 * dav1d_get_bits(gb, 1) : 8U + 2 * hbd;
     hdr->hbd = hdr->bpc > 8;
     const int monochrome = hdr->profile != 1 ? dav1d_get_bits(gb, 1) : 0;
     hdr->color_description_present = dav1d_get_bits(gb, 1);
@@ -516,8 +516,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     if (hdr->quant.qm) {
         hdr->quant.qm_y = dav1d_get_bits(gb, 4);
         hdr->quant.qm_u = dav1d_get_bits(gb, 4);
-        hdr->quant.qm_v = seqhdr->separate_uv_delta_q ? dav1d_get_bits(gb, 4) :
-                                                        hdr->quant.qm_u;
+        hdr->quant.qm_v =
+            seqhdr->separate_uv_delta_q ? (int)dav1d_get_bits(gb, 4) :
+                                          hdr->quant.qm_u;
     }
 #if DEBUG_FRAME_HDR
     printf("HDR: post-qm: off=%ld\n",
@@ -1005,7 +1006,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     int off = dav1d_flush_get_bits(&gb) - in->data;
     const int init_off = off;
-    if (len > in->sz - off) goto error;
+    if (len > (int)in->sz - off) goto error;
 
     switch (type) {
     case OBU_SEQ_HDR:
@@ -1063,7 +1064,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     const int n_tiles = 1 << (c->frame_hdr.tiling.log2_cols +
                               c->frame_hdr.tiling.log2_rows);
     if (c->have_seq_hdr && c->have_frame_hdr &&
-        c->tile_mask == (1 << n_tiles) - 1)
+        c->tile_mask == (1U << n_tiles) - 1)
     {
         if (!c->n_tile_data)
             return -EINVAL;

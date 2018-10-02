@@ -273,28 +273,28 @@ int msac_decode_subexp(MsacContext *const c, const int ref,
     int i = 0;
     int a = 0;
     int b = k;
-    while ((2 << b) < n) {
+    while ((2U << b) < n) {
         if (!msac_decode_bool(c, 128 << 7)) break;
         b = k + i++;
         a = (1 << b);
     }
     const unsigned v = msac_decode_bools(c, b) + a;
-    return ref * 2 <= n ? inv_recenter(ref, v) :
-                          n - 1 - inv_recenter(n - 1 - ref, v);
+    return ref * 2U <= n ? inv_recenter(ref, v) :
+                           n - 1 - inv_recenter(n - 1 - ref, v);
 }
 
 int msac_decode_uniform(MsacContext *const c, const unsigned n) {
     assert(n > 0);
     const int l = ulog2(n) + 1;
     assert(l > 1);
-    const int m = (1 << l) - n;
-    const int v = msac_decode_bools(c, l - 1);
+    const unsigned m = (1U << l) - n;
+    const unsigned v = msac_decode_bools(c, l - 1);
     return v < m ? v : (v << 1) - m + msac_decode_bool(c, 128 << 7);
 }
 
 void update_cdf(uint16_t *cdf, unsigned val, unsigned nsymbs) {
     int rate;
-    int i, tmp;
+    unsigned i, tmp;
 
     static const int nsymbs2speed[17] = {
         0, 0, 1, 1, 2, 2, 2, 2, 2,
@@ -302,7 +302,7 @@ void update_cdf(uint16_t *cdf, unsigned val, unsigned nsymbs) {
     };
     assert(nsymbs < 17);
     rate = 3 + (cdf[nsymbs] > 15) + (cdf[nsymbs] > 31) + nsymbs2speed[nsymbs];
-    tmp = 32768;
+    tmp = 32768U;
 
     // Single loop (faster)
     for (i = 0; i < nsymbs - 1; ++i) {

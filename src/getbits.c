@@ -82,8 +82,8 @@ unsigned dav1d_get_uniform(GetBits *const c, const unsigned n) {
     assert(n > 0);
     const int l = ulog2(n) + 1;
     assert(l > 0);
-    const int m = (1 << l) - n;
-    const int v = dav1d_get_bits(c, l - 1);
+    const unsigned m = (1U << l) - n;
+    const unsigned v = dav1d_get_bits(c, l - 1);
     return v < m ? v : (v << 1) - m + dav1d_get_bits(c, 1);
 }
 

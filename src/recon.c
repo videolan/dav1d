@@ -109,7 +109,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             idx = msac_decode_symbol_adapt(&ts->msac, txtp_cdf, set_cnt);
             if (dbg)
             printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
-                   set, set_idx, tx, t_dim->min, b->intra ? y_mode_nofilt : -1,
+                   set, set_idx, tx, t_dim->min, b->intra ? (int)y_mode_nofilt : -1,
                    idx, dav1d_tx_types_per_set[set][idx], ts->msac.rng);
         }
         *txtp = dav1d_tx_types_per_set[set][idx];
