@@ -2324,6 +2324,12 @@ int decode_frame(Dav1dFrameContext *const f) {
         uint16_t *lr_ptr = f->lf.lr_lpf_line =
             dav1d_alloc_aligned(f->b4_stride * 4 * 3 * 12 * sizeof(uint16_t), 32);
 
+        if (!ptr || !lr_ptr) {
+            if (ptr) dav1d_free_aligned(ptr);
+            if (lr_ptr) dav1d_free_aligned(lr_ptr);
+            return -ENOMEM;
+        }
+
         for (int pl = 0; pl <= 2; pl++) {
             f->lf.cdef_line_ptr[0][pl][0] = ptr + f->b4_stride * 4 * 0;
             f->lf.cdef_line_ptr[0][pl][1] = ptr + f->b4_stride * 4 * 1;
