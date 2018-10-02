@@ -89,8 +89,9 @@ unsigned get_uniform(GetBits *const c, const unsigned n) {
 
 unsigned get_vlc(GetBits *const c) {
     int n_bits = 0;
-    while (!get_bits(c, 1)) n_bits++;
-    if (n_bits >= 32) return 0xFFFFFFFFU;
+    while (!get_bits(c, 1))
+        if (++n_bits == 32)
+            return 0xFFFFFFFFU;
     return ((1 << n_bits) - 1) + get_bits(c, n_bits);
 }
 
