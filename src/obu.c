@@ -1034,6 +1034,8 @@ int parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         if ((res = parse_tile_hdr(c, &gb)) < 0)
             return res;
         off += res;
+        if (off > len + init_off)
+            goto error;
         dav1d_ref_inc(in->ref);
         c->tile[c->n_tile_data].data.ref = in->ref;
         c->tile[c->n_tile_data].data.data = in->data + off;
