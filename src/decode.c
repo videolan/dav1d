@@ -513,7 +513,7 @@ static void order_palette(const uint8_t *pal_idx, const ptrdiff_t stride,
 
 #define add(v_in) do { \
         const int v = v_in; \
-        assert(v < 8U); \
+        assert((unsigned)v < 8U); \
         order[n][o_idx++] = v; \
         mask |= 1 << v; \
     } while (0)
