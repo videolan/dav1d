@@ -2285,6 +2285,7 @@ int decode_frame(Dav1dFrameContext *const f) {
             f->frame_thread.tile_start_off =
                 malloc(sizeof(*f->frame_thread.tile_start_off) *
                        f->frame_hdr.tiling.cols * f->frame_hdr.tiling.rows);
+            if (!f->frame_thread.tile_start_off) return -ENOMEM;
         }
         f->n_ts = f->frame_hdr.tiling.cols * f->frame_hdr.tiling.rows;
     }
