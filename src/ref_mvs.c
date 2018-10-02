@@ -3540,6 +3540,7 @@ void av1_init_ref_mv_tile_row(AV1_COMMON *cm,
 
 AV1_COMMON *av1_alloc_ref_mv_common(void) {
     AV1_COMMON *cm = malloc(sizeof(*cm));
+    if (!cm) return NULL;
     memset(cm, 0, sizeof(*cm));
     return cm;
 }

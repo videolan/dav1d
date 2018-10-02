@@ -121,6 +121,7 @@ int dav1d_open(Dav1dContext **const c_out,
             }
         }
         f->libaom_cm = av1_alloc_ref_mv_common();
+        if (!f->libaom_cm) goto error;
         if (c->n_fc > 1) {
             pthread_mutex_init(&f->frame_thread.td.lock, NULL);
             pthread_cond_init(&f->frame_thread.td.cond, NULL);
