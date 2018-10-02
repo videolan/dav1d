@@ -145,6 +145,7 @@ endif
 optional_arguments = [
   '-Wundef',
   '-Werror=vla',
+  '-Wno-maybe-uninitialized',
 ]
 
 if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
