@@ -48,6 +48,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -3468,25 +3469,26 @@ void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
     }
 }
 
-void av1_init_ref_mv_common(AV1_COMMON *cm,
-                            const int w8, const int h8,
-                            const ptrdiff_t stride,
-                            const int allow_sb128,
-                            MV_REF *cur,
-                            MV_REF *ref_mvs[7],
-                            const unsigned cur_poc,
-                            const unsigned ref_poc[7],
-                            const unsigned ref_ref_poc[7][7],
-                            const WarpedMotionParams gmv[7],
-                            const int allow_hp,
-                            const int force_int_mv,
-                            const int allow_ref_frame_mvs,
-                            const int order_hint)
+int av1_init_ref_mv_common(AV1_COMMON *cm,
+                           const int w8, const int h8,
+                           const ptrdiff_t stride,
+                           const int allow_sb128,
+                           MV_REF *cur,
+                           MV_REF *ref_mvs[7],
+                           const unsigned cur_poc,
+                           const unsigned ref_poc[7],
+                           const unsigned ref_ref_poc[7][7],
+                           const WarpedMotionParams gmv[7],
+                           const int allow_hp,
+                           const int force_int_mv,
+                           const int allow_ref_frame_mvs,
+                           const int order_hint)
 {
     if (cm->mi_cols != (w8 << 1) || cm->mi_rows != (h8 << 1)) {
         const int align_h = (h8 + 15) & ~15;
         if (cm->tpl_mvs) free(cm->tpl_mvs);
         cm->tpl_mvs = malloc(sizeof(*cm->tpl_mvs) * (stride >> 1) * align_h);
+        if (!cm->tpl_mvs) return -ENOMEM;
         for (int i = 0; i < 7; i++)
             cm->frame_refs[i].idx = i;
         cm->mi_cols = w8 << 1;
@@ -3528,6 +3530,8 @@ void av1_init_ref_mv_common(AV1_COMMON *cm,
         cm->ref_frame_sign_bias[1 + i] = get_relative_dist(cm, ref_poc, cur_poc) > 0;
     }
     av1_setup_motion_field(cm);
+
+    return 0;
 }
 
 void av1_init_ref_mv_tile_row(AV1_COMMON *cm,

@@ -36,18 +36,18 @@ AV1_COMMON *av1_alloc_ref_mv_common(void);
 void av1_free_ref_mv_common(AV1_COMMON *cm);
 
 // call once per frame
-void av1_init_ref_mv_common(AV1_COMMON *cm,
-                            int w8, int h8,
-                            ptrdiff_t stride,
-                            int allow_sb128,
-                            refmvs *cur,
-                            refmvs *ref_mvs[7],
-                            unsigned cur_poc,
-                            const unsigned ref_poc[7],
-                            const unsigned ref_ref_poc[7][7],
-                            const WarpedMotionParams gmv[7],
-                            int allow_hp, int force_int_mv,
-                            int allow_ref_frame_mvs, int order_hint);
+int av1_init_ref_mv_common(AV1_COMMON *cm,
+                           int w8, int h8,
+                           ptrdiff_t stride,
+                           int allow_sb128,
+                           refmvs *cur,
+                           refmvs *ref_mvs[7],
+                           unsigned cur_poc,
+                           const unsigned ref_poc[7],
+                           const unsigned ref_ref_poc[7][7],
+                           const WarpedMotionParams gmv[7],
+                           int allow_hp, int force_int_mv,
+                           int allow_ref_frame_mvs, int order_hint);
 
 // call for start of each sbrow per tile
 void av1_init_ref_mv_tile_row(AV1_COMMON *cm,

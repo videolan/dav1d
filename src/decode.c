@@ -2405,13 +2405,14 @@ int decode_frame(Dav1dFrameContext *const f) {
     if ((f->frame_hdr.frame_type & 1) || f->frame_hdr.allow_intrabc) {
         f->mvs = f->mvs_ref->data;
         const int order_hint_n_bits = f->seq_hdr.order_hint * f->seq_hdr.order_hint_n_bits;
-        av1_init_ref_mv_common(f->libaom_cm, f->bw >> 1, f->bh >> 1,
-                               f->b4_stride, f->seq_hdr.sb128,
-                               f->mvs, f->ref_mvs, f->cur.p.poc, f->refpoc,
-                               f->refrefpoc, f->frame_hdr.gmv,
-                               f->frame_hdr.hp, f->frame_hdr.force_integer_mv,
-                               f->frame_hdr.use_ref_frame_mvs,
-                               order_hint_n_bits);
+        const int ret = av1_init_ref_mv_common(f->libaom_cm, f->bw >> 1, f->bh >> 1,
+                                               f->b4_stride, f->seq_hdr.sb128,
+                                               f->mvs, f->ref_mvs, f->cur.p.poc, f->refpoc,
+                                               f->refrefpoc, f->frame_hdr.gmv,
+                                               f->frame_hdr.hp, f->frame_hdr.force_integer_mv,
+                                               f->frame_hdr.use_ref_frame_mvs,
+                                               order_hint_n_bits);
+        if (ret < 0) return -ENOMEM;
         if (c->n_fc == 1 && f->frame_hdr.use_ref_frame_mvs)
             av1_init_ref_mv_tile_row(f->libaom_cm, 0, f->bw, 0, f->bh);
     }
