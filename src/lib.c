@@ -86,6 +86,7 @@ int dav1d_open(Dav1dContext **const c_out,
     if (c->n_fc > 1) {
         c->frame_thread.out_delayed =
             malloc(sizeof(*c->frame_thread.out_delayed) * c->n_fc);
+        if (!c->frame_thread.out_delayed) goto error;
         memset(c->frame_thread.out_delayed, 0,
                sizeof(*c->frame_thread.out_delayed) * c->n_fc);
     }
