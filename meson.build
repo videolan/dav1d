@@ -64,6 +64,9 @@ is_asm_enabled = (get_option('build_asm') == true and
      host_machine.cpu_family().startswith('arm'))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
+# libFuzzer target
+is_libfuzzer_enabled = (get_option('build_libfuzzer'))
+
 
 
 #
@@ -156,6 +159,14 @@ endif
 
 add_project_arguments(cc.get_supported_arguments(optional_arguments), language : 'c')
 
+# libFuzzer related things
+if is_libfuzzer_enabled
+    if not cc.has_argument('-fsanitize=fuzzer')
+        error('build_libfuzzer requires "-fsanitize=fuzzer"')
+    endif
+    fuzzer_args = ['-fsanitize=fuzzer-no-link', '-fsanitize=fuzzer']
+    add_project_arguments(cc.first_supported_argument(fuzzer_args), language : 'c')
+endif
 
 # Stack alignments flags
 

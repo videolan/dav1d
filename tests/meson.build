@@ -81,3 +81,17 @@ if is_asm_enabled
 
     test('checkasm test', checkasm)
 endif
+
+if is_libfuzzer_enabled
+    dav1d_fuzzer_sources =  files('libfuzzer/dav1d_fuzzer.c')
+
+    dav1d_fuzzer = executable('dav1d_fuzzer',
+        dav1d_fuzzer_sources,
+        include_directories: dav1d_inc_dirs,
+        c_args: [stackalign_flag, stackrealign_flag, '-fsanitize=fuzzer'],
+        link_args: ['-fsanitize=fuzzer'],
+        link_with : libdav1d,
+        build_by_default: true,
+        dependencies : [thread_dependency],
+        )
+endif

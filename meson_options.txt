@@ -19,3 +19,8 @@ option('build_tests',
     type: 'boolean',
     value: true,
     description: 'Build dav1d tests')
+
+option('build_libfuzzer',
+    type: 'boolean',
+    value: false,
+    description: 'Build dav1d libFuzzer target')
