@@ -286,16 +286,3 @@ subdir('src')
 subdir('tools')
 
 subdir('tests')
-
-
-
-#
-# Generate pkg-config .pc file
-#
-pkg_mod = import('pkgconfig')
-pkg_mod.generate(libraries: libdav1d,
-    version: meson.project_version(),
-    name: 'libdav1d',
-    filebase: 'dav1d',
-    description: 'AV1 decoding library'
-)
