@@ -81,3 +81,12 @@ build-debian-aarch64-clang-5:
         - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
         - ninja -C build
         - cd build && meson test -v
+
+build-macos:
+    stage: build
+    tags:
+        - macos
+    script:
+        - meson build --buildtype release -Ddefault_library=both
+        - ninja -C build
+        - cd build && meson test -v
