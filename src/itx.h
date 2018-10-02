@@ -43,4 +43,7 @@ typedef struct Dav1dInvTxfmDSPContext {
 void dav1d_itx_dsp_init_8bpc(Dav1dInvTxfmDSPContext *c);
 void dav1d_itx_dsp_init_10bpc(Dav1dInvTxfmDSPContext *c);
 
+void dav1d_itx_dsp_init_x86_8bpc(Dav1dInvTxfmDSPContext *c);
+void dav1d_itx_dsp_init_x86_10bpc(Dav1dInvTxfmDSPContext *c);
+
 #endif /* __DAV1D_SRC_ITX_H__ */

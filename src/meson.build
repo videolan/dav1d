@@ -98,12 +98,14 @@ if is_asm_enabled
         )
 
         libdav1d_tmpl_sources += files(
+            'x86/itx_init.c',
             'x86/mc_init.c',
         )
 
         # NASM source files
         libdav1d_sources_asm = files(
             'x86/cpuid.asm',
+            'x86/itx.asm',
             'x86/mc.asm',
         )
 

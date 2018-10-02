@@ -226,4 +226,8 @@ void bitfn(dav1d_itx_dsp_init)(Dav1dInvTxfmDSPContext *const c) {
     assign_itx_all_fn64(64, 16, R);
     assign_itx_all_fn64(64, 32, R);
     assign_itx_all_fn64(64, 64, );
+
+#if HAVE_ASM && ARCH_X86
+    bitfn(dav1d_itx_dsp_init_x86)(c);
+#endif
 }
