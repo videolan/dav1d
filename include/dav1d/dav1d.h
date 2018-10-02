@@ -52,40 +52,57 @@ DAV1D_API const char *dav1d_version(void);
 
 /**
  * Initialize settings to default values.
+ *
+ * @param s Input settings context.
  */
 DAV1D_API void dav1d_default_settings(Dav1dSettings *s);
 
 /**
- * Open/allocate decoder instance.
+ * Allocate and open a decoder instance.
  *
- * The resulting instance context will be placed in $c_out and can be used in
- * iterative calls to dav1d_decode().
+ * @param c_out The decoder instance to open. To be used in iterative calls to
+ *              dav1d_decode(). *c_out will be set to the allocated context.
+ * @param     s Input settings context.
  *
- * You should free the context using dav1d_close() when you're done decoding.
+ * @note The context must be freed using dav1d_close() when decoding is
+ *       finished.
  *
- * This returns < 0 (a negative errno code) on error, or 0 on success.
+ * @return 0 on success, or < 0 (a negative errno code) on error.
  */
 DAV1D_API int dav1d_open(Dav1dContext **c_out, const Dav1dSettings *s);
 
 /**
- * Decode one input frame. Library takes ownership of the passed-in reference.
- * After that, it will return < 0 (a negative errno code, but not -EAGAIN) on
- * failure, or 0 on success. If any decoded output frames are available, they
- * will be placed in $out. The caller assumes ownership of the returned output
- * picture.
+ * Decode one frame.
  *
- * To flush the decoder (i.e. all input is finished), feed it NULL input data
- * until it returns -EAGAIN.
+ * @param   c Input decoder instance.
+ * @param  in Input bitstream data. On success, the caller retains ownership of
+ *            the input reference if the data was not fully consumed.
+ * @param out Output frame. The caller assumes ownership of the returned
+ *            reference.
+ *
+ * @return
+ *         0: Success, and a frame is returned.
+ *   -EAGAIN: Not enough data to output a frame. The fuction should be called
+ *            again with new input.
+ *   other negative errno codes: Error during decoding or because of invalid
+ *                               passed-in arguments.
+ *
+ * @note To flush the decoder (i.e. all input is finished), feed it NULL input
+ *       data until it returns -EAGAIN.
  */
 DAV1D_API int dav1d_decode(Dav1dContext *c, Dav1dData *in, Dav1dPicture *out);
 
 /**
- * Close decoder instance, free all associated memory, and set $c_out to NULL.
+ * Close a decoder instance and free all associated memory.
+ *
+ * @param c_out The decoder instance to close. *c_out will be set to NULL.
  */
 DAV1D_API void dav1d_close(Dav1dContext **c_out);
 
 /**
  * Flush all delayed frames in decoder, to be used when seeking.
+ *
+ * @param c Input decoder instance.
  */
 DAV1D_API void dav1d_flush(Dav1dContext *c);
 
