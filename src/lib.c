@@ -26,14 +26,13 @@
  */
 
 #include "config.h"
+#include "version.h"
 
 #include <errno.h>
 #include <string.h>
 
 #include "dav1d/dav1d.h"
 #include "dav1d/data.h"
-
-#include "include/version.h"
 
 #include "common/mem.h"
 #include "common/validate.h"

@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include "version.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -37,8 +38,6 @@
 #endif
 
 #include "dav1d/data.h"
-
-#include "include/version.h"
 
 #include "input/input.h"
 
