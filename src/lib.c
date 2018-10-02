@@ -50,12 +50,6 @@ static void init_internal(void) {
     av1_init_qm_tables();
 }
 
-static pthread_once_t initted = PTHREAD_ONCE_INIT;
-
-void dav1d_init(void) {
-    pthread_once(&initted, init_internal);
-}
-
 const char *dav1d_version(void) {
     return DAV1D_VERSION;
 }
@@ -68,6 +62,9 @@ void dav1d_default_settings(Dav1dSettings *const s) {
 int dav1d_open(Dav1dContext **const c_out,
                const Dav1dSettings *const s)
 {
+    static pthread_once_t initted = PTHREAD_ONCE_INIT;
+    pthread_once(&initted, init_internal);
+
     validate_input_or_ret(c_out != NULL, -EINVAL);
     validate_input_or_ret(s != NULL, -EINVAL);
     validate_input_or_ret(s->n_tile_threads >= 1 &&

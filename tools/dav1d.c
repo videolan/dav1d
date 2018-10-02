@@ -78,7 +78,6 @@ int main(const int argc, char *const *const argv) {
         return -1;
     }
 
-    dav1d_init();
     init_demuxers();
     init_muxers();
     parse(argc, argv, &cli_settings, &lib_settings);

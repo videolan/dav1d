@@ -40,11 +40,6 @@ typedef struct Dav1dSettings {
     int n_tile_threads;
 } Dav1dSettings;
 
-/*
- * Init the library.
- */
-DAV1D_API void dav1d_init(void);
-
 /**
  * Get library version.
  */

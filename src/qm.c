@@ -3105,7 +3105,7 @@ static void untriangle(uint8_t *dst, const uint8_t *src, const int sz) {
 }
 
 void av1_init_qm_tables(void) {
-    // This function is guaranteed to be called only once by dav1d_init
+    // This function is guaranteed to be called only once
 
     for (int i = 0; i < 15; i++)
         for (int j = 0; j < 2; j++) {

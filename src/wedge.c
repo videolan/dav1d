@@ -223,7 +223,7 @@ static void fill2d_16x2(uint8_t *dst, const int w, const int h,
 }
 
 void av1_init_wedge_masks(void) {
-    // This function is guaranteed to be called only once by dav1d_init
+    // This function is guaranteed to be called only once
 
     enum WedgeMasterLineType {
         WEDGE_MASTER_LINE_ODD,
@@ -322,7 +322,7 @@ static void build_nondc_ii_masks(uint8_t *const mask_v,
 }
 
 void av1_init_interintra_masks(void) {
-    // This function is guaranteed to be called only once by dav1d_init
+    // This function is guaranteed to be called only once
 
     memset(ii_dc_mask, 32, 32 * 32);
 #define set(a) a[II_VERT_PRED - 1], a[II_HOR_PRED - 1], a[II_SMOOTH_PRED - 1]
