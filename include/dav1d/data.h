@@ -41,24 +41,37 @@ typedef struct Dav1dData {
 
 /**
  * Allocate data.
+ *
+ * @param data Input context.
+ * @param   sz Size of the data that should be allocated.
+ *
+ * @return 0 on success. A negative errno value on error.
  */
 DAV1D_API int dav1d_data_create(Dav1dData *data, size_t sz);
 
 /**
- * Wrap an existing data packet.
- * $ptr/$sz are the pointer and size of the data to be wrapped.
- * $free_callback/$user_data are a function and function argument to be
- * called when we release our last reference to this data. In this callback,
- * $data will be the $ptr argument to this function, and $user_data will be
- * the $user_data input argument to this function.
+ * Wrap an existing data array.
+ *
+ * @param          data Input context.
+ * @param           buf The data to be wrapped.
+ * @param            sz Size of the data.
+ * @param free_callback Function to be called when we release our last
+ *                      reference to this data. In this callback, $buf will be
+ *                      the $buf argument to this function, and $user_data
+ *                      will be the $user_data input argument to this function.
+ * @param     user_data Opaque parameter passed to free_callback().
+ *
+ * @return 0 on success. A negative errno value on error.
  */
-DAV1D_API int dav1d_data_wrap(Dav1dData *data, uint8_t *ptr, size_t sz,
-                              void (*free_callback)(uint8_t *data, void *user_data),
+DAV1D_API int dav1d_data_wrap(Dav1dData *data, uint8_t *buf, size_t sz,
+                              void (*free_callback)(uint8_t *buf, void *user_data),
                               void *user_data);
 
 /**
- * Free data.
+ * Free the data reference.
+ *
+ * @param data Input context.
  */
-DAV1D_API void dav1d_data_unref(Dav1dData *buf);
+DAV1D_API void dav1d_data_unref(Dav1dData *data);
 
 #endif /* __DAV1D_DATA_H__ */
