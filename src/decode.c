@@ -2237,6 +2237,7 @@ int decode_tile_sbrow(Dav1dTileContext *const t) {
 
 int decode_frame(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
+    int retval = -EINVAL;
 
     if (f->n_tc > 1) {
         if (f->frame_hdr.tiling.cols * f->sbh > f->tile_thread.titsati_sz) {
@@ -2650,6 +2651,8 @@ int decode_frame(Dav1dFrameContext *const f) {
 
     dav1d_thread_picture_signal(&f->cur, UINT_MAX, PLANE_TYPE_ALL);
 
+    retval = 0;
+error:
     for (int i = 0; i < 7; i++) {
         if (f->refp[i].p.data[0])
             dav1d_thread_picture_unref(&f->refp[i]);
@@ -2668,13 +2671,7 @@ int decode_frame(Dav1dFrameContext *const f) {
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
 
-    return 0;
-
-error:
-    for (int i = 0; i < f->n_tile_data; i++)
-        dav1d_data_unref(&f->tile[i].data);
-
-    return -EINVAL;
+    return retval;
 }
 
 int submit_frame(Dav1dContext *const c) {
