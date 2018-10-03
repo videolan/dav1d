@@ -72,11 +72,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             err = dav1d_decode(ctx, &buf, &pic);
             if (err == 0) {
                 dav1d_picture_unref(&pic);
-            } else {
-                if (!buf.sz) dav1d_data_unref(&buf);
-                if (err != -EAGAIN) {
-                    break;
-                }
+            } else if (err != -EAGAIN) {
+                break;
             }
         } while (buf.sz > 0);
 

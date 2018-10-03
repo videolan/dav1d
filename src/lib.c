@@ -196,8 +196,8 @@ int dav1d_decode(Dav1dContext *const c,
         assert(res <= in->sz);
         in->sz -= res;
         in->data += res;
+        if (!in->sz) dav1d_data_unref(in);
         if (c->out.data[0]) {
-            if (!in->sz) dav1d_data_unref(in);
             dav1d_picture_ref(out, &c->out);
             dav1d_picture_unref(&c->out);
             return 0;
