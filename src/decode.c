@@ -852,6 +852,10 @@ static void decode_b(Dav1dTileContext *const t,
         const int prev_qidx = ts->last_qidx;
         const int have_delta_q = f->frame_hdr.delta.q.present &&
             (bs != (f->seq_hdr.sb128 ? BS_128x128 : BS_64x64) || !b->skip);
+
+        int8_t prev_delta_lf[4];
+        memcpy(prev_delta_lf, ts->last_delta_lf, 4);
+
         if (have_delta_q) {
             int delta_q = msac_decode_symbol_adapt(&ts->msac, ts->cdf.m.delta_q, 4);
             if (delta_q == 3) {
@@ -866,6 +870,32 @@ static void decode_b(Dav1dTileContext *const t,
             if (have_delta_q && DEBUG_BLOCK_INFO)
                 printf("Post-delta_q[%d->%d]: r=%d\n",
                        delta_q, ts->last_qidx, ts->msac.rng);
+
+            if (f->frame_hdr.delta.lf.present) {
+                const int n_lfs = f->frame_hdr.delta.lf.multi ?
+                    f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 ? 4 : 2 : 1;
+
+                for (int i = 0; i < n_lfs; i++) {
+                    int delta_lf =
+                        msac_decode_symbol_adapt(&ts->msac,
+                        ts->cdf.m.delta_lf[i + f->frame_hdr.delta.lf.multi], 4);
+                    if (delta_lf == 3) {
+                        const int n_bits = 1 + msac_decode_bools(&ts->msac, 3);
+                        delta_lf = msac_decode_bools(&ts->msac, n_bits) +
+                                   1 + (1 << n_bits);
+                    }
+                    if (delta_lf) {
+                        if (msac_decode_bool(&ts->msac, 128 << 7))
+                            delta_lf = -delta_lf;
+                        delta_lf *= 1 << f->frame_hdr.delta.lf.res_log2;
+                    }
+                    ts->last_delta_lf[i] =
+                        iclip(ts->last_delta_lf[i] + delta_lf, -63, 63);
+                    if (have_delta_q && DEBUG_BLOCK_INFO)
+                        printf("Post-delta_lf[%d:%d]: r=%d\n", i, delta_lf,
+                               ts->msac.rng);
+                }
+            }
         }
         if (ts->last_qidx == f->frame_hdr.quant.yac) {
             // assign frame-wide q values to this sb
@@ -874,30 +904,6 @@ static void decode_b(Dav1dTileContext *const t,
             // find sb-specific quant parameters
             init_quant_tables(&f->seq_hdr, &f->frame_hdr, ts->last_qidx, ts->dqmem);
             ts->dq = ts->dqmem;
-        }
-
-        // delta_lf
-        int8_t prev_delta_lf[4];
-        memcpy(prev_delta_lf, ts->last_delta_lf, 4);
-        if (have_delta_q && f->frame_hdr.delta.lf.present) {
-            const int n_lfs = f->frame_hdr.delta.lf.multi ?
-                f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 ? 4 : 2 : 1;
-
-            for (int i = 0; i < n_lfs; i++) {
-                int delta_lf = msac_decode_symbol_adapt(&ts->msac,
-                                ts->cdf.m.delta_lf[i + f->frame_hdr.delta.lf.multi], 4);
-                if (delta_lf == 3) {
-                    const int n_bits = 1 + msac_decode_bools(&ts->msac, 3);
-                    delta_lf = msac_decode_bools(&ts->msac, n_bits) + 1 + (1 << n_bits);
-                }
-                if (delta_lf) {
-                    if (msac_decode_bool(&ts->msac, 128 << 7)) delta_lf = -delta_lf;
-                    delta_lf *= 1 << f->frame_hdr.delta.lf.res_log2;
-                }
-                ts->last_delta_lf[i] = iclip(ts->last_delta_lf[i] + delta_lf, -63, 63);
-                if (have_delta_q && DEBUG_BLOCK_INFO)
-                    printf("Post-delta_lf[%d:%d]: r=%d\n", i, delta_lf, ts->msac.rng);
-            }
         }
         if (!memcmp(ts->last_delta_lf, (int8_t[4]) { 0, 0, 0, 0 }, 4)) {
             // assign frame-wide lf values to this sb
