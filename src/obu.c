@@ -461,8 +461,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->tiling.cols = 0;
         int widest_tile = 0, max_tile_area_sb = sbw * sbh;
         for (int sbx = 0; sbx < sbw; hdr->tiling.cols++) {
-            const int tile_w = get_uniform(gb, imin(sbw - sbx,
-                                                    max_tile_width_sb));
+            const int tile_w = 1 + get_uniform(gb, imin(sbw - sbx,
+                                                        max_tile_width_sb));
             hdr->tiling.col_start_sb[hdr->tiling.cols] = sbx;
             sbx += tile_w;
             widest_tile = imax(widest_tile, tile_w);
@@ -473,8 +473,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
 
         hdr->tiling.rows = 0;
         for (int sby = 0; sby < sbh; hdr->tiling.rows++) {
-            const int tile_h = get_uniform(gb, imin(sbh - sby,
-                                                    max_tile_height_sb));
+            const int tile_h = 1 + get_uniform(gb, imin(sbh - sby,
+                                                        max_tile_height_sb));
             hdr->tiling.row_start_sb[hdr->tiling.rows] = sby;
             sby += tile_h;
         }
