@@ -26,7 +26,7 @@
 %include "config.asm"
 %include "ext/x86/x86inc.asm"
 
-%if ARCH_X86_64 && UNIX64 ; Fixme: Windows
+%if ARCH_X86_64
 
 SECTION_RODATA 32
 
@@ -116,10 +116,6 @@ idct64_mul: COEF_X8  4095,   101,  4065,   501,  2967, -2824,  3229, -2520
 %define o_idct64_offset idct64_mul - (o_base) - 8
 
 SECTION .text
-
-; Callee-saved registers has to be explicitly handled when jumping around
-; different functions since RET can't automatically deal with it.
-ASSERT ARCH_X86_64 && WIN64 == 0
 
 ; Code size reduction trickery: Intead of using rip-relative loads with
 ; mandatory 4-byte offsets everywhere, we can set up a base pointer with a
@@ -373,8 +369,8 @@ cglobal inv_txfm_add_wht_wht_4x4, 3, 3, 4, dst, stride, c
     vpblendd             m0, m0, m2, 0x03
     ITX4_END              3, 0, 2, 1, 0
 
-%macro INV_TXFM_FN 5 ; type1, type2, fast_thresh, size, num_mmregs
-cglobal inv_txfm_add_%1_%2_%4, 4, 5, %5, dst, stride, c, eob, tx2
+%macro INV_TXFM_FN 4 ; type1, type2, fast_thresh, size
+cglobal inv_txfm_add_%1_%2_%4, 4, 5, 0, dst, stride, c, eob, tx2
     %undef cmp
     %define %%p1 m(i%1_%4_internal)
     lea                 rax, [o_base]
@@ -396,7 +392,7 @@ ALIGN function_align
 %endmacro
 
 %macro INV_TXFM_4X4_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 4x4, 6
+    INV_TXFM_FN          %1, %2, %3, 4x4
 %ifidn %1_%2, dct_identity
     vpbroadcastd         m0, [o(pw_2896x8)]
     pmulhrsw             m0, [cq]
@@ -500,7 +496,7 @@ INV_TXFM_4X4_FN dct, adst,     0
 INV_TXFM_4X4_FN dct, flipadst, 0
 INV_TXFM_4X4_FN dct, identity, 3
 
-cglobal idct_4x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_4x4_internal, 0, 5, 6, dst, stride, c, eob, tx2
     mova                 m0, [cq+16*0]
     mova                 m1, [cq+16*1]
     IDCT4_1D_PACKED
@@ -522,7 +518,7 @@ INV_TXFM_4X4_FN adst, adst,     0
 INV_TXFM_4X4_FN adst, flipadst, 0
 INV_TXFM_4X4_FN adst, identity
 
-cglobal iadst_4x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_4x4_internal, 0, 5, 6, dst, stride, c, eob, tx2
     mova                 m0, [cq+16*0]
     mova                 m1, [cq+16*1]
     call .main
@@ -550,7 +546,7 @@ INV_TXFM_4X4_FN flipadst, adst,     0
 INV_TXFM_4X4_FN flipadst, flipadst, 0
 INV_TXFM_4X4_FN flipadst, identity
 
-cglobal iflipadst_4x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_4x4_internal, 0, 5, 6, dst, stride, c, eob, tx2
     mova                 m0, [cq+16*0]
     mova                 m1, [cq+16*1]
     call m(iadst_4x4_internal).main
@@ -574,7 +570,7 @@ INV_TXFM_4X4_FN identity, adst
 INV_TXFM_4X4_FN identity, flipadst
 INV_TXFM_4X4_FN identity, identity
 
-cglobal iidentity_4x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_4x4_internal, 0, 5, 6, dst, stride, c, eob, tx2
     mova                 m0, [cq+16*0]
     mova                 m1, [cq+16*1]
     vpbroadcastd         m2, [o(pw_5793x4)]
@@ -621,7 +617,7 @@ cglobal iidentity_4x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
 %endmacro
 
 %macro INV_TXFM_4X8_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 4x8, 7
+    INV_TXFM_FN          %1, %2, %3, 4x8
 %if %3 >= 0
 %ifidn %1_%2, dct_identity
     vpbroadcastd        xm0, [o(pw_2896x8)]
@@ -753,7 +749,7 @@ INV_TXFM_4X8_FN dct, identity, 7
 INV_TXFM_4X8_FN dct, adst
 INV_TXFM_4X8_FN dct, flipadst
 
-cglobal idct_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_4x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q3120
     vpermq               m1, [cq+32*1], q3120
     vpbroadcastd         m5, [o(pw_2896x8)]
@@ -785,7 +781,7 @@ INV_TXFM_4X8_FN adst, adst
 INV_TXFM_4X8_FN adst, flipadst
 INV_TXFM_4X8_FN adst, identity
 
-cglobal iadst_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_4x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q3120
     vpermq               m1, [cq+32*1], q3120
     vpbroadcastd         m2, [o(pw_2896x8)]
@@ -813,6 +809,7 @@ cglobal iadst_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
 .end2:
     pmulhrsw             m0, m4
     pmulhrsw             m1, m4
+    WIN64_RESTORE_XMM
 .end3:
     pxor                 m2, m2
     mova          [cq+32*0], m2
@@ -832,7 +829,7 @@ INV_TXFM_4X8_FN flipadst, adst
 INV_TXFM_4X8_FN flipadst, flipadst
 INV_TXFM_4X8_FN flipadst, identity
 
-cglobal iflipadst_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_4x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q3120
     vpermq               m1, [cq+32*1], q3120
     vpbroadcastd         m2, [o(pw_2896x8)]
@@ -864,7 +861,7 @@ INV_TXFM_4X8_FN identity, adst
 INV_TXFM_4X8_FN identity, flipadst
 INV_TXFM_4X8_FN identity, identity
 
-cglobal iidentity_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_4x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m2, [cq+32*0], q3120
     vpermq               m0, [cq+32*1], q3120
     vpbroadcastd         m3, [o(pw_2896x8)]
@@ -885,7 +882,7 @@ cglobal iidentity_4x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     jmp m(iadst_4x8_internal).end2
 
 %macro INV_TXFM_4X16_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 4x16, 11
+    INV_TXFM_FN          %1, %2, %3, 4x16
 %if %3 >= 0
 %ifidn %1_%2, dct_identity
     vpbroadcastd         m0, [o(pw_2896x8)]
@@ -1040,7 +1037,7 @@ INV_TXFM_4X16_FN dct, identity, 15
 INV_TXFM_4X16_FN dct, adst
 INV_TXFM_4X16_FN dct, flipadst
 
-cglobal idct_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_4x16_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                 m0, [cq+32*0]
     mova                 m1, [cq+32*1]
     mova                 m2, [cq+32*2]
@@ -1081,7 +1078,7 @@ INV_TXFM_4X16_FN adst, adst
 INV_TXFM_4X16_FN adst, flipadst
 INV_TXFM_4X16_FN adst, identity
 
-cglobal iadst_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_4x16_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                 m0, [cq+32*0]
     mova                 m1, [cq+32*1]
     mova                 m2, [cq+32*2]
@@ -1115,6 +1112,7 @@ cglobal iadst_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
     vpblendd             m5, m5, m6, 0xcc
 .end2:
     REPX   {pmulhrsw x, m5}, m0, m1, m2, m3
+    WIN64_RESTORE_XMM
 .end3:
     pxor                 m4, m4
     mova          [cq+32*0], m4
@@ -1195,7 +1193,7 @@ INV_TXFM_4X16_FN flipadst, adst
 INV_TXFM_4X16_FN flipadst, flipadst
 INV_TXFM_4X16_FN flipadst, identity
 
-cglobal iflipadst_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_4x16_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                 m0, [cq+32*0]
     mova                 m1, [cq+32*1]
     mova                 m2, [cq+32*2]
@@ -1232,7 +1230,7 @@ INV_TXFM_4X16_FN identity, adst
 INV_TXFM_4X16_FN identity, flipadst
 INV_TXFM_4X16_FN identity, identity
 
-cglobal iidentity_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_4x16_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                 m3, [cq+32*0]
     mova                 m2, [cq+32*1]
     mova                 m4, [cq+32*2]
@@ -1284,7 +1282,7 @@ cglobal iidentity_4x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
 %endmacro
 
 %macro INV_TXFM_8X4_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 8x4, 7
+    INV_TXFM_FN          %1, %2, %3, 8x4
 %if %3 >= 0
 %ifidn %1_%2, dct_identity
     vpbroadcastd        xm0, [o(pw_2896x8)]
@@ -1347,7 +1345,7 @@ INV_TXFM_8X4_FN dct, adst,     0
 INV_TXFM_8X4_FN dct, flipadst, 0
 INV_TXFM_8X4_FN dct, identity, 3
 
-cglobal idct_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_8x4_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpbroadcastd        xm3, [o(pw_2896x8)]
     pmulhrsw            xm0, xm3, [cq+16*0]
     pmulhrsw            xm1, xm3, [cq+16*1]
@@ -1373,7 +1371,7 @@ INV_TXFM_8X4_FN adst, adst
 INV_TXFM_8X4_FN adst, flipadst
 INV_TXFM_8X4_FN adst, identity
 
-cglobal iadst_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_8x4_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpbroadcastd        xm0, [o(pw_2896x8)]
     pshufd              xm4,      [cq+16*0], q1032
     pmulhrsw            xm3, xm0, [cq+16*3]
@@ -1401,6 +1399,7 @@ cglobal iadst_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
     vpbroadcastd         m2, [o(pw_2048)]
     pmulhrsw             m0, m2
     pmulhrsw             m1, m2
+    WIN64_RESTORE_XMM
 .end3:
     pxor                 m2, m2
     mova          [cq+32*0], m2
@@ -1418,7 +1417,7 @@ INV_TXFM_8X4_FN flipadst, adst
 INV_TXFM_8X4_FN flipadst, flipadst
 INV_TXFM_8X4_FN flipadst, identity
 
-cglobal iflipadst_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_8x4_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpbroadcastd        xm0, [o(pw_2896x8)]
     pshufd              xm4,      [cq+16*0], q1032
     pmulhrsw            xm3, xm0, [cq+16*3]
@@ -1448,7 +1447,7 @@ INV_TXFM_8X4_FN identity, adst
 INV_TXFM_8X4_FN identity, flipadst
 INV_TXFM_8X4_FN identity, identity
 
-cglobal iidentity_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_8x4_internal, 0, 5, 7, dst, stride, c, eob, tx2
     mova                xm2,     [cq+16*0]
     mova                xm0,     [cq+16*1]
     vinserti128          m2, m2, [cq+16*2], 1
@@ -1472,7 +1471,7 @@ cglobal iidentity_8x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
     jmp m(iadst_8x4_internal).end
 
 %macro INV_TXFM_8X8_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 8x8, 7
+    INV_TXFM_FN          %1, %2, %3, 8x8
 %ifidn %1_%2, dct_identity
     vpbroadcastd        xm0, [o(pw_2896x8)]
     pmulhrsw            xm0, [cq]
@@ -1537,7 +1536,7 @@ INV_TXFM_8X8_FN dct, identity, 7
 INV_TXFM_8X8_FN dct, adst
 INV_TXFM_8X8_FN dct, flipadst
 
-cglobal idct_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_8x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q3120 ; 0 1
     vpermq               m3, [cq+32*3], q3120 ; 6 7
     vpermq               m2, [cq+32*2], q3120 ; 4 5
@@ -1574,7 +1573,7 @@ INV_TXFM_8X8_FN adst, adst
 INV_TXFM_8X8_FN adst, flipadst
 INV_TXFM_8X8_FN adst, identity
 
-cglobal iadst_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_8x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m4, [cq+32*0], q1302 ; 1 0
     vpermq               m3, [cq+32*3], q3120 ; 6 7
     vpermq               m5, [cq+32*1], q1302 ; 3 2
@@ -1615,6 +1614,7 @@ cglobal iadst_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
 .end3:
     pmulhrsw             m2, m4
     pmulhrsw             m3, m4
+    WIN64_RESTORE_XMM
 .end4:
     pxor                 m4, m4
     mova          [cq+32*0], m4
@@ -1636,7 +1636,7 @@ INV_TXFM_8X8_FN flipadst, adst
 INV_TXFM_8X8_FN flipadst, flipadst
 INV_TXFM_8X8_FN flipadst, identity
 
-cglobal iflipadst_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_8x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     vpermq               m4, [cq+32*0], q1302 ; 1 0
     vpermq               m3, [cq+32*3], q3120 ; 6 7
     vpermq               m5, [cq+32*1], q1302 ; 3 2
@@ -1682,7 +1682,7 @@ INV_TXFM_8X8_FN identity, adst
 INV_TXFM_8X8_FN identity, flipadst
 INV_TXFM_8X8_FN identity, identity
 
-cglobal iidentity_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_8x8_internal, 0, 5, 7, dst, stride, c, eob, tx2
     mova                xm3,     [cq+16*0]
     mova                xm2,     [cq+16*1]
     vinserti128          m3, m3, [cq+16*4], 1
@@ -1705,7 +1705,7 @@ cglobal iidentity_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     jmp m(iadst_8x8_internal).end
 
 %macro INV_TXFM_8X16_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 8x16, 13
+    INV_TXFM_FN          %1, %2, %3, 8x16
 %ifidn %1_%2, dct_dct
     movd                xm1, [o(pw_2896x8)]
     pmulhrsw            xm0, xm1, [cq]
@@ -1720,6 +1720,7 @@ cglobal iidentity_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     mov                 r2d, 4
     jmp m(inv_txfm_add_dct_dct_8x8).end2
 %elifidn %1_%2, dct_identity
+    WIN64_SPILL_XMM      13
     vpbroadcastd         m0, [o(pw_2896x8)]
     pmulhrsw             m7, m0, [cq]
     vpbroadcastd         m1, [o(pw_16384)]
@@ -1798,7 +1799,7 @@ INV_TXFM_8X16_FN dct, identity, 15
 INV_TXFM_8X16_FN dct, adst
 INV_TXFM_8X16_FN dct, flipadst
 
-cglobal idct_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_8x16_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_8X16_LOAD_COEFS
     call m(idct_16x8_internal).main
     vpbroadcastd        m10, [o(pw_16384)]
@@ -1861,7 +1862,7 @@ INV_TXFM_8X16_FN adst, adst
 INV_TXFM_8X16_FN adst, flipadst
 INV_TXFM_8X16_FN adst, identity
 
-cglobal iadst_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_8x16_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_8X16_LOAD_COEFS
     call m(iadst_16x8_internal).main
     vpbroadcastd        m10, [o(pw_16384)]
@@ -1966,7 +1967,7 @@ INV_TXFM_8X16_FN flipadst, adst
 INV_TXFM_8X16_FN flipadst, flipadst
 INV_TXFM_8X16_FN flipadst, identity
 
-cglobal iflipadst_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_8x16_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_8X16_LOAD_COEFS
     call m(iadst_16x8_internal).main
     vpbroadcastd         m9, [o(pw_16384)]
@@ -2013,7 +2014,7 @@ INV_TXFM_8X16_FN identity, adst
 INV_TXFM_8X16_FN identity, flipadst
 INV_TXFM_8X16_FN identity, identity
 
-cglobal iidentity_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_8x16_internal, 0, 5, 13, dst, stride, c, eob, tx2
     mova                xm3,     [cq+16*0]
     mova                xm2,     [cq+16*2]
     add                  cq, 16*8
@@ -2077,7 +2078,7 @@ cglobal iidentity_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
 %endmacro
 
 %macro INV_TXFM_16X4_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 16x4, 11
+    INV_TXFM_FN          %1, %2, %3, 16x4
 %if %3 >= 0
 %ifidn %1_%2, dct_identity
     vpbroadcastd        xm3, [o(pw_2896x8)]
@@ -2188,7 +2189,7 @@ INV_TXFM_16X4_FN dct, adst,     0
 INV_TXFM_16X4_FN dct, flipadst, 0
 INV_TXFM_16X4_FN dct, identity, 3
 
-cglobal idct_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_16x4_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                xm0, [cq+16*0]
     mova                xm1, [cq+16*1]
     mova                xm2, [cq+16*2]
@@ -2223,7 +2224,7 @@ INV_TXFM_16X4_FN adst, adst
 INV_TXFM_16X4_FN adst, flipadst
 INV_TXFM_16X4_FN adst, identity
 
-cglobal iadst_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_16x4_internal, 0, 5, 11, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q1230
     vpermq               m3, [cq+32*3], q2103
     vpermq               m1, [cq+32*1], q1230
@@ -2259,6 +2260,7 @@ cglobal iadst_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
 .end:
     vpbroadcastd         m4, [o(pw_2048)]
     REPX   {pmulhrsw x, m4}, m0, m1, m2, m3
+    WIN64_RESTORE_XMM
 .end2:
     pxor                 m4, m4
     mova          [cq+32*0], m4
@@ -2319,7 +2321,7 @@ INV_TXFM_16X4_FN flipadst, adst
 INV_TXFM_16X4_FN flipadst, flipadst
 INV_TXFM_16X4_FN flipadst, identity
 
-cglobal iflipadst_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_16x4_internal, 0, 5, 11, dst, stride, c, eob, tx2
     vpermq               m0, [cq+32*0], q1230
     vpermq               m3, [cq+32*3], q2103
     vpermq               m1, [cq+32*1], q1230
@@ -2357,7 +2359,7 @@ INV_TXFM_16X4_FN identity, adst
 INV_TXFM_16X4_FN identity, flipadst
 INV_TXFM_16X4_FN identity, identity
 
-cglobal iidentity_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_16x4_internal, 0, 5, 11, dst, stride, c, eob, tx2
     mova                xm2,     [cq+16*0]
     mova                xm4,     [cq+16*1]
     vinserti128          m2, m2, [cq+16*4], 1
@@ -2391,7 +2393,7 @@ cglobal iidentity_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
     jmp m(iadst_16x4_internal).end
 
 %macro INV_TXFM_16X8_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 16x8, 13
+    INV_TXFM_FN          %1, %2, %3, 16x8
 %ifidn %1_%2, dct_dct
     movd                xm1, [o(pw_2896x8)]
     pmulhrsw            xm0, xm1, [cq]
@@ -2401,6 +2403,7 @@ cglobal iidentity_16x4_internal, 0, 0, 0, dst, stride, c, eob, tx2
     mov                 r2d, 4
     jmp m(inv_txfm_add_dct_dct_16x4).dconly
 %elifidn %1_%2, dct_identity
+    WIN64_SPILL_XMM      13
     vbroadcasti128       m7, [cq]
     vpbroadcastd         m0, [o(pw_2896x8)]
     vpbroadcastd         m1, [o(pw_16384)]
@@ -2474,7 +2477,7 @@ INV_TXFM_16X8_FN dct, identity, 7
 INV_TXFM_16X8_FN dct, adst
 INV_TXFM_16X8_FN dct, flipadst
 
-cglobal idct_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal idct_16x8_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_16X8_LOAD_COEFS 3120
     call m(idct_8x16_internal).main
     vpbroadcastd        m10, [o(pw_16384)]
@@ -2544,7 +2547,7 @@ INV_TXFM_16X8_FN adst, adst
 INV_TXFM_16X8_FN adst, flipadst
 INV_TXFM_16X8_FN adst, identity
 
-cglobal iadst_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iadst_16x8_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_16X8_LOAD_COEFS 1302
     call m(iadst_8x16_internal).main2
     vpbroadcastd        m10, [o(pw_16384)]
@@ -2608,7 +2611,7 @@ INV_TXFM_16X8_FN flipadst, adst
 INV_TXFM_16X8_FN flipadst, flipadst
 INV_TXFM_16X8_FN flipadst, identity
 
-cglobal iflipadst_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iflipadst_16x8_internal, 0, 5, 13, dst, stride, c, eob, tx2
     ITX_16X8_LOAD_COEFS 1302
     call m(iadst_8x16_internal).main2
     vpbroadcastd        m10, [o(pw_16384)]
@@ -2671,7 +2674,7 @@ INV_TXFM_16X8_FN identity, adst
 INV_TXFM_16X8_FN identity, flipadst
 INV_TXFM_16X8_FN identity, identity
 
-cglobal iidentity_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
+cglobal iidentity_16x8_internal, 0, 5, 13, dst, stride, c, eob, tx2
     mova                xm7,     [cq+16*0]
     mova                xm2,     [cq+16*1]
     add                  cq, 16*8
@@ -2728,7 +2731,7 @@ cglobal iidentity_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
 %define o_base pw_5 + 128
 
 %macro INV_TXFM_16X16_FN 2-3 -1 ; type1, type2, fast_thresh
-    INV_TXFM_FN          %1, %2, %3, 16x16, 16
+    INV_TXFM_FN          %1, %2, %3, 16x16
 %ifidn %1_%2, dct_dct
     movd                xm1, [o(pw_2896x8)]
     pmulhrsw            xm0, xm1, [cq]
@@ -2737,6 +2740,7 @@ cglobal iidentity_16x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     mov                 r2d, 8
     jmp m(inv_txfm_add_dct_dct_16x4).dconly
 %elifidn %1_%2, dct_identity
+    WIN64_SPILL_XMM       7
     vpbroadcastd         m3, [o(pw_2896x8)]
     pmulhrsw             m3, [cq]
     vpbroadcastd         m0, [o(pw_8192)]
@@ -2832,7 +2836,7 @@ INV_TXFM_16X16_FN dct, identity, 15
 INV_TXFM_16X16_FN dct, adst
 INV_TXFM_16X16_FN dct, flipadst
 
-cglobal idct_16x16_internal, 0, 0, 0, 32*3, dst, stride, c, eob, tx2
+cglobal idct_16x16_internal, 0, 5, 16, 32*3, dst, stride, c, eob, tx2
     ITX_16X16_LOAD_COEFS
     call .main
 .pass1_end:
@@ -2977,7 +2981,7 @@ INV_TXFM_16X16_FN adst, dct
 INV_TXFM_16X16_FN adst, adst
 INV_TXFM_16X16_FN adst, flipadst
 
-cglobal iadst_16x16_internal, 0, 0, 0, 32*3, dst, stride, c, eob, tx2
+cglobal iadst_16x16_internal, 0, 5, 16, 32*3, dst, stride, c, eob, tx2
     ITX_16X16_LOAD_COEFS
     call .main
     vpbroadcastd         m1, [o(pw_8192)]
@@ -3091,7 +3095,7 @@ INV_TXFM_16X16_FN flipadst, dct
 INV_TXFM_16X16_FN flipadst, adst
 INV_TXFM_16X16_FN flipadst, flipadst
 
-cglobal iflipadst_16x16_internal, 0, 0, 0, 32*3, dst, stride, c, eob, tx2
+cglobal iflipadst_16x16_internal, 0, 5, 16, 32*3, dst, stride, c, eob, tx2
     ITX_16X16_LOAD_COEFS
     call m(iadst_16x16_internal).main
     vpbroadcastd         m1, [o(pw_8192)]
@@ -3163,7 +3167,7 @@ cglobal iflipadst_16x16_internal, 0, 0, 0, 32*3, dst, stride, c, eob, tx2
 INV_TXFM_16X16_FN identity, dct,      15
 INV_TXFM_16X16_FN identity, identity
 
-cglobal iidentity_16x16_internal, 0, 0, 0, 32*3, dst, stride, c, eob, tx2
+cglobal iidentity_16x16_internal, 0, 5, 16, 32*3, dst, stride, c, eob, tx2
     mova                xm0,      [cq+16*0]
     mova               xm15,      [cq+16*1]
     mova                xm1,      [cq+16*2]
@@ -3277,7 +3281,7 @@ cglobal inv_txfm_add_dct_dct_8x32, 4, 4, 0, dst, stride, c, eob
     lea                 rax, [o_base]
     test               eobd, eobd
     jz .dconly
-    PROLOGUE              0, 0, 16, 32*3, dst, stride, c, eob
+    PROLOGUE              0, 4, 16, 32*3, dst, stride, c, eob
     %undef cmp
     cmp                eobd, 106
     jle .fast
@@ -3575,7 +3579,7 @@ cglobal inv_txfm_add_dct_dct_32x8, 4, 4, 0, dst, stride, c, eob
     jg .dconly_loop
     RET
 .normal:
-    PROLOGUE              0, 0, 16, 32*3, dst, stride, c, eob
+    PROLOGUE              0, 4, 16, 32*3, dst, stride, c, eob
     %undef cmp
     LOAD_PACKED_16X2      0,  7,  0,  2 ; in0  in2
     LOAD_PACKED_16X2      4,  7,  1,  3 ; in1  in3
@@ -3882,11 +3886,11 @@ cglobal inv_txfm_add_identity_identity_32x8, 4, 6, 10, dst, stride, c, eob
     vextracti128    [r2+%7], m%3, 1
 %endmacro
 
-cglobal inv_txfm_add_dct_dct_16x32, 4, 8, 0, dst, stride, c, eob
+cglobal inv_txfm_add_dct_dct_16x32, 4, 4, 0, dst, stride, c, eob
     lea                 rax, [o_base]
     test               eobd, eobd
     jz .dconly
-    PROLOGUE              0, 0, 16, 32*35, dst, stride, c, eob, tmp1, tmp2, \
+    PROLOGUE              0, 8, 16, 32*35, dst, stride, c, eob, tmp1, tmp2, \
                                            base, tmp3
     %undef cmp
     LOAD_16ROWS          cq, 64, 1
@@ -4250,7 +4254,7 @@ ALIGN function_align
     vinserti128         m%1, m%1, xm%4, 1
 %endmacro
 
-cglobal inv_txfm_add_dct_dct_32x16, 4, 6, 0, dst, stride, c, eob
+cglobal inv_txfm_add_dct_dct_32x16, 4, 4, 0, dst, stride, c, eob
     lea                 rax, [o_base]
     test               eobd, eobd
     jnz .normal
@@ -4262,7 +4266,7 @@ cglobal inv_txfm_add_dct_dct_32x16, 4, 6, 0, dst, stride, c, eob
     mov                 r2d, 16
     jmp m(inv_txfm_add_dct_dct_32x8).dconly
 .normal:
-    PROLOGUE              0, 0, 16, 32*19, dst, stride, c, eob, tmp1, tmp2
+    PROLOGUE              0, 6, 16, 32*19, dst, stride, c, eob, tmp1, tmp2
     vpbroadcastd        m15, [o(pw_2896x8)]
     pmulhrsw             m0, m15, [cq+32* 1]
     pmulhrsw             m1, m15, [cq+32* 3]

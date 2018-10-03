@@ -117,7 +117,7 @@ void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c) {
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
-#if BITDEPTH == 8 && ARCH_X86_64 && !defined(_WIN32) // FIXME: Windows
+#if BITDEPTH == 8 && ARCH_X86_64
     assign_itx17_fn( ,  4,  4, avx2);
     assign_itx16_fn(R,  4,  8, avx2);
     assign_itx16_fn(R,  4, 16, avx2);
