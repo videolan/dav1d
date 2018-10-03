@@ -152,7 +152,7 @@ libdav1d_entrypoints_objs = static_library('dav1d_entrypoint',
 
     include_directories : dav1d_inc_dirs,
     dependencies: [stdatomic_dependency],
-    c_args : stackrealign_flag,
+    c_args : [stackalign_flag, stackrealign_flag],
     install : false,
     build_by_default : false,
 ).extract_all_objects()
