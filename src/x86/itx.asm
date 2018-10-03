@@ -1724,6 +1724,8 @@ cglobal iidentity_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     pmulhrsw             m7, m0, [cq]
     vpbroadcastd         m1, [o(pw_16384)]
     vpbroadcastd         m2, [o(pw_5793x4)]
+    pxor                 m3, m3
+    mova               [cq], m3
     pmulhrsw             m7, m0
     pmulhrsw             m7, m1
     psrlw                m1, 3 ; pw_2048
@@ -1744,7 +1746,7 @@ cglobal iidentity_8x8_internal, 0, 0, 0, dst, stride, c, eob, tx2
     vpermq               m5, m5, q3322
     vpermq               m6, m6, q3322
     vpermq               m7, m7, q3322
-    jmp m(idct_8x16_internal).end3
+    jmp m(idct_8x16_internal).end4
 %elifidn %1_%2, identity_dct
     movd                xm0, [cq+32*0]
     punpcklwd           xm0, [cq+32*1]
@@ -1837,11 +1839,12 @@ cglobal idct_8x16_internal, 0, 0, 0, dst, stride, c, eob, tx2
 .end2:
     REPX   {pmulhrsw x, m8}, m0, m1, m2, m3, m4, m5, m6, m7
 .end3:
+    pxor                 m8, m8
+    REPX {mova [cq+32*x], m8}, -4, -3, -2, -1, 0, 1, 2, 3
+.end4:
     lea                  r3, [strideq*3]
     WRITE_8X4             0, 1, 8, 9
     lea                dstq, [dstq+strideq*4]
-    pxor                 m0, m0
-    REPX {mova [cq+32*x], m0}, -4, -3, -2, -1, 0, 1, 2, 3
     WRITE_8X4             2, 3, 0, 1
     lea                dstq, [dstq+strideq*4]
     WRITE_8X4             4, 5, 0, 1
