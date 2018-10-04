@@ -259,6 +259,19 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     nasm = find_program('nasm')
 
+    # check NASM version
+    if nasm.found()
+        nasm_r = run_command(nasm, '-v')
+        out = nasm_r.stdout().strip().split()
+        if out[1].to_lower() == 'version'
+            if out[2].version_compare('<2.13')
+                error('nasm 2.13 or later is required, found nasm @0@'.format(out[2]))
+            endif
+        else
+            error('unexpected nasm version string: @0@'.format(nasm_r.stdout()))
+        endif
+    endif
+
     if host_machine.system() == 'windows'
         nasm_format = 'win'
     elif host_machine.system() == 'darwin'
