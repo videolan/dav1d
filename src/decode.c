@@ -954,7 +954,8 @@ static void decode_b(Dav1dTileContext *const t,
         }
 
         if (has_chroma) {
-            const int cfl_allowed = !!(cfl_allowed_mask & (1 << bs));
+            const int cfl_allowed = f->frame_hdr.segmentation.lossless[b->seg_id] ?
+                cbw4 == 1 && cbh4 == 1 : !!(cfl_allowed_mask & (1 << bs));
             uint16_t *const uvmode_cdf = ts->cdf.m.uv_mode[cfl_allowed][b->y_mode];
             b->uv_mode = msac_decode_symbol_adapt(&ts->msac, uvmode_cdf,
                                          N_UV_INTRA_PRED_MODES - !cfl_allowed);
