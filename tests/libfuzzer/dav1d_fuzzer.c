@@ -54,11 +54,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     err = dav1d_open(&ctx, &settings);
     if (err < 0) goto end;
 
-    while (ptr <= data + size - 4) {
+    while (ptr <= data + size - 12) {
         Dav1dData buf;
 
         size_t frame_size = r32le(ptr);
-        ptr += 4;
+        ptr += 12;
 
         if (frame_size > size || ptr > data + size - frame_size)
             break;
