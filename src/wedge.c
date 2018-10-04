@@ -113,7 +113,7 @@ static uint8_t wedge_masks_420_4x16[ 2 * 16 *  4 * 16];
 static uint8_t wedge_masks_420_4x8[  2 * 16 *  4 *  8];
 static uint8_t wedge_masks_420_4x4[  2 * 16 *  4 *  4];
 
-const uint8_t *wedge_masks[N_BS_SIZES][3][2][16];
+const uint8_t *dav1d_wedge_masks[N_BS_SIZES][3][2][16];
 
 static void insert_border(uint8_t *const dst, const uint8_t *src,
                           const int ctr)
@@ -194,14 +194,14 @@ static void fill2d_16x2(uint8_t *dst, const int w, const int h,
     // assign pointers in externally visible array
     for (int n = 0; n < 16; n++) {
         const int sign = (signs >> n) & 1;
-        wedge_masks[bs][0][0][n] = &masks_444[ sign * sign_stride_444];
+        dav1d_wedge_masks[bs][0][0][n] = &masks_444[ sign * sign_stride_444];
         // not using !sign is intentional here, since 444 does not require
         // any rounding since no chroma subsampling is applied.
-        wedge_masks[bs][0][1][n] = &masks_444[ sign * sign_stride_444];
-        wedge_masks[bs][1][0][n] = &masks_422[ sign * sign_stride_422];
-        wedge_masks[bs][1][1][n] = &masks_422[!sign * sign_stride_422];
-        wedge_masks[bs][2][0][n] = &masks_420[ sign * sign_stride_420];
-        wedge_masks[bs][2][1][n] = &masks_420[!sign * sign_stride_420];
+        dav1d_wedge_masks[bs][0][1][n] = &masks_444[ sign * sign_stride_444];
+        dav1d_wedge_masks[bs][1][0][n] = &masks_422[ sign * sign_stride_422];
+        dav1d_wedge_masks[bs][1][1][n] = &masks_422[!sign * sign_stride_422];
+        dav1d_wedge_masks[bs][2][0][n] = &masks_420[ sign * sign_stride_420];
+        dav1d_wedge_masks[bs][2][1][n] = &masks_420[!sign * sign_stride_420];
         masks_444 += n_stride_444;
         masks_422 += n_stride_422;
         masks_420 += n_stride_420;
@@ -211,18 +211,18 @@ static void fill2d_16x2(uint8_t *dst, const int w, const int h,
         // means we would have to duplicate the sign correction
         // logic in two places, which isn't very nice, or mark
         // the table faced externally as non-const, which also sucks
-        init_chroma((uint8_t *) wedge_masks[bs][1][0][n],
-                    wedge_masks[bs][0][0][n], 0, w, h, 0);
-        init_chroma((uint8_t *) wedge_masks[bs][1][1][n],
-                    wedge_masks[bs][0][0][n], 1, w, h, 0);
-        init_chroma((uint8_t *) wedge_masks[bs][2][0][n],
-                    wedge_masks[bs][0][0][n], 0, w, h, 1);
-        init_chroma((uint8_t *) wedge_masks[bs][2][1][n],
-                    wedge_masks[bs][0][0][n], 1, w, h, 1);
+        init_chroma((uint8_t *)dav1d_wedge_masks[bs][1][0][n],
+                    dav1d_wedge_masks[bs][0][0][n], 0, w, h, 0);
+        init_chroma((uint8_t *)dav1d_wedge_masks[bs][1][1][n],
+                    dav1d_wedge_masks[bs][0][0][n], 1, w, h, 0);
+        init_chroma((uint8_t *)dav1d_wedge_masks[bs][2][0][n],
+                    dav1d_wedge_masks[bs][0][0][n], 0, w, h, 1);
+        init_chroma((uint8_t *)dav1d_wedge_masks[bs][2][1][n],
+                    dav1d_wedge_masks[bs][0][0][n], 1, w, h, 1);
     }
 }
 
-void av1_init_wedge_masks(void) {
+void dav1d_init_wedge_masks(void) {
     // This function is guaranteed to be called only once
 
     enum WedgeMasterLineType {
@@ -290,7 +290,7 @@ static uint8_t ii_nondc_mask_4x4[N_INTER_INTRA_PRED_MODES - 1][4 * 4];
     [II_SMOOTH_PRED] = ii_nondc_mask_##sz[II_SMOOTH_PRED - 1]
 #define set(sz_444, sz_422, sz_420) \
     { { set1(sz_444) }, { set1(sz_422) }, { set1(sz_420) } }
-const uint8_t *const ii_masks[N_BS_SIZES][3][N_INTER_INTRA_PRED_MODES] = {
+const uint8_t *dav1d_ii_masks[N_BS_SIZES][3][N_INTER_INTRA_PRED_MODES] = {
     [BS_8x8]   = set( 8x8,   4x8,   4x4),
     [BS_8x16]  = set( 8x16,  4x16,  4x8),
     [BS_16x8]  = set(16x16,  8x8,   8x8),
@@ -321,7 +321,7 @@ static void build_nondc_ii_masks(uint8_t *const mask_v,
     }
 }
 
-void av1_init_interintra_masks(void) {
+void dav1d_init_interintra_masks(void) {
     // This function is guaranteed to be called only once
 
     memset(ii_dc_mask, 32, 32 * 32);

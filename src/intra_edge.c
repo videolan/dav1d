@@ -137,8 +137,8 @@ static void init_mode_node(EdgeBranch *const nwc,
     }
 }
 
-void init_mode_tree(EdgeNode *const root_node, EdgeTip *const nt,
-                    const int allow_sb128)
+void dav1d_init_mode_tree(EdgeNode *const root_node, EdgeTip *const nt,
+                          const int allow_sb128)
 {
     EdgeBranch *const root = (EdgeBranch *) root_node;
     struct ModeSelMem mem;

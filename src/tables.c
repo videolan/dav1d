@@ -34,7 +34,7 @@
 #include "src/levels.h"
 #include "src/tables.h"
 
-const uint8_t av1_al_part_ctx[2][N_BL_LEVELS][N_PARTITIONS] = {
+const uint8_t dav1d_al_part_ctx[2][N_BL_LEVELS][N_PARTITIONS] = {
     {
         // partitions:
         // none,  h,    v, split,  tts,  tbs,  tls,  trs,   h4,   v4
@@ -53,7 +53,7 @@ const uint8_t av1_al_part_ctx[2][N_BL_LEVELS][N_PARTITIONS] = {
 };
 
 const uint8_t /* enum BlockSize */
-    av1_block_sizes[N_BL_LEVELS][N_PARTITIONS][2] =
+    dav1d_block_sizes[N_BL_LEVELS][N_PARTITIONS][2] =
 {
     [BL_128X128] = {
         [PARTITION_NONE]           = { BS_128x128 },
@@ -101,7 +101,7 @@ const uint8_t /* enum BlockSize */
     }
 };
 
-const uint8_t av1_block_dimensions[N_BS_SIZES][4] = {
+const uint8_t dav1d_block_dimensions[N_BS_SIZES][4] = {
     [BS_128x128] = { 32, 32, 5, 5 },
     [BS_128x64]  = { 32, 16, 5, 4 },
     [BS_64x128]  = { 16, 32, 4, 5 },
@@ -126,7 +126,7 @@ const uint8_t av1_block_dimensions[N_BS_SIZES][4] = {
     [BS_4x4]     = {  1,  1, 0, 0 },
 };
 
-const TxfmInfo av1_txfm_dimensions[N_RECT_TX_SIZES] = {
+const TxfmInfo dav1d_txfm_dimensions[N_RECT_TX_SIZES] = {
     [ TX_4X4]   = { .w = 1, .h = 1, .lw = 0, .lh = 0,
                     .min = 0, .max = 0, .ctx = 0 },
     [ TX_8X8]   = { .w = 2, .h = 2, .lw = 1, .lh = 1,
@@ -168,7 +168,7 @@ const TxfmInfo av1_txfm_dimensions[N_RECT_TX_SIZES] = {
 };
 
 const uint8_t /* enum (Rect)TxfmSize */
-    av1_max_txfm_size_for_bs[N_BS_SIZES][4 /* y, 420, 422, 444 */] =
+    dav1d_max_txfm_size_for_bs[N_BS_SIZES][4 /* y, 420, 422, 444 */] =
 {
     [BS_128x128] = {  TX_64X64,  TX_32X32,  TX_32X32,  TX_32X32 },
     [BS_128x64]  = {  TX_64X64,  TX_32X32,  TX_32X32,  TX_32X32 },
@@ -195,7 +195,7 @@ const uint8_t /* enum (Rect)TxfmSize */
 };
 
 const uint8_t /* enum TxfmType */
-    av1_txtp_from_uvmode[N_UV_INTRA_PRED_MODES] =
+    dav1d_txtp_from_uvmode[N_UV_INTRA_PRED_MODES] =
 {
     [DC_PRED]              = DCT_DCT,
     [VERT_PRED]            = ADST_DCT,
@@ -213,7 +213,7 @@ const uint8_t /* enum TxfmType */
 };
 
 const uint8_t /* enum InterPredMode */
-    av1_comp_inter_pred_modes[N_COMP_INTER_PRED_MODES][2] =
+    dav1d_comp_inter_pred_modes[N_COMP_INTER_PRED_MODES][2] =
 {
     [NEARESTMV_NEARESTMV] = { NEARESTMV, NEARESTMV },
     [NEARMV_NEARMV]       = { NEARMV,    NEARMV    },
@@ -225,7 +225,7 @@ const uint8_t /* enum InterPredMode */
     [NEARMV_NEWMV]        = { NEARMV,    NEWMV     },
 };
 
-const uint8_t av1_tx_type_count[N_TXTP_SETS] = {
+const uint8_t dav1d_tx_type_count[N_TXTP_SETS] = {
     [TXTP_SET_DCT] = 1,
     [TXTP_SET_DCT_ID] = 2,
     [TXTP_SET_DT4_ID] = 5,
@@ -236,7 +236,7 @@ const uint8_t av1_tx_type_count[N_TXTP_SETS] = {
 };
 
 const uint8_t /* enum TxfmType */
-              av1_tx_types_per_set[N_TXTP_SETS][N_TX_TYPES] =
+              dav1d_tx_types_per_set[N_TXTP_SETS][N_TX_TYPES] =
 {
     [TXTP_SET_DCT]       = { DCT_DCT },
     [TXTP_SET_DCT_ID]    = { IDTX, DCT_DCT },
@@ -253,12 +253,12 @@ const uint8_t /* enum TxfmType */
     [TXTP_SET_LOSSLESS]  = { WHT_WHT },
 };
 
-const uint8_t av1_tx_type_set_index[2][N_TXTP_SETS] = {
+const uint8_t dav1d_tx_type_set_index[2][N_TXTP_SETS] = {
     { 0, -1,  2,  1, -1, -1, 3 },
     { 0,  3, -1, -1,  2,  1, 4 },
 };
 
-const uint8_t av1_ymode_size_context[N_BS_SIZES] = {
+const uint8_t dav1d_ymode_size_context[N_BS_SIZES] = {
     [BS_128x128] = 3,
     [BS_128x64]  = 3,
     [BS_64x128]  = 3,
@@ -283,7 +283,7 @@ const uint8_t av1_ymode_size_context[N_BS_SIZES] = {
     [BS_4x4  ]   = 0,
 };
 
-const uint8_t av1_nz_map_ctx_offset[N_RECT_TX_SIZES][5][5] = {
+const uint8_t dav1d_nz_map_ctx_offset[N_RECT_TX_SIZES][5][5] = {
     [TX_4X4] = {
         { 0, 1, 6, 6 },
         { 1, 6, 6, 21 },
@@ -398,7 +398,7 @@ const uint8_t av1_nz_map_ctx_offset[N_RECT_TX_SIZES][5][5] = {
     }
 };
 
-const uint8_t /* enum TxClass */ av1_tx_type_class[N_TX_TYPES_PLUS_LL] = {
+const uint8_t /* enum TxClass */ dav1d_tx_type_class[N_TX_TYPES_PLUS_LL] = {
     [DCT_DCT]           = TX_CLASS_2D,
     [ADST_DCT]          = TX_CLASS_2D,
     [DCT_ADST]          = TX_CLASS_2D,
@@ -418,7 +418,7 @@ const uint8_t /* enum TxClass */ av1_tx_type_class[N_TX_TYPES_PLUS_LL] = {
     [WHT_WHT]           = TX_CLASS_2D,
 };
 
-const uint8_t /* enum Filter2d */ av1_filter_2d[N_FILTERS][N_FILTERS] = {
+const uint8_t /* enum Filter2d */ dav1d_filter_2d[N_FILTERS][N_FILTERS] = {
     [FILTER_8TAP_REGULAR] = {
         [FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_REGULAR,
         [FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_REGULAR_SHARP,
@@ -436,7 +436,7 @@ const uint8_t /* enum Filter2d */ av1_filter_2d[N_FILTERS][N_FILTERS] = {
     }
 };
 
-const uint8_t /* enum FilterMode */ eve_av1_filter_dir[N_2D_FILTERS][2] = {
+const uint8_t /* enum FilterMode */ dav1d_filter_dir[N_2D_FILTERS][2] = {
     [FILTER_2D_8TAP_REGULAR]        = { FILTER_8TAP_REGULAR, FILTER_8TAP_REGULAR },
     [FILTER_2D_8TAP_REGULAR_SMOOTH] = { FILTER_8TAP_SMOOTH,  FILTER_8TAP_REGULAR },
     [FILTER_2D_8TAP_REGULAR_SHARP]  = { FILTER_8TAP_SHARP,   FILTER_8TAP_REGULAR },
@@ -449,11 +449,11 @@ const uint8_t /* enum FilterMode */ eve_av1_filter_dir[N_2D_FILTERS][2] = {
     [FILTER_2D_BILINEAR]            = { FILTER_2D_BILINEAR,  FILTER_2D_BILINEAR  },
 };
 
-const uint8_t av1_filter_mode_to_y_mode[5] = {
+const uint8_t dav1d_filter_mode_to_y_mode[5] = {
     DC_PRED, VERT_PRED, HOR_PRED, HOR_DOWN_PRED, DC_PRED
 };
 
-const uint8_t intra_mode_context[N_INTRA_PRED_MODES] = {
+const uint8_t dav1d_intra_mode_context[N_INTRA_PRED_MODES] = {
     [DC_PRED]              = 0,
     [VERT_PRED]            = 1,
     [HOR_PRED]             = 2,
@@ -469,43 +469,7 @@ const uint8_t intra_mode_context[N_INTRA_PRED_MODES] = {
     [PAETH_PRED]           = 0,
 };
 
-const unsigned cfl_allowed_mask =
-    (1 << BS_32x32) |
-    (1 << BS_32x16) |
-    (1 << BS_32x8) |
-    (1 << BS_16x32) |
-    (1 << BS_16x16) |
-    (1 << BS_16x8) |
-    (1 << BS_16x4) |
-    (1 << BS_8x32) |
-    (1 << BS_8x16) |
-    (1 << BS_8x8) |
-    (1 << BS_8x4) |
-    (1 << BS_4x16) |
-    (1 << BS_4x8) |
-    (1 << BS_4x4);
-
-const unsigned wedge_allowed_mask =
-    (1 << BS_32x32) |
-    (1 << BS_32x16) |
-    (1 << BS_32x8) |
-    (1 << BS_16x32) |
-    (1 << BS_16x16) |
-    (1 << BS_16x8) |
-    (1 << BS_8x32) |
-    (1 << BS_8x16) |
-    (1 << BS_8x8);
-
-const unsigned interintra_allowed_mask =
-    (1 << BS_32x32) |
-    (1 << BS_32x16) |
-    (1 << BS_16x32) |
-    (1 << BS_16x16) |
-    (1 << BS_16x8) |
-    (1 << BS_8x16) |
-    (1 << BS_8x8);
-
-const uint8_t av1_wedge_ctx_lut[N_BS_SIZES] = {
+const uint8_t dav1d_wedge_ctx_lut[N_BS_SIZES] = {
     [BS_32x32] = 6,
     [BS_32x16] = 5,
     [BS_32x8]  = 8,
@@ -517,7 +481,7 @@ const uint8_t av1_wedge_ctx_lut[N_BS_SIZES] = {
     [BS_8x8]   = 0,
 };
 
-const WarpedMotionParams default_wm_params = {
+const WarpedMotionParams dav1d_default_wm_params = {
     .type = WM_TYPE_IDENTITY,
     .matrix = {
         0, 0, 1 << 16,
@@ -529,7 +493,7 @@ const WarpedMotionParams default_wm_params = {
     .delta = 0,
 };
 
-const int16_t sgr_params[16][4] = { // r0, r1, e0, e1
+const int16_t dav1d_sgr_params[16][4] = { // r0, r1, e0, e1
     { 2, 1, 140, 3236 }, { 2, 1, 112, 2158 }, { 2, 1, 93, 1618 },
     { 2, 1,  80, 1438 }, { 2, 1,  70, 1295 }, { 2, 1, 58, 1177 },
     { 2, 1,  47, 1079 }, { 2, 1,  37,  996 }, { 2, 1, 30,  925 },
@@ -538,7 +502,7 @@ const int16_t sgr_params[16][4] = { // r0, r1, e0, e1
     { 2, 0,  22,   -1 },
 };
 
-const int16_t sgr_x_by_xplus1[256] = {
+const int16_t dav1d_sgr_x_by_xplus1[256] = {
   1,   128, 171, 192, 205, 213, 219, 224, 228, 230, 233, 235, 236, 238, 239,
   240, 241, 242, 243, 243, 244, 244, 245, 245, 246, 246, 247, 247, 247, 247,
   248, 248, 248, 248, 249, 249, 249, 249, 249, 250, 250, 250, 250, 250, 250,
@@ -559,12 +523,12 @@ const int16_t sgr_x_by_xplus1[256] = {
   256,
 };
 
-const int16_t sgr_one_by_x[] = {
+const int16_t dav1d_sgr_one_by_x[25] = {
   4096, 2048, 1365, 1024, 819, 683, 585, 512, 455, 410, 372, 341, 315,
   293,  273,  256,  241,  228, 216, 205, 195, 186, 178, 171, 164,
 };
 
-ALIGN(const int8_t dav1d_mc_subpel_filters[5][15][8], 8 ) = {
+const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
     [FILTER_8TAP_REGULAR] = {
         {   0,   1,  -3,  63,   4,  -1,   0,   0 },
         {   0,   1,  -5,  61,   9,  -2,   0,   0 },

@@ -71,8 +71,8 @@ static inline void splat_oneref_mv(refmvs *r, const ptrdiff_t stride,
                                    const int ref, const mv mv,
                                    const int is_interintra)
 {
-    const int bw4 = av1_block_dimensions[bs][0];
-    int bh4 = av1_block_dimensions[bs][1];
+    const int bw4 = dav1d_block_dimensions[bs][0];
+    int bh4 = dav1d_block_dimensions[bs][1];
 
     r += by4 * stride + bx4;
     const refmvs tmpl = (refmvs) {
@@ -92,8 +92,8 @@ static inline void splat_intrabc_mv(refmvs *r, const ptrdiff_t stride,
                                     const int by4, const int bx4,
                                     const enum BlockSize bs, const mv mv)
 {
-    const int bw4 = av1_block_dimensions[bs][0];
-    int bh4 = av1_block_dimensions[bs][1];
+    const int bw4 = dav1d_block_dimensions[bs][0];
+    int bh4 = dav1d_block_dimensions[bs][1];
 
     r += by4 * stride + bx4;
     const refmvs tmpl = (refmvs) {
@@ -116,8 +116,8 @@ static inline void splat_tworef_mv(refmvs *r, const ptrdiff_t stride,
                                    const int ref1, const int ref2,
                                    const mv mv1, const mv mv2)
 {
-    const int bw4 = av1_block_dimensions[bs][0];
-    int bh4 = av1_block_dimensions[bs][1];
+    const int bw4 = dav1d_block_dimensions[bs][0];
+    int bh4 = dav1d_block_dimensions[bs][1];
 
     r += by4 * stride + bx4;
     const refmvs tmpl = (refmvs) {
@@ -138,8 +138,8 @@ static inline void splat_intraref(refmvs *r, const ptrdiff_t stride,
                                   const enum BlockSize bs,
                                   const enum IntraPredMode mode)
 {
-    const int bw4 = av1_block_dimensions[bs][0];
-    int bh4 = av1_block_dimensions[bs][1];
+    const int bw4 = dav1d_block_dimensions[bs][0];
+    int bh4 = dav1d_block_dimensions[bs][1];
 
     r += by4 * stride + bx4;
     do {

@@ -51,7 +51,7 @@ typedef struct EdgeBranch {
     EdgeNode *split[4];
 } EdgeBranch;
 
-void init_mode_tree(EdgeNode *const root, EdgeTip *const nt,
-                    const int allow_sb128);
+void dav1d_init_mode_tree(EdgeNode *const root, EdgeTip *const nt,
+                          const int allow_sb128);
 
 #endif /* __DAV1D_SRC_INTRA_EDGE_H__ */

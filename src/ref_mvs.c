@@ -3235,7 +3235,7 @@ enum BlockSize {
     BS_4x4,
     N_BS_SIZES,
 };
-extern const uint8_t av1_block_dimensions[N_BS_SIZES][4];
+extern const uint8_t dav1d_block_dimensions[N_BS_SIZES][4];
 const uint8_t bs_to_sbtype[N_BS_SIZES] = {
     [BS_128x128] = BLOCK_128X128,
     [BS_128x64] = BLOCK_128X64,
@@ -3308,8 +3308,8 @@ void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
                       int tile_row_start4, int tile_row_end4,
                       AV1_COMMON *cm)
 {
-    const int bw4 = av1_block_dimensions[bs][0];
-    const int bh4 = av1_block_dimensions[bs][1];
+    const int bw4 = dav1d_block_dimensions[bs][0];
+    const int bh4 = dav1d_block_dimensions[bs][1];
     int stride = cm->cur_frame.mv_stride;
     MACROBLOCKD xd = (MACROBLOCKD) {
         .n8_w = bw4,

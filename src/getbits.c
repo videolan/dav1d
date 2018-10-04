@@ -33,8 +33,8 @@
 
 #include "src/getbits.h"
 
-void init_get_bits(GetBits *const c,
-                   const uint8_t *const data, const size_t sz)
+void dav1d_init_get_bits(GetBits *const c, const uint8_t *const data,
+                         const size_t sz)
 {
     c->ptr = c->ptr_start = data;
     c->ptr_end = &c->ptr_start[sz];
@@ -60,7 +60,7 @@ static void refill(GetBits *const c, const unsigned n) {
     c->state |= state << (64 - c->bits_left);
 }
 
-unsigned get_bits(GetBits *const c, const unsigned n) {
+unsigned dav1d_get_bits(GetBits *const c, const unsigned n) {
     assert(n <= 32 /* can go up to 57 if we change return type */);
 
     if (n > c->bits_left) refill(c, n);
@@ -72,27 +72,27 @@ unsigned get_bits(GetBits *const c, const unsigned n) {
     return state >> (64 - n);
 }
 
-int get_sbits(GetBits *const c, const unsigned n) {
+int dav1d_get_sbits(GetBits *const c, const unsigned n) {
     const int shift = 31 - n;
-    const int res = get_bits(c, n + 1) << shift;
+    const int res = dav1d_get_bits(c, n + 1) << shift;
     return res >> shift;
 }
 
-unsigned get_uniform(GetBits *const c, const unsigned n) {
+unsigned dav1d_get_uniform(GetBits *const c, const unsigned n) {
     assert(n > 0);
     const int l = ulog2(n) + 1;
     assert(l > 0);
     const int m = (1 << l) - n;
-    const int v = get_bits(c, l - 1);
-    return v < m ? v : (v << 1) - m + get_bits(c, 1);
+    const int v = dav1d_get_bits(c, l - 1);
+    return v < m ? v : (v << 1) - m + dav1d_get_bits(c, 1);
 }
 
-unsigned get_vlc(GetBits *const c) {
+unsigned dav1d_get_vlc(GetBits *const c) {
     int n_bits = 0;
-    while (!get_bits(c, 1))
+    while (!dav1d_get_bits(c, 1))
         if (++n_bits == 32)
             return 0xFFFFFFFFU;
-    return ((1 << n_bits) - 1) + get_bits(c, n_bits);
+    return ((1 << n_bits) - 1) + dav1d_get_bits(c, n_bits);
 }
 
 static unsigned get_bits_subexp_u(GetBits *const c, const unsigned ref,
@@ -104,12 +104,12 @@ static unsigned get_bits_subexp_u(GetBits *const c, const unsigned ref,
         const int b = i ? 3 + i - 1 : 3;
 
         if (n < v + 3 * (1 << b)) {
-            v += get_uniform(c, n - v + 1);
+            v += dav1d_get_uniform(c, n - v + 1);
             break;
         }
 
-        if (!get_bits(c, 1)) {
-            v += get_bits(c, b);
+        if (!dav1d_get_bits(c, 1)) {
+            v += dav1d_get_bits(c, b);
             break;
         }
 
@@ -119,11 +119,11 @@ static unsigned get_bits_subexp_u(GetBits *const c, const unsigned ref,
     return ref * 2 <= n ? inv_recenter(ref, v) : n - inv_recenter(n - ref, v);
 }
 
-int get_bits_subexp(GetBits *const c, const int ref, const unsigned n) {
+int dav1d_get_bits_subexp(GetBits *const c, const int ref, const unsigned n) {
     return (int) get_bits_subexp_u(c, ref + (1 << n), 2 << n) - (1 << n);
 }
 
-const uint8_t *flush_get_bits(GetBits *c) {
+const uint8_t *dav1d_flush_get_bits(GetBits *c) {
     c->bits_left = 0;
     c->state = 0;
     return c->ptr;

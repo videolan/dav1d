@@ -45,9 +45,9 @@
 #include "src/wedge.h"
 
 static void init_internal(void) {
-    av1_init_wedge_masks();
-    av1_init_interintra_masks();
-    av1_init_qm_tables();
+    dav1d_init_wedge_masks();
+    dav1d_init_interintra_masks();
+    dav1d_init_qm_tables();
 }
 
 const char *dav1d_version(void) {
@@ -129,9 +129,9 @@ int dav1d_open(Dav1dContext **const c_out,
 
     // intra edge tree
     c->intra_edge.root[BL_128X128] = &c->intra_edge.branch_sb128[0].node;
-    init_mode_tree(c->intra_edge.root[BL_128X128], c->intra_edge.tip_sb128, 1);
+    dav1d_init_mode_tree(c->intra_edge.root[BL_128X128], c->intra_edge.tip_sb128, 1);
     c->intra_edge.root[BL_64X64] = &c->intra_edge.branch_sb64[0].node;
-    init_mode_tree(c->intra_edge.root[BL_64X64], c->intra_edge.tip_sb64, 0);
+    dav1d_init_mode_tree(c->intra_edge.root[BL_64X64], c->intra_edge.tip_sb64, 0);
 
     return 0;
 
@@ -190,7 +190,7 @@ int dav1d_decode(Dav1dContext *const c,
     }
 
     while (in->sz > 0) {
-        if ((res = parse_obus(c, in)) < 0)
+        if ((res = dav1d_parse_obus(c, in)) < 0)
             return res;
 
         assert(res <= in->sz);
@@ -301,7 +301,7 @@ void dav1d_close(Dav1dContext **const c_out) {
         dav1d_data_unref(&c->tile[n].data);
     for (int n = 0; n < 8; n++) {
         if (c->cdf[n].cdf)
-            cdf_thread_unref(&c->cdf[n]);
+            dav1d_cdf_thread_unref(&c->cdf[n]);
         if (c->refs[n].p.p.data[0])
             dav1d_thread_picture_unref(&c->refs[n].p);
         if (c->refs[n].refmvs)

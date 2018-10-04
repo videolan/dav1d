@@ -138,7 +138,7 @@ static int copy_subcoefs(coef *coeff,
      * dimensions are non-zero. This leads to braching to specific optimized
      * simd versions (e.g. dc-only) so that we get full asm coverage in this
      * test */
-    const int16_t *const scan = av1_scans[tx][av1_tx_type_class[txtp]];
+    const int16_t *const scan = dav1d_scans[tx][dav1d_tx_type_class[txtp]];
     const int sub_high = subsh > 0 ? subsh * 8 - 1 : 0;
     const int sub_low  = subsh > 1 ? sub_high - 8 : 0;
     int n, eob;
@@ -242,11 +242,11 @@ void bitfn(checkasm_check_itx)(void) {
 
     for (int i = 0; i < N_RECT_TX_SIZES; i++) {
         const enum RectTxfmSize tx = txfm_size_order[i];
-        const int w = av1_txfm_dimensions[tx].w * 4;
-        const int h = av1_txfm_dimensions[tx].h * 4;
+        const int w = dav1d_txfm_dimensions[tx].w * 4;
+        const int h = dav1d_txfm_dimensions[tx].h * 4;
         const int sw = imin(w, 32), sh = imin(h, 32);
-        const int subsh_max = subsh_iters[imax(av1_txfm_dimensions[tx].lw,
-                                               av1_txfm_dimensions[tx].lh)];
+        const int subsh_max = subsh_iters[imax(dav1d_txfm_dimensions[tx].lw,
+                                               dav1d_txfm_dimensions[tx].lh)];
 
         for (enum TxfmType txtp = 0; txtp < N_TX_TYPES_PLUS_LL; txtp++)
             for (int subsh = 0; subsh < subsh_max; subsh++)

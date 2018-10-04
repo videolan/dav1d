@@ -50,7 +50,7 @@ void *dav1d_frame_task(void *const data) {
         }
         pthread_mutex_unlock(&f->frame_thread.td.lock);
 
-        decode_frame(f);
+        dav1d_decode_frame(f);
     }
 
     return NULL;
@@ -89,7 +89,7 @@ void *dav1d_tile_task(void *const data) {
             for (t->by = ts->tiling.row_start; t->by < ts->tiling.row_end;
                  t->by += f->sb_step)
             {
-                decode_tile_sbrow(t);
+                dav1d_decode_tile_sbrow(t);
 
                 // signal progress
                 pthread_mutex_lock(&ts->tile_thread.lock);
@@ -121,7 +121,7 @@ void *dav1d_tile_task(void *const data) {
             // waiting for the post-filter to complete
             t->ts = ts;
             t->by = sby << f->sb_shift;
-            decode_tile_sbrow(t);
+            dav1d_decode_tile_sbrow(t);
 
             // signal progress
             pthread_mutex_lock(&ts->tile_thread.lock);

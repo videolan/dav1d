@@ -74,16 +74,16 @@ static const struct {
 };
 
 enum IntraPredMode
-bytefn(prepare_intra_edges)(const int x, const int have_left,
-                            const int y, const int have_top,
-                            const int w, const int h,
-                            const enum EdgeFlags edge_flags,
-                            const pixel *const dst,
-                            const ptrdiff_t stride,
-                            const pixel *prefilter_toplevel_sb_edge,
-                            enum IntraPredMode mode, int *const angle,
-                            const int tw, const int th,
-                            pixel *const topleft_out)
+bytefn(dav1d_prepare_intra_edges)(const int x, const int have_left,
+                                  const int y, const int have_top,
+                                  const int w, const int h,
+                                  const enum EdgeFlags edge_flags,
+                                  const pixel *const dst,
+                                  const ptrdiff_t stride,
+                                  const pixel *prefilter_toplevel_sb_edge,
+                                  enum IntraPredMode mode, int *const angle,
+                                  const int tw, const int th,
+                                  pixel *const topleft_out)
 {
     assert(y < h && x < w);
 

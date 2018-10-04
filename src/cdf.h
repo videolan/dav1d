@@ -131,18 +131,18 @@ typedef struct CdfThreadContext {
     atomic_uint *progress;
 } CdfThreadContext;
 
-void av1_init_states(CdfThreadContext *cdf, int qidx);
-void av1_update_tile_cdf(const Av1FrameHeader *hdr, CdfContext *dst,
+void dav1d_init_states(CdfThreadContext *cdf, int qidx);
+void dav1d_update_tile_cdf(const Av1FrameHeader *hdr, CdfContext *dst,
                          const CdfContext *src);
 
-void cdf_thread_alloc(CdfThreadContext *cdf, struct thread_data *t);
-void cdf_thread_ref(CdfThreadContext *dst, CdfThreadContext *src);
-void cdf_thread_unref(CdfThreadContext *cdf);
+void dav1d_cdf_thread_alloc(CdfThreadContext *cdf, struct thread_data *t);
+void dav1d_cdf_thread_ref(CdfThreadContext *dst, CdfThreadContext *src);
+void dav1d_cdf_thread_unref(CdfThreadContext *cdf);
 
 /*
  * These are binary signals (so a signal is either "done" or "not done").
  */
-void cdf_thread_wait(CdfThreadContext *cdf);
-void cdf_thread_signal(CdfThreadContext *cdf);
+void dav1d_cdf_thread_wait(CdfThreadContext *cdf);
+void dav1d_cdf_thread_signal(CdfThreadContext *cdf);
 
 #endif /* __AV1_CDF_H__ */

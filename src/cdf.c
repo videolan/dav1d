@@ -4055,26 +4055,26 @@ static CdfThreadContext cdf_init[4] = {
     [3] = { .cdf = NULL },
 };
 
-void av1_init_states(CdfThreadContext *const cdf, const int qidx) {
+void dav1d_init_states(CdfThreadContext *const cdf, const int qidx) {
     const int qcat = get_qcat_idx(qidx);
     if (cdf_init[qcat].cdf) {
-        cdf_thread_ref(cdf, &cdf_init[qcat]);
+        dav1d_cdf_thread_ref(cdf, &cdf_init[qcat]);
         return;
     }
 
-    cdf_thread_alloc(&cdf_init[qcat], NULL);
+    dav1d_cdf_thread_alloc(&cdf_init[qcat], NULL);
     cdf_init[qcat].cdf->m = av1_default_cdf;
     memcpy(cdf_init[qcat].cdf->kfym, default_kf_y_mode_cdf,
            sizeof(default_kf_y_mode_cdf));
     cdf_init[qcat].cdf->coef = av1_default_coef_cdf[qcat];
     cdf_init[qcat].cdf->mv = default_mv_cdf;
     cdf_init[qcat].cdf->dmv = default_mv_cdf;
-    cdf_thread_ref(cdf, &cdf_init[qcat]);
+    dav1d_cdf_thread_ref(cdf, &cdf_init[qcat]);
 }
 
-void av1_update_tile_cdf(const Av1FrameHeader *const hdr,
-                         CdfContext *const dst,
-                         const CdfContext *const src)
+void dav1d_update_tile_cdf(const Av1FrameHeader *const hdr,
+                           CdfContext *const dst,
+                           const CdfContext *const src)
 {
     int i, j, k, l;
 
@@ -4210,7 +4210,9 @@ void av1_update_tile_cdf(const Av1FrameHeader *const hdr,
 /*
  * CDF threading wrappers.
  */
-void cdf_thread_alloc(CdfThreadContext *const cdf, struct thread_data *const t) {
+void dav1d_cdf_thread_alloc(CdfThreadContext *const cdf,
+                            struct thread_data *const t)
+{
     cdf->ref = dav1d_ref_create(sizeof(CdfContext) +
                                 (t != NULL) * sizeof(atomic_uint));
     cdf->cdf = cdf->ref->data;
@@ -4221,17 +4223,19 @@ void cdf_thread_alloc(CdfThreadContext *const cdf, struct thread_data *const t) 
     }
 }
 
-void cdf_thread_ref(CdfThreadContext *const dst, CdfThreadContext *const src) {
+void dav1d_cdf_thread_ref(CdfThreadContext *const dst,
+                          CdfThreadContext *const src)
+{
     dav1d_ref_inc(src->ref);
     *dst = *src;
 }
 
-void cdf_thread_unref(CdfThreadContext *const cdf) {
+void dav1d_cdf_thread_unref(CdfThreadContext *const cdf) {
     dav1d_ref_dec(cdf->ref);
     memset(cdf, 0, sizeof(*cdf));
 }
 
-void cdf_thread_wait(CdfThreadContext *const cdf) {
+void dav1d_cdf_thread_wait(CdfThreadContext *const cdf) {
     if (!cdf->t) return;
 
     if (atomic_load(cdf->progress)) return;
@@ -4241,7 +4245,7 @@ void cdf_thread_wait(CdfThreadContext *const cdf) {
     pthread_mutex_unlock(&cdf->t->lock);
 }
 
-void cdf_thread_signal(CdfThreadContext *const cdf) {
+void dav1d_cdf_thread_signal(CdfThreadContext *const cdf) {
     if (!cdf->t) return;
 
     pthread_mutex_lock(&cdf->t->lock);

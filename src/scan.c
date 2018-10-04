@@ -467,7 +467,7 @@ static const int16_t ALIGN(av1_default_scan_32x32[], 32) = {
      892,  861,  830,  799,  831,  862,  893,  924,  955,  986, 1017, 1018,  987,  956,  925,  894,  863,  895,  926,  957,  988, 1019, 1020,  989,  958,  927,  959,  990, 1021, 1022,  991, 1023,
 };
 
-const int16_t *const av1_scans[N_RECT_TX_SIZES][3] = {
+const int16_t *const dav1d_scans[N_RECT_TX_SIZES][3] = {
     [TX_4X4] = {
         [TX_CLASS_2D] = av1_default_scan_4x4,
         [TX_CLASS_V]  = av1_mrow_scan_4x4,

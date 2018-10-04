@@ -3063,7 +3063,7 @@ static const uint8_t qm_tbl_32x32_t[][2][528] = {
     },
 };
 
-const uint8_t *av1_qm_tbl[16][2][N_RECT_TX_SIZES];
+const uint8_t *dav1d_qm_tbl[16][2][N_RECT_TX_SIZES];
 static uint8_t pb_32x32[32 * 32];
 static uint8_t qm_tbl_4x4[15][2][16];
 static uint8_t qm_tbl_4x8[15][2][32];
@@ -3104,47 +3104,47 @@ static void untriangle(uint8_t *dst, const uint8_t *src, const int sz) {
     }
 }
 
-void av1_init_qm_tables(void) {
+void dav1d_init_qm_tables(void) {
     // This function is guaranteed to be called only once
 
     for (int i = 0; i < 15; i++)
         for (int j = 0; j < 2; j++) {
             // note that the w/h in the assignment is inverted, this is on purpose
             // because we store coefficients transposed
-            av1_qm_tbl[i][j][RTX_4X8  ] = qm_tbl_8x4[i][j];
-            av1_qm_tbl[i][j][RTX_8X4  ] = qm_tbl_4x8[i][j];
+            dav1d_qm_tbl[i][j][RTX_4X8  ] = qm_tbl_8x4[i][j];
+            dav1d_qm_tbl[i][j][RTX_8X4  ] = qm_tbl_4x8[i][j];
             transpose(qm_tbl_4x8[i][j], qm_tbl_8x4[i][j], 8, 4);
-            av1_qm_tbl[i][j][RTX_4X16 ] = qm_tbl_16x4[i][j];
-            av1_qm_tbl[i][j][RTX_16X4 ] = qm_tbl_4x16[i][j];
+            dav1d_qm_tbl[i][j][RTX_4X16 ] = qm_tbl_16x4[i][j];
+            dav1d_qm_tbl[i][j][RTX_16X4 ] = qm_tbl_4x16[i][j];
             transpose(qm_tbl_4x16[i][j], qm_tbl_16x4[i][j], 16, 4);
-            av1_qm_tbl[i][j][RTX_8X16 ] = qm_tbl_16x8[i][j];
-            av1_qm_tbl[i][j][RTX_16X8 ] = qm_tbl_8x16[i][j];
+            dav1d_qm_tbl[i][j][RTX_8X16 ] = qm_tbl_16x8[i][j];
+            dav1d_qm_tbl[i][j][RTX_16X8 ] = qm_tbl_8x16[i][j];
             transpose(qm_tbl_8x16[i][j], qm_tbl_16x8[i][j], 16, 8);
-            av1_qm_tbl[i][j][RTX_8X32 ] = qm_tbl_32x8[i][j];
-            av1_qm_tbl[i][j][RTX_32X8 ] = qm_tbl_8x32[i][j];
+            dav1d_qm_tbl[i][j][RTX_8X32 ] = qm_tbl_32x8[i][j];
+            dav1d_qm_tbl[i][j][RTX_32X8 ] = qm_tbl_8x32[i][j];
             transpose(qm_tbl_8x32[i][j], qm_tbl_32x8[i][j], 32, 8);
-            av1_qm_tbl[i][j][RTX_16X32] = qm_tbl_32x16[i][j];
-            av1_qm_tbl[i][j][RTX_32X16] = qm_tbl_16x32[i][j];
+            dav1d_qm_tbl[i][j][RTX_16X32] = qm_tbl_32x16[i][j];
+            dav1d_qm_tbl[i][j][RTX_32X16] = qm_tbl_16x32[i][j];
             transpose(qm_tbl_16x32[i][j], qm_tbl_32x16[i][j], 32, 16);
 
-            av1_qm_tbl[i][j][ TX_4X4  ] = qm_tbl_4x4[i][j];
-            av1_qm_tbl[i][j][ TX_8X8  ] = qm_tbl_8x8[i][j];
-            av1_qm_tbl[i][j][ TX_16X16] = qm_tbl_16x16[i][j];
-            av1_qm_tbl[i][j][ TX_32X32] = qm_tbl_32x32[i][j];
+            dav1d_qm_tbl[i][j][ TX_4X4  ] = qm_tbl_4x4[i][j];
+            dav1d_qm_tbl[i][j][ TX_8X8  ] = qm_tbl_8x8[i][j];
+            dav1d_qm_tbl[i][j][ TX_16X16] = qm_tbl_16x16[i][j];
+            dav1d_qm_tbl[i][j][ TX_32X32] = qm_tbl_32x32[i][j];
             untriangle(qm_tbl_4x4[i][j], qm_tbl_4x4_t[i][j], 4);
             untriangle(qm_tbl_8x8[i][j], qm_tbl_8x8_t[i][j], 8);
             untriangle(qm_tbl_32x32[i][j], qm_tbl_32x32_t[i][j], 32);
             subsample(qm_tbl_16x16[i][j], qm_tbl_32x32[i][j], 16, 2);
 
-            av1_qm_tbl[i][j][ TX_64X64] = av1_qm_tbl[i][j][ TX_32X32];
-            av1_qm_tbl[i][j][RTX_64X32] = av1_qm_tbl[i][j][ TX_32X32];
-            av1_qm_tbl[i][j][RTX_64X16] = av1_qm_tbl[i][j][RTX_32X16];
-            av1_qm_tbl[i][j][RTX_32X64] = av1_qm_tbl[i][j][ TX_32X32];
-            av1_qm_tbl[i][j][RTX_16X64] = av1_qm_tbl[i][j][RTX_16X32];
+            dav1d_qm_tbl[i][j][ TX_64X64] = dav1d_qm_tbl[i][j][ TX_32X32];
+            dav1d_qm_tbl[i][j][RTX_64X32] = dav1d_qm_tbl[i][j][ TX_32X32];
+            dav1d_qm_tbl[i][j][RTX_64X16] = dav1d_qm_tbl[i][j][RTX_32X16];
+            dav1d_qm_tbl[i][j][RTX_32X64] = dav1d_qm_tbl[i][j][ TX_32X32];
+            dav1d_qm_tbl[i][j][RTX_16X64] = dav1d_qm_tbl[i][j][RTX_16X32];
         }
 
     memset(pb_32x32, 32, sizeof(pb_32x32));
     for (int j = 0; j < 2; j++)
         for (int k = 0; k < N_RECT_TX_SIZES; k++)
-            av1_qm_tbl[15][j][k] = pb_32x32;
+            dav1d_qm_tbl[15][j][k] = pb_32x32;
 }

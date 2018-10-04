@@ -42,7 +42,7 @@ static void decomp_tx(uint8_t (*txa)[2 /* txsz, step */][32 /* y */][32 /* x */]
                       const int y_off, const int x_off,
                       const uint16_t *const tx_masks)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[from];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[from];
     int is_split;
 
     if (depth > 1) {
@@ -87,7 +87,7 @@ static inline void mask_edges_inter(uint32_t (*masks)[32][3],
                                     const uint16_t *const tx_masks,
                                     uint8_t *const a, uint8_t *const l)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[max_tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[max_tx];
     int y, x;
 
     uint8_t txa[2 /* edge */][2 /* txsz, step */][32 /* y */][32 /* x */];
@@ -151,7 +151,7 @@ static inline void mask_edges_intra(uint32_t (*const masks)[32][3],
                                     const enum RectTxfmSize tx,
                                     uint8_t *const a, uint8_t *const l)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
     const int twl4 = t_dim->lw, thl4 = t_dim->lh;
     const int twl4c = imin(2, twl4), thl4c = imin(2, thl4);
     int y, x;
@@ -194,7 +194,7 @@ static inline void mask_edges_chroma(uint32_t (*const masks)[32][2],
                                      const enum RectTxfmSize tx,
                                      uint8_t *const a, uint8_t *const l)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
     const int twl4 = t_dim->lw, thl4 = t_dim->lh;
     const int twl4c = !!twl4, thl4c = !!thl4;
     int y, x;
@@ -249,7 +249,7 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
     if (!hdr->loopfilter.level_y[0] && !hdr->loopfilter.level_y[1])
         return;
 
-    const uint8_t *const b_dim = av1_block_dimensions[bs];
+    const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = imin(iw - bx, b_dim[0]);
     const int bh4 = imin(ih - by, b_dim[1]);
     const int bx4 = bx & 31;
@@ -297,7 +297,7 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
     if (!hdr->loopfilter.level_y[0] && !hdr->loopfilter.level_y[1])
         return;
 
-    const uint8_t *const b_dim = av1_block_dimensions[bs];
+    const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = imin(iw - bx, b_dim[0]);
     const int bh4 = imin(ih - by, b_dim[1]);
     const int bx4 = bx & 31;
@@ -315,7 +315,7 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
     }
 
     mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
-                     av1_max_txfm_size_for_bs[bs][0], tx_masks, ay, ly);
+                     dav1d_max_txfm_size_for_bs[bs][0], tx_masks, ay, ly);
 
     if (!auv) return;
 

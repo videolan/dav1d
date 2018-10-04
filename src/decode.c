@@ -134,7 +134,7 @@ static void read_tx_tree(Dav1dTileContext *const t,
 {
     const Dav1dFrameContext *const f = t->f;
     const int bx4 = t->bx & 31, by4 = t->by & 31;
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[from];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[from];
     const int txw = t_dim->lw, txh = t_dim->lh;
     int is_split;
 
@@ -152,7 +152,7 @@ static void read_tx_tree(Dav1dTileContext *const t,
 
     if (is_split && t_dim->max > TX_8X8) {
         const enum RectTxfmSize sub = t_dim->sub;
-        const TxfmInfo *const sub_t_dim = &av1_txfm_dimensions[sub];
+        const TxfmInfo *const sub_t_dim = &dav1d_txfm_dimensions[sub];
         const int txsw = sub_t_dim->w, txsh = sub_t_dim->h;
 
         read_tx_tree(t, sub, depth + 1, masks, x_off * 2 + 0, y_off * 2 + 0);
@@ -176,7 +176,7 @@ static void read_tx_tree(Dav1dTileContext *const t,
     }
 }
 
-int av1_neg_deinterleave(int diff, int ref, int max) {
+static int neg_deinterleave(int diff, int ref, int max) {
     if (!ref) return diff;
     if (ref >= (max - 1)) return max - diff - 1;
     if (2 * ref < max) {
@@ -214,7 +214,7 @@ static void find_matching_ref(const Dav1dTileContext *const t,
                         have_top && t->bx + bw4 < t->ts->tiling.col_end &&
                         (intra_edge_flags & EDGE_I444_TOP_HAS_RIGHT);
 
-#define bs(rp) av1_block_dimensions[sbtype_to_bs[(rp)->sb_type]]
+#define bs(rp) dav1d_block_dimensions[sbtype_to_bs[(rp)->sb_type]]
 #define matches(rp) ((rp)->ref[0] == ref + 1 && (rp)->ref[1] == -1)
 
     if (have_top) {
@@ -342,8 +342,8 @@ static void derive_warpmv(const Dav1dTileContext *const t,
         memcpy(pts[i], pts[j], sizeof(*pts));
     }
 
-    if (!find_affine_int(pts, ret, bw4, bh4, mv, wmp, t->bx, t->by) &&
-        !get_shear_params(wmp))
+    if (!dav1d_find_affine_int(pts, ret, bw4, bh4, mv, wmp, t->bx, t->by) &&
+        !dav1d_get_shear_params(wmp))
     {
         wmp->type = WM_TYPE_AFFINE;
     } else
@@ -600,12 +600,12 @@ static void read_vartx_tree(Dav1dTileContext *const t,
                             const int bx4, const int by4)
 {
     const Dav1dFrameContext *const f = t->f;
-    const uint8_t *const b_dim = av1_block_dimensions[bs];
+    const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = b_dim[0], bh4 = b_dim[1];
 
     // var-tx tree coding
     b->tx_split[0] = b->tx_split[1] = 0;
-    b->max_ytx = av1_max_txfm_size_for_bs[bs][0];
+    b->max_ytx = dav1d_max_txfm_size_for_bs[bs][0];
     if (f->frame_hdr.segmentation.lossless[b->seg_id] ||
         b->max_ytx == TX_4X4)
     {
@@ -621,11 +621,11 @@ static void read_vartx_tree(Dav1dTileContext *const t,
         } else {
             assert(f->frame_hdr.txfm_mode == TX_LARGEST);
         }
-        b->uvtx = av1_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
+        b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
     } else {
         assert(imin(bw4, bh4) <= 16 || b->max_ytx == TX_64X64);
         int y, x, y_off, x_off;
-        const TxfmInfo *const ytx = &av1_txfm_dimensions[b->max_ytx];
+        const TxfmInfo *const ytx = &dav1d_txfm_dimensions[b->max_ytx];
         for (y = 0, y_off = 0; y < bh4; y += ytx->h, y_off++) {
             for (x = 0, x_off = 0; x < bw4; x += ytx->w, x_off++) {
                 read_tx_tree(t, b->max_ytx, 0, b->tx_split, x_off, y_off);
@@ -639,7 +639,7 @@ static void read_vartx_tree(Dav1dTileContext *const t,
         if (DEBUG_BLOCK_INFO)
             printf("Post-vartxtree[%x/%x]: r=%d\n",
                    b->tx_split[0], b->tx_split[1], t->ts->msac.rng);
-        b->uvtx = av1_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
+        b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
     }
 }
 
@@ -676,7 +676,7 @@ static void decode_b(Dav1dTileContext *const t,
     const Dav1dFrameContext *const f = t->f;
     Av1Block b_mem, *const b = f->frame_thread.pass ?
         &f->frame_thread.b[t->by * f->b4_stride + t->bx] : &b_mem;
-    const uint8_t *const b_dim = av1_block_dimensions[bs];
+    const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bx4 = t->bx & 31, by4 = t->by & 31;
     const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
@@ -711,7 +711,7 @@ static void decode_b(Dav1dTileContext *const t,
             }
             f->bd_fn.recon_b_inter(t, bs, b);
 
-            const uint8_t *const filter = eve_av1_filter_dir[b->filter2d];
+            const uint8_t *const filter = dav1d_filter_dir[b->filter2d];
             memset(&t->l.filter[0][by4], filter[0], bh4);
             memset(&t->a->filter[0][bx4], filter[0], bw4);
             memset(&t->l.filter[1][by4], filter[1], bh4);
@@ -770,8 +770,8 @@ static void decode_b(Dav1dTileContext *const t,
                                                    NUM_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr.segmentation.seg_data.last_active_segid;
-                b->seg_id = av1_neg_deinterleave(diff, pred_seg_id,
-                                                 last_active_seg_id + 1);
+                b->seg_id = neg_deinterleave(diff, pred_seg_id,
+                                             last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
             }
 
@@ -817,8 +817,8 @@ static void decode_b(Dav1dTileContext *const t,
                                                    NUM_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr.segmentation.seg_data.last_active_segid;
-                b->seg_id = av1_neg_deinterleave(diff, pred_seg_id,
-                                                 last_active_seg_id + 1);
+                b->seg_id = neg_deinterleave(diff, pred_seg_id,
+                                             last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
             }
         }
@@ -928,9 +928,9 @@ static void decode_b(Dav1dTileContext *const t,
     // intra/inter-specific stuff
     if (b->intra) {
         uint16_t *const ymode_cdf = f->frame_hdr.frame_type & 1 ?
-            ts->cdf.m.y_mode[av1_ymode_size_context[bs]] :
-            ts->cdf.kfym[intra_mode_context[t->a->mode[bx4]]]
-                        [intra_mode_context[t->l.mode[by4]]];
+            ts->cdf.m.y_mode[dav1d_ymode_size_context[bs]] :
+            ts->cdf.kfym[dav1d_intra_mode_context[t->a->mode[bx4]]]
+                        [dav1d_intra_mode_context[t->l.mode[by4]]];
         b->y_mode = msac_decode_symbol_adapt(&ts->msac, ymode_cdf,
                                               N_INTRA_PRED_MODES);
         if (DEBUG_BLOCK_INFO)
@@ -1060,11 +1060,11 @@ static void decode_b(Dav1dTileContext *const t,
         const TxfmInfo *t_dim;
         if (f->frame_hdr.segmentation.lossless[b->seg_id]) {
             b->tx = b->uvtx = (int) TX_4X4;
-            t_dim = &av1_txfm_dimensions[TX_4X4];
+            t_dim = &dav1d_txfm_dimensions[TX_4X4];
         } else {
-            b->tx = av1_max_txfm_size_for_bs[bs][0];
-            b->uvtx = av1_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
-            t_dim = &av1_txfm_dimensions[b->tx];
+            b->tx = dav1d_max_txfm_size_for_bs[bs][0];
+            b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
+            t_dim = &dav1d_txfm_dimensions[b->tx];
             if (f->frame_hdr.txfm_mode == TX_SWITCHABLE && t_dim->max > TX_4X4) {
                 const int tctx = get_tx_ctx(t->a, &t->l, t_dim, by4, bx4);
                 uint16_t *const tx_cdf = ts->cdf.m.txsz[t_dim->max - 1][tctx];
@@ -1073,7 +1073,7 @@ static void decode_b(Dav1dTileContext *const t,
 
                 while (depth--) {
                     b->tx = t_dim->sub;
-                    t_dim = &av1_txfm_dimensions[b->tx];
+                    t_dim = &dav1d_txfm_dimensions[b->tx];
                 }
             }
             if (DEBUG_BLOCK_INFO)
@@ -1327,7 +1327,7 @@ static void decode_b(Dav1dTileContext *const t,
                 printf("Post-compintermode[%d,ctx=%d,n_mvs=%d]: r=%d\n",
                        b->inter_mode, ctx, n_mvs, ts->msac.rng);
 
-            const uint8_t *const im = av1_comp_inter_pred_modes[b->inter_mode];
+            const uint8_t *const im = dav1d_comp_inter_pred_modes[b->inter_mode];
             b->drl_idx = 0;
             if (b->inter_mode == NEWMV_NEWMV) {
                 if (n_mvs > 1) {
@@ -1422,7 +1422,7 @@ static void decode_b(Dav1dTileContext *const t,
                 }
             } else {
                 if (wedge_allowed_mask & (1 << bs)) {
-                    const int ctx = av1_wedge_ctx_lut[bs];
+                    const int ctx = dav1d_wedge_ctx_lut[bs];
                     b->comp_type = COMP_INTER_WEDGE -
                         msac_decode_bool_adapt(&ts->msac,
                                                ts->cdf.m.wedge_comp[ctx]);
@@ -1558,7 +1558,7 @@ static void decode_b(Dav1dTileContext *const t,
             }
 
             // interintra flags
-            const int ii_sz_grp = av1_ymode_size_context[bs];
+            const int ii_sz_grp = dav1d_ymode_size_context[bs];
             if (f->seq_hdr.inter_intra &&
                 interintra_allowed_mask & (1 << bs) &&
                 msac_decode_bool_adapt(&ts->msac, ts->cdf.m.interintra[ii_sz_grp]))
@@ -1566,7 +1566,7 @@ static void decode_b(Dav1dTileContext *const t,
                 b->interintra_mode = msac_decode_symbol_adapt(&ts->msac,
                                           ts->cdf.m.interintra_mode[ii_sz_grp],
                                           N_INTER_INTRA_PRED_MODES);
-                const int wedge_ctx = av1_wedge_ctx_lut[bs];
+                const int wedge_ctx = dav1d_wedge_ctx_lut[bs];
                 b->interintra_type = INTER_INTRA_BLEND +
                     msac_decode_bool_adapt(&ts->msac,
                                            ts->cdf.m.interintra_wedge[wedge_ctx]);
@@ -1666,7 +1666,7 @@ static void decode_b(Dav1dTileContext *const t,
         } else {
             filter[0] = filter[1] = f->frame_hdr.subpel_filter_mode;
         }
-        b->filter2d = av1_filter_2d[filter[1]][filter[0]];
+        b->filter2d = dav1d_filter_2d[filter[1]][filter[0]];
 
         read_vartx_tree(t, b, bs, bx4, by4);
 
@@ -1795,7 +1795,7 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
                        f->frame_hdr.frame_offset, t->by, t->bx, bl, ctx, bp,
                        t->ts->msac.rng);
         }
-        const uint8_t *const b = av1_block_sizes[bl][bp];
+        const uint8_t *const b = dav1d_block_sizes[bl][bp];
 
         switch (bp) {
         case PARTITION_NONE:
@@ -1939,7 +1939,7 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
             t->bx -= hsz;
         } else {
             bp = PARTITION_H;
-            decode_b(t, bl, av1_block_sizes[bl][PARTITION_H][0], PARTITION_H,
+            decode_b(t, bl, dav1d_block_sizes[bl][PARTITION_H][0], PARTITION_H,
                      node->h[0]);
         }
     } else {
@@ -1969,14 +1969,14 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
             t->by -= hsz;
         } else {
             bp = PARTITION_V;
-            decode_b(t, bl, av1_block_sizes[bl][PARTITION_V][0], PARTITION_V,
+            decode_b(t, bl, dav1d_block_sizes[bl][PARTITION_V][0], PARTITION_V,
                      node->v[0]);
         }
     }
 
     if (f->frame_thread.pass != 2 && (bp != PARTITION_SPLIT || bl == BL_8X8)) {
-        memset(&t->a->partition[bx8], av1_al_part_ctx[0][bl][bp], hsz);
-        memset(&t->l.partition[by8], av1_al_part_ctx[1][bl][bp], hsz);
+        memset(&t->a->partition[bx8], dav1d_al_part_ctx[0][bl][bp], hsz);
+        memset(&t->l.partition[by8], dav1d_al_part_ctx[1][bl][bp], hsz);
     }
 
     return 0;
@@ -2058,7 +2058,7 @@ static void setup_tile(Dav1dTileState *const ts,
         atomic_init(&ts->progress, row_sb_start);
 }
 
-int decode_tile_sbrow(Dav1dTileContext *const t) {
+int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
     const Dav1dFrameContext *const f = t->f;
     const enum BlockLevel root_bl = f->seq_hdr.sb128 ? BL_128X128 : BL_64X64;
     Dav1dTileState *const ts = t->ts;
@@ -2192,12 +2192,12 @@ int decode_tile_sbrow(Dav1dTileContext *const t) {
             } else if (lr->type == RESTORATION_SGRPROJ) {
                 const unsigned idx = msac_decode_bools(&ts->msac, 4);
                 lr->sgr_idx = idx;
-                lr->sgr_weights[0] = sgr_params[idx][0] ?
+                lr->sgr_weights[0] = dav1d_sgr_params[idx][0] ?
                     msac_decode_subexp(&ts->msac,
                                        ts->lr_ref[p]->sgr_weights[0] + 96, 128,
                                        4) - 96 :
                     0;
-                lr->sgr_weights[1] = sgr_params[idx][1] ?
+                lr->sgr_weights[1] = dav1d_sgr_params[idx][1] ?
                     msac_decode_subexp(&ts->msac,
                                        ts->lr_ref[p]->sgr_weights[1] + 32, 128,
                                        4) - 32 :
@@ -2235,7 +2235,7 @@ int decode_tile_sbrow(Dav1dTileContext *const t) {
     return 0;
 }
 
-int decode_frame(Dav1dFrameContext *const f) {
+int dav1d_decode_frame(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
     int retval = -EINVAL;
 
@@ -2429,14 +2429,14 @@ int decode_frame(Dav1dFrameContext *const f) {
     init_quant_tables(&f->seq_hdr, &f->frame_hdr, f->frame_hdr.quant.yac, f->dq);
     if (f->frame_hdr.quant.qm)
         for (int j = 0; j < N_RECT_TX_SIZES; j++) {
-            f->qm[0][j][0] = av1_qm_tbl[f->frame_hdr.quant.qm_y][0][j];
-            f->qm[0][j][1] = av1_qm_tbl[f->frame_hdr.quant.qm_u][1][j];
-            f->qm[0][j][2] = av1_qm_tbl[f->frame_hdr.quant.qm_v][1][j];
+            f->qm[0][j][0] = dav1d_qm_tbl[f->frame_hdr.quant.qm_y][0][j];
+            f->qm[0][j][1] = dav1d_qm_tbl[f->frame_hdr.quant.qm_u][1][j];
+            f->qm[0][j][2] = dav1d_qm_tbl[f->frame_hdr.quant.qm_v][1][j];
         }
     for (int i = f->frame_hdr.quant.qm; i < 2; i++)
         for (int tx = 0; tx < N_RECT_TX_SIZES; tx++)
             for (int pl = 0; pl < 3; pl++)
-                f->qm[i][tx][pl] = av1_qm_tbl[15][!!pl][tx];
+                f->qm[i][tx][pl] = dav1d_qm_tbl[15][!!pl][tx];
 
     // setup jnt_comp weights
     if (f->frame_hdr.switchable_comp_refs) {
@@ -2480,7 +2480,7 @@ int decode_frame(Dav1dFrameContext *const f) {
     f->lf.p[2] = f->cur.p.data[2];
     f->lf.tile_row = 1;
 
-    cdf_thread_wait(&f->in_cdf);
+    dav1d_cdf_thread_wait(&f->in_cdf);
 
     // parse individual tiles per tile group
     int update_set = 0, tile_idx = 0;
@@ -2524,7 +2524,7 @@ int decode_frame(Dav1dFrameContext *const f) {
         }
     }
 
-    cdf_thread_unref(&f->in_cdf);
+    dav1d_cdf_thread_unref(&f->in_cdf);
 
     // 2-pass decoding:
     // - enabled for frame-threading, so that one frame can do symbol parsing
@@ -2562,7 +2562,7 @@ int decode_frame(Dav1dFrameContext *const f) {
                         t->ts = &f->ts[tile_row * f->frame_hdr.tiling.cols + tile_col];
 
                         int res;
-                        if ((res = decode_tile_sbrow(t)))
+                        if ((res = dav1d_decode_tile_sbrow(t)))
                             return res;
                     }
 
@@ -2628,10 +2628,10 @@ int decode_frame(Dav1dFrameContext *const f) {
         if (f->frame_thread.pass <= 1 && f->frame_hdr.refresh_context) {
             // cdf update
             if (update_set)
-                av1_update_tile_cdf(&f->frame_hdr, f->out_cdf.cdf,
-                                    &f->ts[f->frame_hdr.tiling.update].cdf);
-            cdf_thread_signal(&f->out_cdf);
-            cdf_thread_unref(&f->out_cdf);
+                dav1d_update_tile_cdf(&f->frame_hdr, f->out_cdf.cdf,
+                                      &f->ts[f->frame_hdr.tiling.update].cdf);
+            dav1d_cdf_thread_signal(&f->out_cdf);
+            dav1d_cdf_thread_unref(&f->out_cdf);
         }
         if (f->frame_thread.pass == 1) {
             assert(c->n_fc > 1);
@@ -2674,7 +2674,7 @@ error:
     return retval;
 }
 
-int submit_frame(Dav1dContext *const c) {
+int dav1d_submit_frame(Dav1dContext *const c) {
     Dav1dFrameContext *f;
     int res;
 
@@ -2733,11 +2733,11 @@ int submit_frame(Dav1dContext *const c) {
     }
 
 #define assign_bitdepth_case(bd) \
-        f->bd_fn.recon_b_inter = recon_b_inter_##bd##bpc; \
-        f->bd_fn.recon_b_intra = recon_b_intra_##bd##bpc; \
-        f->bd_fn.filter_sbrow = filter_sbrow_##bd##bpc; \
-        f->bd_fn.backup_ipred_edge = backup_ipred_edge_##bd##bpc; \
-        f->bd_fn.read_coef_blocks = read_coef_blocks_##bd##bpc
+        f->bd_fn.recon_b_inter = dav1d_recon_b_inter_##bd##bpc; \
+        f->bd_fn.recon_b_intra = dav1d_recon_b_intra_##bd##bpc; \
+        f->bd_fn.filter_sbrow = dav1d_filter_sbrow_##bd##bpc; \
+        f->bd_fn.backup_ipred_edge = dav1d_backup_ipred_edge_##bd##bpc; \
+        f->bd_fn.read_coef_blocks = dav1d_read_coef_blocks_##bd##bpc
     if (f->seq_hdr.bpc <= 8) {
 #if CONFIG_8BPC
         assign_bitdepth_case(8);
@@ -2757,13 +2757,13 @@ int submit_frame(Dav1dContext *const c) {
 
     // setup entropy
     if (f->frame_hdr.primary_ref_frame == PRIMARY_REF_NONE) {
-        av1_init_states(&f->in_cdf, f->frame_hdr.quant.yac);
+        dav1d_init_states(&f->in_cdf, f->frame_hdr.quant.yac);
     } else {
         const int pri_ref = f->frame_hdr.refidx[f->frame_hdr.primary_ref_frame];
-        cdf_thread_ref(&f->in_cdf, &c->cdf[pri_ref]);
+        dav1d_cdf_thread_ref(&f->in_cdf, &c->cdf[pri_ref]);
     }
     if (f->frame_hdr.refresh_context) {
-        cdf_thread_alloc(&f->out_cdf, c->n_fc > 1 ? &f->frame_thread.td : NULL);
+        dav1d_cdf_thread_alloc(&f->out_cdf, c->n_fc > 1 ? &f->frame_thread.td : NULL);
         memcpy(f->out_cdf.cdf, f->in_cdf.cdf, sizeof(*f->in_cdf.cdf));
     }
 
@@ -2878,11 +2878,11 @@ int submit_frame(Dav1dContext *const c) {
                 dav1d_thread_picture_unref(&c->refs[i].p);
             dav1d_thread_picture_ref(&c->refs[i].p, &f->cur);
 
-            if (c->cdf[i].cdf) cdf_thread_unref(&c->cdf[i]);
+            if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
             if (f->frame_hdr.refresh_context) {
-                cdf_thread_ref(&c->cdf[i], &f->out_cdf);
+                dav1d_cdf_thread_ref(&c->cdf[i], &f->out_cdf);
             } else {
-                cdf_thread_ref(&c->cdf[i], &f->in_cdf);
+                dav1d_cdf_thread_ref(&c->cdf[i], &f->in_cdf);
             }
             c->refs[i].lf_mode_ref_deltas =
                 f->frame_hdr.loopfilter.mode_ref_deltas;
@@ -2909,7 +2909,7 @@ int submit_frame(Dav1dContext *const c) {
     }
 
     if (c->n_fc == 1) {
-        if ((res = decode_frame(f)) < 0)
+        if ((res = dav1d_decode_frame(f)) < 0)
             return res;
     } else {
         pthread_cond_signal(&f->frame_thread.td.cond);

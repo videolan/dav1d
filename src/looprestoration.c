@@ -424,9 +424,9 @@ static void selfguided_filter(int32_t *dst, const pixel *src,
             const uint32_t p = (a * n >= b * b) * (a * n - b * b);
             const uint32_t z = (p * s + (1 << 19)) >> 20;
 
-            const int x = sgr_x_by_xplus1[imin(z, 255)];
+            const int x = dav1d_sgr_x_by_xplus1[imin(z, 255)];
             // This is where we invert A and B, so that B is of size coef.
-            AA[i] = (((1 << 8) - x) * BB[i] * sgr_one_by_x[n - 1] + (1 << 11)) >> 12;
+            AA[i] = (((1 << 8) - x) * BB[i] * dav1d_sgr_one_by_x[n - 1] + (1 << 11)) >> 12;
             BB[i] = x;
         }
         AA += step * REST_UNIT_STRIDE;
@@ -504,8 +504,8 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
     int32_t dst[64 * 384];
 
     // both r1 and r0 can't be zero
-    if (!sgr_params[sgr_idx][0]) {
-        const int s1 = sgr_params[sgr_idx][3];
+    if (!dav1d_sgr_params[sgr_idx][0]) {
+        const int s1 = dav1d_sgr_params[sgr_idx][3];
         selfguided_filter(dst, tmp, REST_UNIT_STRIDE, w, h, 9, s1);
         const int w1 = (1 << 7) - sgr_w[1];
         for (int j = 0; j < h; j++) {
@@ -516,8 +516,8 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
             }
             p += PXSTRIDE(p_stride);
         }
-    } else if (!sgr_params[sgr_idx][1]) {
-        const int s0 = sgr_params[sgr_idx][2];
+    } else if (!dav1d_sgr_params[sgr_idx][1]) {
+        const int s0 = dav1d_sgr_params[sgr_idx][2];
         selfguided_filter(dst, tmp, REST_UNIT_STRIDE, w, h, 25, s0);
         const int w0 = sgr_w[0];
         for (int j = 0; j < h; j++) {
@@ -530,8 +530,8 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
         }
     } else {
         int32_t dst1[64 * 384];
-        const int s0 = sgr_params[sgr_idx][2];
-        const int s1 = sgr_params[sgr_idx][3];
+        const int s0 = dav1d_sgr_params[sgr_idx][2];
+        const int s1 = dav1d_sgr_params[sgr_idx][3];
         const int w0 = sgr_w[0];
         const int w1 = (1 << 7) - w0 - sgr_w[1];
         selfguided_filter(dst, tmp, REST_UNIT_STRIDE, w, h, 25, s0);

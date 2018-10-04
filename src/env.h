@@ -132,7 +132,7 @@ static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
         return TXTP_SET_LOSSLESS;
     }
 
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
 
     if (t_dim->max >= TX_64X64)
         return TXTP_SET_DCT;
@@ -161,9 +161,9 @@ static inline enum TxfmType get_uv_intra_txtp(const enum IntraPredMode uv_mode,
         return WHT_WHT;
     }
 
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
 
-    return t_dim->max == TX_32X32 ? DCT_DCT : av1_txtp_from_uvmode[uv_mode];
+    return t_dim->max == TX_32X32 ? DCT_DCT : dav1d_txtp_from_uvmode[uv_mode];
 }
 
 static inline enum TxfmType get_uv_inter_txtp(const TxfmInfo *const uvt_dim,
@@ -531,7 +531,7 @@ static inline int get_coef_skip_ctx(const TxfmInfo *const t_dim,
                                     const int chroma,
                                     const enum Dav1dPixelLayout layout)
 {
-    const uint8_t *const b_dim = av1_block_dimensions[bs];
+    const uint8_t *const b_dim = dav1d_block_dimensions[bs];
 
     if (chroma) {
         const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
@@ -610,7 +610,7 @@ static inline int get_coef_nz_ctx(uint8_t *const levels, const int scan_idx,
                                   const enum RectTxfmSize tx,
                                   const enum TxClass tx_class)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
 
     if (is_eob) {
         if (scan_idx == 0)         return 0;
@@ -640,7 +640,7 @@ static inline int get_coef_nz_ctx(uint8_t *const levels, const int scan_idx,
     const int ctx = imin((mag + 1) >> 1, 4);
     if (tx_class == TX_CLASS_2D) {
         return !rc ? 0 :
-            av1_nz_map_ctx_offset[tx][imin(y, 4)][imin(x, 4)] + ctx;
+            dav1d_nz_map_ctx_offset[tx][imin(y, 4)][imin(x, 4)] + ctx;
     } else {
         return 26 + imin((tx_class == TX_CLASS_V) ? y : x, 2) * 5 + ctx;
     }
@@ -685,7 +685,7 @@ static inline int get_br_ctx(const uint8_t *const levels,
                              const int rc, const enum RectTxfmSize tx,
                              const enum TxClass tx_class)
 {
-    const TxfmInfo *const t_dim = &av1_txfm_dimensions[tx];
+    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
     const int x = rc >> (imin(t_dim->lh, 3) + 2);
     const int y = rc & (4 * imin(t_dim->h, 8) - 1);
     const int stride = 4 * (imin(t_dim->h, 8) + 1);
