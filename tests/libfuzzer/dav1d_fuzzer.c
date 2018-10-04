@@ -30,9 +30,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <dav1d.h>
+#include <dav1d/dav1d.h>
 
-#include "common/intops.h"
+static unsigned r32le(const uint8_t *const p) {
+    return (p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
+}
 
 // expects ivf input
 
@@ -55,7 +57,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (ptr <= data + size - 4) {
         Dav1dData buf;
 
-        size_t frame_size = rl32(ptr);
+        size_t frame_size = r32le(ptr);
         ptr += 4;
 
         if (frame_size > size || ptr > data + size - frame_size)
