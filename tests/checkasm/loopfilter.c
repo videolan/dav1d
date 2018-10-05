@@ -91,11 +91,24 @@ static void init_lpf_border(pixel *const dst, const ptrdiff_t stride,
 }
 
 static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
-                         const int n_strengths, const int n_blks,
-                         const int sb_idx)
+                         const int n_blks, const int lf_idx,
+                         const int is_chroma, const int dir)
 {
-    ALIGN_STK_32(pixel, c_dst, 128 * 16,);
-    ALIGN_STK_32(pixel, a_dst, 128 * 16,);
+    ALIGN_STK_32(pixel, c_dst_mem, 128 * 16,);
+    ALIGN_STK_32(pixel, a_dst_mem, 128 * 16,);
+    pixel *a_dst, *c_dst;
+    ptrdiff_t stride, b4_stride;
+    if (dir) {
+        a_dst = a_dst_mem + 128 * 8;
+        c_dst = c_dst_mem + 128 * 8;
+        stride = 128 * sizeof(pixel);
+        b4_stride = 32;
+    } else {
+        a_dst = a_dst_mem + 8;
+        c_dst = c_dst_mem + 8;
+        stride = 16 * sizeof(pixel);
+        b4_stride = 2;
+    }
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const uint32_t *mask,
                  const uint8_t (*l)[4], ptrdiff_t b4_stride,
@@ -118,9 +131,10 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
     lut.sharp[0] = (sharp + 3) >> 2;
     lut.sharp[1] = sharp ? 9 - sharp : 0xff;
 
+    const int n_strengths = is_chroma ? 2 : 3;
     for (int i = 0; i < n_strengths; i++) {
         if (check_func(fn, "%s_w%d_%dbpc", name,
-                       n_strengths == 3 ? 4 << i : 4 * 2 * i, BITDEPTH))
+                       is_chroma ? 4 + 2 * i : 4 << i, BITDEPTH))
         {
             uint32_t vmask[4] = { 0 };
             uint8_t l[32 * 2][4];
@@ -128,28 +142,38 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
             for (int j = 0; j < n_blks; j++) {
                 const int idx = rand() % (i + 2);
                 if (idx) vmask[idx - 1] |= 1 << j;
-                l[j][sb_idx] = rand() & 63;
-                l[32 + j][sb_idx] = rand() & 63;
+                if (dir) {
+                    l[j][lf_idx] = rand() & 63;
+                    l[j + 32][lf_idx] = rand() & 63;
+                } else {
+                    l[j * 2][lf_idx] = rand() & 63;
+                    l[j * 2 + 1][lf_idx] = rand() & 63;
+                }
             }
 
-            for (int i = 0; i < 128; i++) {
+            for (int i = 0; i < 4 * n_blks; i++) {
                 const int x = i >> 2;
-                const int L = l[x + 32][sb_idx] ? l[x + 32][sb_idx] : l[x][sb_idx];
-                init_lpf_border(c_dst + 128 * 8 + i, 128,
+                int L;
+                if (dir) {
+                    L = l[32 + x][lf_idx] ? l[32 + x][lf_idx] : l[x][lf_idx];
+                } else {
+                    L = l[2 * x + 1][lf_idx] ? l[2 * x + 1][lf_idx] : l[2 * x][lf_idx];
+                }
+                init_lpf_border(c_dst + i * (dir ? 1 : 16), dir ? 128 : 1,
                                 lut.e[L], lut.i[L], L >> 4);
             }
-            memcpy(a_dst, c_dst, 128 * sizeof(pixel) * 16);
+            memcpy(a_dst_mem, c_dst_mem, 128 * sizeof(pixel) * 16);
 
-            call_ref(c_dst + 128 * 8, 128 * sizeof(pixel),
-                     vmask, (const uint8_t(*)[4]) &l[32][sb_idx], 32,
+            call_ref(c_dst, stride,
+                     vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
                      &lut, n_blks);
-            call_new(a_dst + 128 * 8, 128 * sizeof(pixel),
-                     vmask, (const uint8_t(*)[4]) &l[32][sb_idx], 32,
+            call_new(a_dst, stride,
+                     vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
                      &lut, n_blks);
-            if (memcmp(c_dst, a_dst, 128 * 16 * sizeof(*a_dst))) fail();
+            if (memcmp(c_dst_mem, a_dst_mem, 128 * 16 * sizeof(*a_dst)))  fail();
 
-            bench_new(a_dst + 128 * 8, 128 * sizeof(pixel),
-                      vmask, (const uint8_t(*)[4]) &l[32][sb_idx], 32,
+            bench_new(a_dst, stride,
+                      vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
                       &lut, n_blks);
         }
     }
@@ -161,6 +185,8 @@ void bitfn(checkasm_check_loopfilter)(void) {
 
     bitfn(dav1d_loop_filter_dsp_init)(&c);
 
-    check_lpf_sb(c.loop_filter_sb[0][1], "lpf_v_sb128y", 3, 32, 1);
-    check_lpf_sb(c.loop_filter_sb[1][1], "lpf_v_sb128uv", 2, 16, 2);
+    check_lpf_sb(c.loop_filter_sb[0][0], "lpf_h_sb_y", 32, 0, 0, 0);
+    check_lpf_sb(c.loop_filter_sb[0][1], "lpf_v_sb_y", 32, 1, 0, 1);
+    check_lpf_sb(c.loop_filter_sb[1][0], "lpf_h_sb_uv", 16, 2, 1, 0);
+    check_lpf_sb(c.loop_filter_sb[1][1], "lpf_v_sb_uv", 16, 2, 1, 1);
 }
