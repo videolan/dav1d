@@ -36,6 +36,7 @@
 typedef struct Av1FilterLUT {
     uint8_t e[64];
     uint8_t i[64];
+    uint64_t sharp[2];
 } Av1FilterLUT;
 
 typedef struct Av1RestorationUnit {

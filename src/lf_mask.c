@@ -347,8 +347,8 @@ void dav1d_calc_eih(Av1FilterLUT *const lim_lut, const int filter_sharpness) {
     int level;
 
     // set E/I/H values from loopfilter level
+    const int sharp = filter_sharpness;
     for (level = 0; level < 64; level++) {
-        const int sharp = filter_sharpness;
         int limit = level;
 
         if (sharp > 0) {
@@ -360,6 +360,8 @@ void dav1d_calc_eih(Av1FilterLUT *const lim_lut, const int filter_sharpness) {
         lim_lut->i[level] = limit;
         lim_lut->e[level] = 2 * (level + 2) + limit;
     }
+    lim_lut->sharp[0] = (sharp + 3) >> 2;
+    lim_lut->sharp[1] = sharp ? 9 - sharp : 0xff;
 }
 
 static void dav1d_calc_lf_value(uint8_t (*const lflvl_values)[2],

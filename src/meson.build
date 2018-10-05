@@ -99,6 +99,7 @@ if is_asm_enabled
 
         libdav1d_tmpl_sources += files(
             'x86/itx_init.c',
+            'x86/loopfilter_init.c',
             'x86/mc_init.c',
         )
 
@@ -106,6 +107,7 @@ if is_asm_enabled
         libdav1d_sources_asm = files(
             'x86/cpuid.asm',
             'x86/itx.asm',
+            'x86/loopfilter.asm',
             'x86/mc.asm',
         )
 

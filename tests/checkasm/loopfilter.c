@@ -115,12 +115,14 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
         lut.i[level] = limit;
         lut.e[level] = 2 * (level + 2) + limit;
     }
+    lut.sharp[0] = (sharp + 3) >> 2;
+    lut.sharp[1] = sharp ? 9 - sharp : 0xff;
 
     for (int i = 0; i < n_strengths; i++) {
         if (check_func(fn, "%s_w%d_%dbpc", name,
                        n_strengths == 3 ? 4 << i : 4 * 2 * i, BITDEPTH))
         {
-            uint32_t vmask[3] = { 0 };
+            uint32_t vmask[4] = { 0 };
             uint8_t l[32 * 2][4];
 
             for (int j = 0; j < n_blks; j++) {

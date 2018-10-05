@@ -25,44 +25,19 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_LOOPFILTER_H__
-#define __DAV1D_SRC_LOOPFILTER_H__
+#include "src/cpu.h"
+#include "src/loopfilter.h"
 
-#include <stdint.h>
-#include <stddef.h>
+decl_loopfilter_sb_fn(dav1d_lpf_v_sb128y_avx2);
+decl_loopfilter_sb_fn(dav1d_lpf_v_sb128uv_avx2);
 
-#include "common/bitdepth.h"
+void bitfn(dav1d_loop_filter_dsp_init_x86)(Dav1dLoopFilterDSPContext *const c) {
+    const unsigned flags = dav1d_get_cpu_flags();
 
-#include "src/levels.h"
-#include "src/lf_mask.h"
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
-#define decl_loopfilter_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, int mb_lim, int lim, int hev_thr)
-typedef decl_loopfilter_fn(*loopfilter_fn);
-
-#define decl_loopfilter_sb_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, const uint32_t *mask, \
-            const uint8_t (*lvl)[4], ptrdiff_t lvl_stride, \
-            const Av1FilterLUT *lut, int w)
-typedef decl_loopfilter_sb_fn(*loopfilter_sb_fn);
-
-typedef struct Dav1dLoopFilterDSPContext {
-    /*
-     * dimension 1: filter taps (0=4, 1=8, 2=16 for luma; 0=4, 1=6 for chroma)
-     * dimension 2: 0=col-edge filter (h), 1=row-edge filter (v)
-     *
-     * dst/stride are aligned by 4
-     */
-    loopfilter_fn loop_filter[3][2];
-    loopfilter_fn loop_filter_uv[2][2];
-    loopfilter_sb_fn loop_filter_sb128y;
-    loopfilter_sb_fn loop_filter_sb128uv;
-} Dav1dLoopFilterDSPContext;
-
-void dav1d_loop_filter_dsp_init_8bpc(Dav1dLoopFilterDSPContext *c);
-void dav1d_loop_filter_dsp_init_10bpc(Dav1dLoopFilterDSPContext *c);
-
-void dav1d_loop_filter_dsp_init_x86_8bpc(Dav1dLoopFilterDSPContext *c);
-void dav1d_loop_filter_dsp_init_x86_10bpc(Dav1dLoopFilterDSPContext *c);
-
-#endif /* __DAV1D_SRC_LOOPFILTER_H__ */
+#if BITDEPTH == 8 && ARCH_X86_64
+    c->loop_filter_sb128y = dav1d_lpf_v_sb128y_avx2;
+    c->loop_filter_sb128uv = dav1d_lpf_v_sb128uv_avx2;
+#endif
+}
