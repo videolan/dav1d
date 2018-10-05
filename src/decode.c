@@ -2917,8 +2917,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 
     if (c->n_fc == 1) {
-        if ((res = dav1d_decode_frame(f)) < 0)
+        if ((res = dav1d_decode_frame(f)) < 0) {
+            dav1d_picture_unref(&c->out);
             return res;
+        }
     } else {
         pthread_cond_signal(&f->frame_thread.td.cond);
         pthread_mutex_unlock(&f->frame_thread.td.lock);
