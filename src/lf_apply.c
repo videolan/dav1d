@@ -49,7 +49,7 @@ static inline void filter_plane_cols_y(const Dav1dFrameContext *const f,
     for (int x = 0; x < w; x++) {
         if (!have_left && !x) continue;
         dsp->lf.loop_filter_sb[0][0](&dst[x * 4], ls,
-                                     starty4 ? (const uint32_t[3]) {
+                                     starty4 ? (const uint32_t[4]) {
                                          mask[x][0] >> starty4,
                                          mask[x][1] >> starty4,
                                          mask[x][2] >> starty4,
@@ -98,14 +98,14 @@ static inline void filter_plane_cols_uv(const Dav1dFrameContext *const f,
     for (int x = 0; x < w; x++) {
         if (!have_left && !x) continue;
         dsp->lf.loop_filter_sb[1][0](&u[x * 4], ls,
-                                     starty4 ? (const uint32_t[2]) {
+                                     starty4 ? (const uint32_t[3]) {
                                          mask[x][0] >> starty4,
                                          mask[x][1] >> starty4,
                                      } : mask[x],
                                      (const uint8_t(*)[4]) &lvl[x][2], b4_stride,
                                      &f->lf.lim_lut, endy4 - starty4);
         dsp->lf.loop_filter_sb[1][0](&v[x * 4], ls,
-                                     starty4 ? (const uint32_t[2]) {
+                                     starty4 ? (const uint32_t[3]) {
                                          mask[x][0] >> starty4,
                                          mask[x][1] >> starty4,
                                      } : mask[x],
