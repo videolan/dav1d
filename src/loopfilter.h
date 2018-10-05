@@ -34,10 +34,17 @@
 #include "common/bitdepth.h"
 
 #include "src/levels.h"
+#include "src/lf_mask.h"
 
 #define decl_loopfilter_fn(name) \
 void (name)(pixel *dst, ptrdiff_t stride, int mb_lim, int lim, int hev_thr)
 typedef decl_loopfilter_fn(*loopfilter_fn);
+
+#define decl_loopfilter_sb_fn(name) \
+void (name)(pixel *dst, ptrdiff_t stride, const uint32_t *mask, \
+            const uint8_t (*lvl)[4], ptrdiff_t lvl_stride, \
+            const Av1FilterLUT *lut, int w)
+typedef decl_loopfilter_sb_fn(*loopfilter_sb_fn);
 
 typedef struct Dav1dLoopFilterDSPContext {
     /*
@@ -48,6 +55,8 @@ typedef struct Dav1dLoopFilterDSPContext {
      */
     loopfilter_fn loop_filter[3][2];
     loopfilter_fn loop_filter_uv[2][2];
+    loopfilter_sb_fn loop_filter_sb128y;
+    loopfilter_sb_fn loop_filter_sb128uv;
 } Dav1dLoopFilterDSPContext;
 
 void dav1d_loop_filter_dsp_init_8bpc(Dav1dLoopFilterDSPContext *c);

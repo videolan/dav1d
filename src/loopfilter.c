@@ -67,7 +67,6 @@ loop_filter(pixel *dst, int E, int I, int H,
                 fm &= abs(p3 - p2) <= I && abs(q3 - q2) <= I;
             }
         }
-
         if (!fm) continue;
 
         if (wd >= 16) {
@@ -181,6 +180,42 @@ lf_4_fns(16)
 #undef lf_4_fn
 #undef lf_4_fns
 
+static void loop_filter_v_sb128y_c(pixel *dst, const ptrdiff_t stride,
+                                   const uint32_t *const vmask,
+                                   const uint8_t (*l)[4], ptrdiff_t b4_stride,
+                                   const Av1FilterLUT *lut, const int w)
+{
+    const unsigned vm = vmask[0] | vmask[1] | vmask[2];
+    for (unsigned x = 1; vm & ~(x - 1); x <<= 1, dst += 4, l++) {
+        if (vm & x) {
+            const int L = l[0][0] ? l[0][0] : l[-b4_stride][0];
+            if (!L) continue;
+            const int H = L >> 4;
+            const int E = lut->e[L], I = lut->i[L];
+            const int idx = (vmask[2] & x) ? 2 : !!(vmask[1] & x);
+            loop_filter(dst, E, I, H, 1, PXSTRIDE(stride), 4 << idx);
+        }
+    }
+}
+
+static void loop_filter_v_sb128uv_c(pixel *dst, const ptrdiff_t stride,
+                                    const uint32_t *const vmask,
+                                    const uint8_t (*l)[4], ptrdiff_t b4_stride,
+                                    const Av1FilterLUT *lut, const int w)
+{
+    const unsigned vm = vmask[0] | vmask[1];
+    for (unsigned x = 1; vm & ~(x - 1); x <<= 1, dst += 4, l++) {
+        if (vm & x) {
+            const int L = l[0][0] ? l[0][0] : l[-b4_stride][0];
+            if (!L) continue;
+            const int H = L >> 4;
+            const int E = lut->e[L], I = lut->i[L];
+            const int idx = !!(vmask[1] & x);
+            loop_filter(dst, E, I, H, 1, PXSTRIDE(stride), 4 + 2 * idx);
+        }
+    }
+}
+
 void bitfn(dav1d_loop_filter_dsp_init)(Dav1dLoopFilterDSPContext *const c) {
     c->loop_filter[0][0] = loop_filter_h_4wd_4px_c;
     c->loop_filter[0][1] = loop_filter_v_4wd_4px_c;
@@ -193,4 +228,7 @@ void bitfn(dav1d_loop_filter_dsp_init)(Dav1dLoopFilterDSPContext *const c) {
     c->loop_filter_uv[0][1] = loop_filter_v_4wd_4px_c;
     c->loop_filter_uv[1][0] = loop_filter_h_6wd_4px_c;
     c->loop_filter_uv[1][1] = loop_filter_v_6wd_4px_c;
+
+    c->loop_filter_sb128y = loop_filter_v_sb128y_c;
+    c->loop_filter_sb128uv = loop_filter_v_sb128uv_c;
 }

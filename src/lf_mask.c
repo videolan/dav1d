@@ -233,7 +233,7 @@ static inline void mask_edges_chroma(uint32_t (*const masks)[32][2],
 }
 
 void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
-                                uint8_t (*level_cache)[4],
+                                uint8_t (*const level_cache)[4],
                                 const ptrdiff_t b4_stride,
                                 const Av1FrameHeader *const hdr,
                                 const uint8_t (*filter_level)[8][2],
@@ -255,15 +255,13 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
     const int bx4 = bx & 31;
     const int by4 = by & 31;
 
-    level_cache += by * b4_stride + bx;
+    uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
     for (int y = 0; y < bh4; y++) {
         for (int x = 0; x < bw4; x++) {
-            level_cache[x][0] = filter_level[0][0][0];
-            level_cache[x][1] = filter_level[1][0][0];
-            level_cache[x][2] = filter_level[2][0][0];
-            level_cache[x][3] = filter_level[3][0][0];
+            level_cache_ptr[x][0] = filter_level[0][0][0];
+            level_cache_ptr[x][1] = filter_level[1][0][0];
         }
-        level_cache += b4_stride;
+        level_cache_ptr += b4_stride;
     }
 
     mask_edges_intra(lflvl->filter_y, by4, bx4, bw4, bh4, ytx, ay, ly);
@@ -277,11 +275,20 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
 
+    level_cache_ptr = level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
+    for (int y = 0; y < cbh4; y++) {
+        for (int x = 0; x < cbw4; x++) {
+            level_cache_ptr[x][2] = filter_level[2][0][0];
+            level_cache_ptr[x][3] = filter_level[3][0][0];
+        }
+        level_cache_ptr += b4_stride;
+    }
+
     mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, 0, uvtx, auv, luv);
 }
 
 void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
-                                uint8_t (*level_cache)[4],
+                                uint8_t (*const level_cache)[4],
                                 const ptrdiff_t b4_stride,
                                 const Av1FrameHeader *const hdr,
                                 const uint8_t (*filter_level)[8][2],
@@ -303,15 +310,13 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
     const int bx4 = bx & 31;
     const int by4 = by & 31;
 
-    level_cache += by * b4_stride + bx;
+    uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
     for (int y = 0; y < bh4; y++) {
         for (int x = 0; x < bw4; x++) {
-            level_cache[x][0] = filter_level[0][0][0];
-            level_cache[x][1] = filter_level[1][0][0];
-            level_cache[x][2] = filter_level[2][0][0];
-            level_cache[x][3] = filter_level[3][0][0];
+            level_cache_ptr[x][0] = filter_level[0][0][0];
+            level_cache_ptr[x][1] = filter_level[1][0][0];
         }
-        level_cache += b4_stride;
+        level_cache_ptr += b4_stride;
     }
 
     mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
@@ -325,6 +330,15 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
     const int cbh4 = (bh4 + ss_ver) >> ss_ver;
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
+
+    level_cache_ptr = level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
+    for (int y = 0; y < cbh4; y++) {
+        for (int x = 0; x < cbw4; x++) {
+            level_cache_ptr[x][2] = filter_level[2][0][0];
+            level_cache_ptr[x][3] = filter_level[3][0][0];
+        }
+        level_cache_ptr += b4_stride;
+    }
 
     mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, skip, uvtx, auv, luv);
 }
