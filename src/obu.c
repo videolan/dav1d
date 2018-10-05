@@ -375,17 +375,19 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
 
     if (hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
         hdr->refresh_frame_flags = hdr->show_frame ? 0xff : dav1d_get_bits(gb, 8);
+        if (hdr->refresh_frame_flags != 0xff && hdr->error_resilient_mode && seqhdr->order_hint)
+            for (int i = 0; i < 8; i++)
+                dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
         if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
         hdr->allow_intrabc = hdr->allow_screen_content_tools &&
                              /* FIXME: no superres scaling && */ dav1d_get_bits(gb, 1);
         hdr->use_ref_frame_mvs = 0;
     } else {
-        if (hdr->error_resilient_mode && seqhdr->order_hint)
-            for (int i = 0; i < 8; i++)
-                dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
-
         if (hdr->frame_type == DAV1D_FRAME_TYPE_INTRA) {
             hdr->refresh_frame_flags = dav1d_get_bits(gb, 8);
+            if (hdr->refresh_frame_flags != 0xff && hdr->error_resilient_mode && seqhdr->order_hint)
+                for (int i = 0; i < 8; i++)
+                    dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
             if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
             hdr->allow_intrabc = hdr->allow_screen_content_tools &&
                              /* FIXME: no superres scaling && */ dav1d_get_bits(gb, 1);
@@ -393,6 +395,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
             hdr->allow_intrabc = 0;
             hdr->refresh_frame_flags = hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 0xff :
                                        dav1d_get_bits(gb, 8);
+            if (hdr->error_resilient_mode && seqhdr->order_hint)
+                for (int i = 0; i < 8; i++)
+                    dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
             hdr->frame_ref_short_signaling =
                 seqhdr->order_hint && dav1d_get_bits(gb, 1);
             if (hdr->frame_ref_short_signaling) goto error; // FIXME
