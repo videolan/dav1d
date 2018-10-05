@@ -1066,7 +1066,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     {
         if (!c->n_tile_data)
             return -EINVAL;
-        dav1d_submit_frame(c);
+        if ((res = dav1d_submit_frame(c)) < 0)
+            return res;
         assert(!c->n_tile_data);
         c->have_frame_hdr = 0;
         c->tile_mask = 0;
