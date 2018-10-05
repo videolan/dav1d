@@ -2669,6 +2669,13 @@ error:
     }
 
     dav1d_thread_picture_unref(&f->cur);
+    // need to be careful about these, currently the only two 'goto error'
+    // are before the {in,out}_cdf get unreffed
+    if (retval != 0) {
+        if (f->frame_hdr.refresh_context)
+            dav1d_cdf_thread_unref(&f->out_cdf);
+        dav1d_cdf_thread_unref(&f->in_cdf);
+    }
     if (f->cur_segmap_ref)
         dav1d_ref_dec(f->cur_segmap_ref);
     if (f->prev_segmap_ref)
@@ -2787,6 +2794,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                                           c->n_fc > 1 ? &f->frame_thread.td : NULL,
                                           f->frame_hdr.show_frame)) < 0)
     {
+        if (f->frame_hdr.refresh_context)
+            dav1d_cdf_thread_unref(&f->out_cdf);
         return res;
     }
 
@@ -2868,10 +2877,28 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (f->frame_hdr.segmentation.update_map) {
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
             f->cur_segmap = f->cur_segmap_ref->data;
-        } else {
+        } else if (f->prev_segmap_ref) {
             f->cur_segmap_ref = f->prev_segmap_ref;
             dav1d_ref_inc(f->cur_segmap_ref);
             f->cur_segmap = f->prev_segmap_ref->data;
+        } else {
+            dav1d_cdf_thread_unref(&f->in_cdf);
+            if (f->frame_hdr.refresh_context)
+                dav1d_cdf_thread_unref(&f->out_cdf);
+            for (int i = 0; i < 7; i++) {
+                if (f->refp[i].p.data[0])
+                    dav1d_thread_picture_unref(&f->refp[i]);
+                if (f->ref_mvs_ref[i])
+                    dav1d_ref_dec(f->ref_mvs_ref[i]);
+            }
+            dav1d_picture_unref(&c->out);
+            dav1d_thread_picture_unref(&f->cur);
+            if (f->mvs_ref)
+                dav1d_ref_dec(f->mvs_ref);
+
+            for (int i = 0; i < f->n_tile_data; i++)
+                dav1d_data_unref(&f->tile[i].data);
+            return -1;
         }
     } else {
         f->cur_segmap = NULL;
