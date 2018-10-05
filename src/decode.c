@@ -2713,7 +2713,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     const int bd_idx = (f->seq_hdr.bpc - 8) >> 1;
     f->dsp = &c->dsp[bd_idx];
 
-    if (!f->dsp->ipred.intra_pred[TX_4X4][DC_PRED]) {
+    if (!f->dsp->ipred.intra_pred[DC_PRED]) {
         Dav1dDSPContext *const dsp = &c->dsp[bd_idx];
 
         switch (f->seq_hdr.bpc) {

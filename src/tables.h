@@ -113,4 +113,8 @@ extern const int16_t dav1d_sgr_one_by_x[25];
 extern const int8_t dav1d_mc_subpel_filters[5][15][8];
 extern const int8_t dav1d_mc_warp_filter[][8];
 
+extern const uint8_t dav1d_sm_weights[128];
+extern const int16_t dav1d_dr_intra_derivative[90];
+extern const int8_t dav1d_filter_intra_taps[5][8][8];
+
 #endif /* __DAV1D_SRC_TABLES_H__ */

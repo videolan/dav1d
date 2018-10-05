@@ -767,8 +767,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           f->cur.p.stride[0], top_sb_edge,
                                                           b->y_mode, &angle,
                                                           t_dim->w, t_dim->h, edge);
-                    dsp->ipred.intra_pred[b->tx][m](dst, f->cur.p.stride[0],
-                                                    edge, angle | sm_fl);
+                    dsp->ipred.intra_pred[m](dst, f->cur.p.stride[0], edge,
+                                             t_dim->w * 4, t_dim->h * 4,
+                                             angle | sm_fl);
 
                     if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                         hex_dump(edge - t_dim->h * 4, t_dim->h * 4,
@@ -869,7 +870,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           top_sb_edge, DC_PRED, &angle,
                                                           cfl_uv_t_dim->w,
                                                           cfl_uv_t_dim->h, edge);
-                    dsp->ipred.intra_pred[cfl_uvtx][m](uv_dst[pl], stride, edge, 0);
+                    dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
+                                             cfl_uv_t_dim->w * 4,
+                                             cfl_uv_t_dim->h * 4, 0);
                 }
                 const int furthest_r =
                     ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
@@ -981,8 +984,10 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                               top_sb_edge, b->uv_mode,
                                                               &angle, uv_t_dim->w,
                                                               uv_t_dim->h, edge);
-                        dsp->ipred.intra_pred[b->uvtx][m](dst, stride,
-                                                          edge, angle | sm_uv_fl);
+                        dsp->ipred.intra_pred[m](dst, stride, edge,
+                                                 uv_t_dim->w * 4,
+                                                 uv_t_dim->h * 4,
+                                                 angle | sm_uv_fl);
                         if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                             hex_dump(edge - uv_t_dim->h * 4, uv_t_dim->h * 4,
                                      uv_t_dim->h * 4, 2, "l");
@@ -1100,7 +1105,6 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                 obmc(t, dst, f->cur.p.stride[0], b_dim, 0, bx4, by4, w4, h4);
         }
         if (b->interintra_type) {
-            const enum RectTxfmSize ii_tx = dav1d_max_txfm_size_for_bs[bs][0];
             pixel tl_edge_px[65], *const tl_edge = &tl_edge_px[32];
             enum IntraPredMode m = b->interintra_mode == II_SMOOTH_PRED ?
                                    SMOOTH_PRED : b->interintra_mode;
@@ -1117,7 +1121,8 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                                                   ts->tiling.col_end, ts->tiling.row_end,
                                                   0, dst, f->cur.p.stride[0], top_sb_edge,
                                                   m, &angle, bw4, bh4, tl_edge);
-            dsp->ipred.intra_pred[ii_tx][m](tmp, 4 * bw4 * sizeof(pixel), tl_edge, 0);
+            dsp->ipred.intra_pred[m](tmp, 4 * bw4 * sizeof(pixel),
+                                     tl_edge, bw4 * 4, bh4 * 4, 0);
             const uint8_t *const ii_mask =
                 b->interintra_type == INTER_INTRA_BLEND ?
                      dav1d_ii_masks[bs][0][b->interintra_mode] :
@@ -1210,8 +1215,6 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                 // FIXME for 8x32 with 4:2:2 subsampling, this probably does
                 // the wrong thing since it will select 4x16, not 4x32, as a
                 // transform size...
-                const enum RectTxfmSize ii_tx =
-                    dav1d_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
                 const uint8_t *const ii_mask =
                     b->interintra_type == INTER_INTRA_BLEND ?
                          dav1d_ii_masks[bs][chr_layout_idx][b->interintra_mode] :
@@ -1242,7 +1245,8 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                                                           0, uvdst, f->cur.p.stride[1],
                                                           top_sb_edge, m,
                                                           &angle, cbw4, cbh4, tl_edge);
-                    dsp->ipred.intra_pred[ii_tx][m](tmp, cbw4 * 4 * sizeof(pixel), tl_edge, 0);
+                    dsp->ipred.intra_pred[m](tmp, cbw4 * 4 * sizeof(pixel),
+                                             tl_edge, cbw4 * 4, cbh4 * 4, 0);
                     dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp, cbw4 * 4 * sizeof(pixel),
                                   cbw4 * 4, cbh4 * 4, ii_mask, cbw4 * 4);
                 }

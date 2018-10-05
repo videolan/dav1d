@@ -35,104 +35,60 @@
 #include "common/intops.h"
 
 #include "src/ipred.h"
-
-#define sz_grid(l_fn) \
-l_fn( 4,  4) \
-l_fn( 4,  8) \
-l_fn( 4, 16) \
-l_fn( 8,  4) \
-l_fn( 8,  8) \
-l_fn( 8, 16) \
-l_fn( 8, 32) \
-l_fn(16,  4) \
-l_fn(16,  8) \
-l_fn(16, 16) \
-l_fn(16, 32) \
-l_fn(16, 64) \
-l_fn(32,  8) \
-l_fn(32, 16) \
-l_fn(32, 32) \
-l_fn(32, 64) \
-l_fn(64, 16) \
-l_fn(64, 32) \
-l_fn(64, 64)
+#include "src/tables.h"
 
 static NOINLINE void
-splat_dc_c(pixel *dst, const ptrdiff_t stride,
-           const int w, const int h, const unsigned dc)
+splat_dc(pixel *dst, const ptrdiff_t stride,
+         const int width, const int height, const unsigned dc)
 {
     assert(dc <= (1 << BITDEPTH) - 1);
 #if BITDEPTH == 8
-    if (w > 4) {
+    if (width > 4) {
         const uint64_t dcN = dc * 0x0101010101010101ULL;
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x += sizeof(dcN))
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x += sizeof(dcN))
                 *((uint64_t *) &dst[x]) = dcN;
             dst += PXSTRIDE(stride);
         }
     } else {
         const unsigned dcN = dc * 0x01010101U;
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x += sizeof(dcN))
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x += sizeof(dcN))
                 *((unsigned *) &dst[x]) = dcN;
             dst += PXSTRIDE(stride);
         }
     }
 #else
     const uint64_t dcN = dc * 0x0001000100010001ULL;
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x += sizeof(dcN) >> 1)
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x += sizeof(dcN) >> 1)
             *((uint64_t *) &dst[x]) = dcN;
         dst += PXSTRIDE(stride);
     }
 #endif
 }
 
-#define dc_lfn(w, h, dir, dc_gen) \
-static void dc##dir##_##w##x##h##_c(pixel *dst, const ptrdiff_t stride, \
-                                    const pixel *const topleft, const int a) \
-{ \
-    dc_gen; \
-    splat_dc_c(dst, stride, w, h, dc); \
+static void ipred_dc_top_c(pixel *dst, const ptrdiff_t stride,
+                           const pixel *const topleft,
+                           const int width, const int height, const int a)
+{
+    unsigned dc = width >> 1;
+    for (int i = 0; i < width; i++)
+       dc += topleft[1 + i];
+
+    splat_dc(dst, stride, width, height, dc >> ctz(width));
 }
 
-#define dc1d_lfns(width, height, sh1, sh2) \
-dc_lfn(width, height, top, unsigned dc = width >> 1; \
-                           for (int i = 0; i < width; i++) \
-                               dc += topleft[1 + i]; \
-                           dc >>= sh1) \
-dc_lfn(width, height, left, unsigned dc = height >> 1; \
-                            for (int i = 0; i < height; i++) \
-                                dc += topleft[-(1 + i)]; \
-                            dc >>= sh2)
+static void ipred_dc_left_c(pixel *dst, const ptrdiff_t stride,
+                            const pixel *const topleft,
+                            const int width, const int height, const int a)
+{
+    unsigned dc = height >> 1;
+    for (int i = 0; i < height; i++)
+       dc += topleft[-(1 + i)];
 
-dc1d_lfns( 4,  4, 2, 2)
-dc1d_lfns( 4,  8, 2, 3)
-dc1d_lfns( 4, 16, 2, 4)
-dc1d_lfns( 8,  4, 3, 2)
-dc1d_lfns( 8,  8, 3, 3)
-dc1d_lfns( 8, 16, 3, 4)
-dc1d_lfns( 8, 32, 3, 5)
-dc1d_lfns(16,  4, 4, 2)
-dc1d_lfns(16,  8, 4, 3)
-dc1d_lfns(16, 16, 4, 4)
-dc1d_lfns(16, 32, 4, 5)
-dc1d_lfns(16, 64, 4, 6)
-dc1d_lfns(32,  8, 5, 3)
-dc1d_lfns(32, 16, 5, 4)
-dc1d_lfns(32, 32, 5, 5)
-dc1d_lfns(32, 64, 5, 6)
-dc1d_lfns(64, 16, 6, 4)
-dc1d_lfns(64, 32, 6, 5)
-dc1d_lfns(64, 64, 6, 6)
-
-#define dc2d_lfn(width, height, dc_gen) \
-dc_lfn(width, height,, unsigned dc = (width + height) >> 1; \
-                       for (int i = 0; i < width; i++) \
-                           dc += topleft[i + 1]; \
-                       for (int i = 0; i < height; i++) \
-                           dc += topleft[-(i + 1)]; \
-                       dc_gen)
+    splat_dc(dst, stride, width, height, dc >> ctz(height));
+}
 
 #if BITDEPTH == 8
 #define MULTIPLIER_1x2 0x5556
@@ -144,38 +100,40 @@ dc_lfn(width, height,, unsigned dc = (width + height) >> 1; \
 #define BASE_SHIFT 17
 #endif
 
-dc2d_lfn( 4,  4, dc >>= 3)
-dc2d_lfn( 4,  8, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 2) >> BASE_SHIFT))
-dc2d_lfn( 4, 16, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 2) >> BASE_SHIFT))
-dc2d_lfn( 8,  4, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 2) >> BASE_SHIFT))
-dc2d_lfn( 8,  8, dc >>= 4)
-dc2d_lfn( 8, 16, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 3) >> BASE_SHIFT))
-dc2d_lfn( 8, 32, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 3) >> BASE_SHIFT))
-dc2d_lfn(16,  4, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 2) >> BASE_SHIFT))
-dc2d_lfn(16,  8, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 3) >> BASE_SHIFT))
-dc2d_lfn(16, 16, dc >>= 5)
-dc2d_lfn(16, 32, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 4) >> BASE_SHIFT))
-dc2d_lfn(16, 64, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 4) >> BASE_SHIFT))
-dc2d_lfn(32,  8, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 3) >> BASE_SHIFT))
-dc2d_lfn(32, 16, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 4) >> BASE_SHIFT))
-dc2d_lfn(32, 32, dc >>= 6)
-dc2d_lfn(32, 64, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 5) >> BASE_SHIFT))
-dc2d_lfn(64, 16, dc = iclip_pixel(MULTIPLIER_1x4 * (dc >> 4) >> BASE_SHIFT))
-dc2d_lfn(64, 32, dc = iclip_pixel(MULTIPLIER_1x2 * (dc >> 5) >> BASE_SHIFT))
-dc2d_lfn(64, 64, dc >>= 7)
+static void ipred_dc_c(pixel *dst, const ptrdiff_t stride,
+                       const pixel *const topleft,
+                       const int width, const int height, const int a)
+{
+    unsigned dc = (width + height) >> 1;
+    for (int i = 0; i < width; i++)
+       dc += topleft[i + 1];
+    for (int i = 0; i < height; i++)
+       dc += topleft[-(i + 1)];
+    dc >>= ctz(width + height);
+
+    if (width != height) {
+        dc *= (width > height * 2 || height > width * 2) ? MULTIPLIER_1x4 :
+                                                           MULTIPLIER_1x2;
+        dc >>= BASE_SHIFT;
+    }
+
+    splat_dc(dst, stride, width, height, dc);
+}
 
 #undef MULTIPLIER_1x2
 #undef MULTIPLIER_1x4
 #undef BASE_SHIFT
 
-#define dc128_lfn(width, height) \
-dc_lfn(width, height, 128, const unsigned dc = (1 << BITDEPTH) >> 1)
+static void ipred_dc_128_c(pixel *dst, const ptrdiff_t stride,
+                           const pixel *const topleft,
+                           const int width, const int height, const int a)
+{
+    splat_dc(dst, stride, width, height, 1 << (BITDEPTH - 1));
+}
 
-sz_grid(dc128_lfn)
-
-static NOINLINE void
-v_c(pixel *dst, const ptrdiff_t stride,
-    const pixel *const topleft, const int width, const int height)
+static void ipred_v_c(pixel *dst, const ptrdiff_t stride,
+                      const pixel *const topleft,
+                      const int width, const int height, const int a)
 {
     for (int y = 0; y < height; y++) {
         pixel_copy(dst, topleft + 1, width);
@@ -183,18 +141,9 @@ v_c(pixel *dst, const ptrdiff_t stride,
     }
 }
 
-#define v_lfn(width, height) \
-static void v_##width##x##height##_##c(pixel *dst, const ptrdiff_t stride, \
-                                       const pixel *const topleft, const int a) \
-{ \
-    v_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(v_lfn)
-
-static NOINLINE void
-h_c(pixel *dst, const ptrdiff_t stride,
-    const pixel *const topleft, const int width, const int height)
+static void ipred_h_c(pixel *dst, const ptrdiff_t stride,
+                      const pixel *const topleft,
+                      const int width, const int height, const int a)
 {
     for (int y = 0; y < height; y++) {
         pixel_set(dst, topleft[-(1 + y)], width);
@@ -202,18 +151,9 @@ h_c(pixel *dst, const ptrdiff_t stride,
     }
 }
 
-#define h_lfn(width, height) \
-static void h_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                     const pixel *const topleft, const int a) \
-{ \
-    h_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(h_lfn)
-
-static NOINLINE void
-paeth_c(pixel *dst, const ptrdiff_t stride, const pixel *const tl_ptr,
-        const int width, const int height)
+static void ipred_paeth_c(pixel *dst, const ptrdiff_t stride,
+                          const pixel *const tl_ptr,
+                          const int width, const int height, const int a)
 {
     const int topleft = tl_ptr[0];
     for (int y = 0; y < height; y++) {
@@ -232,43 +172,12 @@ paeth_c(pixel *dst, const ptrdiff_t stride, const pixel *const tl_ptr,
     }
 }
 
-#define paeth_lfn(width, height) \
-static void paeth_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                         const pixel *const topleft, \
-                                         const int a) \
-{ \
-    paeth_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(paeth_lfn)
-
-static const uint8_t sm_weight_arrays[] = {
-    // Unused, because we always offset by bs, which is at least 2.
-    0, 0,
-    // bs = 2
-    255, 128,
-    // bs = 4
-    255, 149, 85, 64,
-    // bs = 8
-    255, 197, 146, 105, 73, 50, 37, 32,
-    // bs = 16
-    255, 225, 196, 170, 145, 123, 102, 84, 68, 54, 43, 33, 26, 20, 17, 16,
-    // bs = 32
-    255, 240, 225, 210, 196, 182, 169, 157, 145, 133, 122, 111, 101, 92, 83, 74,
-    66, 59, 52, 45, 39, 34, 29, 25, 21, 17, 14, 12, 10, 9, 8, 8,
-    // bs = 64
-    255, 248, 240, 233, 225, 218, 210, 203, 196, 189, 182, 176, 169, 163, 156,
-    150, 144, 138, 133, 127, 121, 116, 111, 106, 101, 96, 91, 86, 82, 77, 73, 69,
-    65, 61, 57, 54, 50, 47, 44, 41, 38, 35, 32, 29, 27, 25, 22, 20, 18, 16, 15,
-    13, 12, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 4,
-};
-
-static NOINLINE void
-smooth_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
-         const int width, const int height)
+static void ipred_smooth_c(pixel *dst, const ptrdiff_t stride,
+                           const pixel *const topleft,
+                           const int width, const int height, const int a)
 {
-    const uint8_t *const weights_hor = &sm_weight_arrays[width];
-    const uint8_t *const weights_ver = &sm_weight_arrays[height];
+    const uint8_t *const weights_hor = &dav1d_sm_weights[width];
+    const uint8_t *const weights_ver = &dav1d_sm_weights[height];
     const int right = topleft[width], bottom = topleft[-height];
 
     for (int y = 0; y < height; y++) {
@@ -283,21 +192,11 @@ smooth_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
     }
 }
 
-#define smooth_lfn(width, height) \
-static void smooth_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                          const pixel *const topleft, \
-                                          const int a) \
-{ \
-    smooth_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(smooth_lfn)
-
-static NOINLINE void
-smooth_v_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
-           const int width, const int height)
+static void ipred_smooth_v_c(pixel *dst, const ptrdiff_t stride,
+                             const pixel *const topleft,
+                             const int width, const int height, const int a)
 {
-    const uint8_t *const weights_ver = &sm_weight_arrays[height];
+    const uint8_t *const weights_ver = &dav1d_sm_weights[height];
     const int bottom = topleft[-height];
 
     for (int y = 0; y < height; y++) {
@@ -310,21 +209,11 @@ smooth_v_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
     }
 }
 
-#define smooth_v_lfn(width, height) \
-static void smooth_v_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                            const pixel *const topleft, \
-                                            const int a) \
-{ \
-    smooth_v_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(smooth_v_lfn)
-
-static NOINLINE void
-smooth_h_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
-           const int width, const int height)
+static void ipred_smooth_h_c(pixel *dst, const ptrdiff_t stride,
+                             const pixel *const topleft,
+                             const int width, const int height, const int a)
 {
-    const uint8_t *const weights_hor = &sm_weight_arrays[width];
+    const uint8_t *const weights_hor = &dav1d_sm_weights[width];
     const int right = topleft[width];
 
     for (int y = 0; y < height; y++) {
@@ -336,50 +225,6 @@ smooth_h_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft,
         dst += PXSTRIDE(stride);
     }
 }
-
-#define smooth_h_lfn(width, height) \
-static void smooth_h_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                            const pixel *const topleft, \
-                                            const int a) \
-{ \
-    smooth_h_c(dst, stride, topleft, width, height); \
-}
-
-sz_grid(smooth_h_lfn)
-
-static const int16_t dr_intra_derivative[90] = {
-  // More evenly spread out angles and limited to 10-bit
-  // Values that are 0 will never be used
-  //                    Approx angle
-  0,    0, 0,        //
-  1023, 0, 0,        // 3, ...
-  547,  0, 0,        // 6, ...
-  372,  0, 0, 0, 0,  // 9, ...
-  273,  0, 0,        // 14, ...
-  215,  0, 0,        // 17, ...
-  178,  0, 0,        // 20, ...
-  151,  0, 0,        // 23, ... (113 & 203 are base angles)
-  132,  0, 0,        // 26, ...
-  116,  0, 0,        // 29, ...
-  102,  0, 0, 0,     // 32, ...
-  90,   0, 0,        // 36, ...
-  80,   0, 0,        // 39, ...
-  71,   0, 0,        // 42, ...
-  64,   0, 0,        // 45, ... (45 & 135 are base angles)
-  57,   0, 0,        // 48, ...
-  51,   0, 0,        // 51, ...
-  45,   0, 0, 0,     // 54, ...
-  40,   0, 0,        // 58, ...
-  35,   0, 0,        // 61, ...
-  31,   0, 0,        // 64, ...
-  27,   0, 0,        // 67, ... (67 & 157 are base angles)
-  23,   0, 0,        // 70, ...
-  19,   0, 0,        // 73, ...
-  15,   0, 0, 0, 0,  // 76, ...
-  11,   0, 0,        // 81, ...
-  7,    0, 0,        // 84, ...
-  3,    0, 0,        // 87, ...
-};
 
 static int get_filter_strength(const unsigned blk_wh, const unsigned d,
                                const int type)
@@ -421,11 +266,10 @@ static int get_filter_strength(const unsigned blk_wh, const unsigned d,
     return strength;
 }
 
-static void filter_edge(pixel *const out, const int sz,
-                        const pixel *const in, const int from, const int to,
-                        const unsigned strength)
+static void filter_edge(pixel *const out, const int sz, const pixel *const in,
+                        const int from, const int to, const unsigned strength)
 {
-    const uint8_t kernel[3][5] = {
+    static const uint8_t kernel[3][5] = {
         { 0, 4, 8, 4, 0 },
         { 0, 5, 6, 5, 0 },
         { 2, 4, 4, 4, 2 }
@@ -448,7 +292,7 @@ static int get_upsample(const int blk_wh, const unsigned d, const int type) {
 static void upsample_edge(pixel *const out, const int hsz,
                           const pixel *const in, const int from, const int to)
 {
-    const int8_t kernel[4] = { -1, 9, 9, -1 };
+    static const int8_t kernel[4] = { -1, 9, 9, -1 };
     int i;
     for (i = 0; i < hsz - 1; i++) {
         out[i * 2] = in[iclip(i, from, to - 1)];
@@ -461,14 +305,14 @@ static void upsample_edge(pixel *const out, const int hsz,
     out[i * 2] = in[iclip(i, from, to - 1)];
 }
 
-static NOINLINE void
-z1_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
-     int angle, const int width, const int height)
+static void ipred_z1_c(pixel *dst, const ptrdiff_t stride,
+                       const pixel *const topleft_in,
+                       const int width, const int height, int angle)
 {
     const int is_sm = angle >> 9;
     angle &= 511;
     assert(angle < 90);
-    const int dx = dr_intra_derivative[angle];
+    const int dx = dav1d_dr_intra_derivative[angle];
     pixel top_out[(64 + 64) * 2];
     const pixel *top;
     int max_base_x;
@@ -513,25 +357,15 @@ z1_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     }
 }
 
-#define z1_lfn(width, height) \
-static void z1_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                      const pixel *const topleft, \
-                                      const int angle) \
-{ \
-    z1_c(dst, stride, topleft, angle, width, height); \
-}
-
-sz_grid(z1_lfn)
-
-static NOINLINE void
-z2_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
-     int angle, const int width, const int height)
+static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
+                       const pixel *const topleft_in,
+                       const int width, const int height, int angle)
 {
     const int is_sm = angle >> 9;
     angle &= 511;
     assert(angle > 90 && angle < 180);
-    const int dy = dr_intra_derivative[angle - 90];
-    const int dx = dr_intra_derivative[180 - angle];
+    const int dy = dav1d_dr_intra_derivative[angle - 90];
+    const int dx = dav1d_dr_intra_derivative[180 - angle];
     const int upsample_left = get_upsample(width + height, 180 - angle, is_sm);
     const int upsample_above = get_upsample(width + height, angle - 90, is_sm);
     pixel edge[64 * 2 + 64 * 2 + 1];
@@ -594,24 +428,14 @@ z2_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     }
 }
 
-#define z2_lfn(width, height) \
-static void z2_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                      const pixel *const topleft, \
-                                      const int angle) \
-{ \
-    z2_c(dst, stride, topleft, angle, width, height); \
-}
-
-sz_grid(z2_lfn)
-
-static NOINLINE void
-z3_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
-     int angle, const int width, const int height)
+static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
+                       const pixel *const topleft_in,
+                       const int width, const int height, int angle)
 {
     const int is_sm = angle >> 9;
     angle &= 511;
     assert(angle > 180);
-    const int dy = dr_intra_derivative[270 - angle];
+    const int dy = dav1d_dr_intra_derivative[270 - angle];
     pixel left_out[(64 + 64) * 2];
     const pixel *left;
     int max_base_y;
@@ -659,74 +483,15 @@ z3_c(pixel *dst, const ptrdiff_t stride, const pixel *const topleft_in,
     }
 }
 
-#define z3_lfn(width, height) \
-static void z3_##width##x##height##_c(pixel *dst, const ptrdiff_t stride, \
-                                      const pixel *const topleft, \
-                                      const int angle) \
-{ \
-    z3_c(dst, stride, topleft, angle, width, height); \
-}
-
-sz_grid(z3_lfn)
-
-static const int8_t av1_filter_intra_taps[5][8][8] = {
-    {
-        { -6, 10,  0,  0,  0, 12,  0, 0 },
-        { -5,  2, 10,  0,  0,  9,  0, 0 },
-        { -3,  1,  1, 10,  0,  7,  0, 0 },
-        { -3,  1,  1,  2, 10,  5,  0, 0 },
-        { -4,  6,  0,  0,  0,  2, 12, 0 },
-        { -3,  2,  6,  0,  0,  2,  9, 0 },
-        { -3,  2,  2,  6,  0,  2,  7, 0 },
-        { -3,  1,  2,  2,  6,  3,  5, 0 },
-    }, {
-        { -10, 16,  0,  0,  0, 10,  0, 0 },
-        {  -6,  0, 16,  0,  0,  6,  0, 0 },
-        {  -4,  0,  0, 16,  0,  4,  0, 0 },
-        {  -2,  0,  0,  0, 16,  2,  0, 0 },
-        { -10, 16,  0,  0,  0,  0, 10, 0 },
-        {  -6,  0, 16,  0,  0,  0,  6, 0 },
-        {  -4,  0,  0, 16,  0,  0,  4, 0 },
-        {  -2,  0,  0,  0, 16,  0,  2, 0 },
-    }, {
-        { -8, 8, 0, 0, 0, 16,  0, 0 },
-        { -8, 0, 8, 0, 0, 16,  0, 0 },
-        { -8, 0, 0, 8, 0, 16,  0, 0 },
-        { -8, 0, 0, 0, 8, 16,  0, 0 },
-        { -4, 4, 0, 0, 0,  0, 16, 0 },
-        { -4, 0, 4, 0, 0,  0, 16, 0 },
-        { -4, 0, 0, 4, 0,  0, 16, 0 },
-        { -4, 0, 0, 0, 4,  0, 16, 0 },
-    }, {
-        { -2, 8, 0, 0, 0, 10,  0, 0 },
-        { -1, 3, 8, 0, 0,  6,  0, 0 },
-        { -1, 2, 3, 8, 0,  4,  0, 0 },
-        {  0, 1, 2, 3, 8,  2,  0, 0 },
-        { -1, 4, 0, 0, 0,  3, 10, 0 },
-        { -1, 3, 4, 0, 0,  4,  6, 0 },
-        { -1, 2, 3, 4, 0,  4,  4, 0 },
-        { -1, 2, 2, 3, 4,  3,  3, 0 },
-    }, {
-        { -12, 14,  0,  0,  0, 14,  0, 0 },
-        { -10,  0, 14,  0,  0, 12,  0, 0 },
-        {  -9,  0,  0, 14,  0, 11,  0, 0 },
-        {  -8,  0,  0,  0, 14, 10,  0, 0 },
-        { -10, 12,  0,  0,  0,  0, 14, 0 },
-        {  -9,  1, 12,  0,  0,  0, 12, 0 },
-        {  -8,  0,  0, 12,  0,  1, 11, 0 },
-        {  -7,  0,  0,  1, 12,  1,  9, 0 },
-    },
-};
-
-static NOINLINE void
-filter_intra_c(pixel *dst, const ptrdiff_t stride,
-               const pixel *const topleft_in,
-               int filt_idx, const int width, const int height)
+/* Up to 32x32 only */
+static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
+                           const pixel *const topleft_in,
+                           const int width, const int height, int filt_idx)
 {
     filt_idx &= 511;
     assert(filt_idx < 5);
 
-    const int8_t (*const filter)[8] = av1_filter_intra_taps[filt_idx];
+    const int8_t (*const filter)[8] = dav1d_filter_intra_taps[filt_idx];
     int x, y;
     ptrdiff_t left_stride;
     const pixel *left, *topleft, *top;
@@ -763,30 +528,6 @@ filter_intra_c(pixel *dst, const ptrdiff_t stride,
         dst = &dst[PXSTRIDE(stride) * 2];
     }
 }
-
-#define filter_lfn(width, height) \
-static void filter_##width##x##height##_c(pixel *const dst, \
-                                          const ptrdiff_t stride, \
-                                          const pixel *const topleft, \
-                                          const int filt_idx) \
-{ \
-    filter_intra_c(dst, stride, topleft, filt_idx, width, height); \
-}
-
-filter_lfn( 4,  4)
-filter_lfn( 8,  4)
-filter_lfn(16,  4)
-filter_lfn( 4,  8)
-filter_lfn( 8,  8)
-filter_lfn(16,  8)
-filter_lfn(32,  8)
-filter_lfn( 4, 16)
-filter_lfn( 8, 16)
-filter_lfn(16, 16)
-filter_lfn(32, 16)
-filter_lfn( 8, 32)
-filter_lfn(16, 32)
-filter_lfn(32, 32)
 
 static NOINLINE void
 cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
@@ -956,57 +697,20 @@ static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
 }
 
 void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
-#define assign_lfn(w, h, p1, p2, pfx) \
-    c->intra_pred[pfx##TX_##w##X##h][p1##_PRED] = p2##_##w##x##h##_c
-#define assign_fns(p1, p2) \
-    assign_lfn( 4,  4, p1, p2,); \
-    assign_lfn( 4,  8, p1, p2, R); \
-    assign_lfn( 4, 16, p1, p2, R); \
-    assign_lfn( 8,  4, p1, p2, R); \
-    assign_lfn( 8,  8, p1, p2,); \
-    assign_lfn( 8, 16, p1, p2, R); \
-    assign_lfn( 8, 32, p1, p2, R); \
-    assign_lfn(16,  4, p1, p2, R); \
-    assign_lfn(16,  8, p1, p2, R); \
-    assign_lfn(16, 16, p1, p2,); \
-    assign_lfn(16, 32, p1, p2, R); \
-    assign_lfn(16, 64, p1, p2, R); \
-    assign_lfn(32,  8, p1, p2, R); \
-    assign_lfn(32, 16, p1, p2, R); \
-    assign_lfn(32, 32, p1, p2,); \
-    assign_lfn(32, 64, p1, p2, R); \
-    assign_lfn(64, 16, p1, p2, R); \
-    assign_lfn(64, 32, p1, p2, R); \
-    assign_lfn(64, 64, p1, p2,); \
-
-    assign_fns(DC, dc);
-    assign_fns(DC_128, dc128);
-    assign_fns(TOP_DC,  dctop);
-    assign_fns(LEFT_DC, dcleft);
-    assign_fns(HOR, h);
-    assign_fns(VERT, v);
-    assign_fns(PAETH, paeth);
-    assign_fns(SMOOTH, smooth);
-    assign_fns(SMOOTH_V, smooth_v);
-    assign_fns(SMOOTH_H, smooth_h);
-    assign_fns(Z1, z1);
-    assign_fns(Z2, z2);
-    assign_fns(Z3, z3);
-
-    assign_lfn( 4,  4, FILTER, filter,);
-    assign_lfn( 8,  4, FILTER, filter, R);
-    assign_lfn(16,  4, FILTER, filter, R);
-    assign_lfn( 4,  8, FILTER, filter, R);
-    assign_lfn( 8,  8, FILTER, filter,);
-    assign_lfn(16,  8, FILTER, filter, R);
-    assign_lfn(32,  8, FILTER, filter, R);
-    assign_lfn( 4, 16, FILTER, filter, R);
-    assign_lfn( 8, 16, FILTER, filter, R);
-    assign_lfn(16, 16, FILTER, filter,);
-    assign_lfn(32, 16, FILTER, filter, R);
-    assign_lfn( 8, 32, FILTER, filter, R);
-    assign_lfn(16, 32, FILTER, filter, R);
-    assign_lfn(32, 32, FILTER, filter,);
+    c->intra_pred[DC_PRED      ] = ipred_dc_c;
+    c->intra_pred[DC_128_PRED  ] = ipred_dc_128_c;
+    c->intra_pred[TOP_DC_PRED  ] = ipred_dc_top_c;
+    c->intra_pred[LEFT_DC_PRED ] = ipred_dc_left_c;
+    c->intra_pred[HOR_PRED     ] = ipred_h_c;
+    c->intra_pred[VERT_PRED    ] = ipred_v_c;
+    c->intra_pred[PAETH_PRED   ] = ipred_paeth_c;
+    c->intra_pred[SMOOTH_PRED  ] = ipred_smooth_c;
+    c->intra_pred[SMOOTH_V_PRED] = ipred_smooth_v_c;
+    c->intra_pred[SMOOTH_H_PRED] = ipred_smooth_h_c;
+    c->intra_pred[Z1_PRED      ] = ipred_z1_c;
+    c->intra_pred[Z2_PRED      ] = ipred_z2_c;
+    c->intra_pred[Z3_PRED      ] = ipred_z3_c;
+    c->intra_pred[FILTER_PRED  ] = ipred_filter_c;
 
     // cfl functions are split per chroma subsampling type
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][ TX_4X4  ] = cfl_ac_8x8_to_4x4_c;

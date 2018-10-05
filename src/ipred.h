@@ -40,7 +40,8 @@
  *   see ipred_prepare.h for more detailed documentation.
  */
 #define decl_angular_ipred_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, int angle)
+void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, \
+            int width, int height, int angle)
 typedef decl_angular_ipred_fn(*angular_ipred_fn);
 
 /*
@@ -84,7 +85,7 @@ void (name)(pixel *dst, ptrdiff_t stride, const uint16_t *pal, \
 typedef decl_pal_pred_fn(*pal_pred_fn);
 
 typedef struct Dav1dIntraPredDSPContext {
-    angular_ipred_fn intra_pred[N_RECT_TX_SIZES][N_IMPL_INTRA_PRED_MODES];
+    angular_ipred_fn intra_pred[N_IMPL_INTRA_PRED_MODES];
 
     // chroma-from-luma
     cfl_ac_fn cfl_ac[3 /* 420, 422, 444 */][N_RECT_TX_SIZES /* chroma tx size */];
