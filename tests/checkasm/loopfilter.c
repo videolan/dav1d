@@ -161,6 +161,6 @@ void bitfn(checkasm_check_loopfilter)(void) {
 
     bitfn(dav1d_loop_filter_dsp_init)(&c);
 
-    check_lpf_sb(c.loop_filter_sb128y, "lpf_v_sb128y", 3, 32, 1);
-    check_lpf_sb(c.loop_filter_sb128uv, "lpf_v_sb128uv", 2, 16, 2);
+    check_lpf_sb(c.loop_filter_sb[0][1], "lpf_v_sb128y", 3, 32, 1);
+    check_lpf_sb(c.loop_filter_sb[1][1], "lpf_v_sb128uv", 2, 16, 2);
 }

@@ -159,26 +159,25 @@ loop_filter(pixel *dst, int E, int I, int H,
     }
 }
 
-#define lf_4_fn(dir, wd, stridea, strideb) \
-static void loop_filter_##dir##_##wd##wd_4px_c(pixel *const dst, \
-                                               const ptrdiff_t stride, \
-                                               const int E, const int I, \
-                                               const int H) \
-{ \
-    loop_filter(dst, E, I, H, stridea, strideb, wd); \
+static void loop_filter_h_sb128y_c(pixel *dst, const ptrdiff_t stride,
+                                   const uint32_t *const vmask,
+                                   const uint8_t (*l)[4], ptrdiff_t b4_stride,
+                                   const Av1FilterLUT *lut, const int h)
+{
+    const unsigned vm = (vmask[0] | vmask[1] | vmask[2]) & ((1ULL << h) - 1);
+    for (unsigned y = 1; vm & ~(y - 1);
+         y <<= 1, dst += 4 * PXSTRIDE(stride), l += b4_stride)
+    {
+        if (vm & y) {
+            const int L = l[0][0] ? l[0][0] : l[-1][0];
+            if (!L) continue;
+            const int H = L >> 4;
+            const int E = lut->e[L], I = lut->i[L];
+            const int idx = (vmask[2] & y) ? 2 : !!(vmask[1] & y);
+            loop_filter(dst, E, I, H, PXSTRIDE(stride), 1, 4 << idx);
+        }
+    }
 }
-
-#define lf_4_fns(wd) \
-lf_4_fn(h, wd, PXSTRIDE(stride), 1) \
-lf_4_fn(v, wd, 1, PXSTRIDE(stride))
-
-lf_4_fns(4)
-lf_4_fns(6)
-lf_4_fns(8)
-lf_4_fns(16)
-
-#undef lf_4_fn
-#undef lf_4_fns
 
 static void loop_filter_v_sb128y_c(pixel *dst, const ptrdiff_t stride,
                                    const uint32_t *const vmask,
@@ -194,6 +193,26 @@ static void loop_filter_v_sb128y_c(pixel *dst, const ptrdiff_t stride,
             const int E = lut->e[L], I = lut->i[L];
             const int idx = (vmask[2] & x) ? 2 : !!(vmask[1] & x);
             loop_filter(dst, E, I, H, 1, PXSTRIDE(stride), 4 << idx);
+        }
+    }
+}
+
+static void loop_filter_h_sb128uv_c(pixel *dst, const ptrdiff_t stride,
+                                    const uint32_t *const vmask,
+                                    const uint8_t (*l)[4], ptrdiff_t b4_stride,
+                                    const Av1FilterLUT *lut, const int h)
+{
+    const unsigned vm = (vmask[0] | vmask[1]) & ((1ULL << h) - 1);
+    for (unsigned y = 1; vm & ~(y - 1);
+         y <<= 1, dst += 4 * PXSTRIDE(stride), l += b4_stride)
+    {
+        if (vm & y) {
+            const int L = l[0][0] ? l[0][0] : l[-1][0];
+            if (!L) continue;
+            const int H = L >> 4;
+            const int E = lut->e[L], I = lut->i[L];
+            const int idx = !!(vmask[1] & y);
+            loop_filter(dst, E, I, H, PXSTRIDE(stride), 1, 4 + 2 * idx);
         }
     }
 }
@@ -217,20 +236,10 @@ static void loop_filter_v_sb128uv_c(pixel *dst, const ptrdiff_t stride,
 }
 
 void bitfn(dav1d_loop_filter_dsp_init)(Dav1dLoopFilterDSPContext *const c) {
-    c->loop_filter[0][0] = loop_filter_h_4wd_4px_c;
-    c->loop_filter[0][1] = loop_filter_v_4wd_4px_c;
-    c->loop_filter[1][0] = loop_filter_h_8wd_4px_c;
-    c->loop_filter[1][1] = loop_filter_v_8wd_4px_c;
-    c->loop_filter[2][0] = loop_filter_h_16wd_4px_c;
-    c->loop_filter[2][1] = loop_filter_v_16wd_4px_c;
-
-    c->loop_filter_uv[0][0] = loop_filter_h_4wd_4px_c;
-    c->loop_filter_uv[0][1] = loop_filter_v_4wd_4px_c;
-    c->loop_filter_uv[1][0] = loop_filter_h_6wd_4px_c;
-    c->loop_filter_uv[1][1] = loop_filter_v_6wd_4px_c;
-
-    c->loop_filter_sb128y = loop_filter_v_sb128y_c;
-    c->loop_filter_sb128uv = loop_filter_v_sb128uv_c;
+    c->loop_filter_sb[0][0] = loop_filter_h_sb128y_c;
+    c->loop_filter_sb[0][1] = loop_filter_v_sb128y_c;
+    c->loop_filter_sb[1][0] = loop_filter_h_sb128uv_c;
+    c->loop_filter_sb[1][1] = loop_filter_v_sb128uv_c;
 
 #if HAVE_ASM && ARCH_X86
     bitfn(dav1d_loop_filter_dsp_init_x86)(c);

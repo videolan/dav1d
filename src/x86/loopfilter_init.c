@@ -37,7 +37,7 @@ void bitfn(dav1d_loop_filter_dsp_init_x86)(Dav1dLoopFilterDSPContext *const c) {
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
 #if BITDEPTH == 8 && ARCH_X86_64
-    c->loop_filter_sb128y = dav1d_lpf_v_sb128y_avx2;
-    c->loop_filter_sb128uv = dav1d_lpf_v_sb128uv_avx2;
+    c->loop_filter_sb[0][1] = dav1d_lpf_v_sb128y_avx2;
+    c->loop_filter_sb[1][1] = dav1d_lpf_v_sb128uv_avx2;
 #endif
 }
