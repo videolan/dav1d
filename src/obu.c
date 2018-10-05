@@ -373,8 +373,11 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->primary_ref_frame = !hdr->error_resilient_mode && hdr->frame_type & 1 ?
                              dav1d_get_bits(gb, 3) : PRIMARY_REF_NONE;
 
-    if (hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
-        hdr->refresh_frame_flags = hdr->show_frame ? 0xff : dav1d_get_bits(gb, 8);
+    if (hdr->frame_type == DAV1D_FRAME_TYPE_KEY ||
+        hdr->frame_type == DAV1D_FRAME_TYPE_INTRA)
+    {
+        hdr->refresh_frame_flags = (hdr->frame_type == DAV1D_FRAME_TYPE_KEY &&
+                                    hdr->show_frame) ? 0xff : dav1d_get_bits(gb, 8);
         if (hdr->refresh_frame_flags != 0xff && hdr->error_resilient_mode && seqhdr->order_hint)
             for (int i = 0; i < 8; i++)
                 dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
@@ -383,40 +386,30 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
                              /* FIXME: no superres scaling && */ dav1d_get_bits(gb, 1);
         hdr->use_ref_frame_mvs = 0;
     } else {
-        if (hdr->frame_type == DAV1D_FRAME_TYPE_INTRA) {
-            hdr->refresh_frame_flags = dav1d_get_bits(gb, 8);
-            if (hdr->refresh_frame_flags != 0xff && hdr->error_resilient_mode && seqhdr->order_hint)
-                for (int i = 0; i < 8; i++)
-                    dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
-            if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
-            hdr->allow_intrabc = hdr->allow_screen_content_tools &&
-                             /* FIXME: no superres scaling && */ dav1d_get_bits(gb, 1);
-        } else {
-            hdr->allow_intrabc = 0;
-            hdr->refresh_frame_flags = hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 0xff :
-                                       dav1d_get_bits(gb, 8);
-            if (hdr->error_resilient_mode && seqhdr->order_hint)
-                for (int i = 0; i < 8; i++)
-                    dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
-            hdr->frame_ref_short_signaling =
-                seqhdr->order_hint && dav1d_get_bits(gb, 1);
-            if (hdr->frame_ref_short_signaling) goto error; // FIXME
-            for (int i = 0; i < 7; i++) {
-                hdr->refidx[i] = dav1d_get_bits(gb, 3);
-                if (seqhdr->frame_id_numbers_present)
-                    dav1d_get_bits(gb, seqhdr->delta_frame_id_n_bits);
-            }
-            const int use_ref = !hdr->error_resilient_mode &&
-                                hdr->frame_size_override;
-            if ((res = read_frame_size(c, gb, use_ref)) < 0) goto error;
-            hdr->hp = !hdr->force_integer_mv && dav1d_get_bits(gb, 1);
-            hdr->subpel_filter_mode = dav1d_get_bits(gb, 1) ? FILTER_SWITCHABLE :
-                                                              dav1d_get_bits(gb, 2);
-            hdr->switchable_motion_mode = dav1d_get_bits(gb, 1);
-            hdr->use_ref_frame_mvs = !hdr->error_resilient_mode &&
-                seqhdr->ref_frame_mvs && seqhdr->order_hint &&
-                hdr->frame_type & 1 && dav1d_get_bits(gb, 1);
+        hdr->allow_intrabc = 0;
+        hdr->refresh_frame_flags = hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 0xff :
+                                   dav1d_get_bits(gb, 8);
+        if (hdr->error_resilient_mode && seqhdr->order_hint)
+            for (int i = 0; i < 8; i++)
+                dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
+        hdr->frame_ref_short_signaling =
+            seqhdr->order_hint && dav1d_get_bits(gb, 1);
+        if (hdr->frame_ref_short_signaling) goto error; // FIXME
+        for (int i = 0; i < 7; i++) {
+            hdr->refidx[i] = dav1d_get_bits(gb, 3);
+            if (seqhdr->frame_id_numbers_present)
+                dav1d_get_bits(gb, seqhdr->delta_frame_id_n_bits);
         }
+        const int use_ref = !hdr->error_resilient_mode &&
+                            hdr->frame_size_override;
+        if ((res = read_frame_size(c, gb, use_ref)) < 0) goto error;
+        hdr->hp = !hdr->force_integer_mv && dav1d_get_bits(gb, 1);
+        hdr->subpel_filter_mode = dav1d_get_bits(gb, 1) ? FILTER_SWITCHABLE :
+                                                          dav1d_get_bits(gb, 2);
+        hdr->switchable_motion_mode = dav1d_get_bits(gb, 1);
+        hdr->use_ref_frame_mvs = !hdr->error_resilient_mode &&
+            seqhdr->ref_frame_mvs && seqhdr->order_hint &&
+            hdr->frame_type & 1 && dav1d_get_bits(gb, 1);
     }
 #if DEBUG_FRAME_HDR
     printf("HDR: post-frametype-specific-bits: off=%ld\n",
