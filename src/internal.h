@@ -96,6 +96,7 @@ struct Dav1dContext {
         WarpedMotionParams gmv[7];
         Av1LoopfilterModeRefDeltas lf_mode_ref_deltas;
         Av1FilmGrainData film_grain;
+        uint8_t qidx;
     } refs[8];
     CdfThreadContext cdf[8];
 

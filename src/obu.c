@@ -1102,6 +1102,35 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             pthread_mutex_unlock(&f->frame_thread.td.lock);
         }
         c->have_frame_hdr = 0;
+        if (c->refs[c->frame_hdr.existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
+            const int r = c->frame_hdr.existing_frame_idx;
+            for (int i = 0; i < 8; i++) {
+                if (i == c->frame_hdr.existing_frame_idx) continue;
+
+                if (c->refs[i].p.p.data[0])
+                    dav1d_thread_picture_unref(&c->refs[i].p);
+                dav1d_thread_picture_ref(&c->refs[i].p, &c->refs[r].p);
+
+                if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
+                dav1d_init_states(&c->cdf[i], c->refs[r].qidx);
+
+                c->refs[i].lf_mode_ref_deltas = c->refs[r].lf_mode_ref_deltas;
+                c->refs[i].seg_data = c->refs[r].seg_data;
+                for (int j = 0; j < 7; j++)
+                    c->refs[i].gmv[j] = dav1d_default_wm_params;
+                c->refs[i].film_grain = c->refs[r].film_grain;
+
+                if (c->refs[i].segmap)
+                    dav1d_ref_dec(c->refs[i].segmap);
+                c->refs[i].segmap = c->refs[r].segmap;
+                if (c->refs[r].segmap)
+                    dav1d_ref_inc(c->refs[r].segmap);
+                if (c->refs[i].refmvs)
+                    dav1d_ref_dec(c->refs[i].refmvs);
+                c->refs[i].refmvs = NULL;
+                c->refs[i].qidx = c->refs[r].qidx;
+            }
+        }
     }
 
     return len + init_off;

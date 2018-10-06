@@ -2948,6 +2948,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                     dav1d_ref_inc(f->mvs_ref);
             }
             memcpy(c->refs[i].refpoc, f->refpoc, sizeof(f->refpoc));
+            c->refs[i].qidx = f->frame_hdr.quant.yac;
         }
     }
 
