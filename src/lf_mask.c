@@ -245,27 +245,32 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
     const int bx4 = bx & 31;
     const int by4 = by & 31;
 
-    uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
-    for (int y = 0; y < bh4; y++) {
-        for (int x = 0; x < bw4; x++) {
-            level_cache_ptr[x][0] = filter_level[0][0][0];
-            level_cache_ptr[x][1] = filter_level[1][0][0];
+    if (bw4 && bh4) {
+        uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
+        for (int y = 0; y < bh4; y++) {
+            for (int x = 0; x < bw4; x++) {
+                level_cache_ptr[x][0] = filter_level[0][0][0];
+                level_cache_ptr[x][1] = filter_level[1][0][0];
+            }
+            level_cache_ptr += b4_stride;
         }
-        level_cache_ptr += b4_stride;
-    }
 
-    mask_edges_intra(lflvl->filter_y, by4, bx4, bw4, bh4, ytx, ay, ly);
+        mask_edges_intra(lflvl->filter_y, by4, bx4, bw4, bh4, ytx, ay, ly);
+    }
 
     if (!auv) return;
 
     const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
-    const int cbw4 = (bw4 + ss_hor) >> ss_hor;
-    const int cbh4 = (bh4 + ss_ver) >> ss_ver;
+    const int cbw4 = imin(((iw + ss_hor) >> ss_hor) - (bx >> ss_hor),
+                          (b_dim[0] + ss_hor) >> ss_hor);
+    const int cbh4 = imin(((ih + ss_ver) >> ss_ver) - (by >> ss_ver),
+                          (b_dim[1] + ss_ver) >> ss_ver);
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
 
-    level_cache_ptr = level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
+    uint8_t (*level_cache_ptr)[4] =
+        level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
     for (int y = 0; y < cbh4; y++) {
         for (int x = 0; x < cbw4; x++) {
             level_cache_ptr[x][2] = filter_level[2][0][0];
@@ -300,28 +305,33 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
     const int bx4 = bx & 31;
     const int by4 = by & 31;
 
-    uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
-    for (int y = 0; y < bh4; y++) {
-        for (int x = 0; x < bw4; x++) {
-            level_cache_ptr[x][0] = filter_level[0][0][0];
-            level_cache_ptr[x][1] = filter_level[1][0][0];
+    if (bw4 && bh4) {
+        uint8_t (*level_cache_ptr)[4] = level_cache + by * b4_stride + bx;
+        for (int y = 0; y < bh4; y++) {
+            for (int x = 0; x < bw4; x++) {
+                level_cache_ptr[x][0] = filter_level[0][0][0];
+                level_cache_ptr[x][1] = filter_level[1][0][0];
+            }
+            level_cache_ptr += b4_stride;
         }
-        level_cache_ptr += b4_stride;
-    }
 
-    mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
-                     dav1d_max_txfm_size_for_bs[bs][0], tx_masks, ay, ly);
+        mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
+                         dav1d_max_txfm_size_for_bs[bs][0], tx_masks, ay, ly);
+    }
 
     if (!auv) return;
 
     const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
-    const int cbw4 = (bw4 + ss_hor) >> ss_hor;
-    const int cbh4 = (bh4 + ss_ver) >> ss_ver;
+    const int cbw4 = imin(((iw + ss_hor) >> ss_hor) - (bx >> ss_hor),
+                          (b_dim[0] + ss_hor) >> ss_hor);
+    const int cbh4 = imin(((ih + ss_ver) >> ss_ver) - (by >> ss_ver),
+                          (b_dim[1] + ss_ver) >> ss_ver);
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
 
-    level_cache_ptr = level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
+    uint8_t (*level_cache_ptr)[4] =
+        level_cache + (by >> ss_ver) * b4_stride + (bx >> ss_hor);
     for (int y = 0; y < cbh4; y++) {
         for (int x = 0; x < cbw4; x++) {
             level_cache_ptr[x][2] = filter_level[2][0][0];
