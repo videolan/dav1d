@@ -773,6 +773,7 @@ static void decode_b(Dav1dTileContext *const t,
                 b->seg_id = neg_deinterleave(diff, pred_seg_id,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
+                if (b->seg_id >= NUM_SEGMENTS) b->seg_id = 0; // error?
             }
 
             if (DEBUG_BLOCK_INFO)
@@ -821,6 +822,7 @@ static void decode_b(Dav1dTileContext *const t,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
             }
+            if (b->seg_id >= NUM_SEGMENTS) b->seg_id = 0; // error?
         }
 
         if (DEBUG_BLOCK_INFO)
