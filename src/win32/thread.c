@@ -75,6 +75,7 @@ void dav1d_pthread_join(pthread_t thread, void** res) {
 
     if (res != NULL)
         *res = th->res;
+    CloseHandle(th->h);
     free(th);
 }
 
