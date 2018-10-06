@@ -2589,10 +2589,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             // signal available tasks to worker threads
             int num_tasks;
 
-            const uint64_t all_mask = ~0ULL >> (64 - f->n_tc);
             pthread_mutex_lock(&f->tile_thread.lock);
-            while (f->tile_thread.available != all_mask)
-                pthread_cond_wait(&f->tile_thread.icond, &f->tile_thread.lock);
             assert(!f->tile_thread.tasks_left);
             if (f->frame_thread.pass == 1 || f->n_tc >= f->frame_hdr.tiling.cols) {
                 // we can (or in fact, if >, we need to) do full tile decoding.
@@ -2635,6 +2632,12 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                                                 progress_plane_type);
                 }
             }
+
+            const uint64_t all_mask = ~0ULL >> (64 - f->n_tc);
+            pthread_mutex_lock(&f->tile_thread.lock);
+            while (f->tile_thread.available != all_mask)
+                pthread_cond_wait(&f->tile_thread.icond, &f->tile_thread.lock);
+            pthread_mutex_unlock(&f->tile_thread.lock);
         }
 
         if (f->frame_thread.pass <= 1 && f->frame_hdr.refresh_context) {
