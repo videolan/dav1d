@@ -2541,8 +2541,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
     }
 
-    dav1d_cdf_thread_unref(&f->in_cdf);
-
     // 2-pass decoding:
     // - enabled for frame-threading, so that one frame can do symbol parsing
     //   as another (or multiple) are doing reconstruction. One advantage here
@@ -2578,9 +2576,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                     for (int tile_col = 0; tile_col < f->frame_hdr.tiling.cols; tile_col++) {
                         t->ts = &f->ts[tile_row * f->frame_hdr.tiling.cols + tile_col];
 
-                        int res;
-                        if ((res = dav1d_decode_tile_sbrow(t)))
-                            return res;
+                        if (dav1d_decode_tile_sbrow(t)) goto error;
                     }
 
                     // loopfilter + cdef + restoration
@@ -2651,7 +2647,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 dav1d_update_tile_cdf(&f->frame_hdr, f->out_cdf.cdf,
                                       &f->ts[f->frame_hdr.tiling.update].cdf);
             dav1d_cdf_thread_signal(&f->out_cdf);
-            dav1d_cdf_thread_unref(&f->out_cdf);
         }
         if (f->frame_thread.pass == 1) {
             assert(c->n_fc > 1);
@@ -2681,13 +2676,9 @@ error:
     }
 
     dav1d_thread_picture_unref(&f->cur);
-    // need to be careful about these, currently the only two 'goto error'
-    // are before the {in,out}_cdf get unreffed
-    if (retval != 0) {
-        if (f->frame_hdr.refresh_context)
+    dav1d_cdf_thread_unref(&f->in_cdf);
+    if (f->frame_hdr.refresh_context)
             dav1d_cdf_thread_unref(&f->out_cdf);
-        dav1d_cdf_thread_unref(&f->in_cdf);
-    }
     if (f->cur_segmap_ref)
         dav1d_ref_dec(f->cur_segmap_ref);
     if (f->prev_segmap_ref)
