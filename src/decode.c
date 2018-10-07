@@ -2775,6 +2775,11 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         }
         for (int i = 0; i < 7; i++) {
             const int refidx = f->frame_hdr.refidx[i];
+            if (!c->refs[refidx].p.p.data[0]) {
+                for (int j = 0; j < i; j++)
+                    dav1d_thread_picture_unref(&f->refp[j]);
+                return -EINVAL;
+            }
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
         }
     }
