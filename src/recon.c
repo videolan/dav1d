@@ -521,15 +521,16 @@ static void mc(Dav1dTileContext *const t,
     if (refp != &f->cur) // i.e. not for intrabc
         dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
                                   PLANE_TYPE_Y + !!pl);
-    if (dx < 3 || dx + bw4 * h_mul + 4 > ((f->cur.p.p.w + ss_hor) >> ss_hor) ||
-        dy < 3 || dy + bh4 * v_mul + 4 > ((f->cur.p.p.h + ss_ver) >> ss_ver))
+    if (dx < !!mx * 3 || dy < !!my * 3 ||
+        dx + bw4 * h_mul + !!mx * 4 > ((f->cur.p.p.w + ss_hor) >> ss_hor) ||
+        dy + bh4 * v_mul + !!my * 4 > ((f->cur.p.p.h + ss_ver) >> ss_ver))
     {
         emu_edge(t->emu_edge, 160 * sizeof(pixel), refp->p.data[pl], ref_stride,
-                 bw4 * h_mul + 7, bh4 * v_mul + 7,
+                 bw4 * h_mul + !!mx * 7, bh4 * v_mul + !!my * 7,
                  (f->cur.p.p.w + ss_hor) >> ss_hor,
                  (f->cur.p.p.h + ss_ver) >> ss_ver,
-                 dx - 3, dy - 3);
-        ref = &t->emu_edge[160 * 3 + 3];
+                 dx - !!mx * 3, dy - !!my * 3);
+        ref = &t->emu_edge[160 * !!my * 3 + !!mx * 3];
         ref_stride = 160 * sizeof(pixel);
     } else {
         ref = ((pixel *) refp->p.data[pl]) + PXSTRIDE(ref_stride) * dy + dx;
