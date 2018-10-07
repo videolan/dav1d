@@ -1192,6 +1192,8 @@ static void decode_b(Dav1dTileContext *const t,
             printf("Post-dmv[%d/%d,ref=%d/%d|%d/%d]: r=%d\n",
                    b->mv[0].y, b->mv[0].x, ref.y, ref.x,
                    mvlist[0][0].y, mvlist[0][0].x, ts->msac.rng);
+        if (b->mv[0].x >= 0 && b->mv[0].y >= 0)
+            b->mv[0] = ref;
         read_vartx_tree(t, b, bs, bx4, by4);
 
         // reconstruction
