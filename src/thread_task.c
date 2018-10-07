@@ -32,26 +32,22 @@
 void *dav1d_frame_task(void *const data) {
     Dav1dFrameContext *const f = data;
 
+    pthread_mutex_lock(&f->frame_thread.td.lock);
     for (;;) {
-        pthread_mutex_lock(&f->frame_thread.td.lock);
-        f->n_tile_data = 0;
-        int did_signal = 0;
         while (!f->n_tile_data && !f->frame_thread.die) {
-            if (!did_signal) {
-                did_signal = 1;
-                pthread_cond_signal(&f->frame_thread.td.cond);
-            }
             pthread_cond_wait(&f->frame_thread.td.cond,
                               &f->frame_thread.td.lock);
         }
-        if (f->frame_thread.die) {
-            pthread_mutex_unlock(&f->frame_thread.td.lock);
-            break;
-        }
+        if (f->frame_thread.die) break;
         pthread_mutex_unlock(&f->frame_thread.td.lock);
 
         dav1d_decode_frame(f);
+
+        pthread_mutex_lock(&f->frame_thread.td.lock);
+        f->n_tile_data = 0;
+        pthread_cond_signal(&f->frame_thread.td.cond);
     }
+    pthread_mutex_unlock(&f->frame_thread.td.lock);
 
     return NULL;
 }
