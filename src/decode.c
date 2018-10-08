@@ -2492,6 +2492,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     f->lf.tile_row = 1;
 
     dav1d_cdf_thread_wait(&f->in_cdf);
+    if (f->frame_hdr.refresh_context)
+        memcpy(f->out_cdf.cdf, f->in_cdf.cdf, sizeof(*f->in_cdf.cdf));
 
     // parse individual tiles per tile group
     int update_set = 0, tile_idx = 0;
@@ -2786,7 +2788,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
     if (f->frame_hdr.refresh_context) {
         dav1d_cdf_thread_alloc(&f->out_cdf, c->n_fc > 1 ? &f->frame_thread.td : NULL);
-        memcpy(f->out_cdf.cdf, f->in_cdf.cdf, sizeof(*f->in_cdf.cdf));
     }
 
     // FIXME qsort so tiles are in order (for frame threading)
