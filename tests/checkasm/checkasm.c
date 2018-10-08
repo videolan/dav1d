@@ -51,6 +51,8 @@ static const struct {
     const char *name;
     void (*func)(void);
 } tests[] = {
+    { "ipred_8bpc", checkasm_check_ipred_8bpc },
+    { "ipred_10bpc", checkasm_check_ipred_10bpc },
     { "itx_8bpc", checkasm_check_itx_8bpc },
     { "itx_10bpc", checkasm_check_itx_10bpc },
     { "loopfilter_8bpc", checkasm_check_loopfilter_8bpc },
@@ -408,6 +410,7 @@ static void print_cpu_name(void) {
 }
 
 int main(int argc, char *argv[]) {
+    (void)func_new, (void)func_ref;
 #ifdef readtime
     unsigned int seed = readtime();
 #else
