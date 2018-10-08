@@ -72,15 +72,15 @@ static const char *const itx_1d_names[5] = {
 };
 
 static const double scaling_factors[9] = {
-    4.00,             /*  4x4                          */
-    4.00 * M_SQRT1_2, /*  4x8   8x4                    */
-    2.00,             /*  4x16  8x8  16x4              */
-    2.00 * M_SQRT1_2, /*        8x16 16x8              */
-    1.00,             /*        8x32 16x16 32x8        */
-    1.00 * M_SQRT1_2, /*             16x32 32x16       */
-    0.50,             /*             16x64 32x32 64x16 */
-    0.50 * M_SQRT1_2, /*                   32x64 64x32 */
-    0.25,             /*                         64x64 */
+    4.0000,             /*  4x4                          */
+    4.0000 * M_SQRT1_2, /*  4x8   8x4                    */
+    2.0000,             /*  4x16  8x8  16x4              */
+    2.0000 * M_SQRT1_2, /*        8x16 16x8              */
+    1.0000,             /*        8x32 16x16 32x8        */
+    0.5000 * M_SQRT1_2, /*             16x32 32x16       */
+    0.2500,             /*             16x64 32x32 64x16 */
+    0.1250 * M_SQRT1_2, /*                   32x64 64x32 */
+    0.0625,             /*                         64x64 */
 };
 
 /* FIXME: Ensure that those forward transforms are similar to the real AV1
