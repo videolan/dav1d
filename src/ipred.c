@@ -758,4 +758,8 @@ void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
     c->cfl_pred[3] = cfl_pred_32xN_c;
 
     c->pal_pred = pal_pred_c;
+
+#if HAVE_ASM && ARCH_X86
+    bitfn(dav1d_intra_pred_dsp_init_x86)(c);
+#endif
 }

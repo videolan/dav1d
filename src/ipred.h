@@ -99,4 +99,7 @@ typedef struct Dav1dIntraPredDSPContext {
 void dav1d_intra_pred_dsp_init_8bpc(Dav1dIntraPredDSPContext *c);
 void dav1d_intra_pred_dsp_init_10bpc(Dav1dIntraPredDSPContext *c);
 
+void dav1d_intra_pred_dsp_init_x86_8bpc(Dav1dIntraPredDSPContext *c);
+void dav1d_intra_pred_dsp_init_x86_10bpc(Dav1dIntraPredDSPContext *c);
+
 #endif /* __DAV1D_SRC_IPRED_H__ */

@@ -701,7 +701,8 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
     const TxfmInfo *const uv_t_dim = &dav1d_txfm_dimensions[b->uvtx];
 
     // coefficient coding
-    pixel edge_mem[257], *const edge = &edge_mem[128];
+    ALIGN_STK_32(pixel, edge_buf, 257,);
+    pixel *const edge = edge_buf + 128;
     const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
 
     for (int init_y = 0; init_y < h4; init_y += 16) {
@@ -1106,7 +1107,8 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                 obmc(t, dst, f->cur.p.stride[0], b_dim, 0, bx4, by4, w4, h4);
         }
         if (b->interintra_type) {
-            pixel tl_edge_px[65], *const tl_edge = &tl_edge_px[32];
+            ALIGN_STK_32(pixel, tl_edge_buf, 65,);
+            pixel *const tl_edge = tl_edge_buf + 32;
             enum IntraPredMode m = b->interintra_mode == II_SMOOTH_PRED ?
                                    SMOOTH_PRED : b->interintra_mode;
             pixel *const tmp = t->scratch.interintra;
