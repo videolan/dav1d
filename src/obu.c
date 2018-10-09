@@ -1039,13 +1039,24 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->tile[c->n_tile_data].data.ref = in->ref;
         c->tile[c->n_tile_data].data.data = in->data + off;
         c->tile[c->n_tile_data].data.sz = len + init_off - off;
-        if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end)
+        if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end) {
+            for (int i = 0; i <= c->n_tile_data; i++)
+                dav1d_data_unref(&c->tile[i].data);
+            c->n_tile_data = 0;
+            c->tile_mask = 0;
             goto error;
+        }
 #define mask(a) ((1 << (a)) - 1)
         const unsigned tile_mask = mask(c->tile[c->n_tile_data].end + 1) -
                                    mask(c->tile[c->n_tile_data].start);
 #undef mask
-        if (tile_mask & c->tile_mask) goto error; // tile overlap
+        if (tile_mask & c->tile_mask) { // tile overlap
+            for (int i = 0; i <= c->n_tile_data; i++)
+                dav1d_data_unref(&c->tile[i].data);
+            c->n_tile_data = 0;
+            c->tile_mask = 0;
+            goto error;
+        }
         c->tile_mask |= tile_mask;
         c->n_tile_data++;
         break;
