@@ -440,7 +440,7 @@ typedef struct Av1FrameHeader {
     int refresh_context;
     struct {
         int uniform;
-        int n_bytes;
+        unsigned n_bytes;
         int min_log2_cols, max_log2_cols, log2_cols, cols;
         int col_start_sb[1025];
         int min_log2_rows, max_log2_rows, log2_rows, rows;
