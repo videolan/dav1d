@@ -2776,11 +2776,17 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 #undef assign_bitdepth_case
 
-    if (f->frame_hdr.frame_type & 1)
+    if (f->frame_hdr.frame_type & 1) {
+        if (f->frame_hdr.primary_ref_frame != PRIMARY_REF_NONE) {
+            const int pri_ref = f->frame_hdr.refidx[f->frame_hdr.primary_ref_frame];
+            if (!c->refs[pri_ref].p.p.data[0])
+                return -EINVAL;
+        }
         for (int i = 0; i < 7; i++) {
             const int refidx = f->frame_hdr.refidx[i];
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
         }
+    }
 
     // setup entropy
     if (f->frame_hdr.primary_ref_frame == PRIMARY_REF_NONE) {
