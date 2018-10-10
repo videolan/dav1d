@@ -36,21 +36,15 @@
 #include "src/lf_mask.h"
 #include "src/tables.h"
 
-static void decomp_tx(uint8_t (*txa)[2 /* txsz, step */][32 /* y */][32 /* x */],
+static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /* x */],
                       const enum RectTxfmSize from,
                       const int depth,
                       const int y_off, const int x_off,
                       const uint16_t *const tx_masks)
 {
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[from];
-    int is_split;
-
-    if (depth > 1) {
-        is_split = 0;
-    } else {
-        const int off = y_off * 4 + x_off;
-        is_split = (tx_masks[depth] >> off) & 1;
-    }
+    const int is_split =
+        depth > 1 ? 0 : (tx_masks[depth] >> (y_off * 4 + x_off)) & 1;
 
     if (is_split) {
         const enum RectTxfmSize sub = t_dim->sub;
@@ -69,9 +63,8 @@ static void decomp_tx(uint8_t (*txa)[2 /* txsz, step */][32 /* y */][32 /* x */]
         }
     } else {
         const int lw = imin(2, t_dim->lw), lh = imin(2, t_dim->lh);
-        int y;
 
-        for (y = 0; y < t_dim->h; y++) {
+        for (int y = 0; y < t_dim->h; y++) {
             memset(txa[0][0][y], lw, t_dim->w);
             memset(txa[1][0][y], lh, t_dim->w);
             txa[0][1][y][0] = t_dim->w;
@@ -80,7 +73,7 @@ static void decomp_tx(uint8_t (*txa)[2 /* txsz, step */][32 /* y */][32 /* x */]
     }
 }
 
-static inline void mask_edges_inter(uint32_t (*masks)[32][3],
+static inline void mask_edges_inter(uint32_t (*const masks)[32][3],
                                     const int by4, const int bx4,
                                     const int w4, const int h4, const int skip,
                                     const enum RectTxfmSize max_tx,
@@ -91,9 +84,8 @@ static inline void mask_edges_inter(uint32_t (*masks)[32][3],
     int y, x;
 
     uint8_t txa[2 /* edge */][2 /* txsz, step */][32 /* y */][32 /* x */];
-    int y_off, x_off;
-    for (y_off = 0, y = 0; y < h4; y += t_dim->h, y_off++)
-        for (x_off = 0, x = 0; x < w4; x += t_dim->w, x_off++)
+    for (int y_off = 0, y = 0; y < h4; y += t_dim->h, y_off++)
+        for (int x_off = 0, x = 0; x < w4; x += t_dim->w, x_off++)
             decomp_tx((uint8_t(*)[2][32][32]) &txa[0][0][y][x],
                       max_tx, 0, y_off, x_off, tx_masks);
 
@@ -103,7 +95,7 @@ static inline void mask_edges_inter(uint32_t (*masks)[32][3],
         masks[0][bx4][imin(txa[0][0][y][0], l[y])] |= mask;
 
     // top block edge
-    for (mask = 1U << bx4, x = 0; x < w4; x++, mask <<= 1)
+    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1)
         masks[1][by4][imin(txa[1][0][0][x], a[x])] |= mask;
 
     if (!skip) {
@@ -156,7 +148,7 @@ static inline void mask_edges_intra(uint32_t (*const masks)[32][3],
         masks[0][bx4][imin(twl4c, l[y])] |= mask;
 
     // top block edge
-    for (mask = 1U << bx4, x = 0; x < w4; x++, mask <<= 1)
+    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1)
         masks[1][by4][imin(thl4c, a[x])] |= mask;
 
     // inner (tx) left|right edges
@@ -197,7 +189,7 @@ static inline void mask_edges_chroma(uint32_t (*const masks)[32][2],
         masks[0][cbx4][imin(twl4c, l[y])] |= mask;
 
     // top block edge
-    for (mask = 1U << cbx4, x = 0; x < cw4; x++, mask <<= 1)
+    for (x = 0, mask = 1U << cbx4; x < cw4; x++, mask <<= 1)
         masks[1][cby4][imin(thl4c, a[x])] |= mask;
 
     if (!skip_inter) {
@@ -344,11 +336,9 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
 }
 
 void dav1d_calc_eih(Av1FilterLUT *const lim_lut, const int filter_sharpness) {
-    int level;
-
     // set E/I/H values from loopfilter level
     const int sharp = filter_sharpness;
-    for (level = 0; level < 64; level++) {
+    for (int level = 0; level < 64; level++) {
         int limit = level;
 
         if (sharp > 0) {
@@ -364,10 +354,10 @@ void dav1d_calc_eih(Av1FilterLUT *const lim_lut, const int filter_sharpness) {
     lim_lut->sharp[1] = sharp ? 9 - sharp : 0xff;
 }
 
-static void dav1d_calc_lf_value(uint8_t (*const lflvl_values)[2],
-                                const int is_chroma, const int base_lvl,
-                                const int lf_delta, const int seg_delta,
-                                const Av1LoopfilterModeRefDeltas *const mr_delta)
+static inline void calc_lf_value(uint8_t (*const lflvl_values)[2],
+                                 const int is_chroma, const int base_lvl,
+                                 const int lf_delta, const int seg_delta,
+                                 const Av1LoopfilterModeRefDeltas *const mr_delta)
 {
     const int base = iclip(iclip(base_lvl + lf_delta, 0, 63) + seg_delta, 0, 63);
 
@@ -407,16 +397,16 @@ void dav1d_calc_lf_values(uint8_t (*const lflvl_values)[4][8][2],
         const Av1SegmentationData *const segd =
             hdr->segmentation.enabled ? &hdr->segmentation.seg_data.d[s] : NULL;
 
-        dav1d_calc_lf_value(lflvl_values[s][0], 0, hdr->loopfilter.level_y[0],
-                            lf_delta[0], segd ? segd->delta_lf_y_v : 0, mr_deltas);
-        dav1d_calc_lf_value(lflvl_values[s][1], 0, hdr->loopfilter.level_y[1],
-                            lf_delta[hdr->delta.lf.multi ? 1 : 0],
-                            segd ? segd->delta_lf_y_h : 0, mr_deltas);
-        dav1d_calc_lf_value(lflvl_values[s][2], 1, hdr->loopfilter.level_u,
-                            lf_delta[hdr->delta.lf.multi ? 2 : 0],
-                            segd ? segd->delta_lf_u : 0, mr_deltas);
-        dav1d_calc_lf_value(lflvl_values[s][3], 1, hdr->loopfilter.level_v,
-                            lf_delta[hdr->delta.lf.multi ? 3 : 0],
-                            segd ? segd->delta_lf_v : 0, mr_deltas);
+        calc_lf_value(lflvl_values[s][0], 0, hdr->loopfilter.level_y[0],
+                      lf_delta[0], segd ? segd->delta_lf_y_v : 0, mr_deltas);
+        calc_lf_value(lflvl_values[s][1], 0, hdr->loopfilter.level_y[1],
+                      lf_delta[hdr->delta.lf.multi ? 1 : 0],
+                      segd ? segd->delta_lf_y_h : 0, mr_deltas);
+        calc_lf_value(lflvl_values[s][2], 1, hdr->loopfilter.level_u,
+                      lf_delta[hdr->delta.lf.multi ? 2 : 0],
+                      segd ? segd->delta_lf_u : 0, mr_deltas);
+        calc_lf_value(lflvl_values[s][3], 1, hdr->loopfilter.level_v,
+                      lf_delta[hdr->delta.lf.multi ? 3 : 0],
+                      segd ? segd->delta_lf_v : 0, mr_deltas);
     }
 }

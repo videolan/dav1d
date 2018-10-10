@@ -38,13 +38,12 @@ static NOINLINE void
 loop_filter(pixel *dst, int E, int I, int H,
             const ptrdiff_t stridea, const ptrdiff_t strideb, const int wd)
 {
-    int i, F = 1 << (BITDEPTH - 8);
-
+    const int F = 1 << (BITDEPTH - 8);
     E <<= BITDEPTH - 8;
     I <<= BITDEPTH - 8;
     H <<= BITDEPTH - 8;
 
-    for (i = 0; i < 4; i++, dst += stridea) {
+    for (int i = 0; i < 4; i++, dst += stridea) {
         int p6, p5, p4, p3, p2;
         int p1 = dst[strideb * -2], p0 = dst[strideb * -1];
         int q0 = dst[strideb * +0], q1 = dst[strideb * +1];
@@ -127,7 +126,7 @@ loop_filter(pixel *dst, int E, int I, int H,
             dst[strideb * +0] = (p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3;
             dst[strideb * +1] = (p0 + 2 * q0 + 2 * q1 + 2 * q2 + q2 + 4) >> 3;
         } else {
-            int hev = abs(p1 - p0) > H || abs(q1 - q0) > H;
+            const int hev = abs(p1 - p0) > H || abs(q1 - q0) > H;
 
 #define iclip_diff(v) iclip(v, -128 * (1 << (BITDEPTH - 8)), \
                                 128 * (1 << (BITDEPTH - 8)) - 1)

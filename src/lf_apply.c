@@ -124,13 +124,12 @@ static inline void filter_plane_rows_uv(const Dav1dFrameContext *const f,
                                         const int starty4, const int endy4)
 {
     const Dav1dDSPContext *const dsp = f->dsp;
-    int y;
-    ptrdiff_t off_l;
+    ptrdiff_t off_l = 0;
 
     //                                 block1
     // filter edges between rows (e.g. ------)
     //                                 block2
-    for (off_l = 0, y = starty4; y < endy4;
+    for (int y = starty4; y < endy4;
          y++, off_l += 4 * PXSTRIDE(ls), lvl += b4_stride)
     {
         if (!have_top && !y) continue;
@@ -158,7 +157,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     const int halign = (f->bh + 31) & ~31;
     const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
-    const int endy4 = starty4 + imin(hy4 - sby * f->sb_step, sbsz);
+    const int endy4 = starty4 + imin(hy4 - sby * sbsz, sbsz);
     const int uv_endy4 = (endy4 + ss_ver) >> ss_ver;
 
     // fix lpf strength at tile col boundaries
