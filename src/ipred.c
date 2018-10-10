@@ -68,26 +68,66 @@ splat_dc(pixel *dst, const ptrdiff_t stride,
 #endif
 }
 
-static void ipred_dc_top_c(pixel *dst, const ptrdiff_t stride,
-                           const pixel *const topleft,
-                           const int width, const int height, const int a)
+static NOINLINE void
+cfl_pred(pixel *dst, const ptrdiff_t stride,
+         const int width, const int height, const unsigned dc,
+         const int8_t alpha, const int16_t *ac)
+{
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            const int diff = alpha * ac[x];
+            dst[x] = iclip_pixel(dc + apply_sign((abs(diff) + 32) >> 6, diff));
+        }
+        ac += width;
+        dst += PXSTRIDE(stride);
+    }
+}
+
+static unsigned dc_gen_top(const pixel *const topleft, const int width)
 {
     unsigned dc = width >> 1;
     for (int i = 0; i < width; i++)
        dc += topleft[1 + i];
+    return dc >> ctz(width);
+}
 
-    splat_dc(dst, stride, width, height, dc >> ctz(width));
+static void ipred_dc_top_c(pixel *dst, const ptrdiff_t stride,
+                           const pixel *const topleft,
+                           const int width, const int height, const int a)
+{
+    splat_dc(dst, stride, width, height, dc_gen_top(topleft, width));
+}
+
+static void ipred_cfl_top_c(pixel *dst, const ptrdiff_t stride,
+                            const pixel *const topleft,
+                            const int width, const int height,
+                            const int8_t alpha, const int16_t *ac)
+{
+    cfl_pred(dst, stride, width, height, dc_gen_top(topleft, width), alpha, ac);
+}
+
+static unsigned dc_gen_left(const pixel *const topleft, const int height)
+{
+    unsigned dc = height >> 1;
+    for (int i = 0; i < height; i++)
+       dc += topleft[-(1 + i)];
+    return dc >> ctz(height);
 }
 
 static void ipred_dc_left_c(pixel *dst, const ptrdiff_t stride,
                             const pixel *const topleft,
                             const int width, const int height, const int a)
 {
-    unsigned dc = height >> 1;
-    for (int i = 0; i < height; i++)
-       dc += topleft[-(1 + i)];
+    splat_dc(dst, stride, width, height, dc_gen_left(topleft, height));
+}
 
-    splat_dc(dst, stride, width, height, dc >> ctz(height));
+static void ipred_cfl_left_c(pixel *dst, const ptrdiff_t stride,
+                             const pixel *const topleft,
+                             const int width, const int height,
+                             const int8_t alpha, const int16_t *ac)
+{
+    unsigned dc = dc_gen_left(topleft, height);
+    cfl_pred(dst, stride, width, height, dc, alpha, ac);
 }
 
 #if BITDEPTH == 8
@@ -100,9 +140,8 @@ static void ipred_dc_left_c(pixel *dst, const ptrdiff_t stride,
 #define BASE_SHIFT 17
 #endif
 
-static void ipred_dc_c(pixel *dst, const ptrdiff_t stride,
-                       const pixel *const topleft,
-                       const int width, const int height, const int a)
+static unsigned
+dc_gen(const pixel *const topleft, const int width, const int height)
 {
     unsigned dc = (width + height) >> 1;
     for (int i = 0; i < width; i++)
@@ -116,8 +155,23 @@ static void ipred_dc_c(pixel *dst, const ptrdiff_t stride,
                                                            MULTIPLIER_1x2;
         dc >>= BASE_SHIFT;
     }
+    return dc;
+}
 
-    splat_dc(dst, stride, width, height, dc);
+static void ipred_dc_c(pixel *dst, const ptrdiff_t stride,
+                       const pixel *const topleft,
+                       const int width, const int height, const int a)
+{
+    splat_dc(dst, stride, width, height, dc_gen(topleft, width, height));
+}
+
+static void ipred_cfl_c(pixel *dst, const ptrdiff_t stride,
+                        const pixel *const topleft,
+                        const int width, const int height,
+                        const int8_t alpha, const int16_t *ac)
+{
+    unsigned dc = dc_gen(topleft, width, height);
+    cfl_pred(dst, stride, width, height, dc, alpha, ac);
 }
 
 #undef MULTIPLIER_1x2
@@ -129,6 +183,14 @@ static void ipred_dc_128_c(pixel *dst, const ptrdiff_t stride,
                            const int width, const int height, const int a)
 {
     splat_dc(dst, stride, width, height, 1 << (BITDEPTH - 1));
+}
+
+static void ipred_cfl_128_c(pixel *dst, const ptrdiff_t stride,
+                            const pixel *const topleft,
+                            const int width, const int height,
+                            const int8_t alpha, const int16_t *ac)
+{
+    cfl_pred(dst, stride, width, height, 1 << (BITDEPTH - 1), alpha, ac);
 }
 
 static void ipred_v_c(pixel *dst, const ptrdiff_t stride,
@@ -620,36 +682,6 @@ cfl_ac_fn(32,  8, 32,  8, 0, 0, 8)
 cfl_ac_fn(32, 16, 32, 16, 0, 0, 9)
 cfl_ac_fn(32, 32, 32, 32, 0, 0, 10)
 
-static NOINLINE void
-cfl_pred_1_c(pixel *dst, const ptrdiff_t stride, const int16_t *ac,
-             const int8_t alpha, const int width, const int height)
-{
-    const pixel dc = *dst;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            const int diff = alpha * ac[x];
-            dst[x] = iclip_pixel(dc + apply_sign((abs(diff) + 32) >> 6, diff));
-        }
-        ac += width;
-        dst += PXSTRIDE(stride);
-    }
-}
-
-#define cfl_pred_1_fn(width) \
-static void cfl_pred_1_##width##xN_c(pixel *const dst, \
-                                     const ptrdiff_t stride, \
-                                     const int16_t *const ac, \
-                                     const int8_t alpha, \
-                                     const int height) \
-{ \
-    cfl_pred_1_c(dst, stride, ac, alpha, width, height); \
-}
-
-cfl_pred_1_fn( 4)
-cfl_pred_1_fn( 8)
-cfl_pred_1_fn(16)
-cfl_pred_1_fn(32)
-
 static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
                        const uint16_t *const pal, const uint8_t *idx,
                        const int w, const int h)
@@ -713,10 +745,10 @@ void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_32X16] = cfl_ac_32x16_to_32x16_c;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][ TX_32X32] = cfl_ac_32x32_to_32x32_c;
 
-    c->cfl_pred_1[0] = cfl_pred_1_4xN_c;
-    c->cfl_pred_1[1] = cfl_pred_1_8xN_c;
-    c->cfl_pred_1[2] = cfl_pred_1_16xN_c;
-    c->cfl_pred_1[3] = cfl_pred_1_32xN_c;
+    c->cfl_pred[DC_PRED     ] = ipred_cfl_c;
+    c->cfl_pred[DC_128_PRED ] = ipred_cfl_128_c;
+    c->cfl_pred[TOP_DC_PRED ] = ipred_cfl_top_c;
+    c->cfl_pred[LEFT_DC_PRED] = ipred_cfl_left_c;
 
     c->pal_pred = pal_pred_c;
 

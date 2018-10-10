@@ -59,11 +59,11 @@ typedef decl_cfl_ac_fn(*cfl_ac_fn);
  * dst[x,y] += alpha * ac[x,y]
  * - alpha contains a q3 scalar in [-16,16] range;
  */
-#define decl_cfl_pred_1_fn(name) \
-void (name)(pixel *dst, ptrdiff_t stride, \
-            const int16_t *ac, const int8_t alpha, \
-            const int height)
-typedef decl_cfl_pred_1_fn(*cfl_pred_1_fn);
+#define decl_cfl_pred_fn(name) \
+void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, \
+            int width, int height, const int8_t alpha, \
+            const int16_t *ac)
+typedef decl_cfl_pred_fn(*cfl_pred_fn);
 
 /*
  * dst[x,y] = pal[idx[x,y]]
@@ -79,7 +79,7 @@ typedef struct Dav1dIntraPredDSPContext {
 
     // chroma-from-luma
     cfl_ac_fn cfl_ac[3 /* 420, 422, 444 */][N_RECT_TX_SIZES /* chroma tx size */];
-    cfl_pred_1_fn cfl_pred_1[4];
+    cfl_pred_fn cfl_pred[DC_128_PRED + 1];
 
     // palette
     pal_pred_fn pal_pred;

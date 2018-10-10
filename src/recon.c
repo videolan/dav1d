@@ -880,14 +880,15 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           top_sb_edge, DC_PRED, &angle,
                                                           cfl_uv_t_dim->w,
                                                           cfl_uv_t_dim->h, edge);
-                    dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
-                                             cfl_uv_t_dim->w * 4,
-                                             cfl_uv_t_dim->h * 4, 0);
                     if (b->cfl_alpha[pl]) {
-                        dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[pl],
-                                                                stride, ac,
-                                                                b->cfl_alpha[pl],
-                                                                cbh4 * 4);
+                        dsp->ipred.cfl_pred[m](uv_dst[pl], stride, edge,
+                                               cfl_uv_t_dim->w * 4,
+                                               cfl_uv_t_dim->h * 4,
+                                               b->cfl_alpha[pl], ac);
+                    } else {
+                        dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
+                                                 cfl_uv_t_dim->w * 4,
+                                                 cfl_uv_t_dim->h * 4, 0);
                     }
                 }
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
