@@ -2413,14 +2413,14 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         f->ipred_edge[2] = &ptr[f->ipred_edge_sz * 2];
     }
 
-    if (f->sb128h > f->lf.re_sz) {
+    if (f->sb128h * f->frame_hdr.tiling.cols > f->lf.re_sz) {
         freep(&f->lf.tx_lpf_right_edge[0]);
         f->lf.tx_lpf_right_edge[0] = malloc((f->sb128h * 32 * 2) *
                                             f->frame_hdr.tiling.cols);
         if (!f->lf.tx_lpf_right_edge[0]) return -ENOMEM;
         f->lf.tx_lpf_right_edge[1] = f->lf.tx_lpf_right_edge[0] +
                                      f->sb128h * 32 * f->frame_hdr.tiling.cols;
-        f->lf.re_sz = f->sb128h;
+        f->lf.re_sz = f->sb128h * f->frame_hdr.tiling.cols;
     }
 
     // init ref mvs
