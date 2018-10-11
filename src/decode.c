@@ -2499,27 +2499,14 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         memcpy(f->out_cdf.cdf, f->in_cdf.cdf, sizeof(*f->in_cdf.cdf));
 
     // parse individual tiles per tile group
-    int update_set = 0, tile_idx = 0;
-    const unsigned tile_col_mask = (1 << f->frame_hdr.tiling.log2_cols) - 1;
+    int update_set = 0, tile_row = 0, tile_col = 0;
     for (int i = 0; i < f->n_tile_data; i++) {
         const uint8_t *data = f->tile[i].data.data;
         size_t size = f->tile[i].data.sz;
 
-        const int last_tile_row_plus1 = 1 + (f->tile[i].end >> f->frame_hdr.tiling.log2_cols);
-        const int last_tile_col_plus1 = 1 + (f->tile[i].end & tile_col_mask);
-        const int empty_tile_cols = imax(0, last_tile_col_plus1 - f->frame_hdr.tiling.cols);
-        const int empty_tile_rows = imax(0, last_tile_row_plus1 - f->frame_hdr.tiling.rows);
-        const int empty_tiles =
-            (empty_tile_rows << f->frame_hdr.tiling.log2_cols) + empty_tile_cols;
-        for (int j = f->tile[i].start; j <= f->tile[i].end - empty_tiles; j++) {
-            const int tile_row = j >> f->frame_hdr.tiling.log2_cols;
-            const int tile_col = j & tile_col_mask;
-
-            if (tile_col >= f->frame_hdr.tiling.cols) continue;
-            if (tile_row >= f->frame_hdr.tiling.rows) continue;
-
+        for (int j = f->tile[i].start; j <= f->tile[i].end; j++) {
             size_t tile_sz;
-            if (j == f->tile[i].end - empty_tiles) {
+            if (j == f->tile[i].end) {
                 tile_sz = size;
             } else {
                 if (f->frame_hdr.tiling.n_bytes > size) goto error;
@@ -2531,9 +2518,13 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 if (tile_sz > size) goto error;
             }
 
-            setup_tile(&f->ts[tile_row * f->frame_hdr.tiling.cols + tile_col],
-                       f, data, tile_sz, tile_row, tile_col,
-                       c->n_fc > 1 ? f->frame_thread.tile_start_off[tile_idx++] : 0);
+            setup_tile(&f->ts[j], f, data, tile_sz, tile_row, tile_col++,
+                       c->n_fc > 1 ? f->frame_thread.tile_start_off[j] : 0);
+
+            if (tile_col == f->frame_hdr.tiling.cols) {
+                tile_col = 0;
+                tile_row++;
+            }
             if (j == f->frame_hdr.tiling.update && f->frame_hdr.refresh_context)
                 update_set = 1;
             data += tile_sz;

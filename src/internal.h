@@ -75,7 +75,7 @@ struct Dav1dContext {
         int start, end;
     } tile[256];
     int n_tile_data, have_seq_hdr, have_frame_hdr;
-    unsigned tile_mask;
+    int n_tiles;
     Av1SequenceHeader seq_hdr; // FIXME make ref?
     Av1FrameHeader frame_hdr; // FIXME make ref?
 

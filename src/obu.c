@@ -483,6 +483,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     if (hdr->tiling.log2_cols || hdr->tiling.log2_rows) {
         hdr->tiling.update = dav1d_get_bits(gb, hdr->tiling.log2_cols +
                                                 hdr->tiling.log2_rows);
+        if (hdr->tiling.update >= hdr->tiling.cols * hdr->tiling.rows)
+            goto error;
         hdr->tiling.n_bytes = dav1d_get_bits(gb, 2) + 1;
     } else {
         hdr->tiling.n_bytes = hdr->tiling.update = 0;
@@ -958,17 +960,18 @@ static int parse_tile_hdr(Dav1dContext *const c, GetBits *const gb) {
     const uint8_t *const init_ptr = gb->ptr;
 
     int have_tile_pos = 0;
-    const int n_bits = c->frame_hdr.tiling.log2_cols +
-                       c->frame_hdr.tiling.log2_rows;
-    if (n_bits)
+    const int n_tiles = c->frame_hdr.tiling.cols * c->frame_hdr.tiling.rows;
+    if (n_tiles > 1)
         have_tile_pos = dav1d_get_bits(gb, 1);
 
     if (have_tile_pos) {
+        const int n_bits = c->frame_hdr.tiling.log2_cols +
+                           c->frame_hdr.tiling.log2_rows;
         c->tile[c->n_tile_data].start = dav1d_get_bits(gb, n_bits);
         c->tile[c->n_tile_data].end = dav1d_get_bits(gb, n_bits);
     } else {
         c->tile[c->n_tile_data].start = 0;
-        c->tile[c->n_tile_data].end = (1 << n_bits) - 1;
+        c->tile[c->n_tile_data].end = n_tiles - 1;
     }
 
     return dav1d_flush_get_bits(gb) - init_ptr;
@@ -1023,7 +1026,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         for (int n = 0; n < c->n_tile_data; n++)
             dav1d_data_unref(&c->tile[n].data);
         c->n_tile_data = 0;
-        c->tile_mask = 0;
+        c->n_tiles = 0;
         if (type == OBU_FRAME_HDR) break;
         off += res;
         // fall-through
@@ -1039,25 +1042,19 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->tile[c->n_tile_data].data.ref = in->ref;
         c->tile[c->n_tile_data].data.data = in->data + off;
         c->tile[c->n_tile_data].data.sz = len + init_off - off;
-        if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end) {
+        if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end ||
+            (c->n_tile_data > 0 &&
+             (c->tile[c->n_tile_data].start !=
+              c->tile[c->n_tile_data - 1].end + 1)))
+        {
             for (int i = 0; i <= c->n_tile_data; i++)
                 dav1d_data_unref(&c->tile[i].data);
             c->n_tile_data = 0;
-            c->tile_mask = 0;
+            c->n_tiles = 0;
             goto error;
         }
-#define mask(a) ((1 << (a)) - 1)
-        const unsigned tile_mask = mask(c->tile[c->n_tile_data].end + 1) -
-                                   mask(c->tile[c->n_tile_data].start);
-#undef mask
-        if (tile_mask & c->tile_mask) { // tile overlap
-            for (int i = 0; i <= c->n_tile_data; i++)
-                dav1d_data_unref(&c->tile[i].data);
-            c->n_tile_data = 0;
-            c->tile_mask = 0;
-            goto error;
-        }
-        c->tile_mask |= tile_mask;
+        c->n_tiles += 1 + c->tile[c->n_tile_data].end -
+                          c->tile[c->n_tile_data].start;
         c->n_tile_data++;
         break;
     case OBU_PADDING:
@@ -1070,10 +1067,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         return -EINVAL;
     }
 
-    const int n_tiles = 1 << (c->frame_hdr.tiling.log2_cols +
-                              c->frame_hdr.tiling.log2_rows);
     if (c->have_seq_hdr && c->have_frame_hdr &&
-        c->tile_mask == (1U << n_tiles) - 1)
+        c->n_tiles == c->frame_hdr.tiling.cols * c->frame_hdr.tiling.rows)
     {
         if (!c->n_tile_data)
             return -EINVAL;
@@ -1081,7 +1076,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             return res;
         assert(!c->n_tile_data);
         c->have_frame_hdr = 0;
-        c->tile_mask = 0;
+        c->n_tiles = 0;
     } else if (c->have_seq_hdr && c->have_frame_hdr &&
                c->frame_hdr.show_existing_frame)
     {
