@@ -650,40 +650,6 @@ cfl_pred_1_fn( 8)
 cfl_pred_1_fn(16)
 cfl_pred_1_fn(32)
 
-static NOINLINE void
-cfl_pred_c(pixel *dstU, pixel *dstV, const ptrdiff_t stride, const int16_t *ac,
-           const int8_t *const alphas, const int width, const int height)
-{
-    const pixel dcU = *dstU, dcV = *dstV;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            const int diff1 = alphas[0] * ac[x];
-            dstU[x] = iclip_pixel(dcU + apply_sign((abs(diff1) + 32) >> 6, diff1));
-            const int diff2 = alphas[1] * ac[x];
-            dstV[x] = iclip_pixel(dcV + apply_sign((abs(diff2) + 32) >> 6, diff2));
-        }
-        ac += width;
-        dstU += PXSTRIDE(stride);
-        dstV += PXSTRIDE(stride);
-    }
-}
-
-#define cfl_pred_fn(width) \
-static void cfl_pred_##width##xN_c(pixel *const dstU, \
-                                   pixel *const dstV, \
-                                   const ptrdiff_t stride, \
-                                   const int16_t *const ac, \
-                                   const int8_t *const alphas, \
-                                   const int height) \
-{ \
-    cfl_pred_c(dstU, dstV, stride, ac, alphas, width, height); \
-}
-
-cfl_pred_fn( 4)
-cfl_pred_fn( 8)
-cfl_pred_fn(16)
-cfl_pred_fn(32)
-
 static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
                        const uint16_t *const pal, const uint8_t *idx,
                        const int w, const int h)
@@ -751,11 +717,6 @@ void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
     c->cfl_pred_1[1] = cfl_pred_1_8xN_c;
     c->cfl_pred_1[2] = cfl_pred_1_16xN_c;
     c->cfl_pred_1[3] = cfl_pred_1_32xN_c;
-
-    c->cfl_pred[0] = cfl_pred_4xN_c;
-    c->cfl_pred[1] = cfl_pred_8xN_c;
-    c->cfl_pred[2] = cfl_pred_16xN_c;
-    c->cfl_pred[3] = cfl_pred_32xN_c;
 
     c->pal_pred = pal_pred_c;
 

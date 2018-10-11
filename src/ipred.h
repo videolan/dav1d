@@ -66,16 +66,6 @@ void (name)(pixel *dst, ptrdiff_t stride, \
 typedef decl_cfl_pred_1_fn(*cfl_pred_1_fn);
 
 /*
- * dst[plane][x,y] += alpha[plane] * ac[x,y]
- * - alphas contains two q3 scalars (one for each plane) in [-16,16] range;
- */
-#define decl_cfl_pred_fn(name) \
-void (name)(pixel *u_dst, pixel *v_dst, ptrdiff_t stride, \
-            const int16_t *ac, const int8_t *const alphas, \
-            const int height)
-typedef decl_cfl_pred_fn(*cfl_pred_fn);
-
-/*
  * dst[x,y] = pal[idx[x,y]]
  * - palette indices are [0-7]
  */
@@ -90,7 +80,6 @@ typedef struct Dav1dIntraPredDSPContext {
     // chroma-from-luma
     cfl_ac_fn cfl_ac[3 /* 420, 422, 444 */][N_RECT_TX_SIZES /* chroma tx size */];
     cfl_pred_1_fn cfl_pred_1[4];
-    cfl_pred_fn cfl_pred[4];
 
     // palette
     pal_pred_fn pal_pred;

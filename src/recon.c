@@ -851,6 +851,14 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                 const TxfmInfo *const cfl_uv_t_dim =
                     &dav1d_txfm_dimensions[cfl_uvtx];
 
+                const int furthest_r =
+                    ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
+                const int furthest_b =
+                    ((ch4 << ss_ver) + t_dim->h - 1) & ~(t_dim->h - 1);
+                dsp->ipred.cfl_ac[f->cur.p.p.layout - 1]
+                                 [cfl_uvtx](ac, y_src, f->cur.p.stride[0],
+                                            cbw4 - (furthest_r >> ss_hor),
+                                            cbh4 - (furthest_b >> ss_ver));
                 for (int pl = 0; pl < 2; pl++) {
                     int angle = 0;
                     const pixel *top_sb_edge = NULL;
@@ -875,26 +883,12 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                     dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
                                              cfl_uv_t_dim->w * 4,
                                              cfl_uv_t_dim->h * 4, 0);
-                }
-                const int furthest_r =
-                    ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
-                const int furthest_b =
-                    ((ch4 << ss_ver) + t_dim->h - 1) & ~(t_dim->h - 1);
-                dsp->ipred.cfl_ac[f->cur.p.p.layout - 1]
-                                 [cfl_uvtx](ac, y_src, f->cur.p.stride[0],
-                                            cbw4 - (furthest_r >> ss_hor),
-                                            cbh4 - (furthest_b >> ss_ver));
-                if (b->cfl_alpha[0] && b->cfl_alpha[1]) {
-                  dsp->ipred.cfl_pred[cfl_uv_t_dim->lw](uv_dst[0],
-                                                        uv_dst[1], stride,
-                                                        ac, b->cfl_alpha,
-                                                        cbh4 * 4);
-                } else {
-                  const int pl = !b->cfl_alpha[0];
-                  dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[pl],
-                                                          stride, ac,
-                                                          b->cfl_alpha[pl],
-                                                          cbh4 * 4);
+                    if (b->cfl_alpha[pl]) {
+                        dsp->ipred.cfl_pred_1[cfl_uv_t_dim->lw](uv_dst[pl],
+                                                                stride, ac,
+                                                                b->cfl_alpha[pl],
+                                                                cbh4 * 4);
+                    }
                 }
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                     ac_dump(ac, 4*cbw4, 4*cbh4, "ac");
