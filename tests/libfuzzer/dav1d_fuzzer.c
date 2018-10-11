@@ -46,6 +46,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     const uint8_t *ptr = data;
     int err;
 
+    dav1d_version();
+
     if (size < 32) goto end;
     ptr += 32; // skip ivf header
 
@@ -91,6 +93,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     } while (err == 0);
 
 cleanup:
+    dav1d_flush(ctx);
     dav1d_close(&ctx);
 end:
     return 0;
