@@ -30,7 +30,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include "src/cpu.h"
 
@@ -39,11 +38,22 @@
 #define COLOR_RED    FOREGROUND_RED
 #define COLOR_GREEN  FOREGROUND_GREEN
 #define COLOR_YELLOW (FOREGROUND_RED|FOREGROUND_GREEN)
+
+static unsigned get_seed(void) {
+    return GetTickCount();
+}
 #else
 #include <unistd.h>
+#include <sys/time.h>
 #define COLOR_RED    1
 #define COLOR_GREEN  2
 #define COLOR_YELLOW 3
+
+static unsigned get_seed(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_usec + tv.tv_sec * 1000000;
+}
 #endif
 
 /* List of tests to invoke */
@@ -411,11 +421,7 @@ static void print_cpu_name(void) {
 
 int main(int argc, char *argv[]) {
     (void)func_new, (void)func_ref;
-#ifdef readtime
-    unsigned int seed = readtime();
-#else
-    unsigned int seed = time(NULL);
-#endif
+    unsigned int seed = get_seed();
     int ret = 0;
 
     while (argc > 1) {
