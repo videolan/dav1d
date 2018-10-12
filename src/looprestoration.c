@@ -40,6 +40,7 @@
 // TODO Reuse p when no padding is needed (add and remove lpf pixels in p)
 // TODO Chroma only requires 2 rows of padding.
 static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
+                    const pixel (*left)[4],
                     const pixel *lpf, const ptrdiff_t lpf_stride,
                     int unit_w, const int stripe_h, const enum LrEdgeFlags edges)
 {
@@ -84,7 +85,7 @@ static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
 
     // Inner UNIT_WxSTRIPE_H
     for (int j = 0; j < stripe_h; j++) {
-        pixel_copy(dst_tl, p, unit_w);
+        pixel_copy(dst_tl + 3 * have_left, p + 3 * have_left, unit_w - 3 * have_left);
         dst_tl += REST_UNIT_STRIDE;
         p += PXSTRIDE(p_stride);
     }
@@ -107,6 +108,12 @@ static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
             dst += REST_UNIT_STRIDE;
             dst_l += REST_UNIT_STRIDE;
         }
+    } else {
+        dst += 3 * REST_UNIT_STRIDE;
+        for (int j = 0; j < stripe_h; j++) {
+            pixel_copy(dst, &left[j][1], 3);
+            dst += REST_UNIT_STRIDE;
+        }
     }
 }
 
@@ -115,6 +122,7 @@ static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
 // FIXME Could implement a version that requires less temporary memory
 // (should be possible to implement with only 6 rows of temp storage)
 static void wiener_c(pixel *p, const ptrdiff_t p_stride,
+                     const pixel (*const left)[4],
                      const pixel *lpf, const ptrdiff_t lpf_stride,
                      const int w, const int h,
                      const int16_t filterh[7], const int16_t filterv[7],
@@ -125,7 +133,7 @@ static void wiener_c(pixel *p, const ptrdiff_t p_stride,
     pixel tmp[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
     pixel *tmp_ptr = tmp;
 
-    padding(tmp, p, p_stride, lpf, lpf_stride, w, h, edges);
+    padding(tmp, p, p_stride, left, lpf, lpf_stride, w, h, edges);
 
     // Values stored between horizontal and vertical filtering don't
     // fit in a uint8_t.
@@ -489,6 +497,7 @@ static void selfguided_filter(int32_t *dst, const pixel *src,
 }
 
 static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
+                         const pixel (*const left)[4],
                          const pixel *lpf, const ptrdiff_t lpf_stride,
                          const int w, const int h, const int sgr_idx,
                          const int16_t sgr_w[2], const enum LrEdgeFlags edges)
@@ -497,7 +506,7 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
     // of padding above and below
     pixel tmp[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
 
-    padding(tmp, p, p_stride, lpf, lpf_stride, w, h, edges);
+    padding(tmp, p, p_stride, left, lpf, lpf_stride, w, h, edges);
 
     // Selfguided filter outputs to a maximum stripe height of 64 and a
     // maximum restoration width of 384 (256 * 1.5)

@@ -124,7 +124,8 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
 }
 
 
-static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
+static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
+                      const pixel (*left)[4], int x, int y,
                       const int plane, const int unit_w, const int row_h,
                       const Av1RestorationUnit *const lr, enum LrEdgeFlags edges)
 {
@@ -161,14 +162,15 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
             edges |= LR_HAVE_BOTTOM;
         }
         if (lr->type == RESTORATION_WIENER) {
-            dsp->lr.wiener(p, p_stride, lpf, lpf_stride, unit_w, stripe_h,
+            dsp->lr.wiener(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                            filterh, filterv, edges);
         } else {
             assert(lr->type == RESTORATION_SGRPROJ);
-            dsp->lr.selfguided(p, p_stride, lpf, lpf_stride, unit_w, stripe_h,
+            dsp->lr.selfguided(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                                lr->sgr_idx, lr->sgr_weights, edges);
         }
 
+        left += stripe_h;
         y += stripe_h;
         if (y + stripe_h > row_h && sbrow_has_bottom) break;
         p += stripe_h * PXSTRIDE(p_stride);
@@ -179,18 +181,11 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p, int x, int y,
     }
 }
 
-static void backup3xU(pixel *dst, const pixel *src, const ptrdiff_t src_stride,
+static void backup4xU(pixel (*dst)[4], const pixel *src, const ptrdiff_t src_stride,
                       int u)
 {
-    for (; u > 0; u--, dst += 3, src += PXSTRIDE(src_stride))
-        pixel_copy(dst, src, 3);
-}
-
-static void restore3xU(pixel *dst, const ptrdiff_t dst_stride, const pixel *src,
-                       int u)
-{
-    for (; u > 0; u--, dst += PXSTRIDE(dst_stride), src += 3)
-        pixel_copy(dst, src, 3);
+    for (; u > 0; u--, dst++, src += PXSTRIDE(src_stride))
+        pixel_copy(dst, src, 4);
 }
 
 static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
@@ -227,15 +222,14 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     const int filter_h =
         imin(((1 << (6 + f->seq_hdr.sb128)) - 8 * !y) >> ss_ver, h - y);
 
-    pixel pre_lr_border[128 /* maximum sbrow height is 128 */ * 3];
-    pixel post_lr_border[128 /* maximum sbrow height is 128 */ * 3];
+    pixel pre_lr_border[2][128 /* maximum sbrow height is 128 */][4];
 
-    int unit_w = unit_size;
+    int unit_w = unit_size, bit = 0;
 
     enum LrEdgeFlags edges = (y > 0 ? LR_HAVE_TOP : 0) |
                              (row_h < h ? LR_HAVE_BOTTOM : 0);
 
-    for (int x = 0, rux = 0; x < w; x+= unit_w, rux++, edges |= LR_HAVE_LEFT) {
+    for (int x = 0, rux = 0; x < w; x+= unit_w, rux++, edges |= LR_HAVE_LEFT, bit ^= 1) {
         // TODO Clean up this if statement.
         if (x + max_unit_size > w) {
             unit_w = w - x;
@@ -251,22 +245,13 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
             &f->lf.mask[(((ruy << (unit_size_log2)) >> shift_ver) * f->sb128w) +
                         (x >> shift_hor)].lr[plane][unit_idx];
 
-        if (edges & LR_HAVE_LEFT) {
-            restore3xU(p - 3, p_stride, pre_lr_border, filter_h);
-        }
         // FIXME Don't backup if the next restoration unit is RESTORE_NONE
         // This also requires not restoring in the same conditions.
         if (edges & LR_HAVE_RIGHT) {
-            backup3xU(pre_lr_border, p + unit_w - 3, p_stride, filter_h);
+            backup4xU(pre_lr_border[bit], p + unit_w - 4, p_stride, filter_h);
         }
         if (lr->type != RESTORATION_NONE) {
-            lr_stripe(f, p, x, y, plane, unit_w, row_h, lr, edges);
-        }
-        if (edges & LR_HAVE_LEFT) {
-            restore3xU(p - 3, p_stride, post_lr_border, filter_h);
-        }
-        if (edges & LR_HAVE_RIGHT) {
-            backup3xU(post_lr_border, p + unit_w - 3, p_stride, filter_h);
+            lr_stripe(f, p, pre_lr_border[!bit], x, y, plane, unit_w, row_h, lr, edges);
         }
         p += unit_w;
     }
