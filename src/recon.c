@@ -855,6 +855,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                            cbw4 - (furthest_r >> ss_hor),
                                            cbh4 - (furthest_b >> ss_ver));
                 for (int pl = 0; pl < 2; pl++) {
+                    if (!b->cfl_alpha[pl]) continue;
                     int angle = 0;
                     const pixel *top_sb_edge = NULL;
                     if (!((t->by & ~ss_ver) & (f->sb_step - 1))) {
@@ -875,16 +876,10 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           top_sb_edge, DC_PRED, &angle,
                                                           uv_t_dim->w,
                                                           uv_t_dim->h, edge);
-                    if (b->cfl_alpha[pl]) {
-                        dsp->ipred.cfl_pred[m](uv_dst[pl], stride, edge,
-                                               uv_t_dim->w * 4,
-                                               uv_t_dim->h * 4,
-                                               b->cfl_alpha[pl], ac);
-                    } else {
-                        dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
-                                                 uv_t_dim->w * 4,
-                                                 uv_t_dim->h * 4, 0);
-                    }
+                    dsp->ipred.cfl_pred[m](uv_dst[pl], stride, edge,
+                                           uv_t_dim->w * 4,
+                                           uv_t_dim->h * 4,
+                                           b->cfl_alpha[pl], ac);
                 }
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                     ac_dump(ac, 4*cbw4, 4*cbh4, "ac");
@@ -943,8 +938,11 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                     for (x = init_x >> ss_hor, t->bx += init_x; x < sub_cw4;
                          x += uv_t_dim->w, t->bx += uv_t_dim->w << ss_hor)
                     {
-                        if (b->uv_mode == CFL_PRED || b->pal_sz[1])
+                        if ((b->uv_mode == CFL_PRED && b->cfl_alpha[pl]) ||
+                            b->pal_sz[1])
+                        {
                             goto skip_uv_pred;
+                        }
 
                         int angle = b->uv_angle;
                         // this probably looks weird because we're using
@@ -963,6 +961,8 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                             const int sby = t->by >> f->sb_shift;
                             top_sb_edge += f->sb128w * 128 * (sby - 1);
                         }
+                        const enum IntraPredMode uv_mode =
+                             b->uv_mode == CFL_PRED ? DC_PRED : b->uv_mode;
                         const enum IntraPredMode m =
                             bytefn(dav1d_prepare_intra_edges)(t->bx >> ss_hor,
                                                               (t->bx >> ss_hor) >
@@ -973,7 +973,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                               ts->tiling.col_end >> ss_hor,
                                                               ts->tiling.row_end >> ss_ver,
                                                               edge_flags, dst, stride,
-                                                              top_sb_edge, b->uv_mode,
+                                                              top_sb_edge, uv_mode,
                                                               &angle, uv_t_dim->w,
                                                               uv_t_dim->h, edge);
                         dsp->ipred.intra_pred[m](dst, stride, edge,
