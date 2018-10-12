@@ -845,20 +845,15 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                               (t->by >> ss_ver) * PXSTRIDE(stride));
                 pixel *const uv_dst[2] = { ((pixel *) f->cur.p.data[1]) + uv_off,
                                            ((pixel *) f->cur.p.data[2]) + uv_off };
-                // cfl_uvtx can be different from uvtx in case of lossless
-                const enum RectTxfmSize cfl_uvtx =
-                    dav1d_max_txfm_size_for_bs[bs][f->cur.p.p.layout];
-                const TxfmInfo *const cfl_uv_t_dim =
-                    &dav1d_txfm_dimensions[cfl_uvtx];
 
                 const int furthest_r =
                     ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
                 const int furthest_b =
                     ((ch4 << ss_ver) + t_dim->h - 1) & ~(t_dim->h - 1);
                 dsp->ipred.cfl_ac[f->cur.p.p.layout - 1]
-                                 [cfl_uvtx](ac, y_src, f->cur.p.stride[0],
-                                            cbw4 - (furthest_r >> ss_hor),
-                                            cbh4 - (furthest_b >> ss_ver));
+                                 [b->uvtx](ac, y_src, f->cur.p.stride[0],
+                                           cbw4 - (furthest_r >> ss_hor),
+                                           cbh4 - (furthest_b >> ss_ver));
                 for (int pl = 0; pl < 2; pl++) {
                     int angle = 0;
                     const pixel *top_sb_edge = NULL;
@@ -878,17 +873,17 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           ts->tiling.row_end >> ss_ver,
                                                           0, uv_dst[pl], stride,
                                                           top_sb_edge, DC_PRED, &angle,
-                                                          cfl_uv_t_dim->w,
-                                                          cfl_uv_t_dim->h, edge);
+                                                          uv_t_dim->w,
+                                                          uv_t_dim->h, edge);
                     if (b->cfl_alpha[pl]) {
                         dsp->ipred.cfl_pred[m](uv_dst[pl], stride, edge,
-                                               cfl_uv_t_dim->w * 4,
-                                               cfl_uv_t_dim->h * 4,
+                                               uv_t_dim->w * 4,
+                                               uv_t_dim->h * 4,
                                                b->cfl_alpha[pl], ac);
                     } else {
                         dsp->ipred.intra_pred[m](uv_dst[pl], stride, edge,
-                                                 cfl_uv_t_dim->w * 4,
-                                                 cfl_uv_t_dim->h * 4, 0);
+                                                 uv_t_dim->w * 4,
+                                                 uv_t_dim->h * 4, 0);
                     }
                 }
                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
