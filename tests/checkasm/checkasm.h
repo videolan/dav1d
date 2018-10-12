@@ -101,6 +101,35 @@ static inline uint64_t readtime(void) {
 }
 #define readtime readtime
 #endif
+#elif ARCH_AARCH64
+#ifdef _MSC_VER
+#define readtime() (_InstructionSynchronizationBarrier(), ReadTimeStampCounter())
+#else
+static inline uint64_t readtime(void) {
+    uint64_t cycle_counter;
+    /* This requires enabling user mode access to the cycle counter (which
+     * can only be done from kernel space).
+     * This could also read cntvct_el0 instead of pmccntr_el0; that register
+     * might also be readable (depending on kernel version), but it has much
+     * worse precision (it's a fixed 50 MHz timer). */
+    __asm__ __volatile__("isb\nmrs %0, pmccntr_el0"
+                         : "=r"(cycle_counter)
+                         :: "memory");
+    return cycle_counter;
+}
+#define readtime readtime
+#endif
+#elif ARCH_ARM && !defined(_MSC_VER)
+static inline uint64_t readtime(void) {
+    uint32_t cycle_counter;
+    /* This requires enabling user mode access to the cycle counter (which
+     * can only be done from kernel space). */
+    __asm__ __volatile__("isb\nmrc p15, 0, %0, c9, c13, 0"
+                         : "=r"(cycle_counter)
+                         :: "memory");
+    return cycle_counter;
+}
+#define readtime readtime
 #endif
 
 /* Verifies that clobbered callee-saved registers
