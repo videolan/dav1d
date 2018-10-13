@@ -2255,6 +2255,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
     if (f->n_tc > 1) {
         if (f->frame_hdr.tiling.cols * f->sbh > f->tile_thread.titsati_sz) {
+            freep(&f->tile_thread.task_idx_to_sby_and_tile_idx);
             f->tile_thread.task_idx_to_sby_and_tile_idx =
                 malloc(sizeof(*f->tile_thread.task_idx_to_sby_and_tile_idx) *
                        f->frame_hdr.tiling.cols * f->sbh);

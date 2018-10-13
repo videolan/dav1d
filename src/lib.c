@@ -267,6 +267,7 @@ void dav1d_close(Dav1dContext **const c_out) {
             pthread_mutex_destroy(&f->tile_thread.lock);
             pthread_cond_destroy(&f->tile_thread.cond);
             pthread_cond_destroy(&f->tile_thread.icond);
+            freep(&f->tile_thread.task_idx_to_sby_and_tile_idx);
         }
         for (int m = 0; m < f->n_tc; m++) {
             Dav1dTileContext *const t = &f->tc[m];
