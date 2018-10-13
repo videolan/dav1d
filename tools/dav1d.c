@@ -132,6 +132,8 @@ int main(const int argc, char *const *const argv) {
             break;
     } while (data.sz > 0 || !input_read(in, &data));
 
+    if (data.sz > 0) dav1d_data_unref(&data);
+
     // flush
     if (res == 0) while (!cli_settings.limit || n_out < cli_settings.limit) {
         if ((res = dav1d_decode(c, NULL, &p)) < 0) {
