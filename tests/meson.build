@@ -117,3 +117,8 @@ dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
     build_by_default: true,
     dependencies : [thread_dependency],
     )
+
+# Include dav1d test data repository with additional tests
+if get_option('testdata_tests')
+    subdir('dav1d-test-data')
+endif
