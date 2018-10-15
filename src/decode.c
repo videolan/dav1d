@@ -3090,6 +3090,13 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // segmap
     if (f->frame_hdr.segmentation.enabled) {
+
+        // By default, the previous segmentation map is not initialised.
+        f->prev_segmap_ref = NULL;
+        f->prev_segmap = NULL;
+
+        // We might need a previous frame's segmentation map. This
+        // happens if there is either no update or a temporal update.
         if (f->frame_hdr.segmentation.temporal || !f->frame_hdr.segmentation.update_map) {
             const int pri_ref = f->frame_hdr.primary_ref_frame;
             assert(pri_ref != PRIMARY_REF_NONE);
@@ -3097,30 +3104,37 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             const int ref_h = ((f->refp[pri_ref].p.p.h + 7) >> 3) << 1;
             if (ref_w == f->bw && ref_h == f->bh) {
                 f->prev_segmap_ref = c->refs[f->frame_hdr.refidx[pri_ref]].segmap;
-                if (f->prev_segmap_ref == NULL) {
-                    res = -EINVAL;
-                    goto error;
+                if (f->prev_segmap_ref) {
+                    dav1d_ref_inc(f->prev_segmap_ref);
+                    f->prev_segmap = f->prev_segmap_ref->data;
                 }
-                dav1d_ref_inc(f->prev_segmap_ref);
-                f->prev_segmap = f->prev_segmap_ref->data;
-            } else {
-                f->prev_segmap_ref = NULL;
-                f->prev_segmap = NULL;
             }
-        } else {
-            f->prev_segmap_ref = NULL;
-            f->prev_segmap = NULL;
+            // It is an error to signal a temporal update if the
+            // previous frame was the wrong size or had no
+            // segmentation data.
+            if (f->frame_hdr.segmentation.temporal && !f->prev_segmap_ref) {
+                res = -EINVAL;
+                goto error;
+            }
         }
+
         if (f->frame_hdr.segmentation.update_map) {
+            // We're updating an existing map, but need somewhere to
+            // put the new values. Allocate them here (the data
+            // actually gets set elsewhere)
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
             f->cur_segmap = f->cur_segmap_ref->data;
         } else if (f->prev_segmap_ref) {
+            // We're not updating an existing map, and we have a valid
+            // reference. Use that.
             f->cur_segmap_ref = f->prev_segmap_ref;
             dav1d_ref_inc(f->cur_segmap_ref);
             f->cur_segmap = f->prev_segmap_ref->data;
         } else {
-            res = -EINVAL;
-            goto error;
+            // We need to make a new map. Allocate one here and zero it out.
+            f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
+            f->cur_segmap = f->cur_segmap_ref->data;
+            memset(f->cur_segmap_ref->data, 0, f->b4_stride * 32 * f->sb128h);
         }
     } else {
         f->cur_segmap = NULL;
