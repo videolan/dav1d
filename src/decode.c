@@ -1189,12 +1189,66 @@ static int decode_b(Dav1dTileContext *const t,
 
         const struct mv ref = b->mv[0];
         read_mv_residual(t, &b->mv[0], &ts->cdf.dmv, 0);
+
+        // clip intrabc motion vector to decoded parts of current tile
+        int border_left = ts->tiling.col_start * 4;
+        int border_top  = ts->tiling.row_start * 4;
+        if (has_chroma) {
+            if (bw4 < 2 &&  ss_hor)
+                border_left += 4;
+            if (bh4 < 2 &&  ss_ver)
+                border_top  += 4;
+        }
+        int src_left   = t->bx * 4 + (b->mv[0].x >> 3);
+        int src_top    = t->by * 4 + (b->mv[0].y >> 3);
+        int src_right  = src_left + bw4 * 4;
+        int src_bottom = src_top  + bh4 * 4;
+
+        // check against left or right tile boundary and adjust if necessary
+        if (src_left < border_left) {
+            src_right += border_left - src_left;
+            src_left  += border_left - src_left;
+        } else if (src_right > ts->tiling.col_end * 4) {
+            src_left  -= src_right - ts->tiling.col_end * 4;
+            src_right -= src_right - ts->tiling.col_end * 4;
+        }
+        // check against top tile boundary and adjust if necessary
+        if (src_top < border_top) {
+            src_bottom += border_top - src_top;
+            src_top    += border_top - src_top;
+        }
+
+        const int sbx = (t->bx >> (4 + f->seq_hdr.sb128)) << (6 + f->seq_hdr.sb128);
+        const int sby = (t->by >> (4 + f->seq_hdr.sb128)) << (6 + f->seq_hdr.sb128);
+        const int sb_size = 1 << (6 + f->seq_hdr.sb128);
+        // check for overlap with current superblock
+        if (src_bottom > sby && src_right > sbx) {
+            if (src_top - border_top >= src_bottom - sby) {
+                // if possible move src up into the previous suberblock row
+                src_top    -= src_bottom - sby;
+                src_bottom -= src_bottom - sby;
+            } else if (src_left - border_left >= src_right - sbx) {
+                // if possible move src left into the previous suberblock
+                src_left  -= src_right - sbx;
+                src_right -= src_right - sbx;
+            }
+        }
+        // move src up if it is below current superblock row
+        if (src_bottom > sby + sb_size) {
+            src_top    -= src_bottom - (sby + sb_size);
+            src_bottom -= src_bottom - (sby + sb_size);
+        }
+        // error out if mv still overlaps with the current superblock
+        if (src_bottom > sby && src_right > sbx)
+            return -1;
+
+        b->mv[0].x = (src_left - t->bx * 4) * 8;
+        b->mv[0].y = (src_top  - t->by * 4) * 8;
+
         if (DEBUG_BLOCK_INFO)
             printf("Post-dmv[%d/%d,ref=%d/%d|%d/%d]: r=%d\n",
                    b->mv[0].y, b->mv[0].x, ref.y, ref.x,
                    mvlist[0][0].y, mvlist[0][0].x, ts->msac.rng);
-        if (b->mv[0].x >= 0 && b->mv[0].y >= 0)
-            b->mv[0] = ref;
         read_vartx_tree(t, b, bs, bx4, by4);
 
         // reconstruction
