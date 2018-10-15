@@ -72,30 +72,44 @@ static const char *find_extension(const char *const f) {
            &step[1] : NULL;
 }
 
-int input_open(DemuxerContext **const c_out, const char *const filename,
+int input_open(DemuxerContext **const c_out,
+               const char *const name, const char *const filename,
                unsigned fps[2], unsigned *const num_frames)
 {
     const Demuxer *impl;
     DemuxerContext *c;
     int res, i;
 
-    const char *const ext = find_extension(filename);
-    if (!ext) {
-        fprintf(stderr, "No extension found for file %s\n", filename);
-        return -1;
-    }
-
-    for (i = 0; i < num_demuxers; i++) {
-        if (!strcmp(demuxers[i]->extension, ext)) {
-            impl = demuxers[i];
-            break;
+    if (name) {
+        for (i = 0; i < num_demuxers; i++) {
+            if (!strcmp(demuxers[i]->name, name)) {
+                impl = demuxers[i];
+                break;
+            }
         }
-    }
-    if (i == num_demuxers) {
-        fprintf(stderr,
-                "Failed to find demuxer for file %s (\"%s\")\n",
-                filename, ext);
-        return -ENOPROTOOPT;
+        if (i == num_demuxers) {
+            fprintf(stderr, "Failed to find demuxer named \"%s\"\n", name);
+            return -ENOPROTOOPT;
+        }
+    } else {
+        const char *const ext = find_extension(filename);
+        if (!ext) {
+            fprintf(stderr, "No extension found for file %s\n", filename);
+            return -1;
+        }
+
+        for (i = 0; i < num_demuxers; i++) {
+            if (!strcmp(demuxers[i]->extension, ext)) {
+                impl = demuxers[i];
+                break;
+            }
+        }
+        if (i == num_demuxers) {
+            fprintf(stderr,
+                    "Failed to find demuxer for file %s (\"%s\")\n",
+                    filename, ext);
+            return -ENOPROTOOPT;
+        }
     }
 
     if (!(c = malloc(sizeof(DemuxerContext) + impl->priv_data_size))) {

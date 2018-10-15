@@ -33,6 +33,7 @@
 typedef struct {
     const char *outputfile;
     const char *inputfile;
+    const char *demuxer;
     const char *muxer;
     unsigned limit, skip;
     int quiet;

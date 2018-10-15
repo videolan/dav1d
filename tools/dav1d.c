@@ -82,7 +82,8 @@ int main(const int argc, char *const *const argv) {
     init_muxers();
     parse(argc, argv, &cli_settings, &lib_settings);
 
-    if ((res = input_open(&in, cli_settings.inputfile,
+    if ((res = input_open(&in, cli_settings.demuxer,
+                          cli_settings.inputfile,
                           fps, &total)) < 0)
     {
         return res;

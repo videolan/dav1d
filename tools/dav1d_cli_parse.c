@@ -43,6 +43,7 @@
 static const char short_opts[] = "i:o:vql:";
 
 enum {
+    ARG_DEMUXER,
     ARG_MUXER,
     ARG_FRAME_THREADS,
     ARG_TILE_THREADS,
@@ -52,6 +53,7 @@ static const struct option long_opts[] = {
     { "input",          1, NULL, 'i' },
     { "output",         1, NULL, 'o' },
     { "quiet",          0, NULL, 'q' },
+    { "demuxer",        1, NULL, ARG_DEMUXER },
     { "muxer",          1, NULL, ARG_MUXER },
     { "version",        0, NULL, 'v' },
     { "limit",          1, NULL, 'l' },
@@ -74,7 +76,8 @@ static void usage(const char *const app, const char *const reason, ...) {
     fprintf(stderr, "Supported options:\n"
             " --input/-i  $file:   input file\n"
             " --output/-o $file:   output file\n"
-            " --muxer $name:       force muxer type (default: detect from extension)\n"
+            " --demuxer $name:     force demuxer type (must be 'ivf'; default: detect from extension)\n"
+            " --muxer $name:       force muxer type ('md5', 'yuv' or 'yuv4mpeg'; default: detect from extension)\n"
             " --quiet/-q:          disable status messages\n"
             " --limit/-l $num:     stop decoding after $num frames\n"
             " --skip/-s $num:      skip decoding of the first $num frames\n"
@@ -135,6 +138,9 @@ void parse(const int argc, char *const *const argv,
             break;
         case 's':
             cli_settings->skip = parse_unsigned(optarg, 's', argv[0]);
+            break;
+        case ARG_DEMUXER:
+            cli_settings->demuxer = optarg;
             break;
         case ARG_MUXER:
             cli_settings->muxer = optarg;
