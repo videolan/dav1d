@@ -39,6 +39,11 @@ decl_angular_ipred_fn(dav1d_ipred_smooth_avx2);
 decl_angular_ipred_fn(dav1d_ipred_smooth_v_avx2);
 decl_angular_ipred_fn(dav1d_ipred_smooth_h_avx2);
 
+decl_cfl_pred_fn(dav1d_ipred_cfl_avx2);
+decl_cfl_pred_fn(dav1d_ipred_cfl_128_avx2);
+decl_cfl_pred_fn(dav1d_ipred_cfl_top_avx2);
+decl_cfl_pred_fn(dav1d_ipred_cfl_left_avx2);
+
 void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
 
@@ -55,5 +60,10 @@ void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c) {
     c->intra_pred[SMOOTH_PRED]   = dav1d_ipred_smooth_avx2;
     c->intra_pred[SMOOTH_V_PRED] = dav1d_ipred_smooth_v_avx2;
     c->intra_pred[SMOOTH_H_PRED] = dav1d_ipred_smooth_h_avx2;
+
+    c->cfl_pred[DC_PRED]      = dav1d_ipred_cfl_avx2;
+    c->cfl_pred[DC_128_PRED]  = dav1d_ipred_cfl_128_avx2;
+    c->cfl_pred[TOP_DC_PRED]  = dav1d_ipred_cfl_top_avx2;
+    c->cfl_pred[LEFT_DC_PRED] = dav1d_ipred_cfl_left_avx2;
 #endif
 }
