@@ -67,6 +67,8 @@ static const struct {
     { "itx_10bpc", checkasm_check_itx_10bpc },
     { "loopfilter_8bpc", checkasm_check_loopfilter_8bpc },
     { "loopfilter_10bpc", checkasm_check_loopfilter_10bpc },
+    { "looprestoration_8bpc", checkasm_check_looprestoration_8bpc },
+    { "looprestoration_10bpc", checkasm_check_looprestoration_10bpc },
     { "mc_8bpc", checkasm_check_mc_8bpc },
     { "mc_10bpc", checkasm_check_mc_10bpc },
     { 0 }

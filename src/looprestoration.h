@@ -40,21 +40,31 @@ enum LrEdgeFlags {
     LR_HAVE_BOTTOM = 1 << 3,
 };
 
+#ifdef BITDEPTH
+typedef const pixel (*const_left_pixel_row)[4];
+#else
+typedef const void *const_left_pixel_row;
+#endif
+
 // Although the spec applies restoration filters over 4x4 blocks, the wiener
 // filter can be applied to a bigger surface.
 //    * w is constrained by the restoration unit size (w <= 256)
 //    * h is constrained by the stripe height (h <= 64)
-typedef void (*wienerfilter_fn)(pixel *dst, ptrdiff_t dst_stride,
-                                const void *left /*const pixel (*left)[4]*/,
-                                const pixel *lpf, ptrdiff_t lpf_stride,
-                                int w, int h, const int16_t filterh[7],
-                                const int16_t filterv[7], enum LrEdgeFlags edges);
+#define decl_wiener_filter_fn(name) \
+void (name)(pixel *dst, ptrdiff_t dst_stride, \
+            const_left_pixel_row left, \
+            const pixel *lpf, ptrdiff_t lpf_stride, \
+            int w, int h, const int16_t filterh[7], \
+            const int16_t filterv[7], enum LrEdgeFlags edges)
+typedef decl_wiener_filter_fn(*wienerfilter_fn);
 
-typedef void (*selfguided_fn)(pixel *dst, ptrdiff_t dst_stride,
-                              const void *left /*const pixel (*left)[4]*/,
-                              const pixel *lpf, ptrdiff_t lpf_stride,
-                              int w, int h, int sgr_idx, const int16_t sgr_w[2],
-                              const enum LrEdgeFlags edges);
+#define decl_selfguided_filter_fn(name) \
+void (name)(pixel *dst, ptrdiff_t dst_stride, \
+            const_left_pixel_row left, \
+            const pixel *lpf, ptrdiff_t lpf_stride, \
+            int w, int h, int sgr_idx, const int16_t sgr_w[2], \
+            const enum LrEdgeFlags edges)
+typedef decl_selfguided_filter_fn(*selfguided_fn);
 
 typedef struct Dav1dLoopRestorationDSPContext {
     wienerfilter_fn wiener;
@@ -63,5 +73,8 @@ typedef struct Dav1dLoopRestorationDSPContext {
 
 void dav1d_loop_restoration_dsp_init_8bpc(Dav1dLoopRestorationDSPContext *c);
 void dav1d_loop_restoration_dsp_init_10bpc(Dav1dLoopRestorationDSPContext *c);
+
+void dav1d_loop_restoration_dsp_init_x86_8bpc(Dav1dLoopRestorationDSPContext *c);
+void dav1d_loop_restoration_dsp_init_x86_10bpc(Dav1dLoopRestorationDSPContext *c);
 
 #endif /* __DAV1D_SRC_LOOPRESTORATION_H__ */

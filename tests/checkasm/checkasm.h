@@ -45,6 +45,9 @@ void checkasm_check_itx_10bpc(void);
 void checkasm_check_loopfilter_8bpc(void);
 void checkasm_check_loopfilter_10bpc(void);
 
+void checkasm_check_looprestoration_8bpc(void);
+void checkasm_check_looprestoration_10bpc(void);
+
 void checkasm_check_mc_8bpc(void);
 void checkasm_check_mc_10bpc(void);
 

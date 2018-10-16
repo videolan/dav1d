@@ -101,6 +101,7 @@ if is_asm_enabled
             'x86/ipred_init.c',
             'x86/itx_init.c',
             'x86/loopfilter_init.c',
+            'x86/looprestoration_init.c',
             'x86/mc_init.c',
         )
 
@@ -110,6 +111,7 @@ if is_asm_enabled
             'x86/ipred.asm',
             'x86/itx.asm',
             'x86/loopfilter.asm',
+            'x86/looprestoration.asm',
             'x86/mc.asm',
         )
 

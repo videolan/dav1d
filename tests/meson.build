@@ -38,6 +38,7 @@ if is_asm_enabled
         'checkasm/ipred.c',
         'checkasm/itx.c',
         'checkasm/loopfilter.c',
+        'checkasm/looprestoration.c',
         'checkasm/mc.c',
     )
 

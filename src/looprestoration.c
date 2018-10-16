@@ -65,6 +65,11 @@ static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
         pixel_copy(dst_l, p, unit_w);
         pixel_copy(dst_l + REST_UNIT_STRIDE, p, unit_w);
         pixel_copy(dst_l + 2 * REST_UNIT_STRIDE, p, unit_w);
+        if (have_left) {
+            pixel_copy(dst_l, &left[0][1], 3);
+            pixel_copy(dst_l + REST_UNIT_STRIDE, &left[0][1], 3);
+            pixel_copy(dst_l + 2 * REST_UNIT_STRIDE, &left[0][1], 3);
+        }
     }
 
     pixel *dst_tl = dst_l + 3 * REST_UNIT_STRIDE;
@@ -81,6 +86,11 @@ static void padding(pixel *dst, const pixel *p, const ptrdiff_t p_stride,
         pixel_copy(dst_tl + stripe_h * REST_UNIT_STRIDE, src, unit_w);
         pixel_copy(dst_tl + (stripe_h + 1) * REST_UNIT_STRIDE, src, unit_w);
         pixel_copy(dst_tl + (stripe_h + 2) * REST_UNIT_STRIDE, src, unit_w);
+        if (have_left) {
+            pixel_copy(dst_tl + stripe_h * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
+            pixel_copy(dst_tl + (stripe_h + 1) * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
+            pixel_copy(dst_tl + (stripe_h + 2) * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
+        }
     }
 
     // Inner UNIT_WxSTRIPE_H
@@ -560,4 +570,8 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
 void bitfn(dav1d_loop_restoration_dsp_init)(Dav1dLoopRestorationDSPContext *const c) {
     c->wiener = wiener_c;
     c->selfguided = selfguided_c;
+
+#if ARCH_X86 && BITDEPTH == 8
+    bitfn(dav1d_loop_restoration_dsp_init_x86)(c);
+#endif
 }
