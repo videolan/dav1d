@@ -71,7 +71,7 @@ splat_dc(pixel *dst, const ptrdiff_t stride,
 static NOINLINE void
 cfl_pred(pixel *dst, const ptrdiff_t stride,
          const int width, const int height, const unsigned dc,
-         const int8_t alpha, const int16_t *ac)
+         const int16_t *ac, const int alpha)
 {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -101,9 +101,9 @@ static void ipred_dc_top_c(pixel *dst, const ptrdiff_t stride,
 static void ipred_cfl_top_c(pixel *dst, const ptrdiff_t stride,
                             const pixel *const topleft,
                             const int width, const int height,
-                            const int8_t alpha, const int16_t *ac)
+                            const int16_t *ac, const int alpha)
 {
-    cfl_pred(dst, stride, width, height, dc_gen_top(topleft, width), alpha, ac);
+    cfl_pred(dst, stride, width, height, dc_gen_top(topleft, width), ac, alpha);
 }
 
 static unsigned dc_gen_left(const pixel *const topleft, const int height)
@@ -124,10 +124,10 @@ static void ipred_dc_left_c(pixel *dst, const ptrdiff_t stride,
 static void ipred_cfl_left_c(pixel *dst, const ptrdiff_t stride,
                              const pixel *const topleft,
                              const int width, const int height,
-                             const int8_t alpha, const int16_t *ac)
+                             const int16_t *ac, const int alpha)
 {
     unsigned dc = dc_gen_left(topleft, height);
-    cfl_pred(dst, stride, width, height, dc, alpha, ac);
+    cfl_pred(dst, stride, width, height, dc, ac, alpha);
 }
 
 #if BITDEPTH == 8
@@ -168,10 +168,10 @@ static void ipred_dc_c(pixel *dst, const ptrdiff_t stride,
 static void ipred_cfl_c(pixel *dst, const ptrdiff_t stride,
                         const pixel *const topleft,
                         const int width, const int height,
-                        const int8_t alpha, const int16_t *ac)
+                        const int16_t *ac, const int alpha)
 {
     unsigned dc = dc_gen(topleft, width, height);
-    cfl_pred(dst, stride, width, height, dc, alpha, ac);
+    cfl_pred(dst, stride, width, height, dc, ac, alpha);
 }
 
 #undef MULTIPLIER_1x2
@@ -188,9 +188,9 @@ static void ipred_dc_128_c(pixel *dst, const ptrdiff_t stride,
 static void ipred_cfl_128_c(pixel *dst, const ptrdiff_t stride,
                             const pixel *const topleft,
                             const int width, const int height,
-                            const int8_t alpha, const int16_t *ac)
+                            const int16_t *ac, const int alpha)
 {
-    cfl_pred(dst, stride, width, height, 1 << (BITDEPTH - 1), alpha, ac);
+    cfl_pred(dst, stride, width, height, 1 << (BITDEPTH - 1), ac, alpha);
 }
 
 static void ipred_v_c(pixel *dst, const ptrdiff_t stride,

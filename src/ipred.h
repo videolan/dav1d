@@ -61,8 +61,7 @@ typedef decl_cfl_ac_fn(*cfl_ac_fn);
  */
 #define decl_cfl_pred_fn(name) \
 void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, \
-            int width, int height, const int8_t alpha, \
-            const int16_t *ac)
+            int width, int height, const int16_t *ac, int alpha)
 typedef decl_cfl_pred_fn(*cfl_pred_fn);
 
 /*
