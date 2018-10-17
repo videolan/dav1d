@@ -193,7 +193,7 @@ int dav1d_decode(Dav1dContext *const c,
         if ((res = dav1d_parse_obus(c, in)) < 0)
             return res;
 
-        assert(res <= (int)in->sz);
+        assert((size_t)res <= in->sz);
         in->sz -= res;
         in->data += res;
         if (!in->sz) dav1d_data_unref(in);
