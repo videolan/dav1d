@@ -523,9 +523,13 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->quant.yac = dav1d_get_bits(gb, 8);
     hdr->quant.ydc_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
     if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400) {
+        // If the sequence header says that delta_q might be different
+        // for U, V, we must check whether it actually is for this
+        // frame.
+        int diff_uv_delta = seqhdr->separate_uv_delta_q ? dav1d_get_bits(gb, 1) : 0;
         hdr->quant.udc_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
         hdr->quant.uac_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
-        if (seqhdr->separate_uv_delta_q) {
+        if (diff_uv_delta) {
             hdr->quant.vdc_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
             hdr->quant.vac_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
         } else {
