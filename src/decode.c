@@ -2963,6 +2963,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             const int ref_h = (f->refp[pri_ref].p.p.h + 3) >> 2;
             if (ref_w == f->bw && ref_h == f->bh) {
                 f->prev_segmap_ref = c->refs[f->frame_hdr.refidx[pri_ref]].segmap;
+                if (f->prev_segmap_ref == NULL) goto error;
                 dav1d_ref_inc(f->prev_segmap_ref);
                 f->prev_segmap = f->prev_segmap_ref->data;
             } else {
@@ -2981,23 +2982,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             dav1d_ref_inc(f->cur_segmap_ref);
             f->cur_segmap = f->prev_segmap_ref->data;
         } else {
-            dav1d_cdf_thread_unref(&f->in_cdf);
-            if (f->frame_hdr.refresh_context)
-                dav1d_cdf_thread_unref(&f->out_cdf);
-            for (int i = 0; i < 7; i++) {
-                if (f->refp[i].p.data[0])
-                    dav1d_thread_picture_unref(&f->refp[i]);
-                if (f->ref_mvs_ref[i])
-                    dav1d_ref_dec(f->ref_mvs_ref[i]);
-            }
-            dav1d_picture_unref(&c->out);
-            dav1d_thread_picture_unref(&f->cur);
-            if (f->mvs_ref)
-                dav1d_ref_dec(f->mvs_ref);
-
-            for (int i = 0; i < f->n_tile_data; i++)
-                dav1d_data_unref(&f->tile[i].data);
-            return -1;
+            goto error;
         }
     } else {
         f->cur_segmap = NULL;
@@ -3054,4 +3039,23 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 
     return 0;
+error:
+    dav1d_cdf_thread_unref(&f->in_cdf);
+    if (f->frame_hdr.refresh_context)
+        dav1d_cdf_thread_unref(&f->out_cdf);
+    for (int i = 0; i < 7; i++) {
+        if (f->refp[i].p.data[0])
+            dav1d_thread_picture_unref(&f->refp[i]);
+        if (f->ref_mvs_ref[i])
+            dav1d_ref_dec(f->ref_mvs_ref[i]);
+    }
+    dav1d_picture_unref(&c->out);
+    dav1d_thread_picture_unref(&f->cur);
+    if (f->mvs_ref)
+        dav1d_ref_dec(f->mvs_ref);
+
+    for (int i = 0; i < f->n_tile_data; i++)
+        dav1d_data_unref(&f->tile[i].data);
+
+    return -1;
 }
