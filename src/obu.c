@@ -997,23 +997,27 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     }
 
     // obu length field
-    int len = 0, more, i = 0;
+    unsigned len = 0, more, i = 0;
     do {
         more = dav1d_get_bits(&gb, 1);
-        len |= dav1d_get_bits(&gb, 7) << (i * 7);
+        unsigned bits = dav1d_get_bits(&gb, 7);
+        if (i <= 3 || (i == 4 && bits < (1 << 4)))
+            len |= bits << (i * 7);
+        else if (bits)
+            goto error;
         if (more && ++i == 8) goto error;
     } while (more);
     if (gb.error) goto error;
 
-    int off = dav1d_flush_get_bits(&gb) - in->data;
-    const int init_off = off;
-    if (len > (int)in->sz - off) goto error;
+    unsigned off = dav1d_flush_get_bits(&gb) - in->data;
+    const unsigned init_off = off;
+    if (len > in->sz - off) goto error;
 
     switch (type) {
     case OBU_SEQ_HDR:
         if ((res = parse_seq_hdr(c, &gb)) < 0)
             return res;
-        if (res != len) goto error;
+        if ((unsigned)res != len) goto error;
         c->have_seq_hdr = 1;
         c->have_frame_hdr = 0;
         break;
@@ -1063,7 +1067,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         // ignore OBUs we don't care about
         break;
     default:
-        fprintf(stderr, "Unknown OBU type %d of size %d\n", type, len);
+        fprintf(stderr, "Unknown OBU type %d of size %u\n", type, len);
         return -EINVAL;
     }
 
