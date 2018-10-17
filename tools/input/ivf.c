@@ -93,8 +93,11 @@ static int ivf_read(IvfInputContext *const c, Dav1dData *const buf) {
     fseek(c->f, 8, SEEK_CUR); // skip timestamp
     const ptrdiff_t sz = rl32(data);
     dav1d_data_create(buf, sz);
-    if ((res = fread(buf->data, sz, 1, c->f)) != 1)
+    if ((res = fread(buf->data, sz, 1, c->f)) != 1) {
         fprintf(stderr, "Failed to read frame data: %s\n", strerror(errno));
+        dav1d_data_unref(buf);
+        return -1;
+    }
 
     return 0;
 }

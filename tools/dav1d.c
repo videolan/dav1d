@@ -88,8 +88,10 @@ int main(const int argc, char *const *const argv) {
         return res;
     }
     for (unsigned i = 0; i <= cli_settings.skip; i++) {
-        if ((res = input_read(in, &data)) < 0)
+        if ((res = input_read(in, &data)) < 0) {
+            input_close(in);
             return res;
+        }
         if (i < cli_settings.skip) dav1d_data_unref(&data);
     }
 
