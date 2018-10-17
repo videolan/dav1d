@@ -746,7 +746,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->skip_mode_allowed = 0;
-    if (hdr->switchable_comp_refs && hdr->frame_type & 1) {
+    if (hdr->switchable_comp_refs && hdr->frame_type & 1 && seqhdr->order_hint) {
         const unsigned poc = hdr->frame_offset;
         unsigned off_before[2] = { 0xFFFFFFFF, 0xFFFFFFFF };
         int off_after = -1;
