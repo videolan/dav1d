@@ -106,6 +106,7 @@ static inline uint64_t readtime(void) {
 #endif
 #elif ARCH_AARCH64
 #ifdef _MSC_VER
+#include <windows.h>
 #define readtime() (_InstructionSynchronizationBarrier(), ReadTimeStampCounter())
 #else
 static inline uint64_t readtime(void) {
