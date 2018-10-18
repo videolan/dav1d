@@ -61,16 +61,20 @@ static const struct {
     const char *name;
     void (*func)(void);
 } tests[] = {
+#if CONFIG_8BPC
     { "ipred_8bpc", checkasm_check_ipred_8bpc },
-    { "ipred_10bpc", checkasm_check_ipred_10bpc },
     { "itx_8bpc", checkasm_check_itx_8bpc },
-    { "itx_10bpc", checkasm_check_itx_10bpc },
     { "loopfilter_8bpc", checkasm_check_loopfilter_8bpc },
-    { "loopfilter_10bpc", checkasm_check_loopfilter_10bpc },
     { "looprestoration_8bpc", checkasm_check_looprestoration_8bpc },
-    { "looprestoration_10bpc", checkasm_check_looprestoration_10bpc },
     { "mc_8bpc", checkasm_check_mc_8bpc },
+#endif
+#if CONFIG_10BPC
+    { "ipred_10bpc", checkasm_check_ipred_10bpc },
+    { "itx_10bpc", checkasm_check_itx_10bpc },
+    { "loopfilter_10bpc", checkasm_check_loopfilter_10bpc },
+    { "looprestoration_10bpc", checkasm_check_looprestoration_10bpc },
     { "mc_10bpc", checkasm_check_mc_10bpc },
+#endif
     { 0 }
 };
 
