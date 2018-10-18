@@ -1046,10 +1046,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->tile[c->n_tile_data].data.ref = in->ref;
         c->tile[c->n_tile_data].data.data = in->data + off;
         c->tile[c->n_tile_data].data.sz = len + init_off - off;
+        // ensure tile groups are in order and sane, see 6.10.1
         if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end ||
-            (c->n_tile_data > 0 &&
-             (c->tile[c->n_tile_data].start !=
-              c->tile[c->n_tile_data - 1].end + 1)))
+            c->tile[c->n_tile_data].start != c->n_tiles)
         {
             for (int i = 0; i <= c->n_tile_data; i++)
                 dav1d_data_unref(&c->tile[i].data);
