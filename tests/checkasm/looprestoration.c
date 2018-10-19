@@ -95,7 +95,7 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c) {
 
             const int base_w = 1 + (rand() % 384);
             const int base_h = 1 + (rand() & 63);
-            for (enum LrEdgeFlags edges = 0; edges <= 0; edges++) {
+            for (enum LrEdgeFlags edges = 0; edges <= 0xf; edges++) {
                 const int w = edges & LR_HAVE_RIGHT ? 256 : base_w;
                 const int h = edges & LR_HAVE_BOTTOM ? 64 : base_h;
 
