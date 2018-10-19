@@ -87,7 +87,7 @@ static inline int clz(const unsigned int mask) {
     return (31 - leading_zero);
 }
 
-#ifndef _M_IX86
+#ifdef _WIN64
 static inline int clzll(const unsigned long long mask) {
     unsigned long leading_zero = 0;
     _BitScanReverse64(&leading_zero, mask);
