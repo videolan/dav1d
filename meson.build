@@ -54,8 +54,8 @@ dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d'])
 
 # Bitdepth option
 dav1d_bitdepths = get_option('bitdepths')
-foreach bitdepth : dav1d_bitdepths
-    cdata.set('CONFIG_@0@BPC'.format(bitdepth), 1)
+foreach bitdepth : ['8', '10']
+    cdata.set10('CONFIG_@0@BPC'.format(bitdepth), dav1d_bitdepths.contains(bitdepth))
 endforeach
 
 # ASM option
