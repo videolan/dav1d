@@ -33,7 +33,7 @@
 #include <dav1d/dav1d.h>
 
 static unsigned r32le(const uint8_t *const p) {
-    return (p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
+    return ((uint32_t)p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
 }
 
 // expects ivf input
