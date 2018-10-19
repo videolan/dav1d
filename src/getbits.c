@@ -62,6 +62,7 @@ static void refill(GetBits *const c, const unsigned n) {
 
 unsigned dav1d_get_bits(GetBits *const c, const unsigned n) {
     assert(n <= 32 /* can go up to 57 if we change return type */);
+    assert(n /* can't shift state by 64 */);
 
     if (n > c->bits_left) refill(c, n);
 
@@ -78,11 +79,13 @@ int dav1d_get_sbits(GetBits *const c, const unsigned n) {
     return res >> shift;
 }
 
-unsigned dav1d_get_uniform(GetBits *const c, const unsigned n) {
-    assert(n > 0);
-    const int l = ulog2(n) + 1;
-    assert(l > 0);
-    const unsigned m = (1U << l) - n;
+unsigned dav1d_get_uniform(GetBits *const c, const unsigned max) {
+    // Output in range [0..max-1]
+    // max must be > 1, or else nothing is read from the bitstream
+    assert(max > 1);
+    const int l = ulog2(max) + 1;
+    assert(l > 1);
+    const unsigned m = (1U << l) - max;
     const unsigned v = dav1d_get_bits(c, l - 1);
     return v < m ? v : (v << 1) - m + dav1d_get_bits(c, 1);
 }
