@@ -142,10 +142,42 @@ static void check_cfl_pred(Dav1dIntraPredDSPContext *const c) {
     report("cfl_pred");
 }
 
+static void check_pal_pred(Dav1dIntraPredDSPContext *const c) {
+    ALIGN_STK_32(pixel, c_dst, 64 * 64,);
+    ALIGN_STK_32(pixel, a_dst, 64 * 64,);
+    ALIGN_STK_32(uint8_t, idx, 64 * 64,);
+    ALIGN_STK_16(uint16_t, pal, 8,);
+
+    declare_func(void, pixel *dst, ptrdiff_t stride, const uint16_t *pal,
+                 const uint8_t *idx, int w, int h);
+
+    for (int w = 4; w <= 64; w <<= 1)
+        if (check_func(c->pal_pred, "pal_pred_w%d_%dbpc", w, BITDEPTH))
+            for (int h = imax(w / 4, 4); h <= imin(w * 4, 64); h <<= 1)
+            {
+                const ptrdiff_t stride = w * sizeof(pixel);
+
+                for (int i = 0; i < 8; i++)
+                    pal[i] = rand() & ((1 << BITDEPTH) - 1);
+
+                for (int i = 0; i < w * h; i++)
+                    idx[i] = rand() & 7;
+
+                call_ref(c_dst, stride, pal, idx, w, h);
+                call_new(a_dst, stride, pal, idx, w, h);
+                if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
+                    fail();
+
+                bench_new(a_dst, stride, pal, idx, w, h);
+            }
+    report("pal_pred");
+}
+
 void bitfn(checkasm_check_ipred)(void) {
     Dav1dIntraPredDSPContext c;
     bitfn(dav1d_intra_pred_dsp_init)(&c);
 
     check_intra_pred(&c);
     check_cfl_pred(&c);
+    check_pal_pred(&c);
 }

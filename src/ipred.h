@@ -70,7 +70,7 @@ typedef decl_cfl_pred_fn(*cfl_pred_fn);
  */
 #define decl_pal_pred_fn(name) \
 void (name)(pixel *dst, ptrdiff_t stride, const uint16_t *pal, \
-            const uint8_t *idx, const int w, const int h)
+            const uint8_t *idx, int w, int h)
 typedef decl_pal_pred_fn(*pal_pred_fn);
 
 typedef struct Dav1dIntraPredDSPContext {
