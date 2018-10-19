@@ -143,7 +143,42 @@ typedef struct Dav1dPicture {
     Dav1dPictureParameters p;
 
     int poc; ///< frame number
+
+    void *allocator_data; ///< pointer managed by the allocator
 } Dav1dPicture;
+
+typedef struct Dav1dPicAllocator {
+    void *cookie; ///< custom data to pass to the allocator callbacks.
+    /**
+     * Allocate the picture buffer based on the Dav1dPictureParameters.
+     *
+     * The data[0], data[1] and data[2] must be 32 bits aligned and with a
+     * pixel width/height multiple of 128 pixels.
+     * data[1] and data[2] must share the same stride[1].
+     *
+     * @param  pic The picture to allocate the buffer for. The callback needs to
+     *             fill the picture data[0], data[1], data[2], stride[0] and
+     *             stride[1].
+     *             The allocator can fill the pic allocator_data pointer with
+     *             a custom pointer that will be passed to
+     *             release_picture_callback().
+     * @param cookie Custom pointer passed to all calls.
+    *
+    * @return 0 on success. A negative errno value on error.
+     */
+    int (*alloc_picture_callback)(Dav1dPicture *pic, void *cookie);
+    /**
+     * Release the picture buffer.
+     *
+     * @param buf           The buffer that was returned by 
+     *                                   alloc_picture_callback().
+     * @param allocator_tag The Dav1dPicture.allocator_data that was filled by
+     *                      alloc_picture_callback()
+     * @param cookie        Custom pointer passed to all calls.
+     */
+    void (*release_picture_callback)(uint8_t *buf, void *allocator_data,
+                                     void *cookie);
+} Dav1dPicAllocator;
 
 /**
  * Release reference to a picture.

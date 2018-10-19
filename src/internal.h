@@ -110,6 +110,8 @@ struct Dav1dContext {
         EdgeTip tip_sb128[256];
         EdgeTip tip_sb64[64];
     } intra_edge;
+
+    Dav1dPicAllocator allocator;
 };
 
 struct Dav1dFrameContext {

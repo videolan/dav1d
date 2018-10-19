@@ -56,7 +56,8 @@ typedef struct Dav1dThreadPicture {
  */
 int dav1d_thread_picture_alloc(Dav1dThreadPicture *p, int w, int h,
                                enum Dav1dPixelLayout layout, int bpc,
-                               struct thread_data *t, int visible);
+                               struct thread_data *t, int visible,
+                               Dav1dPicAllocator *);
 
 /**
  * Create a copy of a picture.
@@ -87,5 +88,8 @@ void dav1d_thread_picture_wait(const Dav1dThreadPicture *p, int y,
  */
 void dav1d_thread_picture_signal(const Dav1dThreadPicture *p, int y,
                                  enum PlaneType plane_type);
+
+int default_picture_allocator(Dav1dPicture *, void *cookie);
+void default_picture_release(uint8_t *, void *allocator_data, void *cookie);
 
 #endif /* __DAV1D_SRC_PICTURE_H__ */

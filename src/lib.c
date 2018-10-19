@@ -57,6 +57,9 @@ const char *dav1d_version(void) {
 void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_frame_threads = 1;
     s->n_tile_threads = 1;
+    s->allocator.cookie = NULL;
+    s->allocator.alloc_picture_callback = default_picture_allocator;
+    s->allocator.release_picture_callback = default_picture_release;
 }
 
 int dav1d_open(Dav1dContext **const c_out,
@@ -71,11 +74,16 @@ int dav1d_open(Dav1dContext **const c_out,
                           s->n_tile_threads <= 64, -EINVAL);
     validate_input_or_ret(s->n_frame_threads >= 1 &&
                           s->n_frame_threads <= 256, -EINVAL);
+    validate_input_or_ret(s->allocator.alloc_picture_callback != NULL,
+                          -EINVAL);
+    validate_input_or_ret(s->allocator.release_picture_callback != NULL,
+                          -EINVAL);
 
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
     if (!c) goto error;
     memset(c, 0, sizeof(*c));
 
+    c->allocator = s->allocator;
     c->n_fc = s->n_frame_threads;
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * s->n_frame_threads, 32);
     if (!c->fc) goto error;

@@ -2891,7 +2891,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                                           f->frame_hdr.height,
                                           f->seq_hdr.layout, f->seq_hdr.bpc,
                                           c->n_fc > 1 ? &f->frame_thread.td : NULL,
-                                          f->frame_hdr.show_frame)) < 0)
+                                          f->frame_hdr.show_frame,
+                                          &c->allocator)) < 0)
     {
         if (f->frame_hdr.refresh_context)
             dav1d_cdf_thread_unref(&f->out_cdf);

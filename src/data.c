@@ -56,7 +56,7 @@ int dav1d_data_wrap(Dav1dData *const buf, uint8_t *const ptr, const size_t sz,
     validate_input_or_ret(ptr != NULL, -EINVAL);
     validate_input_or_ret(free_callback != NULL, -EINVAL);
 
-    buf->ref = dav1d_ref_wrap(ptr, sz, free_callback, user_data);
+    buf->ref = dav1d_ref_wrap(ptr, free_callback, user_data);
     if (!buf->ref) return -ENOMEM;
     buf->data = ptr;
     buf->sz = sz;

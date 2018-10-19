@@ -41,50 +41,108 @@
 #include "src/ref.h"
 #include "src/thread.h"
 
+int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
+    assert(cookie == NULL);
+    const int hbd = p->p.bpc > 8;
+    const int aligned_w = (p->p.w + 127) & ~127;
+    const int aligned_h = (p->p.h + 127) & ~127;
+    const int has_chroma = p->p.layout != DAV1D_PIXEL_LAYOUT_I400;
+    const int ss_ver = p->p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    const int ss_hor = p->p.layout != DAV1D_PIXEL_LAYOUT_I444;
+    p->stride[0] = aligned_w << hbd;
+    p->stride[1] = has_chroma ? (aligned_w >> ss_hor) << hbd : 0;
+    const size_t y_sz = p->stride[0] * aligned_h;
+    const size_t uv_sz = p->stride[1] * (aligned_h >> ss_ver);
+    const size_t pic_size = y_sz + 2 * uv_sz;
+
+    uint8_t *data = dav1d_alloc_aligned(pic_size, 32);
+    if (data == NULL) {
+        fprintf(stderr, "Failed to allocate memory of size %zu: %s\n",
+                pic_size, strerror(errno));
+        return -1;
+    }
+
+    p->data[0] = data;
+    p->data[1] = has_chroma ? data + y_sz : NULL;
+    p->data[2] = has_chroma ? data + y_sz + uv_sz : NULL;
+
+#ifndef NDEBUG /* safety check */
+    p->allocator_data = data;
+#endif
+
+    return 0;
+}
+
+void default_picture_release(uint8_t *const data, void *const allocator_data,
+                             void *cookie)
+{
+    assert(cookie == NULL);
+#ifndef NDEBUG /* safety check */
+    assert(allocator_data == data);
+#endif
+    dav1d_free_aligned(data);
+}
+
+struct pic_ctx_context {
+    Dav1dPicAllocator allocator;
+    void *allocator_data;
+    void *extra_ptr; /* MUST BE AT THE END */
+};
+
+static void free_buffer(uint8_t *data, void *user_data)
+{
+    struct pic_ctx_context *pic_ctx = user_data;
+
+    pic_ctx->allocator.release_picture_callback(data,
+                                                pic_ctx->allocator_data,
+                                                pic_ctx->allocator.cookie);
+    free(pic_ctx);
+}
+
 static int picture_alloc_with_edges(Dav1dPicture *const p,
                                     const int w, const int h,
                                     const enum Dav1dPixelLayout layout,
                                     const int bpc,
-                                    const int extra, void **const extra_ptr)
+                                    Dav1dPicAllocator *const p_allocator,
+                                    const size_t extra, void **const extra_ptr)
 {
-    int aligned_h;
-
     if (p->data[0]) {
         fprintf(stderr, "Picture already allocated!\n");
         return -1;
     }
     assert(bpc > 0 && bpc <= 16);
 
-    const int hbd = bpc > 8;
-    const int aligned_w = (w + 127) & ~127;
-    const int has_chroma = layout != DAV1D_PIXEL_LAYOUT_I400;
-    const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
-    const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
-    p->stride[0] = aligned_w << hbd;
-    p->stride[1] = has_chroma ? (aligned_w >> ss_hor) << hbd : 0;
+    struct pic_ctx_context *pic_ctx = malloc(extra + sizeof(struct pic_ctx_context));
+    if (pic_ctx == NULL) {
+        return -ENOMEM;
+    }
+
     p->p.w = w;
     p->p.h = h;
     p->p.pri = DAV1D_COLOR_PRI_UNKNOWN;
     p->p.trc = DAV1D_TRC_UNKNOWN;
     p->p.mtrx = DAV1D_MC_UNKNOWN;
     p->p.chr = DAV1D_CHR_UNKNOWN;
-    aligned_h = (h + 127) & ~127;
     p->p.layout = layout;
     p->p.bpc = bpc;
-    const size_t y_sz = p->stride[0] * aligned_h;
-    const size_t uv_sz = p->stride[1] * (aligned_h >> ss_ver);
-    if (!(p->ref = dav1d_ref_create(y_sz + 2 * uv_sz + extra))) {
-        fprintf(stderr, "Failed to allocate memory of size %zu: %s\n",
-                y_sz + 2 * uv_sz + extra, strerror(errno));
+    int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
+    if (res < 0) {
+        free(pic_ctx);
         return -ENOMEM;
     }
-    uint8_t *data = p->ref->data;
-    p->data[0] = data;
-    p->data[1] = has_chroma ? data + y_sz : NULL;
-    p->data[2] = has_chroma ? data + y_sz + uv_sz : NULL;
 
-    if (extra)
-        *extra_ptr = &data[y_sz + uv_sz * 2];
+    pic_ctx->allocator = *p_allocator;
+    pic_ctx->allocator_data = p->allocator_data;
+
+    if (!(p->ref = dav1d_ref_wrap(p->data[0], free_buffer, pic_ctx))) {
+        p_allocator->release_picture_callback(p->data[0], p->allocator_data,
+                                              p_allocator->cookie);
+        fprintf(stderr, "Failed to wrap picture: %s\n", strerror(errno));
+        return -ENOMEM;
+    }
+
+    if (extra && extra_ptr)
+        *extra_ptr = &pic_ctx->extra_ptr;
 
     return 0;
 }
@@ -92,12 +150,13 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
 int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
                                const int w, const int h,
                                const enum Dav1dPixelLayout layout, const int bpc,
-                               struct thread_data *const t, const int visible)
+                               struct thread_data *const t, const int visible,
+                               Dav1dPicAllocator *const p_allocator)
 {
     p->t = t;
 
     const int res =
-        picture_alloc_with_edges(&p->p, w, h, layout, bpc,
+        picture_alloc_with_edges(&p->p, w, h, layout, bpc, p_allocator,
                                  t != NULL ? sizeof(atomic_int) * 2 : 0,
                                  (void **) &p->progress);
 

@@ -38,6 +38,7 @@ typedef struct Dav1dRef Dav1dRef;
 typedef struct Dav1dSettings {
     int n_frame_threads;
     int n_tile_threads;
+    Dav1dPicAllocator allocator;
 } Dav1dSettings;
 
 /**
