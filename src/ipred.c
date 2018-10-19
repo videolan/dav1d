@@ -553,7 +553,7 @@ static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
     filt_idx &= 511;
     assert(filt_idx < 5);
 
-    const int8_t (*const filter)[8] = dav1d_filter_intra_taps[filt_idx];
+    const int8_t *const filter = dav1d_filter_intra_taps[filt_idx];
     int x, y;
     ptrdiff_t left_stride;
     const pixel *left, *topleft, *top;
@@ -568,19 +568,18 @@ static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
             const int p1 = top[0], p2 = top[1], p3 = top[2], p4 = top[3];
             const int p5 = left[0 * left_stride], p6 = left[1 * left_stride];
             pixel *ptr = &dst[x];
-            const int8_t (*flt_ptr)[8] = filter;
+            const int8_t *flt_ptr = filter;
 
             for (int yy = 0; yy < 2; yy++) {
-                for (int xx = 0; xx < 4; xx++, flt_ptr++) {
-                    int acc = flt_ptr[0][0] * p0 + flt_ptr[0][1] * p1 +
-                              flt_ptr[0][2] * p2 + flt_ptr[0][3] * p3 +
-                              flt_ptr[0][4] * p4 + flt_ptr[0][5] * p5 +
-                              flt_ptr[0][6] * p6;
+                for (int xx = 0; xx < 4; xx++, flt_ptr += 2) {
+                    int acc = flt_ptr[ 0] * p0 + flt_ptr[ 1] * p1 +
+                              flt_ptr[16] * p2 + flt_ptr[17] * p3 +
+                              flt_ptr[32] * p4 + flt_ptr[33] * p5 +
+                              flt_ptr[48] * p6;
                     ptr[xx] = iclip_pixel((acc + 8) >> 4);
                 }
                 ptr += PXSTRIDE(stride);
             }
-
             left = &dst[x + 4 - 1];
             left_stride = PXSTRIDE(stride);
             top += 4;
