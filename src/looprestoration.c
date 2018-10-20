@@ -571,7 +571,7 @@ void bitfn(dav1d_loop_restoration_dsp_init)(Dav1dLoopRestorationDSPContext *cons
     c->wiener = wiener_c;
     c->selfguided = selfguided_c;
 
-#if ARCH_X86 && BITDEPTH == 8
+#if HAVE_ASM && ARCH_X86 && BITDEPTH == 8
     bitfn(dav1d_loop_restoration_dsp_init_x86)(c);
 #endif
 }
