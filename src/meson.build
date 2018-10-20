@@ -91,6 +91,7 @@ if is_asm_enabled
             )
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_tmpl_sources += files(
+                'arm/32/mc.S',
             )
         endif
     elif host_machine.cpu_family().startswith('x86')

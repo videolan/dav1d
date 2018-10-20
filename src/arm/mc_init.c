@@ -39,7 +39,7 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if BITDEPTH == 8
     c->avg = dav1d_avg_8bpc_neon;
     c->w_avg = dav1d_w_avg_8bpc_neon;
     c->mask = dav1d_mask_8bpc_neon;
