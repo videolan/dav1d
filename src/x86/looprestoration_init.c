@@ -25,13 +25,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <assert.h>
+#include "src/cpu.h"
+#include "src/looprestoration.h"
 
 #include "common/attributes.h"
 #include "common/intops.h"
-
-#include "src/cpu.h"
-#include "src/looprestoration.h"
 
 #if BITDEPTH == 8 && ARCH_X86_64
 void dav1d_wiener_filter_h_avx2(int16_t *dst, const pixel (*left)[4],
