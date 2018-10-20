@@ -57,12 +57,12 @@ static int ivf_open(IvfInputContext *const c, const char *const file,
         fclose(c->f);
         return -1;
     } else if (memcmp(hdr, "DKIF", 4)) {
-        fprintf(stderr, "%s is not an IVF file [tag=%4s|0x%02x%02x%02x%02x]\n",
+        fprintf(stderr, "%s is not an IVF file [tag=%.4s|0x%02x%02x%02x%02x]\n",
                 file, hdr, hdr[0], hdr[1], hdr[2], hdr[3]);
         fclose(c->f);
         return -1;
     } else if (memcmp(&hdr[8], "AV01", 4)) {
-        fprintf(stderr, "%s is not an AV1 file [tag=%4s|0x%02x%02x%02x%02x]\n",
+        fprintf(stderr, "%s is not an AV1 file [tag=%.4s|0x%02x%02x%02x%02x]\n",
                 file, &hdr[8], hdr[8], hdr[9], hdr[10], hdr[11]);
         fclose(c->f);
         return -1;
