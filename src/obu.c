@@ -358,6 +358,11 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     if (hdr->allow_screen_content_tools)
         hdr->force_integer_mv = seqhdr->force_integer_mv == ADAPTIVE ?
                                 dav1d_get_bits(gb, 1) : seqhdr->force_integer_mv;
+    else
+        hdr->force_integer_mv = 0;
+
+    if (!(hdr->frame_type & 1))
+        hdr->force_integer_mv = 1;
 
     if (seqhdr->frame_id_numbers_present)
         hdr->frame_id = dav1d_get_bits(gb, seqhdr->frame_id_n_bits);
