@@ -4151,6 +4151,11 @@ void dav1d_update_tile_cdf(const Av1FrameHeader *const hdr,
     update_cdf_3d(2, 7, 7, m.pal_sz);
     update_cdf_4d(2, 7, 5, k + 2, m.color_map);
 
+    update_bit_2d(7, 3, m.txpart);
+    update_cdf_2d(N_TX_SIZES - 1, 16, m.txtp_inter[1]);
+    update_cdf_2d(N_TX_SIZES - 1, 12, m.txtp_inter[2]);
+    update_cdf_2d(N_TX_SIZES - 1,  2, m.txtp_inter[3]);
+
     if (!(hdr->frame_type & 1)) {
         update_bit_0d(m.intrabc);
 
@@ -4183,10 +4188,6 @@ void dav1d_update_tile_cdf(const Av1FrameHeader *const hdr,
     update_bit_2d(3, 3, m.comp_fwd_ref);
     update_bit_2d(2, 3, m.comp_bwd_ref);
     update_bit_2d(3, 3, m.comp_uni_ref);
-    update_bit_2d(7, 3, m.txpart);
-    update_cdf_2d(N_TX_SIZES - 1, 16, m.txtp_inter[1]);
-    update_cdf_2d(N_TX_SIZES - 1, 12, m.txtp_inter[2]);
-    update_cdf_2d(N_TX_SIZES - 1,  2, m.txtp_inter[3]);
     update_bit_1d(3, m.seg_pred);
     update_bit_1d(4, m.interintra);
     update_bit_1d(7, m.interintra_wedge);
