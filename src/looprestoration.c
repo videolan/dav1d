@@ -162,7 +162,7 @@ static void wiener_c(pixel *p, const ptrdiff_t p_stride,
             }
 
             hor_ptr[i] =
-                iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit);
+                iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
         }
         tmp_ptr += REST_UNIT_STRIDE;
         hor_ptr += REST_UNIT_STRIDE;
