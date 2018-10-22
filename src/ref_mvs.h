@@ -156,15 +156,25 @@ static inline void splat_intraref(refmvs *r, const ptrdiff_t stride,
     } while (--bh4);
 }
 
-// FIXME integer_mv
-static inline void unset_hp_bit(mv *const a) {
-    if (a->x & 1) {
-        if (a->x < 0) a->x++;
-        else          a->x--;
-    }
-    if (a->y & 1) {
-        if (a->y < 0) a->y++;
-        else          a->y--;
+static inline void fix_mv_precision(const Av1FrameHeader *const hdr,
+                                    mv *const mv)
+{
+    if (hdr->force_integer_mv) {
+        const int xmod = mv->x & 7;
+        mv->x &= ~7;
+        mv->x += (xmod > 4 - (mv->x < 0)) << 3;
+        const int ymod = mv->y & 7;
+        mv->y &= ~7;
+        mv->y += (ymod > 4 - (mv->y < 0)) << 3;
+    } else if (!hdr->hp) {
+        if (mv->x & 1) {
+            if (mv->x < 0) mv->x++;
+            else           mv->x--;
+        }
+        if (mv->y & 1) {
+            if (mv->y < 0) mv->y++;
+            else           mv->y--;
+        }
     }
 }
 

@@ -1084,7 +1084,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
         const Dav1dThreadPicture *const refp = &f->refp[b->ref[0]];
         const enum Filter2d filter_2d = b->filter2d;
 
-        if (imin(bw4, bh4) > 1 &&
+        if (imin(bw4, bh4) > 1 && !f->frame_hdr.force_integer_mv &&
             ((b->inter_mode == GLOBALMV &&
               f->frame_hdr.gmv[b->ref[0]].type > WM_TYPE_TRANSLATION) ||
              (b->motion_mode == MM_WARP &&
@@ -1184,7 +1184,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                 mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + h_off + v_off, NULL, f->cur.p.stride[1],
                    bw4, bh4, t->bx, t->by, 1 + pl, b->mv[0], refp, filter_2d);
         } else {
-            if (imin(cbw4, cbh4) > 1 &&
+            if (imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
                 ((b->inter_mode == GLOBALMV &&
                   f->frame_hdr.gmv[b->ref[0]].type > WM_TYPE_TRANSLATION) ||
                  (b->motion_mode == MM_WARP &&
@@ -1262,7 +1262,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
         for (int i = 0; i < 2; i++) {
             const Dav1dThreadPicture *const refp = &f->refp[b->ref[i]];
 
-            if (b->inter_mode == GLOBALMV_GLOBALMV &&
+            if (b->inter_mode == GLOBALMV_GLOBALMV && !f->frame_hdr.force_integer_mv &&
                 f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
             {
                 warp_affine(t, NULL, tmp[i], bw4 * 4, b_dim, 0, refp,
@@ -1303,7 +1303,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
             for (int i = 0; i < 2; i++) {
                 const Dav1dThreadPicture *const refp = &f->refp[b->ref[i]];
                 if (b->inter_mode == GLOBALMV_GLOBALMV &&
-                    imin(cbw4, cbh4) > 1 &&
+                    imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
                     f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
                 {
                     warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,

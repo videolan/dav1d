@@ -1308,10 +1308,8 @@ static int decode_b(Dav1dTileContext *const t,
 
             b->mv[0] = mvstack[0].this_mv;
             b->mv[1] = mvstack[0].comp_mv;
-            if (!f->frame_hdr.hp) {
-                unset_hp_bit(&b->mv[0]);
-                unset_hp_bit(&b->mv[1]);
-            }
+            fix_mv_precision(&f->frame_hdr, &b->mv[0]);
+            fix_mv_precision(&f->frame_hdr, &b->mv[1]);
             if (DEBUG_BLOCK_INFO)
                 printf("Post-skipmodeblock[mv=1:y=%d,x=%d,2:y=%d,x=%d,refs=%d+%d\n",
                        b->mv[0].y, b->mv[0].x, b->mv[1].y, b->mv[1].x,
@@ -1431,13 +1429,14 @@ static int decode_b(Dav1dTileContext *const t,
             case NEARMV: \
             case NEARESTMV: \
                 b->mv[idx] = mvstack[b->drl_idx].pfx##_mv; \
-                if (!f->frame_hdr.hp) unset_hp_bit(&b->mv[idx]); \
+                fix_mv_precision(&f->frame_hdr, &b->mv[idx]); \
                 break; \
             case GLOBALMV: \
                 has_subpel_filter |= \
                     f->frame_hdr.gmv[b->ref[idx]].type == WM_TYPE_TRANSLATION; \
                 b->mv[idx] = get_gmv_2d(&f->frame_hdr.gmv[b->ref[idx]], \
                                         t->bx, t->by, bw4, bh4, &f->frame_hdr); \
+                fix_mv_precision(&f->frame_hdr, &b->mv[idx]); \
                 break; \
             case NEWMV: \
                 b->mv[idx] = mvstack[b->drl_idx].pfx##_mv; \
@@ -1557,6 +1556,7 @@ static int decode_b(Dav1dTileContext *const t,
                     b->inter_mode = GLOBALMV;
                     b->mv[0] = get_gmv_2d(&f->frame_hdr.gmv[b->ref[0]],
                                           t->bx, t->by, bw4, bh4, &f->frame_hdr);
+                    fix_mv_precision(&f->frame_hdr, &b->mv[0]);
                     has_subpel_filter = imin(bw4, bh4) == 1 ||
                         f->frame_hdr.gmv[b->ref[0]].type == WM_TYPE_TRANSLATION;
                 } else {
@@ -1585,7 +1585,7 @@ static int decode_b(Dav1dTileContext *const t,
                         b->mv[0] = mvstack[b->drl_idx].this_mv;
                     } else {
                         b->mv[0] = mvlist[0][b->drl_idx];
-                        if (!f->frame_hdr.hp) unset_hp_bit(&b->mv[0]);
+                        fix_mv_precision(&f->frame_hdr, &b->mv[0]);
                     }
                 }
 
@@ -1611,7 +1611,7 @@ static int decode_b(Dav1dTileContext *const t,
                     b->mv[0] = mvstack[b->drl_idx].this_mv;
                 } else {
                     b->mv[0] = mvlist[0][0];
-                    if (!f->frame_hdr.hp) unset_hp_bit(&b->mv[0]);
+                    fix_mv_precision(&f->frame_hdr, &b->mv[0]);
                 }
                 if (DEBUG_BLOCK_INFO)
                     printf("Post-intermode[%d,drl=%d]: r=%d\n",
