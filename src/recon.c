@@ -863,13 +863,12 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                         const int sby = t->by >> f->sb_shift;
                         top_sb_edge += f->sb128w * 128 * (sby - 1);
                     }
+                    const int xpos = t->bx >> ss_hor, ypos = t->by >> ss_ver;
+                    const int xstart = ts->tiling.col_start >> ss_hor;
+                    const int ystart = ts->tiling.row_start >> ss_ver;
                     const enum IntraPredMode m =
-                        bytefn(dav1d_prepare_intra_edges)(t->bx >> ss_hor,
-                                                          (t->bx >> ss_hor) >
-                                                              (ts->tiling.col_start >> ss_hor),
-                                                          t->by >> ss_ver,
-                                                          (t->by >> ss_ver) >
-                                                              (ts->tiling.row_start >> ss_ver),
+                        bytefn(dav1d_prepare_intra_edges)(xpos, xpos > xstart,
+                                                          ypos, ypos > ystart,
                                                           ts->tiling.col_end >> ss_hor,
                                                           ts->tiling.row_end >> ss_ver,
                                                           0, uv_dst[pl], stride,
@@ -963,13 +962,12 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                         }
                         const enum IntraPredMode uv_mode =
                              b->uv_mode == CFL_PRED ? DC_PRED : b->uv_mode;
+                        const int xpos = t->bx >> ss_hor, ypos = t->by >> ss_ver;
+                        const int xstart = ts->tiling.col_start >> ss_hor;
+                        const int ystart = ts->tiling.row_start >> ss_ver;
                         const enum IntraPredMode m =
-                            bytefn(dav1d_prepare_intra_edges)(t->bx >> ss_hor,
-                                                              (t->bx >> ss_hor) >
-                                                                  (ts->tiling.col_start >> ss_hor),
-                                                              t->by >> ss_ver,
-                                                              (t->by >> ss_ver) >
-                                                                  (ts->tiling.row_start >> ss_ver),
+                            bytefn(dav1d_prepare_intra_edges)(xpos, xpos > xstart,
+                                                              ypos, ypos > ystart,
                                                               ts->tiling.col_end >> ss_hor,
                                                               ts->tiling.row_end >> ss_ver,
                                                               edge_flags, dst, stride,
