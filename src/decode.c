@@ -426,7 +426,7 @@ static void read_pal_plane(Dav1dTileContext *const t, Av1Block *const b,
                 prev = pal[i++] = imin(prev + delta + !pl, max);
                 if (prev + !pl >= max) {
                     for (; i < pal_sz; i++)
-                        pal[i] = pal[i - 1];
+                        pal[i] = pal[i - 1] + !pl;
                     break;
                 }
                 bits = imin(bits, 1 + ulog2(max - prev - !pl));
