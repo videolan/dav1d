@@ -20,7 +20,8 @@ option('build_tests',
     value: true,
     description: 'Build dav1d tests')
 
-option('build_libfuzzer',
-    type: 'boolean',
-    value: false,
-    description: 'Build dav1d libFuzzer target')
+option('fuzzing_engine',
+    type: 'combo',
+    choices : ['none', 'libfuzzer', 'oss-fuzz'],
+    value: 'none',
+    description: 'Select the fuzzing engine')
