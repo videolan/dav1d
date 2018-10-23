@@ -36,6 +36,9 @@
 #include "include/common/attributes.h"
 #include "include/common/intops.h"
 
+void checkasm_check_cdef_8bpc(void);
+void checkasm_check_cdef_10bpc(void);
+
 void checkasm_check_ipred_8bpc(void);
 void checkasm_check_ipred_10bpc(void);
 
