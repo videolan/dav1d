@@ -2652,8 +2652,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             // and post-filtering, so that the full process runs in-line, so
             // that frame threading is still possible
             for (int tile_row = 0; tile_row < f->frame_hdr.tiling.rows; tile_row++) {
+                const int sbh_end =
+                    imin(f->frame_hdr.tiling.row_start_sb[tile_row + 1], f->sbh);
                 for (int sby = f->frame_hdr.tiling.row_start_sb[tile_row];
-                     sby < f->frame_hdr.tiling.row_start_sb[tile_row + 1]; sby++)
+                     sby < sbh_end; sby++)
                 {
                     t->by = sby << (4 + f->seq_hdr.sb128);
                     for (int tile_col = 0; tile_col < f->frame_hdr.tiling.cols; tile_col++) {
