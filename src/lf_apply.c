@@ -157,8 +157,8 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     const int halign = (f->bh + 31) & ~31;
     const int ss_ver = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
-    const int endy4 = starty4 + imin(hy4 - sby * sbsz, sbsz);
-    const int uv_endy4 = (endy4 + ss_ver) >> ss_ver;
+    const unsigned endy4 = starty4 + imin(hy4 - sby * sbsz, sbsz);
+    const unsigned uv_endy4 = (endy4 + ss_ver) >> ss_ver;
 
     // fix lpf strength at tile col boundaries
     const uint8_t *lpf_y = &f->lf.tx_lpf_right_edge[0][sby << sbl2];
