@@ -53,6 +53,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     dav1d_default_settings(&settings);
 
+#ifdef DAV1D_MT_FUZZING
+    settings.n_frame_threads = settings.n_tile_threads = 2;
+#else
+    settings.n_frame_threads = settings.n_tile_threads = 1;
+#endif
+
     err = dav1d_open(&ctx, &settings);
     if (err < 0) goto end;
 

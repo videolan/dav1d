@@ -103,3 +103,14 @@ dav1d_fuzzer = executable('dav1d_fuzzer',
     build_by_default: true,
     dependencies : [thread_dependency],
     )
+
+dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
+    dav1d_fuzzer_sources,
+    include_directories: dav1d_inc_dirs,
+    c_args: [stackalign_flag, stackrealign_flag] + fuzzer_flags +
+            ['-DDAV1D_MT_FUZZING'],
+    link_args: fuzzer_flags,
+    link_with : libdav1d,
+    build_by_default: true,
+    dependencies : [thread_dependency],
+    )
