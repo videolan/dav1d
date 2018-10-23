@@ -201,94 +201,72 @@ cdef_fn(4, 4);
 cdef_fn(4, 8);
 cdef_fn(8, 8);
 
-/*
- * <code copied from libaom>
- */
-
-/* Detect direction. 0 means 45-degree up-right, 2 is horizontal, and so on.
-   The search minimizes the weighted variance along all the lines in a
-   particular direction, i.e. the squared error between the input and a
-   "predicted" block where each pixel is replaced by the average along a line
-   in a particular direction. Since each direction have the same sum(x^2) term,
-   that term is never computed. See Section 2, step 2, of:
-   http://jmvalin.ca/notes/intra_paint.pdf */
-static const uint16_t div_table[] = {
-    0, 840, 420, 280, 210, 168, 140, 120, 105
-};
 static int cdef_find_dir_c(const pixel *img, const ptrdiff_t stride,
                            unsigned *const var)
 {
-    int i;
-    int32_t cost[8] = { 0 };
-    int partial[8][15] = { { 0 } };
-    int32_t best_cost = 0;
+    int partial_sum_hv[2][8] = { { 0 } };
+    int partial_sum_diag[2][15] = { { 0 } };
+    int partial_sum_alt[4][11] = { { 0 } };
+
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            const int px = (img[x] >> (BITDEPTH - 8)) - 128;
+
+            partial_sum_diag[0][     y       +  x      ] += px;
+            partial_sum_alt [0][     y       + (x >> 1)] += px;
+            partial_sum_hv  [0][     y                 ] += px;
+            partial_sum_alt [1][3 +  y       - (x >> 1)] += px;
+            partial_sum_diag[1][7 +  y       -  x      ] += px;
+            partial_sum_alt [2][3 - (y >> 1) +  x      ] += px;
+            partial_sum_hv  [1][                x      ] += px;
+            partial_sum_alt [3][    (y >> 1) +  x      ] += px;
+        }
+        img += PXSTRIDE(stride);
+    }
+
+    unsigned cost[8] = { 0 };
+    for (int n = 0; n < 8; n++) {
+        cost[2] += partial_sum_hv[0][n] * partial_sum_hv[0][n];
+        cost[6] += partial_sum_hv[1][n] * partial_sum_hv[1][n];
+    }
+    cost[2] *= 105;
+    cost[6] *= 105;
+
+    static const uint16_t div_table[7] = { 840, 420, 280, 210, 168, 140, 120 };
+    for (int n = 0; n < 7; n++) {
+        const int d = div_table[n];
+        cost[0] += (partial_sum_diag[0][n]      * partial_sum_diag[0][n] +
+                    partial_sum_diag[0][14 - n] * partial_sum_diag[0][14 - n]) * d;
+        cost[4] += (partial_sum_diag[1][n]      * partial_sum_diag[1][n] +
+                    partial_sum_diag[1][14 - n] * partial_sum_diag[1][14 - n]) * d;
+    }
+    cost[0] += partial_sum_diag[0][7] * partial_sum_diag[0][7] * 105;
+    cost[4] += partial_sum_diag[1][7] * partial_sum_diag[1][7] * 105;
+
+    for (int n = 0; n < 4; n++) {
+        unsigned *const cost_ptr = &cost[n * 2 + 1];
+        for (int m = 0; m < 5; m++)
+            *cost_ptr += partial_sum_alt[n][3 + m] * partial_sum_alt[n][3 + m];
+        *cost_ptr *= 105;
+        for (int m = 0; m < 3; m++) {
+            const int d = div_table[2 * m + 1];
+            *cost_ptr += (partial_sum_alt[n][m]      * partial_sum_alt[n][m] +
+                          partial_sum_alt[n][10 - m] * partial_sum_alt[n][10 - m]) * d;
+        }
+    }
+
     int best_dir = 0;
-    /* Instead of dividing by n between 2 and 8, we multiply by 3*5*7*8/n.
-     The output is then 840 times larger, but we don't care for finding
-     the max. */
-    for (i = 0; i < 8; i++) {
-        int j;
-        for (j = 0; j < 8; j++) {
-            int x;
-            /* We subtract 128 here to reduce the maximum range of the squared
-             partial sums. */
-            x = (img[i * PXSTRIDE(stride) + j] >> (BITDEPTH - 8)) - 128;
-            partial[0][i + j] += x;
-            partial[1][i + j / 2] += x;
-            partial[2][i] += x;
-            partial[3][3 + i - j / 2] += x;
-            partial[4][7 + i - j] += x;
-            partial[5][3 - i / 2 + j] += x;
-            partial[6][j] += x;
-            partial[7][i / 2 + j] += x;
+    unsigned best_cost = cost[0];
+    for (int n = 1; n < 8; n++) {
+        if (cost[n] > best_cost) {
+            best_cost = cost[n];
+            best_dir = n;
         }
     }
-    for (i = 0; i < 8; i++) {
-        cost[2] += partial[2][i] * partial[2][i];
-        cost[6] += partial[6][i] * partial[6][i];
-    }
-    cost[2] *= div_table[8];
-    cost[6] *= div_table[8];
-    for (i = 0; i < 7; i++) {
-        cost[0] += (partial[0][i] * partial[0][i] +
-                    partial[0][14 - i] * partial[0][14 - i]) *
-                   div_table[i + 1];
-        cost[4] += (partial[4][i] * partial[4][i] +
-                    partial[4][14 - i] * partial[4][14 - i]) *
-                   div_table[i + 1];
-    }
-    cost[0] += partial[0][7] * partial[0][7] * div_table[8];
-    cost[4] += partial[4][7] * partial[4][7] * div_table[8];
-    for (i = 1; i < 8; i += 2) {
-        int j;
-        for (j = 0; j < 4 + 1; j++) {
-            cost[i] += partial[i][3 + j] * partial[i][3 + j];
-        }
-        cost[i] *= div_table[8];
-        for (j = 0; j < 4 - 1; j++) {
-            cost[i] += (partial[i][j] * partial[i][j] +
-                        partial[i][10 - j] * partial[i][10 - j]) *
-                       div_table[2 * j + 2];
-        }
-    }
-    for (i = 0; i < 8; i++) {
-        if (cost[i] > best_cost) {
-            best_cost = cost[i];
-            best_dir = i;
-        }
-    }
-    /* Difference between the optimal variance and the variance along the
-     orthogonal direction. Again, the sum(x^2) terms cancel out. */
-    *var = best_cost - cost[(best_dir + 4) & 7];
-    /* We'd normally divide by 840, but dividing by 1024 is close enough
-     for what we're going to do with this. */
-    *var >>= 10;
+
+    *var = (best_cost - (cost[best_dir ^ 4])) >> 10;
     return best_dir;
 }
-
-/*
- * </code copied from libaom>
- */
 
 void bitfn(dav1d_cdef_dsp_init)(Dav1dCdefDSPContext *const c) {
     c->dir = cdef_find_dir_c;
