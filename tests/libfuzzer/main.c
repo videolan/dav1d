@@ -79,7 +79,7 @@ int main(const int argc, char *const *const argv) {
     }
 
     if (fread(data, size, 1, f) == size) {
-        fprintf(stderr, "failed to read %zu bytes from %s: %s\n", fsize,
+        fprintf(stderr, "failed to read %zu bytes from %s: %s\n", size,
                 filename, strerror(errno));
         goto error;
     }
