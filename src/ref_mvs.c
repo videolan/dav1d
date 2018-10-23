@@ -255,17 +255,6 @@ typedef enum {
   AFFINE = 3,        // affine, 6-parameter
   TRANS_TYPES,
 } TransformationType;
-#if 0
-typedef enum {
-  KEY_FRAME = 0,
-  INTER_FRAME = 1,
-#if CONFIG_OBU
-  INTRA_ONLY_FRAME = 2,  // replaces intra-only
-  S_FRAME = 3,
-#endif
-  FRAME_TYPES,
-} FRAME_TYPE;
-#endif
 
 #define LEAST_SQUARES_SAMPLES_MAX_BITS 3
 #define LEAST_SQUARES_SAMPLES_MAX (1 << LEAST_SQUARES_SAMPLES_MAX_BITS)
@@ -306,31 +295,6 @@ static const uint8_t block_size_high[BLOCK_SIZES_ALL] = {
   16, 128, 32
 };
 
-static const uint8_t num_8x8_blocks_wide_lookup[BLOCK_SIZES_ALL] = {
-  1, 1,
-  1, 1,
-  1, 2,
-  2, 2,
-  4, 4,
-  4, 8,
-  8, 8, 16, 16, 1,
-  2, 1,
-  4, 2,
-  8, 4, 16
-};
-static const uint8_t num_8x8_blocks_high_lookup[BLOCK_SIZES_ALL] = {
-  1, 1,
-  1, 1,
-  2, 1,
-  2, 4,
-  2, 4,
-  8, 4,
-  8, 16, 8, 16, 2,
-  1, 4,
-  1, 8,
-  2, 16, 4
-};
-
 static INLINE int is_global_mv_block(const MB_MODE_INFO *const mbmi,
                                      TransformationType type) {
   const PREDICTION_MODE mode = mbmi->mode;
@@ -347,67 +311,19 @@ typedef struct {
   int16_t alpha, beta, gamma, delta;
 } WarpedMotionParams;
 
-#define WARPEDMODEL_PREC_BITS 16
-static const WarpedMotionParams default_warp_params = {
-  IDENTITY,
-  { 0, 0, (1 << WARPEDMODEL_PREC_BITS), 0, 0, (1 << WARPEDMODEL_PREC_BITS) },
-  0, 0, 0, 0,
-};
-
 #define REF_FRAMES_LOG2 3
 #define REF_FRAMES (1 << REF_FRAMES_LOG2)
 #define FRAME_BUFFERS (REF_FRAMES + 7)
 typedef struct {
-#if 0
-  int ref_count;
-#endif
 
   unsigned int cur_frame_offset;
   unsigned int ref_frame_offset[INTER_REFS_PER_FRAME];
 
   MV_REF *mvs;
   ptrdiff_t mv_stride;
-#if 0
-#if CONFIG_SEGMENT_PRED_LAST
-  uint8_t *seg_map;
-#endif
-#endif
   int mi_rows;
   int mi_cols;
-#if 0
-  // Width and height give the size of the buffer (before any upscaling, unlike
-  // the sizes that can be derived from the buf structure)
-  int width;
-  int height;
-  WarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
-#if CONFIG_FILM_GRAIN_SHOWEX
-  int showable_frame;  // frame can be used as show existing frame in future
-#endif
-#if CONFIG_FILM_GRAIN
-  int film_grain_params_present;
-  aom_film_grain_t film_grain_params;
-#endif
-  aom_codec_frame_buffer_t raw_frame_buffer;
-  YV12_BUFFER_CONFIG buf;
-#if CONFIG_HASH_ME
-  hash_table hash_table;
-#endif
-#endif
   uint8_t intra_only;
-#if 0
-  FRAME_TYPE frame_type;
-  // The Following variables will only be used in frame parallel decode.
-
-  // frame_worker_owner indicates which FrameWorker owns this buffer. NULL means
-  // that no FrameWorker owns, or is decoding, this buffer.
-  AVxWorker *frame_worker_owner;
-
-  // row and col indicate which position frame has been decoded to in real
-  // pixel unit. They are reset to -1 when decoding begins and set to INT_MAX
-  // when the frame is fully decoded.
-  int row;
-  int col;
-#endif
 } RefCntBuffer;
 
 #define INVALID_IDX -1  // Invalid buffer index.
@@ -417,536 +333,63 @@ typedef struct TileInfo {
   int tg_horz_boundary;
 } TileInfo;
 typedef struct macroblockd {
-#if 0
-  struct macroblockd_plane plane[MAX_MB_PLANE];
-  uint8_t bmode_blocks_wl;
-  uint8_t bmode_blocks_hl;
-
-  FRAME_COUNTS *counts;
-#endif
   TileInfo tile;
   int mi_stride;
 
   CUR_MODE_INFO cur_mi;
   MB_MODE_INFO *mi;
-#if 0
-  MODE_INFO *left_mi;
-  MODE_INFO *above_mi;
-  MB_MODE_INFO *left_mbmi;
-  MB_MODE_INFO *above_mbmi;
-  MB_MODE_INFO *chroma_left_mbmi;
-  MB_MODE_INFO *chroma_above_mbmi;
-#endif
   int up_available;
   int left_available;
-#if 0
-  int chroma_up_available;
-  int chroma_left_available;
-#endif
   /* Distance of MB away from frame edges in subpixels (1/8th pixel)  */
   int mb_to_left_edge;
   int mb_to_right_edge;
   int mb_to_top_edge;
   int mb_to_bottom_edge;
-#if 0
-  FRAME_CONTEXT *fc;
-
-  /* pointers to reference frames */
-  const RefBuffer *block_refs[2];
-
-  /* pointer to current frame */
-  const YV12_BUFFER_CONFIG *cur_buf;
-
-  ENTROPY_CONTEXT *above_context[MAX_MB_PLANE];
-  ENTROPY_CONTEXT left_context[MAX_MB_PLANE][2 * MAX_MIB_SIZE];
-
-  PARTITION_CONTEXT *above_seg_context;
-  PARTITION_CONTEXT left_seg_context[MAX_MIB_SIZE];
-
-  TXFM_CONTEXT *above_txfm_context;
-  TXFM_CONTEXT *left_txfm_context;
-  TXFM_CONTEXT left_txfm_context_buffer[2 * MAX_MIB_SIZE];
-
-#if CONFIG_LOOP_RESTORATION
-  WienerInfo wiener_info[MAX_MB_PLANE];
-  SgrprojInfo sgrproj_info[MAX_MB_PLANE];
-#endif  // CONFIG_LOOP_RESTORATION
-#endif
   // block dimension in the unit of mode_info.
   uint8_t n8_w, n8_h;
-#if 0
-  uint8_t ref_mv_count[MODE_CTX_REF_FRAMES];
-  CANDIDATE_MV ref_mv_stack[MODE_CTX_REF_FRAMES][MAX_REF_MV_STACK_SIZE];
-#endif
   uint8_t is_sec_rect;
 
-#if 0
-  // Counts of each reference frame in the above and left neighboring blocks.
-  // NOTE: Take into account both single and comp references.
-  uint8_t neighbors_ref_counts[TOTAL_REFS_PER_FRAME];
-
-  FRAME_CONTEXT *tile_ctx;
-  /* Bit depth: 8, 10, 12 */
-  int bd;
-
-  int qindex[MAX_SEGMENTS];
-  int lossless[MAX_SEGMENTS];
-  int corrupted;
-  int cur_frame_force_integer_mv;
-// same with that in AV1_COMMON
-  struct aom_internal_error_info *error_info;
-  const WarpedMotionParams *global_motion;
-  int prev_qindex;
-  int delta_qindex;
-  int current_qindex;
-#if CONFIG_EXT_DELTA_Q
-  // Since actual frame level loop filtering level value is not available
-  // at the beginning of the tile (only available during actual filtering)
-  // at encoder side.we record the delta_lf (against the frame level loop
-  // filtering level) and code the delta between previous superblock's delta
-  // lf and current delta lf. It is equivalent to the delta between previous
-  // superblock's actual lf and current lf.
-  int prev_delta_lf_from_base;
-  int current_delta_lf_from_base;
-  // For this experiment, we have four frame filter levels for different plane
-  // and direction. So, to support the per superblock update, we need to add
-  // a few more params as below.
-  // 0: delta loop filter level for y plane vertical
-  // 1: delta loop filter level for y plane horizontal
-  // 2: delta loop filter level for u plane
-  // 3: delta loop filter level for v plane
-  // To make it consistent with the reference to each filter level in segment,
-  // we need to -1, since
-  // SEG_LVL_ALT_LF_Y_V = 1;
-  // SEG_LVL_ALT_LF_Y_H = 2;
-  // SEG_LVL_ALT_LF_U   = 3;
-  // SEG_LVL_ALT_LF_V   = 4;
-  int prev_delta_lf[FRAME_LF_COUNT];
-  int curr_delta_lf[FRAME_LF_COUNT];
-#endif
-
-  DECLARE_ALIGNED(16, uint8_t, seg_mask[2 * MAX_SB_SQUARE]);
-
-  CFL_CTX cfl;
-
-  JNT_COMP_PARAMS jcp_param;
-
-  int all_one_sided_refs;
-#endif
 } MACROBLOCKD;
 typedef struct RefBuffer {
   int idx;  // frame buf idx
-#if 0
-  int map_idx;  // frame map idx
-  YV12_BUFFER_CONFIG *buf;
-  struct scale_factors sf;
-#endif
 } RefBuffer;
 typedef struct BufferPool {
-#if 0
-// Protect BufferPool from being accessed by several FrameWorkers at
-// the same time during frame parallel decode.
-// TODO(hkuang): Try to use atomic variable instead of locking the whole pool.
-#if CONFIG_MULTITHREAD
-  pthread_mutex_t pool_mutex;
-#endif
-
-  // Private data associated with the frame buffer callbacks.
-  void *cb_priv;
-
-  aom_get_frame_buffer_cb_fn_t get_fb_cb;
-  aom_release_frame_buffer_cb_fn_t release_fb_cb;
-#endif
   RefCntBuffer frame_bufs[FRAME_BUFFERS];
-#if 0
-  // Frame buffers allocated internally by the codec.
-  InternalFrameBufferList int_frame_buffers;
-#endif
 } BufferPool;
 typedef struct AV1Common {
-#if 0
-  struct aom_internal_error_info error;
-  aom_color_primaries_t color_primaries;
-  aom_transfer_characteristics_t transfer_characteristics;
-  aom_matrix_coefficients_t matrix_coefficients;
-  int color_range;
-  int width;
-  int height;
-  int render_width;
-  int render_height;
-  int last_width;
-  int last_height;
-  int timing_info_present;
-  uint32_t num_units_in_tick;
-  uint32_t time_scale;
-  int equal_picture_interval;
-  uint32_t num_ticks_per_picture;
-
-  // TODO(jkoleszar): this implies chroma ss right now, but could vary per
-  // plane. Revisit as part of the future change to YV12_BUFFER_CONFIG to
-  // support additional planes.
-  int subsampling_x;
-  int subsampling_y;
-
-  int largest_tile_id;
-  size_t largest_tile_size;
-
-  // Scale of the current frame with respect to itself.
-  struct scale_factors sf_identity;
-
-  // Marks if we need to use 16bit frame buffers (1: yes, 0: no).
-  int use_highbitdepth;
-  YV12_BUFFER_CONFIG *frame_to_show;
-#endif
 
   // TODO(hkuang): Combine this with cur_buf in macroblockd.
   RefCntBuffer cur_frame;
-#if 0
-  int ref_frame_map[REF_FRAMES]; /* maps fb_idx to reference slot */
-
-  // Prepare ref_frame_map for the next frame.
-  // Only used in frame parallel decode.
-  int next_ref_frame_map[REF_FRAMES];
-
-  // TODO(jkoleszar): could expand active_ref_idx to 4, with 0 as intra, and
-  // roll new_fb_idx into it.
-#endif
 
   // Each Inter frame can reference INTER_REFS_PER_FRAME buffers
   RefBuffer frame_refs[INTER_REFS_PER_FRAME];
 
-#if 0
-  int is_skip_mode_allowed;
-  int skip_mode_flag;
-  int ref_frame_idx_0;
-  int ref_frame_idx_1;
-
-  int new_fb_idx;
-
-  FRAME_TYPE last_frame_type; /* last frame's frame type for motion search.*/
-  FRAME_TYPE frame_type;
-
-  int show_frame;
-#if CONFIG_FILM_GRAIN_SHOWEX
-  int showable_frame;  // frame can be used as show existing frame in future
-#endif
-  int last_show_frame;
-  int show_existing_frame;
-  // Flag for a frame used as a reference - not written to the bitstream
-  int is_reference_frame;
-
-#if CONFIG_FWD_KF
-  int reset_decoder_state;
-#endif  // CONFIG_FWD_KF
-
-  // Flag signaling that the frame is encoded using only INTRA modes.
-  uint8_t intra_only;
-  uint8_t last_intra_only;
-
-#if CONFIG_CDF_UPDATE_MODE
-  uint8_t disable_cdf_update;
-#endif  // CONFIG_CDF_UPDATE_MODE
-#endif
   int allow_high_precision_mv;
   int cur_frame_force_integer_mv;  // 0 the default in AOM, 1 only integer
-#if 0
-  int disable_intra_edge_filter;  // 1 - disable corner/edge/upsampling
-  int allow_screen_content_tools;
-  int allow_intrabc;
-  int allow_interintra_compound;
-  int allow_masked_compound;
-
-#if !CONFIG_NO_FRAME_CONTEXT_SIGNALING
-  // Flag signaling which frame contexts should be reset to default values.
-  RESET_FRAME_CONTEXT_MODE reset_frame_context;
-#endif
-
-  // MBs, mb_rows/cols is in 16-pixel units; mi_rows/cols is in
-  // MODE_INFO (8-pixel) units.
-  int MBs;
-  int mb_rows, mi_rows;
-  int mb_cols, mi_cols;
-#endif
   int mi_rows;
   int mi_cols;
   int mi_stride;
 
-#if 0
-  /* profile settings */
-  TX_MODE tx_mode;
-
-  int base_qindex;
-  int y_dc_delta_q;
-  int u_dc_delta_q;
-  int v_dc_delta_q;
-  int u_ac_delta_q;
-  int v_ac_delta_q;
-
-  int separate_uv_delta_q;
-
-  // The dequantizers below are true dequntizers used only in the
-  // dequantization process.  They have the same coefficient
-  // shift/scale as TX.
-  int16_t y_dequant_QTX[MAX_SEGMENTS][2];
-  int16_t u_dequant_QTX[MAX_SEGMENTS][2];
-  int16_t v_dequant_QTX[MAX_SEGMENTS][2];
-
-  // Global quant matrix tables
-  const qm_val_t *giqmatrix[NUM_QM_LEVELS][3][TX_SIZES_ALL];
-  const qm_val_t *gqmatrix[NUM_QM_LEVELS][3][TX_SIZES_ALL];
-
-  // Local quant matrix tables for each frame
-  const qm_val_t *y_iqmatrix[MAX_SEGMENTS][TX_SIZES_ALL];
-  const qm_val_t *u_iqmatrix[MAX_SEGMENTS][TX_SIZES_ALL];
-  const qm_val_t *v_iqmatrix[MAX_SEGMENTS][TX_SIZES_ALL];
-
-  // Encoder
-  int using_qmatrix;
-#if CONFIG_AOM_QM_EXT
-  int qm_y;
-  int qm_u;
-  int qm_v;
-#endif  // CONFIG_AOM_QM_EXT
-  int min_qmlevel;
-  int max_qmlevel;
-
-  /* We allocate a MODE_INFO struct for each macroblock, together with
-     an extra row on top and column on the left to simplify prediction. */
-  int mi_alloc_size;
-  MODE_INFO *mip; /* Base of allocated array */
-  MODE_INFO *mi;  /* Corresponds to upper left visible macroblock */
-
-  // TODO(agrange): Move prev_mi into encoder structure.
-  // prev_mip and prev_mi will only be allocated in encoder.
-  MODE_INFO *prev_mip; /* MODE_INFO array 'mip' from last decoded frame */
-  MODE_INFO *prev_mi;  /* 'mi' from last frame (points into prev_mip) */
-
-  // Separate mi functions between encoder and decoder.
-  int (*alloc_mi)(struct AV1Common *cm, int mi_size);
-  void (*free_mi)(struct AV1Common *cm);
-  void (*setup_mi)(struct AV1Common *cm);
-
-  // Grid of pointers to 8x8 MODE_INFO structs.  Any 8x8 not in the visible
-  // area will be NULL.
-  MODE_INFO **mi_grid_base;
-  MODE_INFO **mi_grid_visible;
-  MODE_INFO **prev_mi_grid_base;
-  MODE_INFO **prev_mi_grid_visible;
-#endif
   // Whether to use previous frame's motion vectors for prediction.
   int allow_ref_frame_mvs;
 
-#if 0
-#if !CONFIG_SEGMENT_PRED_LAST
-  // Persistent mb segment id map used in prediction.
-  int seg_map_idx;
-  int prev_seg_map_idx;
-
-  uint8_t *seg_map_array[NUM_PING_PONG_BUFFERS];
-#endif
-  uint8_t *last_frame_seg_map;
-  uint8_t *current_frame_seg_map;
-  int seg_map_alloc_size;
-
-  InterpFilter interp_filter;
-
-  int switchable_motion_mode;
-
-  loop_filter_info_n lf_info;
-  // The denominator of the superres scale; the numerator is fixed.
-  uint8_t superres_scale_denominator;
-  int superres_upscaled_width;
-  int superres_upscaled_height;
-  RestorationInfo rst_info[MAX_MB_PLANE];
-
-  // rst_end_stripe[i] is one more than the index of the bottom stripe
-  // for tile row i.
-  int rst_end_stripe[MAX_TILE_ROWS];
-
-  // Pointer to a scratch buffer used by self-guided restoration
-  int32_t *rst_tmpbuf;
-
-  // Flag signaling how frame contexts should be updated at the end of
-  // a frame decode
-  REFRESH_FRAME_CONTEXT_MODE refresh_frame_context;
-#endif
   int ref_frame_sign_bias[TOTAL_REFS_PER_FRAME]; /* Two state 0, 1 */
-#if 0
-  struct loopfilter lf;
-  struct segmentation seg;
-  int all_lossless;
-#endif
   int frame_parallel_decode;  // frame-based threading.
-#if 0
-  int reduced_tx_set_used;
-
-  // Context probabilities for reference frame prediction
-  MV_REFERENCE_FRAME comp_fwd_ref[FWD_REFS];
-  MV_REFERENCE_FRAME comp_bwd_ref[BWD_REFS];
-  REFERENCE_MODE reference_mode;
-
-  FRAME_CONTEXT *fc;              /* this frame entropy */
-  FRAME_CONTEXT *frame_contexts;  // FRAME_CONTEXTS
-  FRAME_CONTEXT *pre_fc;          // Context referenced in this frame
-  unsigned int frame_context_idx; /* Context to use/update */
-#if CONFIG_NO_FRAME_CONTEXT_SIGNALING
-  int fb_of_context_type[REF_FRAMES];
-  int primary_ref_frame;
-#endif
-  FRAME_COUNTS counts;
-#endif
 
   unsigned int frame_offset;
 
-#if 0
-  unsigned int current_video_frame;
-  BITSTREAM_PROFILE profile;
-
-  // AOM_BITS_8 in profile 0 or 1, AOM_BITS_10 or AOM_BITS_12 in profile 2 or 3.
-  aom_bit_depth_t bit_depth;
-  aom_bit_depth_t dequant_bit_depth;  // bit_depth of current dequantizer
-
-  int error_resilient_mode;
-
-  int tile_cols, tile_rows;
-  int last_tile_cols, last_tile_rows;
-
-  BOUNDARY_TYPE *boundary_info;
-  int boundary_info_alloc_size;
-
-#if CONFIG_MAX_TILE
-  int min_log2_tile_cols;
-  int max_log2_tile_cols;
-  int max_log2_tile_rows;
-  int min_log2_tile_rows;
-  int min_log2_tiles;
-  int max_tile_width_sb;
-  int max_tile_height_sb;
-  int uniform_tile_spacing_flag;
-  int log2_tile_cols;                        // only valid for uniform tiles
-  int log2_tile_rows;                        // only valid for uniform tiles
-  int tile_col_start_sb[MAX_TILE_COLS + 1];  // valid for 0 <= i <= tile_cols
-  int tile_row_start_sb[MAX_TILE_ROWS + 1];  // valid for 0 <= i <= tile_rows
-#if CONFIG_DEPENDENT_HORZTILES
-  int tile_row_independent[MAX_TILE_ROWS];  // valid for 0 <= i <  tile_rows
-#endif
-  int tile_width, tile_height;  // In MI units
-#else
-  int log2_tile_cols, log2_tile_rows;  // Used in non-large_scale_tile_coding.
-  int tile_width, tile_height;         // In MI units
-#endif  // CONFIG_MAX_TILE
-
-#if CONFIG_EXT_TILE
-  unsigned int large_scale_tile;
-  unsigned int single_tile_decoding;
-#endif  // CONFIG_EXT_TILE
-
-#if CONFIG_DEPENDENT_HORZTILES
-  int dependent_horz_tiles;
-  int tile_group_start_row[MAX_TILE_ROWS][MAX_TILE_COLS];
-  int tile_group_start_col[MAX_TILE_ROWS][MAX_TILE_COLS];
-#endif
-#if CONFIG_LOOPFILTERING_ACROSS_TILES
-#if CONFIG_LOOPFILTERING_ACROSS_TILES_EXT
-  int loop_filter_across_tiles_v_enabled;
-  int loop_filter_across_tiles_h_enabled;
-#else
-  int loop_filter_across_tiles_enabled;
-#endif  // CONFIG_LOOPFILTERING_ACROSS_TILES_EXT
-#endif  // CONFIG_LOOPFILTERING_ACROSS_TILES
-
-  int byte_alignment;
-  int skip_loop_filter;
-
-  // Private data associated with the frame buffer callbacks.
-  void *cb_priv;
-  aom_get_frame_buffer_cb_fn_t get_fb_cb;
-  aom_release_frame_buffer_cb_fn_t release_fb_cb;
-
-  // Handles memory for the codec.
-  InternalFrameBufferList int_frame_buffers;
-#endif
   // External BufferPool passed from outside.
   BufferPool buffer_pool;
-#if 0
-  PARTITION_CONTEXT *above_seg_context;
-  ENTROPY_CONTEXT *above_context[MAX_MB_PLANE];
-  TXFM_CONTEXT *above_txfm_context;
-  TXFM_CONTEXT *top_txfm_context[MAX_MB_PLANE];
-  TXFM_CONTEXT left_txfm_context[MAX_MB_PLANE][2 * MAX_MIB_SIZE];
-  int above_context_alloc_cols;
-#endif
 
   WarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
-#if 0
-#if CONFIG_FILM_GRAIN
-  int film_grain_params_present;
-  aom_film_grain_t film_grain_params;
-#endif
-  int cdef_pri_damping;
-  int cdef_sec_damping;
-  int nb_cdef_strengths;
-  int cdef_strengths[CDEF_MAX_STRENGTHS];
-  int cdef_uv_strengths[CDEF_MAX_STRENGTHS];
-  int cdef_bits;
-  int cdef_preset[4];
-
-  int delta_q_present_flag;
-  // Resolution of delta quant
-  int delta_q_res;
-#if CONFIG_EXT_DELTA_Q
-  int delta_lf_present_flag;
-  // Resolution of delta lf level
-  int delta_lf_res;
-  // This is a flag for number of deltas of loop filter level
-  // 0: use 1 delta, for y_vertical, y_horizontal, u, and v
-  // 1: use separate deltas for each filter level
-  int delta_lf_multi;
-#endif
-  int num_tg;
-#endif
   struct {
     BLOCK_SIZE sb_size;
     int enable_order_hint;
     int order_hint_bits_minus1;
   } seq_params;
-#if 0
-  SequenceHeader seq_params;
-  int current_frame_id;
-  int ref_frame_id[REF_FRAMES];
-  int valid_for_referencing[REF_FRAMES];
-  int refresh_mask;
-  int invalid_delta_frame_id_minus1;
-  LV_MAP_CTX_TABLE coeff_ctx_table;
-#endif
   TPL_MV_REF *tpl_mvs;
-#if 0
-  int tpl_mvs_mem_size;
-#endif
   // TODO(jingning): This can be combined with sign_bias later.
   int8_t ref_frame_side[TOTAL_REFS_PER_FRAME];
-
-#if 0
-  int frame_refs_short_signaling;
-
-#if CONFIG_SCALABILITY
-  int temporal_layer_id;
-  int enhancement_layer_id;
-  int enhancement_layers_cnt;
-#endif
-#if TXCOEFF_TIMER
-  int64_t cum_txcoeff_timer;
-  int64_t txcoeff_timer;
-  int txb_count;
-#endif
-
-#if TXCOEFF_COST_TIMER
-  int64_t cum_txcoeff_cost_timer;
-  int64_t txcoeff_cost_timer;
-  int64_t txcoeff_cost_count;
-#endif
-  const cfg_options_t *options;
-#endif
 
     int ref_buf_idx[INTER_REFS_PER_FRAME];
     int ref_order_hint[INTER_REFS_PER_FRAME];
@@ -988,12 +431,6 @@ static INLINE void clamp_mv(MV *mv, int min_col, int max_col, int min_row,
   mv->row = clamp(mv->row, min_row, max_row);
 }
 
-#if 0
-static INLINE int frame_is_intra_only(const AV1_COMMON *const cm) {
-  return cm->frame_type == KEY_FRAME || cm->intra_only;
-}
-#endif
-
 static INLINE int is_intrabc_block(const MB_MODE_INFO *mbmi) {
   return mbmi->ref_frame[0] == INTRA_FRAME && mbmi->mv[0].as_mv.row != -0x8000;
   //return mbmi->use_intrabc;
@@ -1002,10 +439,6 @@ static INLINE int is_intrabc_block(const MB_MODE_INFO *mbmi) {
 static INLINE int is_inter_block(const MB_MODE_INFO *mbmi) {
   if (is_intrabc_block(mbmi)) return 1;
   return mbmi->ref_frame[0] > INTRA_FRAME;
-}
-
-static INLINE int has_second_ref(const MB_MODE_INFO *mbmi) {
-  return mbmi->ref_frame[1] > INTRA_FRAME;
 }
 
 static INLINE MV_REFERENCE_FRAME comp_ref0(int ref_idx) {
@@ -1060,30 +493,6 @@ static INLINE int block_center_y(int mi_row, BLOCK_SIZE bs) {
   const int bh = block_size_high[bs];
   return mi_row * MI_SIZE + bh / 2 - 1;
 }
-
-#if 0
-static INLINE MV_REFERENCE_FRAME comp_ref0(int ref_idx) {
-  static const MV_REFERENCE_FRAME lut[] = {
-    LAST_FRAME,    // LAST_LAST2_FRAMES,
-    LAST_FRAME,    // LAST_LAST3_FRAMES,
-    LAST_FRAME,    // LAST_GOLDEN_FRAMES,
-    BWDREF_FRAME,  // BWDREF_ALTREF_FRAMES,
-  };
-  assert(NELEMENTS(lut) == UNIDIR_COMP_REFS);
-  return lut[ref_idx];
-}
-
-static INLINE MV_REFERENCE_FRAME comp_ref1(int ref_idx) {
-  static const MV_REFERENCE_FRAME lut[] = {
-    LAST2_FRAME,   // LAST_LAST2_FRAMES,
-    LAST3_FRAME,   // LAST_LAST3_FRAMES,
-    GOLDEN_FRAME,  // LAST_GOLDEN_FRAMES,
-    ALTREF_FRAME,  // BWDREF_ALTREF_FRAMES,
-  };
-  assert(NELEMENTS(lut) == UNIDIR_COMP_REFS);
-  return lut[ref_idx];
-}
-#endif
 
 // Convert a global motion vector into a motion vector at the centre of the
 // given block.
@@ -1225,24 +634,6 @@ static INLINE int_mv get_sub_block_mv(const MB_MODE_INFO *candidate,
   return candidate->mv[which_mv];
 }
 
-static INLINE int_mv get_sub_block_pred_mv(const MB_MODE_INFO *candidate,
-                                           int which_mv, int search_col) {
-  (void)search_col;
-  return candidate->mv[which_mv];
-}
-
-// Performs mv sign inversion if indicated by the reference frame combination.
-static INLINE int_mv scale_mv(const MB_MODE_INFO *mbmi, int ref,
-                              const MV_REFERENCE_FRAME this_ref_frame,
-                              const int *ref_sign_bias) {
-  int_mv mv = mbmi->mv[ref];
-  if (ref_sign_bias[mbmi->ref_frame[ref]] != ref_sign_bias[this_ref_frame]) {
-    mv.as_mv.row *= -1;
-    mv.as_mv.col *= -1;
-  }
-  return mv;
-}
-
 // Checks that the given mi_row, mi_col and search point
 // are inside the borders of the tile.
 static INLINE int is_inside(const TileInfo *const tile, int mi_col, int mi_row,
@@ -1375,60 +766,9 @@ static INLINE int16_t av1_mode_context_analyzer(
   return comp_ctx;
 }
 
-static INLINE uint8_t av1_drl_ctx(const CANDIDATE_MV *ref_mv_stack,
-                                  int ref_idx) {
-  if (ref_mv_stack[ref_idx].weight >= REF_CAT_LEVEL &&
-      ref_mv_stack[ref_idx + 1].weight >= REF_CAT_LEVEL)
-    return 0;
-
-  if (ref_mv_stack[ref_idx].weight >= REF_CAT_LEVEL &&
-      ref_mv_stack[ref_idx + 1].weight < REF_CAT_LEVEL)
-    return 1;
-
-  if (ref_mv_stack[ref_idx].weight < REF_CAT_LEVEL &&
-      ref_mv_stack[ref_idx + 1].weight < REF_CAT_LEVEL)
-    return 2;
-
-  return 0;
-}
-
 void av1_setup_frame_buf_refs(AV1_COMMON *cm);
 void av1_setup_frame_sign_bias(AV1_COMMON *cm);
 void av1_setup_skip_mode_allowed(AV1_COMMON *cm);
-
-#if 0
-void av1_setup_motion_field(AV1_COMMON *cm);
-void av1_set_frame_refs(AV1_COMMON *const cm, int lst_map_idx, int gld_map_idx);
-#endif  // CONFIG_FRAME_REFS_SIGNALING
-
-#if 0
-static INLINE void av1_collect_neighbors_ref_counts(MACROBLOCKD *const xd) {
-  av1_zero(xd->neighbors_ref_counts);
-
-  uint8_t *const ref_counts = xd->neighbors_ref_counts;
-
-  const MB_MODE_INFO *const above_mbmi = xd->above_mbmi;
-  const MB_MODE_INFO *const left_mbmi = xd->left_mbmi;
-  const int above_in_image = xd->up_available;
-  const int left_in_image = xd->left_available;
-
-  // Above neighbor
-  if (above_in_image && is_inter_block(above_mbmi)) {
-    ref_counts[above_mbmi->ref_frame[0]]++;
-    if (has_second_ref(above_mbmi)) {
-      ref_counts[above_mbmi->ref_frame[1]]++;
-    }
-  }
-
-  // Left neighbor
-  if (left_in_image && is_inter_block(left_mbmi)) {
-    ref_counts[left_mbmi->ref_frame[0]]++;
-    if (has_second_ref(left_mbmi)) {
-      ref_counts[left_mbmi->ref_frame[1]]++;
-    }
-  }
-}
-#endif
 
 void av1_copy_frame_mvs(const AV1_COMMON *const cm, MB_MODE_INFO *mi,
                         int mi_row, int mi_col, int x_mis, int y_mis);
@@ -1454,87 +794,6 @@ int findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int mi_row, int mi_col,
 #define INTRABC_DELAY_PIXELS 256  //  Delay of 256 pixels
 #define INTRABC_DELAY_SB64 (INTRABC_DELAY_PIXELS / 64)
 #define USE_WAVE_FRONT 1  // Use only top left area of frame for reference.
-
-static INLINE void av1_find_ref_dv(int_mv *ref_dv, const TileInfo *const tile,
-                                   int mib_size, int mi_row, int mi_col) {
-  (void)mi_col;
-  if (mi_row - mib_size < tile->mi_row_start) {
-    ref_dv->as_mv.row = 0;
-    ref_dv->as_mv.col = -MI_SIZE * mib_size - INTRABC_DELAY_PIXELS;
-  } else {
-    ref_dv->as_mv.row = -MI_SIZE * mib_size;
-    ref_dv->as_mv.col = 0;
-  }
-  ref_dv->as_mv.row *= 8;
-  ref_dv->as_mv.col *= 8;
-}
-
-static INLINE int av1_is_dv_valid(const MV dv, const AV1_COMMON *cm,
-                                  const MACROBLOCKD *xd, int mi_row, int mi_col,
-                                  BLOCK_SIZE bsize, int mib_size_log2) {
-  const int bw = block_size_wide[bsize];
-  const int bh = block_size_high[bsize];
-  const int SCALE_PX_TO_MV = 8;
-  // Disallow subpixel for now
-  // SUBPEL_MASK is not the correct scale
-  if (((dv.row & (SCALE_PX_TO_MV - 1)) || (dv.col & (SCALE_PX_TO_MV - 1))))
-    return 0;
-
-  const TileInfo *const tile = &xd->tile;
-  // Is the source top-left inside the current tile?
-  const int src_top_edge = mi_row * MI_SIZE * SCALE_PX_TO_MV + dv.row;
-  const int tile_top_edge = tile->mi_row_start * MI_SIZE * SCALE_PX_TO_MV;
-  if (src_top_edge < tile_top_edge) return 0;
-  const int src_left_edge = mi_col * MI_SIZE * SCALE_PX_TO_MV + dv.col;
-  const int tile_left_edge = tile->mi_col_start * MI_SIZE * SCALE_PX_TO_MV;
-  if (src_left_edge < tile_left_edge) return 0;
-  // Is the bottom right inside the current tile?
-  const int src_bottom_edge = (mi_row * MI_SIZE + bh) * SCALE_PX_TO_MV + dv.row;
-  const int tile_bottom_edge = tile->mi_row_end * MI_SIZE * SCALE_PX_TO_MV;
-  if (src_bottom_edge > tile_bottom_edge) return 0;
-  const int src_right_edge = (mi_col * MI_SIZE + bw) * SCALE_PX_TO_MV + dv.col;
-  const int tile_right_edge = tile->mi_col_end * MI_SIZE * SCALE_PX_TO_MV;
-  if (src_right_edge > tile_right_edge) return 0;
-
-#if 0
-  // Special case for sub 8x8 chroma cases, to prevent referring to chroma
-  // pixels outside current tile.
-  for (int plane = 1; plane < av1_num_planes(cm); ++plane) {
-    const struct macroblockd_plane *const pd = &xd->plane[plane];
-    if (is_chroma_reference(mi_row, mi_col, bsize, pd->subsampling_x,
-                            pd->subsampling_y)) {
-      if (bw < 8 && pd->subsampling_x)
-        if (src_left_edge < tile_left_edge + 4 * SCALE_PX_TO_MV) return 0;
-      if (bh < 8 && pd->subsampling_y)
-        if (src_top_edge < tile_top_edge + 4 * SCALE_PX_TO_MV) return 0;
-    }
-  }
-#endif
-
-  // Is the bottom right within an already coded SB? Also consider additional
-  // constraints to facilitate HW decoder.
-  const int max_mib_size = 1 << mib_size_log2;
-  const int active_sb_row = mi_row >> mib_size_log2;
-  const int active_sb64_col = (mi_col * MI_SIZE) >> 6;
-  const int sb_size = max_mib_size * MI_SIZE;
-  const int src_sb_row = ((src_bottom_edge >> 3) - 1) / sb_size;
-  const int src_sb64_col = ((src_right_edge >> 3) - 1) >> 6;
-  const int total_sb64_per_row =
-      ((tile->mi_col_end - tile->mi_col_start - 1) >> 4) + 1;
-  const int active_sb64 = active_sb_row * total_sb64_per_row + active_sb64_col;
-  const int src_sb64 = src_sb_row * total_sb64_per_row + src_sb64_col;
-  if (src_sb64 >= active_sb64 - INTRABC_DELAY_SB64) return 0;
-
-#if USE_WAVE_FRONT
-  const int gradient = 1 + INTRABC_DELAY_SB64 + (sb_size > 64);
-  const int wf_offset = gradient * (active_sb_row - src_sb_row);
-  if (src_sb_row > active_sb_row ||
-      src_sb64_col >= active_sb64_col - INTRABC_DELAY_SB64 + wf_offset)
-    return 0;
-#endif
-
-  return 1;
-}
 
 #ifdef __cplusplus
 }  // extern "C"
@@ -1578,41 +837,6 @@ static void get_mv_projection(MV *output, MV ref, int num, int den) {
   output->row = (int16_t)clamp(mv_row, clamp_min, clamp_max);
   output->col = (int16_t)clamp(mv_col, clamp_min, clamp_max);
 }
-
-#if 0
-void av1_copy_frame_mvs(const AV1_COMMON *const cm, MB_MODE_INFO *mi,
-                        int mi_row, int mi_col, int x_mis, int y_mis) {
-  const int frame_mvs_stride = ROUND_POWER_OF_TWO(cm->mi_cols, 1);
-  MV_REF *frame_mvs =
-      cm->cur_frame.mvs + (mi_row >> 1) * frame_mvs_stride + (mi_col >> 1);
-  x_mis = ROUND_POWER_OF_TWO(x_mis, 1);
-  y_mis = ROUND_POWER_OF_TWO(y_mis, 1);
-  int w, h;
-
-  for (h = 0; h < y_mis; h++) {
-    MV_REF *mv = frame_mvs;
-    for (w = 0; w < x_mis; w++) {
-      mv->ref_frame = NONE_FRAME;
-      mv->mv.as_int = 0;
-
-      for (int idx = 0; idx < 2; ++idx) {
-        MV_REFERENCE_FRAME ref_frame = mi->ref_frame[idx];
-        if (ref_frame > INTRA_FRAME) {
-          int8_t ref_idx = cm->ref_frame_side[ref_frame];
-          if (ref_idx) continue;
-          if ((abs(mi->mv[idx].as_mv.row) > REFMVS_LIMIT) ||
-              (abs(mi->mv[idx].as_mv.col) > REFMVS_LIMIT))
-            continue;
-          mv->ref_frame = ref_frame;
-          mv->mv.as_int = mi->mv[idx].as_int;
-        }
-      }
-      mv++;
-    }
-    frame_mvs += frame_mvs_stride;
-  }
-}
-#endif
 
 static void add_ref_mv_candidate(
     const MB_MODE_INFO *const candidate, const MV_REFERENCE_FRAME rf[2],
@@ -2452,25 +1676,6 @@ void av1_setup_frame_buf_refs(AV1_COMMON *cm) {
   }
 }
 
-#if 0
-void av1_setup_frame_sign_bias(AV1_COMMON *cm) {
-  MV_REFERENCE_FRAME ref_frame;
-  for (ref_frame = LAST_FRAME; ref_frame <= ALTREF_FRAME; ++ref_frame) {
-    const int buf_idx = cm->frame_refs[ref_frame - LAST_FRAME].idx;
-    if (cm->seq_params.enable_order_hint && buf_idx != INVALID_IDX) {
-      const int ref_frame_offset =
-          cm->buffer_pool->frame_bufs[buf_idx].cur_frame_offset;
-      cm->ref_frame_sign_bias[ref_frame] =
-          (get_relative_dist(cm, ref_frame_offset, (int)cm->frame_offset) <= 0)
-              ? 0
-              : 1;
-    } else {
-      cm->ref_frame_sign_bias[ref_frame] = 0;
-    }
-  }
-}
-#endif
-
 #define MAX_OFFSET_WIDTH 64
 #define MAX_OFFSET_HEIGHT 0
 
@@ -2602,73 +1807,6 @@ static int motion_field_projection(AV1_COMMON *cm, MV_REFERENCE_FRAME ref_frame,
   return 1;
 }
 
-#if 0
-void av1_setup_motion_field(AV1_COMMON *cm) {
-  memset(cm->ref_frame_side, 0, sizeof(cm->ref_frame_side));
-  if (!cm->seq_params.enable_order_hint) return;
-
-  TPL_MV_REF *tpl_mvs_base = cm->tpl_mvs;
-  int size = ((cm->mi_rows + MAX_MIB_SIZE) >> 1) * (cm->mi_stride >> 1);
-  for (int idx = 0; idx < size; ++idx) {
-    tpl_mvs_base[idx].mfmv0.as_int = INVALID_MV;
-    tpl_mvs_base[idx].ref_frame_offset = 0;
-  }
-
-  const int cur_order_hint = cm->cur_frame.cur_frame_offset;
-  RefCntBuffer *const frame_bufs = cm->buffer_pool->frame_bufs;
-
-  int ref_buf_idx[INTER_REFS_PER_FRAME];
-  int ref_order_hint[INTER_REFS_PER_FRAME];
-
-  for (int ref_frame = LAST_FRAME; ref_frame <= ALTREF_FRAME; ref_frame++) {
-    const int ref_idx = ref_frame - LAST_FRAME;
-    const int buf_idx = cm->frame_refs[ref_idx].idx;
-    int order_hint = 0;
-
-    if (buf_idx >= 0) order_hint = frame_bufs[buf_idx].cur_frame_offset;
-
-    ref_buf_idx[ref_idx] = buf_idx;
-    ref_order_hint[ref_idx] = order_hint;
-
-    if (get_relative_dist(cm, order_hint, cur_order_hint) > 0)
-      cm->ref_frame_side[ref_frame] = 1;
-    else if (order_hint == cur_order_hint)
-      cm->ref_frame_side[ref_frame] = -1;
-  }
-
-  int ref_stamp = MFMV_STACK_SIZE - 1;
-
-  if (ref_buf_idx[LAST_FRAME - LAST_FRAME] >= 0) {
-    const int alt_of_lst_order_hint =
-        frame_bufs[ref_buf_idx[LAST_FRAME - LAST_FRAME]]
-            .ref_frame_offset[ALTREF_FRAME - LAST_FRAME];
-
-    const int is_lst_overlay =
-        (alt_of_lst_order_hint == ref_order_hint[GOLDEN_FRAME - LAST_FRAME]);
-    if (!is_lst_overlay) motion_field_projection(cm, LAST_FRAME, 2);
-    --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[BWDREF_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0) {
-    if (motion_field_projection(cm, BWDREF_FRAME, 0)) --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[ALTREF2_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0) {
-    if (motion_field_projection(cm, ALTREF2_FRAME, 0)) --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[ALTREF_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0 &&
-      ref_stamp >= 0)
-    if (motion_field_projection(cm, ALTREF_FRAME, 0)) --ref_stamp;
-
-  if (ref_stamp >= 0 && ref_buf_idx[LAST2_FRAME - LAST_FRAME] >= 0)
-    if (motion_field_projection(cm, LAST2_FRAME, 2)) --ref_stamp;
-}
-#endif
-
 void av1_setup_motion_field(AV1_COMMON *cm) {
   if (!cm->seq_params.enable_order_hint) return;
 
@@ -2753,462 +1891,6 @@ void av1_fill_motion_field(AV1_COMMON *cm,
                                   tile_col_start4, tile_col_end4,
                                   row_start4, row_end4)) --ref_stamp;
 }
-
-#if 0
-static INLINE void record_samples(MB_MODE_INFO *mbmi, int *pts, int *pts_inref,
-                                  int row_offset, int sign_r, int col_offset,
-                                  int sign_c) {
-  int bw = block_size_wide[mbmi->sb_type];
-  int bh = block_size_high[mbmi->sb_type];
-  int x = col_offset * MI_SIZE + sign_c * AOMMAX(bw, MI_SIZE) / 2 - 1;
-  int y = row_offset * MI_SIZE + sign_r * AOMMAX(bh, MI_SIZE) / 2 - 1;
-
-  pts[0] = (x * 8);
-  pts[1] = (y * 8);
-  pts_inref[0] = (x * 8) + mbmi->mv[0].as_mv.col;
-  pts_inref[1] = (y * 8) + mbmi->mv[0].as_mv.row;
-}
-
-// Select samples according to the motion vector difference.
-int selectSamples(MV *mv, int *pts, int *pts_inref, int len, BLOCK_SIZE bsize) {
-  const int bw = block_size_wide[bsize];
-  const int bh = block_size_high[bsize];
-  const int thresh = clamp(AOMMAX(bw, bh), 16, 112);
-  int pts_mvd[SAMPLES_ARRAY_SIZE] = { 0 };
-  int i, j, k, l = len;
-  int ret = 0;
-  assert(len <= LEAST_SQUARES_SAMPLES_MAX);
-
-  // Obtain the motion vector difference.
-  for (i = 0; i < len; ++i) {
-    pts_mvd[i] = abs(pts_inref[2 * i] - pts[2 * i] - mv->col) +
-                 abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv->row);
-
-    if (pts_mvd[i] > thresh)
-      pts_mvd[i] = -1;
-    else
-      ret++;
-  }
-
-  // Keep at least 1 sample.
-  if (!ret) return 1;
-
-  i = 0;
-  j = l - 1;
-  for (k = 0; k < l - ret; k++) {
-    while (pts_mvd[i] != -1) i++;
-    while (pts_mvd[j] == -1) j--;
-    assert(i != j);
-    if (i > j) break;
-
-    // Replace the discarded samples;
-    pts_mvd[i] = pts_mvd[j];
-    pts[2 * i] = pts[2 * j];
-    pts[2 * i + 1] = pts[2 * j + 1];
-    pts_inref[2 * i] = pts_inref[2 * j];
-    pts_inref[2 * i + 1] = pts_inref[2 * j + 1];
-    i++;
-    j--;
-  }
-
-  return ret;
-}
-
-// Note: Samples returned are at 1/8-pel precision
-// Sample are the neighbor block center point's coordinates relative to the
-// left-top pixel of current block.
-int findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int mi_row, int mi_col,
-                int *pts, int *pts_inref) {
-  MB_MODE_INFO *const mbmi0 = xd->mi[0];
-  int ref_frame = mbmi0->ref_frame[0];
-  int up_available = xd->up_available;
-  int left_available = xd->left_available;
-  int i, mi_step = 1, np = 0;
-
-  const TileInfo *const tile = &xd->tile;
-  int do_tl = 1;
-  int do_tr = 1;
-
-  // scan the nearest above rows
-  if (up_available) {
-    int mi_row_offset = -1;
-    MB_MODE_INFO *mbmi = xd->mi[mi_row_offset * xd->mi_stride];
-    uint8_t n8_w = mi_size_wide[mbmi->sb_type];
-
-    if (xd->n8_w <= n8_w) {
-      // Handle "current block width <= above block width" case.
-      int col_offset = -mi_col % n8_w;
-
-      if (col_offset < 0) do_tl = 0;
-      if (col_offset + n8_w > xd->n8_w) do_tr = 0;
-
-      if (mbmi->ref_frame[0] == ref_frame && mbmi->ref_frame[1] == NONE_FRAME) {
-        record_samples(mbmi, pts, pts_inref, 0, -1, col_offset, 1);
-        pts += 2;
-        pts_inref += 2;
-        np++;
-        if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-      }
-    } else {
-      // Handle "current block width > above block width" case.
-      for (i = 0; i < AOMMIN(xd->n8_w, cm->mi_cols - mi_col); i += mi_step) {
-        int mi_col_offset = i;
-        mi = xd->mi[mi_col_offset + mi_row_offset * xd->mi_stride];
-        mbmi = &mi->mbmi;
-        n8_w = mi_size_wide[mbmi->sb_type];
-        mi_step = AOMMIN(xd->n8_w, n8_w);
-
-        if (mbmi->ref_frame[0] == ref_frame &&
-            mbmi->ref_frame[1] == NONE_FRAME) {
-          record_samples(mbmi, pts, pts_inref, 0, -1, i, 1);
-          pts += 2;
-          pts_inref += 2;
-          np++;
-          if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-        }
-      }
-    }
-  }
-  assert(np <= LEAST_SQUARES_SAMPLES_MAX);
-
-  // scan the nearest left columns
-  if (left_available) {
-    int mi_col_offset = -1;
-
-    MB_MODE_INFO *mi = xd->mi[mi_col_offset];
-    uint8_t n8_h = mi_size_high[mbmi->sb_type];
-
-    if (xd->n8_h <= n8_h) {
-      // Handle "current block height <= above block height" case.
-      int row_offset = -mi_row % n8_h;
-
-      if (row_offset < 0) do_tl = 0;
-
-      if (mbmi->ref_frame[0] == ref_frame && mbmi->ref_frame[1] == NONE_FRAME) {
-        record_samples(mbmi, pts, pts_inref, row_offset, 1, 0, -1);
-        pts += 2;
-        pts_inref += 2;
-        np++;
-        if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-      }
-    } else {
-      // Handle "current block height > above block height" case.
-      for (i = 0; i < AOMMIN(xd->n8_h, cm->mi_rows - mi_row); i += mi_step) {
-        int mi_row_offset = i;
-        mbmi = xd->mi[mi_col_offset + mi_row_offset * xd->mi_stride];
-        n8_h = mi_size_high[mbmi->sb_type];
-        mi_step = AOMMIN(xd->n8_h, n8_h);
-
-        if (mbmi->ref_frame[0] == ref_frame &&
-            mbmi->ref_frame[1] == NONE_FRAME) {
-          record_samples(mbmi, pts, pts_inref, i, 1, 0, -1);
-          pts += 2;
-          pts_inref += 2;
-          np++;
-          if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-        }
-      }
-    }
-  }
-  assert(np <= LEAST_SQUARES_SAMPLES_MAX);
-
-  // Top-left block
-  if (do_tl && left_available && up_available) {
-    int mi_row_offset = -1;
-    int mi_col_offset = -1;
-
-    MB_MODE_INFO *mbmi = xd->mi[mi_col_offset + mi_row_offset * xd->mi_stride];
-
-    if (mbmi->ref_frame[0] == ref_frame && mbmi->ref_frame[1] == NONE_FRAME) {
-      record_samples(mbmi, pts, pts_inref, 0, -1, 0, -1);
-      pts += 2;
-      pts_inref += 2;
-      np++;
-      if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-    }
-  }
-  assert(np <= LEAST_SQUARES_SAMPLES_MAX);
-
-  // Top-right block
-  if (do_tr &&
-      has_top_right(cm, xd, mi_row, mi_col, AOMMAX(xd->n8_w, xd->n8_h))) {
-    POSITION trb_pos = { -1, xd->n8_w };
-
-    if (is_inside(tile, mi_col, mi_row, cm->mi_rows, &trb_pos)) {
-      int mi_row_offset = -1;
-      int mi_col_offset = xd->n8_w;
-
-      MB_MODE_INFO *mbmi =
-          xd->mi[mi_col_offset + mi_row_offset * xd->mi_stride];
-
-      if (mbmi->ref_frame[0] == ref_frame && mbmi->ref_frame[1] == NONE_FRAME) {
-        record_samples(mbmi, pts, pts_inref, 0, -1, xd->n8_w, 1);
-        np++;
-        if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
-      }
-    }
-  }
-  assert(np <= LEAST_SQUARES_SAMPLES_MAX);
-
-  return np;
-}
-
-void av1_setup_skip_mode_allowed(AV1_COMMON *cm) {
-  cm->is_skip_mode_allowed = 0;
-  cm->ref_frame_idx_0 = cm->ref_frame_idx_1 = INVALID_IDX;
-
-  if (!cm->seq_params.enable_order_hint || frame_is_intra_only(cm) ||
-      cm->reference_mode == SINGLE_REFERENCE)
-    return;
-
-  RefCntBuffer *const frame_bufs = cm->buffer_pool->frame_bufs;
-  const int cur_frame_offset = cm->frame_offset;
-  int ref_frame_offset[2] = { -1, INT_MAX };
-  int ref_idx[2] = { INVALID_IDX, INVALID_IDX };
-
-  // Identify the nearest forward and backward references.
-  for (int i = 0; i < INTER_REFS_PER_FRAME; ++i) {
-    const int buf_idx = cm->frame_refs[i].idx;
-    if (buf_idx == INVALID_IDX) continue;
-
-    const int ref_offset = frame_bufs[buf_idx].cur_frame_offset;
-    if (get_relative_dist(cm, ref_offset, cur_frame_offset) < 0) {
-      // Forward reference
-      if (ref_frame_offset[0] == -1 ||
-          get_relative_dist(cm, ref_offset, ref_frame_offset[0]) > 0) {
-        ref_frame_offset[0] = ref_offset;
-        ref_idx[0] = i;
-      }
-    } else if (get_relative_dist(cm, ref_offset, cur_frame_offset) > 0) {
-      // Backward reference
-      if (ref_frame_offset[1] == INT_MAX ||
-          get_relative_dist(cm, ref_offset, ref_frame_offset[1]) < 0) {
-        ref_frame_offset[1] = ref_offset;
-        ref_idx[1] = i;
-      }
-    }
-  }
-
-  if (ref_idx[0] != INVALID_IDX && ref_idx[1] != INVALID_IDX) {
-    // == Bi-directional prediction ==
-    cm->is_skip_mode_allowed = 1;
-    cm->ref_frame_idx_0 = AOMMIN(ref_idx[0], ref_idx[1]);
-    cm->ref_frame_idx_1 = AOMMAX(ref_idx[0], ref_idx[1]);
-  } else if (ref_idx[0] != INVALID_IDX && ref_idx[1] == INVALID_IDX) {
-    // == Forward prediction only ==
-    // Identify the second nearest forward reference.
-    ref_frame_offset[1] = -1;
-    for (int i = 0; i < INTER_REFS_PER_FRAME; ++i) {
-      const int buf_idx = cm->frame_refs[i].idx;
-      if (buf_idx == INVALID_IDX) continue;
-
-      const int ref_offset = frame_bufs[buf_idx].cur_frame_offset;
-      if ((ref_frame_offset[0] != -1 &&
-           get_relative_dist(cm, ref_offset, ref_frame_offset[0]) < 0) &&
-          (ref_frame_offset[1] == -1 ||
-           get_relative_dist(cm, ref_offset, ref_frame_offset[1]) > 0)) {
-        // Second closest forward reference
-        ref_frame_offset[1] = ref_offset;
-        ref_idx[1] = i;
-      }
-    }
-    if (ref_frame_offset[1] != -1) {
-      cm->is_skip_mode_allowed = 1;
-      cm->ref_frame_idx_0 = AOMMIN(ref_idx[0], ref_idx[1]);
-      cm->ref_frame_idx_1 = AOMMAX(ref_idx[0], ref_idx[1]);
-    }
-  }
-}
-
-typedef struct {
-  int map_idx;   // frame map index
-  int buf_idx;   // frame buffer index
-  int sort_idx;  // index based on the offset to be used for sorting
-} REF_FRAME_INFO;
-
-static int compare_ref_frame_info(const void *arg_a, const void *arg_b) {
-  const REF_FRAME_INFO *info_a = (REF_FRAME_INFO *)arg_a;
-  const REF_FRAME_INFO *info_b = (REF_FRAME_INFO *)arg_b;
-
-  if (info_a->sort_idx < info_b->sort_idx) return -1;
-  if (info_a->sort_idx > info_b->sort_idx) return 1;
-  return (info_a->map_idx < info_b->map_idx)
-             ? -1
-             : ((info_a->map_idx > info_b->map_idx) ? 1 : 0);
-}
-
-static void set_ref_frame_info(AV1_COMMON *const cm, int frame_idx,
-                               REF_FRAME_INFO *ref_info) {
-  assert(frame_idx >= 0 && frame_idx <= INTER_REFS_PER_FRAME);
-
-  const int buf_idx = ref_info->buf_idx;
-
-  cm->frame_refs[frame_idx].idx = buf_idx;
-  cm->frame_refs[frame_idx].buf = &cm->buffer_pool->frame_bufs[buf_idx].buf;
-  cm->frame_refs[frame_idx].map_idx = ref_info->map_idx;
-}
-
-void av1_set_frame_refs(AV1_COMMON *const cm, int lst_map_idx,
-                        int gld_map_idx) {
-  BufferPool *const pool = cm->buffer_pool;
-  RefCntBuffer *const frame_bufs = pool->frame_bufs;
-
-  assert(cm->seq_params.enable_order_hint);
-  assert(cm->seq_params.order_hint_bits_minus_1 >= 0);
-  const int cur_frame_offset = (int)cm->frame_offset;
-  const int cur_frame_sort_idx = 1 << cm->seq_params.order_hint_bits_minus_1;
-
-  REF_FRAME_INFO ref_frame_info[REF_FRAMES];
-  int ref_flag_list[INTER_REFS_PER_FRAME] = { 0, 0, 0, 0, 0, 0, 0 };
-
-  for (int i = 0; i < REF_FRAMES; ++i) {
-    const int map_idx = i;
-
-    ref_frame_info[i].map_idx = map_idx;
-    ref_frame_info[i].sort_idx = -1;
-
-    const int buf_idx = cm->ref_frame_map[map_idx];
-    ref_frame_info[i].buf_idx = buf_idx;
-
-    if (buf_idx < 0 || buf_idx >= FRAME_BUFFERS) continue;
-    // TODO(zoeliu@google.com): To verify the checking on ref_count.
-    if (frame_bufs[buf_idx].ref_count <= 0) continue;
-
-    const int offset = (int)frame_bufs[buf_idx].cur_frame_offset;
-    ref_frame_info[i].sort_idx =
-        (offset == -1) ? -1
-                       : cur_frame_sort_idx +
-                             get_relative_dist(cm, offset, cur_frame_offset);
-    assert(ref_frame_info[i].sort_idx >= -1);
-
-    if (map_idx == lst_map_idx) lst_frame_sort_idx = ref_frame_info[i].sort_idx;
-    if (map_idx == gld_map_idx) gld_frame_sort_idx = ref_frame_info[i].sort_idx;
-  }
-
-  // Confirm both LAST_FRAME and GOLDEN_FRAME are valid forward reference
-  // frames.
-  if (lst_frame_sort_idx == -1 || lst_frame_sort_idx >= cur_frame_sort_idx) {
-    aom_internal_error(&cm->error, AOM_CODEC_CORRUPT_FRAME,
-                       "Inter frame requests a look-ahead frame as LAST");
-  }
-  if (gld_frame_sort_idx == -1 || gld_frame_sort_idx >= cur_frame_sort_idx) {
-    aom_internal_error(&cm->error, AOM_CODEC_CORRUPT_FRAME,
-                       "Inter frame requests a look-ahead frame as GOLDEN");
-  }
-
-  // Sort ref frames based on their frame_offset values.
-  qsort(ref_frame_info, REF_FRAMES, sizeof(REF_FRAME_INFO),
-        compare_ref_frame_info);
-
-  // Identify forward and backward reference frames.
-  // Forward  reference: offset < cur_frame_offset
-  // Backward reference: offset >= cur_frame_offset
-  int fwd_start_idx = 0, fwd_end_idx = REF_FRAMES - 1;
-
-  for (int i = 0; i < REF_FRAMES; i++) {
-    if (ref_frame_info[i].sort_idx == -1) {
-      fwd_start_idx++;
-      continue;
-    }
-
-    if (ref_frame_info[i].sort_idx >= cur_frame_sort_idx) {
-      fwd_end_idx = i - 1;
-      break;
-    }
-  }
-
-  int bwd_start_idx = fwd_end_idx + 1;
-  int bwd_end_idx = REF_FRAMES - 1;
-
-  // === Backward Reference Frames ===
-
-  // == ALTREF_FRAME ==
-  if (bwd_start_idx <= bwd_end_idx) {
-    set_ref_frame_info(cm, ALTREF_FRAME - LAST_FRAME,
-                       &ref_frame_info[bwd_end_idx]);
-    ref_flag_list[ALTREF_FRAME - LAST_FRAME] = 1;
-    bwd_end_idx--;
-  }
-
-  // == BWDREF_FRAME ==
-  if (bwd_start_idx <= bwd_end_idx) {
-    set_ref_frame_info(cm, BWDREF_FRAME - LAST_FRAME,
-                       &ref_frame_info[bwd_start_idx]);
-    ref_flag_list[BWDREF_FRAME - LAST_FRAME] = 1;
-    bwd_start_idx++;
-  }
-
-  // == ALTREF2_FRAME ==
-  if (bwd_start_idx <= bwd_end_idx) {
-    set_ref_frame_info(cm, ALTREF2_FRAME - LAST_FRAME,
-                       &ref_frame_info[bwd_start_idx]);
-    ref_flag_list[ALTREF2_FRAME - LAST_FRAME] = 1;
-  }
-
-  // === Forward Reference Frames ===
-
-  for (int i = fwd_start_idx; i <= fwd_end_idx; ++i) {
-    // == LAST_FRAME ==
-    if (ref_frame_info[i].map_idx == lst_map_idx) {
-      set_ref_frame_info(cm, LAST_FRAME - LAST_FRAME, &ref_frame_info[i]);
-      ref_flag_list[LAST_FRAME - LAST_FRAME] = 1;
-    }
-
-    // == GOLDEN_FRAME ==
-    if (ref_frame_info[i].map_idx == gld_map_idx) {
-      set_ref_frame_info(cm, GOLDEN_FRAME - LAST_FRAME, &ref_frame_info[i]);
-      ref_flag_list[GOLDEN_FRAME - LAST_FRAME] = 1;
-    }
-  }
-
-  assert(ref_flag_list[LAST_FRAME - LAST_FRAME] == 1 &&
-         ref_flag_list[GOLDEN_FRAME - LAST_FRAME] == 1);
-
-  // == LAST2_FRAME ==
-  // == LAST3_FRAME ==
-  // == BWDREF_FRAME ==
-  // == ALTREF2_FRAME ==
-  // == ALTREF_FRAME ==
-
-  // Set up the reference frames in the anti-chronological order.
-  static const MV_REFERENCE_FRAME ref_frame_list[INTER_REFS_PER_FRAME - 2] = {
-    LAST2_FRAME, LAST3_FRAME, BWDREF_FRAME, ALTREF2_FRAME, ALTREF_FRAME
-  };
-
-  int ref_idx;
-  for (ref_idx = 0; ref_idx < (INTER_REFS_PER_FRAME - 2); ref_idx++) {
-    const MV_REFERENCE_FRAME ref_frame = ref_frame_list[ref_idx];
-
-    if (ref_flag_list[ref_frame - LAST_FRAME] == 1) continue;
-
-    while (fwd_start_idx <= fwd_end_idx &&
-           (ref_frame_info[fwd_end_idx].map_idx == lst_map_idx ||
-            ref_frame_info[fwd_end_idx].map_idx == gld_map_idx)) {
-      fwd_end_idx--;
-    }
-    if (fwd_start_idx > fwd_end_idx) break;
-
-    set_ref_frame_info(cm, ref_frame - LAST_FRAME,
-                       &ref_frame_info[fwd_end_idx]);
-    ref_flag_list[ref_frame - LAST_FRAME] = 1;
-
-    fwd_end_idx--;
-  }
-
-  // Assign all the remaining frame(s), if any, to the earliest reference frame.
-  for (; ref_idx < (INTER_REFS_PER_FRAME - 2); ref_idx++) {
-    const MV_REFERENCE_FRAME ref_frame = ref_frame_list[ref_idx];
-    if (ref_flag_list[ref_frame - LAST_FRAME] == 1) continue;
-    set_ref_frame_info(cm, ref_frame - LAST_FRAME,
-                       &ref_frame_info[fwd_start_idx]);
-    ref_flag_list[ref_frame - LAST_FRAME] = 1;
-  }
-
-  for (int i = 0; i < INTER_REFS_PER_FRAME; i++) {
-    assert(ref_flag_list[i] == 1);
-  }
-}
-#endif
 
 enum BlockSize {
     BS_128x128,
@@ -3353,15 +2035,6 @@ void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
     memset(mv_stack, 0, sizeof(mv_stack));
     int_mv mv_list[MODE_CTX_REF_FRAMES][MAX_MV_REF_CANDIDATES] = { { { 0 } } };
     int_mv gmvs[MODE_CTX_REF_FRAMES];
-#if 0
-    void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
-                          MB_MODE_INFO *mi, MV_REFERENCE_FRAME ref_frame,
-                          uint8_t ref_mv_count[MODE_CTX_REF_FRAMES],
-                          CANDIDATE_MV ref_mv_stack[][MAX_REF_MV_STACK_SIZE],
-                          int_mv mv_ref_list[][MAX_MV_REF_CANDIDATES],
-                          int_mv *global_mvs, int mi_row, int mi_col,
-                          int16_t *mode_context)
-#endif
     av1_find_mv_refs(cm, &xd, xd.mi, refidx, mv_cnt,
                      mv_stack, mv_list, gmvs, by4, bx4,
                      single_context);
