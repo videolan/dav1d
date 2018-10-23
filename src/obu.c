@@ -86,8 +86,6 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb) {
 
             hdr->decoder_model_info_present = dav1d_get_bits(gb, 1);
             if (hdr->decoder_model_info_present) {
-                hdr->bitrate_scale = dav1d_get_bits(gb, 4);
-                hdr->buffer_size_scale = dav1d_get_bits(gb, 4);
                 hdr->encoder_decoder_buffer_delay_length = dav1d_get_bits(gb, 5) + 1;
                 hdr->num_units_in_decoding_tick = dav1d_get_bits(gb, 32);
                 hdr->buffer_removal_delay_length = dav1d_get_bits(gb, 5) + 1;
@@ -113,9 +111,6 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb) {
             op->decoder_model_param_present =
                 hdr->decoder_model_info_present && dav1d_get_bits(gb, 1);
             if (op->decoder_model_param_present) {
-                op->bitrate = dav1d_get_vlc(gb) + 1;
-                op->buffer_size = dav1d_get_vlc(gb) + 1;
-                op->cbr = dav1d_get_bits(gb, 1);
                 op->decoder_buffer_delay =
                     dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
                 op->encoder_buffer_delay =
@@ -335,6 +330,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
 #endif
     if (hdr->show_existing_frame) {
         hdr->existing_frame_idx = dav1d_get_bits(gb, 3);
+        if (seqhdr->decoder_model_info_present && !seqhdr->equal_picture_interval)
+            hdr->frame_presentation_delay = dav1d_get_bits(gb, seqhdr->frame_presentation_delay_length);
         if (seqhdr->frame_id_numbers_present)
             hdr->frame_id = dav1d_get_bits(gb, seqhdr->frame_id_n_bits);
         goto end;
@@ -342,7 +339,10 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
 
     hdr->frame_type = seqhdr->reduced_still_picture_header ? DAV1D_FRAME_TYPE_KEY : dav1d_get_bits(gb, 2);
     hdr->show_frame = seqhdr->reduced_still_picture_header || dav1d_get_bits(gb, 1);
-    if (!hdr->show_frame)
+    if (hdr->show_frame) {
+        if (seqhdr->decoder_model_info_present && !seqhdr->equal_picture_interval)
+            hdr->frame_presentation_delay = dav1d_get_bits(gb, seqhdr->frame_presentation_delay_length);
+    } else
         hdr->showable_frame = dav1d_get_bits(gb, 1);
     hdr->error_resilient_mode =
         (hdr->frame_type == DAV1D_FRAME_TYPE_KEY && hdr->show_frame) ||
@@ -377,6 +377,22 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
                         dav1d_get_bits(gb, seqhdr->order_hint_n_bits) : 0;
     hdr->primary_ref_frame = !hdr->error_resilient_mode && hdr->frame_type & 1 ?
                              dav1d_get_bits(gb, 3) : PRIMARY_REF_NONE;
+
+    if (seqhdr->decoder_model_info_present) {
+        hdr->buffer_removal_time_present = dav1d_get_bits(gb, 1);
+        if (hdr->buffer_removal_time_present) {
+            for (int i = 0; i < c->seq_hdr.num_operating_points; i++) {
+                const struct Av1SequenceHeaderOperatingPoint *const seqop = &seqhdr->operating_points[i];
+                struct Av1FrameHeaderOperatingPoint *const op = &hdr->operating_points[i];
+                if (seqop->decoder_model_param_present) {
+                    int in_temporal_layer = (seqop->idc >>  0 /* FIXME: temporal_id */ ) & 1;
+                    int in_spatial_layer  = (seqop->idc >> (0 /* FIXME: spatial_id */ + 8)) & 1;
+                    if (!seqop->idc || in_temporal_layer || in_spatial_layer)
+                        op->buffer_removal_time = dav1d_get_bits(gb, seqhdr->buffer_removal_delay_length);
+                }
+            }
+        }
+    }
 
     if (hdr->frame_type == DAV1D_FRAME_TYPE_KEY ||
         hdr->frame_type == DAV1D_FRAME_TYPE_INTRA)

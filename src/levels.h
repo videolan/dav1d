@@ -315,8 +315,6 @@ typedef struct Av1SequenceHeader {
     int equal_picture_interval;
     int num_ticks_per_picture;
     int decoder_model_info_present;
-    int bitrate_scale;
-    int buffer_size_scale;
     int encoder_decoder_buffer_delay_length;
     int num_units_in_decoding_tick;
     int buffer_removal_delay_length;
@@ -328,9 +326,6 @@ typedef struct Av1SequenceHeader {
         int major_level, minor_level;
         int tier;
         int decoder_model_param_present;
-        int bitrate;
-        int buffer_size;
-        int cbr;
         int decoder_buffer_delay;
         int encoder_buffer_delay;
         int low_delay_mode;
@@ -414,6 +409,7 @@ typedef struct Av1FrameHeader {
     int show_existing_frame;
     int existing_frame_idx;
     int frame_id;
+    int frame_presentation_delay;
     enum Dav1dFrameType frame_type;
     int show_frame;
     int showable_frame;
@@ -424,6 +420,10 @@ typedef struct Av1FrameHeader {
     int frame_size_override;
 #define PRIMARY_REF_NONE 7
     int primary_ref_frame;
+    int buffer_removal_time_present;
+    struct Av1FrameHeaderOperatingPoint {
+        int buffer_removal_time;
+    } operating_points[32];
     int frame_offset;
     int refresh_frame_flags;
     int width, height;
