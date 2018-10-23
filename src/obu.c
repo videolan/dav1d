@@ -788,14 +788,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         }
 
         if (off_before[0] != 0xFFFFFFFFU && off_after != -1) {
-            hdr->skip_mode_refs[0] = off_before_idx[0];
-            hdr->skip_mode_refs[1] = off_after_idx;
+            hdr->skip_mode_refs[0] = imin(off_before_idx[0], off_after_idx);
+            hdr->skip_mode_refs[1] = imax(off_before_idx[0], off_after_idx);
             hdr->skip_mode_allowed = 1;
         } else if (off_before[0] != 0xFFFFFFFFU &&
                    off_before[1] != 0xFFFFFFFFU)
         {
-            hdr->skip_mode_refs[0] = off_before_idx[0];
-            hdr->skip_mode_refs[1] = off_before_idx[1];
+            hdr->skip_mode_refs[0] = imin(off_before_idx[0], off_before_idx[1]);
+            hdr->skip_mode_refs[1] = imax(off_before_idx[0], off_before_idx[1]);
             hdr->skip_mode_allowed = 1;
         }
     }
