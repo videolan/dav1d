@@ -1085,6 +1085,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                           c->tile[c->n_tile_data].start;
         c->n_tile_data++;
         break;
+    case OBU_REDUNDANT_FRAME_HDR:
+        if (!c->have_frame_hdr) goto error;
+        break;
     case OBU_PADDING:
     case OBU_TD:
     case OBU_METADATA:

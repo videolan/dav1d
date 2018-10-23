@@ -37,6 +37,7 @@ enum ObuType {
     OBU_TILE_GRP  = 4,
     OBU_METADATA  = 5,
     OBU_FRAME     = 6,
+    OBU_REDUNDANT_FRAME_HDR = 7,
     OBU_PADDING   = 15,
 };
 
