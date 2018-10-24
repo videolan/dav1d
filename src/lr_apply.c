@@ -222,7 +222,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     const int filter_h =
         imin(((1 << (6 + f->seq_hdr.sb128)) - 8 * !y) >> ss_ver, h - y);
 
-    pixel pre_lr_border[2][128 /* maximum sbrow height is 128 */][4];
+    pixel pre_lr_border[2][128 + 8 /* maximum sbrow height is 128 + 8 rows offset */][4];
 
     int unit_w = unit_size, bit = 0;
 
