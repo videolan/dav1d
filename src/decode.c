@@ -298,9 +298,9 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     } else for (unsigned off = 0, xmask = masks[0]; np < 8 && xmask;) { // top
         const int tz = ctz(xmask);
         off += tz;
+        xmask >>= tz;
         add_sample(off, 0, 1, -1, &r[off - b4_stride]);
-        xmask >>= tz + 1;
-        off += 1;
+        xmask &= ~1;
     }
     if (np < 8 && masks[1] == 1) {
         const int off = t->by & (bs(&r[-1])[1] - 1);
@@ -308,9 +308,9 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     } else for (unsigned off = 0, ymask = masks[1]; np < 8 && ymask;) { // left
         const int tz = ctz(ymask);
         off += tz;
+        ymask >>= tz;
         add_sample(0, off, -1, 1, &r[off * b4_stride - 1]);
-        ymask >>= tz + 1;
-        off += 1;
+        ymask &= ~1;
     }
     if (np < 8 && masks[1] >> 32) // top/left
         add_sample(0, 0, -1, -1, &r[-(1 + b4_stride)]);
