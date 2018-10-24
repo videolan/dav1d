@@ -68,7 +68,7 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c) {
 
     init_tmp(c_dst, 448 * sizeof(pixel), 448, 64);
     init_tmp(h_edge, 448 * sizeof(pixel), 448, 8);
-    init_tmp(left, 4 * sizeof(pixel), 4, 64);
+    init_tmp((pixel *) left, 4 * sizeof(pixel), 4, 64);
 
     for (int pl = 0; pl < 2; pl++) {
         if (check_func(c->wiener, "wiener_%s_%dbpc",
