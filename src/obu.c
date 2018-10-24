@@ -1059,7 +1059,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             dav1d_data_unref(&c->tile[n].data);
         c->n_tile_data = 0;
         c->n_tiles = 0;
-        if (type == OBU_FRAME_HDR || c->frame_hdr.show_existing_frame) break;
+        if (type == OBU_FRAME_HDR) break;
+        if (c->frame_hdr.show_existing_frame) goto error;
         off += res;
         // fall-through
     case OBU_TILE_GRP:
