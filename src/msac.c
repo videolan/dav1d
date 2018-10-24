@@ -161,7 +161,7 @@ static int od_ec_dec_normalize(od_ec_dec *dec, od_ec_window dif, unsigned rng,
 /*Initializes the decoder.
   buf: The input buffer to use.
   Return: 0 on success, or a negative value on error.*/
-void od_ec_dec_init(od_ec_dec *dec, const unsigned char *buf,
+static void od_ec_dec_init(od_ec_dec *dec, const unsigned char *buf,
                     uint32_t storage) {
   dec->buf = buf;
   dec->tell_offs = 10 - (OD_EC_WINDOW_SIZE - 8);
@@ -177,7 +177,7 @@ void od_ec_dec_init(od_ec_dec *dec, const unsigned char *buf,
 /*Decode a single binary value.
   f: The probability that the bit is one, scaled by 32768.
   Return: The value decoded (0 or 1).*/
-int od_ec_decode_bool_q15(od_ec_dec *dec, unsigned f) {
+static int od_ec_decode_bool_q15(od_ec_dec *dec, unsigned f) {
   od_ec_window dif;
   od_ec_window vw;
   unsigned r;
@@ -212,7 +212,7 @@ int od_ec_decode_bool_q15(od_ec_dec *dec, unsigned f) {
   nsyms: The number of symbols in the alphabet.
          This should be at most 16.
   Return: The decoded symbol s.*/
-int od_ec_decode_cdf_q15(od_ec_dec *dec, const uint16_t *icdf, int nsyms) {
+static int od_ec_decode_cdf_q15(od_ec_dec *dec, const uint16_t *icdf, int nsyms) {
   od_ec_window dif;
   unsigned r;
   unsigned c;

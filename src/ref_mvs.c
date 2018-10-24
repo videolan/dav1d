@@ -766,26 +766,20 @@ static INLINE int16_t av1_mode_context_analyzer(
   return comp_ctx;
 }
 
-void av1_setup_frame_buf_refs(AV1_COMMON *cm);
+static void av1_setup_frame_buf_refs(AV1_COMMON *cm);
 void av1_setup_frame_sign_bias(AV1_COMMON *cm);
 void av1_setup_skip_mode_allowed(AV1_COMMON *cm);
 
 void av1_copy_frame_mvs(const AV1_COMMON *const cm, MB_MODE_INFO *mi,
                         int mi_row, int mi_col, int x_mis, int y_mis);
 
-void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
+static void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
                       MB_MODE_INFO *mi, MV_REFERENCE_FRAME ref_frame,
                       uint8_t ref_mv_count[MODE_CTX_REF_FRAMES],
                       CANDIDATE_MV ref_mv_stack[][MAX_REF_MV_STACK_SIZE],
                       int_mv mv_ref_list[][MAX_MV_REF_CANDIDATES],
                       int_mv *global_mvs, int mi_row, int mi_col,
                       int16_t *mode_context);
-
-// check a list of motion vectors by sad score using a number rows of pixels
-// above and a number cols of pixels in the left to select the one with best
-// score to use as ref motion vector
-void av1_find_best_ref_mvs(int allow_hp, int_mv *mvlist, int_mv *nearest_mv,
-                           int_mv *near_mv, int is_integer);
 
 int selectSamples(MV *mv, int *pts, int *pts_inref, int len, BLOCK_SIZE bsize);
 int findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int mi_row, int mi_col,
@@ -1610,7 +1604,7 @@ static void setup_ref_mv_list(
   }
 }
 
-void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
+static void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
                       MB_MODE_INFO *mi, MV_REFERENCE_FRAME ref_frame,
                       uint8_t ref_mv_count[MODE_CTX_REF_FRAMES],
                       CANDIDATE_MV ref_mv_stack[][MAX_REF_MV_STACK_SIZE],
@@ -1653,18 +1647,7 @@ void av1_find_mv_refs(const AV1_COMMON *cm, const MACROBLOCKD *xd,
                     zeromv, mi_row, mi_col, mode_context);
 }
 
-void av1_find_best_ref_mvs(int allow_hp, int_mv *mvlist, int_mv *nearest_mv,
-                           int_mv *near_mv, int is_integer) {
-  int i;
-  // Make sure all the candidates are properly clamped etc
-  for (i = 0; i < MAX_MV_REF_CANDIDATES; ++i) {
-    lower_mv_precision(&mvlist[i].as_mv, allow_hp, is_integer);
-  }
-  *nearest_mv = mvlist[0];
-  *near_mv = mvlist[1];
-}
-
-void av1_setup_frame_buf_refs(AV1_COMMON *cm) {
+static void av1_setup_frame_buf_refs(AV1_COMMON *cm) {
   cm->cur_frame.cur_frame_offset = cm->frame_offset;
 
   MV_REFERENCE_FRAME ref_frame;
@@ -1807,7 +1790,7 @@ static int motion_field_projection(AV1_COMMON *cm, MV_REFERENCE_FRAME ref_frame,
   return 1;
 }
 
-void av1_setup_motion_field(AV1_COMMON *cm) {
+static void av1_setup_motion_field(AV1_COMMON *cm) {
   if (!cm->seq_params.enable_order_hint) return;
 
   TPL_MV_REF *tpl_mvs_base = cm->tpl_mvs;
