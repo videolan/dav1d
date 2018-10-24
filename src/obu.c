@@ -1049,17 +1049,20 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->have_seq_hdr = 1;
         c->have_frame_hdr = 0;
         break;
+    case OBU_REDUNDANT_FRAME_HDR:
+        if (c->have_frame_hdr) break;
+        // fall-through
     case OBU_FRAME:
     case OBU_FRAME_HDR:
         if (!c->have_seq_hdr) goto error;
-        if ((res = parse_frame_hdr(c, &gb, type == OBU_FRAME_HDR)) < 0)
+        if ((res = parse_frame_hdr(c, &gb, type != OBU_FRAME)) < 0)
             return res;
         c->have_frame_hdr = 1;
         for (int n = 0; n < c->n_tile_data; n++)
             dav1d_data_unref(&c->tile[n].data);
         c->n_tile_data = 0;
         c->n_tiles = 0;
-        if (type == OBU_FRAME_HDR) break;
+        if (type != OBU_FRAME) break;
         if (c->frame_hdr.show_existing_frame) goto error;
         off += res;
         // fall-through
@@ -1088,9 +1091,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->n_tiles += 1 + c->tile[c->n_tile_data].end -
                           c->tile[c->n_tile_data].start;
         c->n_tile_data++;
-        break;
-    case OBU_REDUNDANT_FRAME_HDR:
-        if (!c->have_frame_hdr) goto error;
         break;
     case OBU_PADDING:
     case OBU_TD:
