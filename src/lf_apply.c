@@ -163,7 +163,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     // fix lpf strength at tile col boundaries
     const uint8_t *lpf_y = &f->lf.tx_lpf_right_edge[0][sby << sbl2];
     const uint8_t *lpf_uv = &f->lf.tx_lpf_right_edge[1][sby << (sbl2 - ss_ver)];
-    for (int tile_col = 1; tile_col < f->frame_hdr.tiling.cols; tile_col++) {
+    for (int tile_col = 1;; tile_col++) {
         x = f->frame_hdr.tiling.col_start_sb[tile_col];
         if ((x << sbl2) >= f->bw) break;
         const int bx4 = x & is_sb64 ? 16 : 0, cbx4 = bx4 >> ss_hor;
