@@ -1824,57 +1824,6 @@ static void av1_setup_motion_field(AV1_COMMON *cm) {
   }
 }
 
-void av1_fill_motion_field(AV1_COMMON *cm,
-                           const int tile_col_start4, const int tile_col_end4,
-                           const int row_start4, int row_end4)
-{
-  RefCntBuffer *const frame_bufs = cm->buffer_pool.frame_bufs;
-  const int cur_order_hint = cm->cur_frame.cur_frame_offset;
-  int *const ref_buf_idx = cm->ref_buf_idx;
-  int *const ref_order_hint = cm->ref_order_hint;
-
-  int ref_stamp = MFMV_STACK_SIZE - 1;
-
-  if (ref_buf_idx[LAST_FRAME - LAST_FRAME] >= 0) {
-    const int alt_of_lst_order_hint =
-        frame_bufs[ref_buf_idx[LAST_FRAME - LAST_FRAME]]
-            .ref_frame_offset[ALTREF_FRAME - LAST_FRAME];
-
-    const int is_lst_overlay =
-        (alt_of_lst_order_hint == ref_order_hint[GOLDEN_FRAME - LAST_FRAME]);
-      if (!is_lst_overlay) motion_field_projection(cm, LAST_FRAME, 2,
-                                                   tile_col_start4, tile_col_end4,
-                                                   row_start4, row_end4);
-    --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[BWDREF_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0) {
-      if (motion_field_projection(cm, BWDREF_FRAME, 0,
-                                  tile_col_start4, tile_col_end4,
-                                  row_start4, row_end4)) --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[ALTREF2_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0) {
-      if (motion_field_projection(cm, ALTREF2_FRAME, 0,
-                                  tile_col_start4, tile_col_end4,
-                                  row_start4, row_end4)) --ref_stamp;
-  }
-
-  if (get_relative_dist(cm, ref_order_hint[ALTREF_FRAME - LAST_FRAME],
-                        cur_order_hint) > 0 &&
-      ref_stamp >= 0)
-      if (motion_field_projection(cm, ALTREF_FRAME, 0,
-                                  tile_col_start4, tile_col_end4,
-                                  row_start4, row_end4)) --ref_stamp;
-
-  if (ref_stamp >= 0 && ref_buf_idx[LAST2_FRAME - LAST_FRAME] >= 0)
-      if (motion_field_projection(cm, LAST2_FRAME, 2,
-                                  tile_col_start4, tile_col_end4,
-                                  row_start4, row_end4)) --ref_stamp;
-}
-
 enum BlockSize {
     BS_128x128,
     BS_128x64,
@@ -1952,6 +1901,12 @@ const uint8_t sbtype_to_bs[BLOCK_SIZES_ALL] = {
 
 #include <stdio.h>
 
+void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
+                      int *ctx, int refidx_dav1d[2],
+                      int w4, int h4, int bs, int bp, int by4, int bx4,
+                      int tile_col_start4, int tile_col_end4,
+                      int tile_row_start4, int tile_row_end4,
+                      AV1_COMMON *cm);
 void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
                       int *ctx, int refidx_dav1d[2],
                       int w4, int h4, int bs, int bp, int by4, int bx4,
@@ -2104,6 +2059,20 @@ int av1_init_ref_mv_common(AV1_COMMON *cm,
                            const int allow_hp,
                            const int force_int_mv,
                            const int allow_ref_frame_mvs,
+                           const int order_hint);
+int av1_init_ref_mv_common(AV1_COMMON *cm,
+                           const int w8, const int h8,
+                           const ptrdiff_t stride,
+                           const int allow_sb128,
+                           MV_REF *cur,
+                           MV_REF *ref_mvs[7],
+                           const unsigned cur_poc,
+                           const unsigned ref_poc[7],
+                           const unsigned ref_ref_poc[7][7],
+                           const WarpedMotionParams gmv[7],
+                           const int allow_hp,
+                           const int force_int_mv,
+                           const int allow_ref_frame_mvs,
                            const int order_hint)
 {
     if (cm->mi_cols != (w8 << 1) || cm->mi_rows != (h8 << 1)) {
@@ -2158,12 +2127,59 @@ int av1_init_ref_mv_common(AV1_COMMON *cm,
 
 void av1_init_ref_mv_tile_row(AV1_COMMON *cm,
                               int tile_col_start4, int tile_col_end4,
+                              int row_start4, int row_end4);
+void av1_init_ref_mv_tile_row(AV1_COMMON *cm,
+                              int tile_col_start4, int tile_col_end4,
                               int row_start4, int row_end4)
 {
-    av1_fill_motion_field(cm, tile_col_start4, tile_col_end4,
-                          row_start4, row_end4);
+  RefCntBuffer *const frame_bufs = cm->buffer_pool.frame_bufs;
+  const int cur_order_hint = cm->cur_frame.cur_frame_offset;
+  int *const ref_buf_idx = cm->ref_buf_idx;
+  int *const ref_order_hint = cm->ref_order_hint;
+
+  int ref_stamp = MFMV_STACK_SIZE - 1;
+
+  if (ref_buf_idx[LAST_FRAME - LAST_FRAME] >= 0) {
+    const int alt_of_lst_order_hint =
+        frame_bufs[ref_buf_idx[LAST_FRAME - LAST_FRAME]]
+            .ref_frame_offset[ALTREF_FRAME - LAST_FRAME];
+
+    const int is_lst_overlay =
+        (alt_of_lst_order_hint == ref_order_hint[GOLDEN_FRAME - LAST_FRAME]);
+      if (!is_lst_overlay) motion_field_projection(cm, LAST_FRAME, 2,
+                                                   tile_col_start4, tile_col_end4,
+                                                   row_start4, row_end4);
+    --ref_stamp;
+  }
+
+  if (get_relative_dist(cm, ref_order_hint[BWDREF_FRAME - LAST_FRAME],
+                        cur_order_hint) > 0) {
+      if (motion_field_projection(cm, BWDREF_FRAME, 0,
+                                  tile_col_start4, tile_col_end4,
+                                  row_start4, row_end4)) --ref_stamp;
+  }
+
+  if (get_relative_dist(cm, ref_order_hint[ALTREF2_FRAME - LAST_FRAME],
+                        cur_order_hint) > 0) {
+      if (motion_field_projection(cm, ALTREF2_FRAME, 0,
+                                  tile_col_start4, tile_col_end4,
+                                  row_start4, row_end4)) --ref_stamp;
+  }
+
+  if (get_relative_dist(cm, ref_order_hint[ALTREF_FRAME - LAST_FRAME],
+                        cur_order_hint) > 0 &&
+      ref_stamp >= 0)
+      if (motion_field_projection(cm, ALTREF_FRAME, 0,
+                                  tile_col_start4, tile_col_end4,
+                                  row_start4, row_end4)) --ref_stamp;
+
+  if (ref_stamp >= 0 && ref_buf_idx[LAST2_FRAME - LAST_FRAME] >= 0)
+      if (motion_field_projection(cm, LAST2_FRAME, 2,
+                                  tile_col_start4, tile_col_end4,
+                                  row_start4, row_end4)) --ref_stamp;
 }
 
+AV1_COMMON *av1_alloc_ref_mv_common(void);
 AV1_COMMON *av1_alloc_ref_mv_common(void) {
     AV1_COMMON *cm = malloc(sizeof(*cm));
     if (!cm) return NULL;
@@ -2171,6 +2187,7 @@ AV1_COMMON *av1_alloc_ref_mv_common(void) {
     return cm;
 }
 
+void av1_free_ref_mv_common(AV1_COMMON *cm);
 void av1_free_ref_mv_common(AV1_COMMON *cm) {
     if (cm->tpl_mvs) free(cm->tpl_mvs);
     free(cm);

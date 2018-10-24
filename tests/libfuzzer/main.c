@@ -33,9 +33,9 @@
 #include <string.h>
 #include <stdio.h>
 
-// expects ivf input
+#include <tests/libfuzzer/dav1d_fuzzer.h>
 
-int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+// expects ivf input
 
 int main(const int argc, char *const *const argv) {
     int ret = -1;

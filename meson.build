@@ -149,6 +149,7 @@ optional_arguments = [
   '-Werror=vla',
   '-Wno-maybe-uninitialized',
   '-Wno-unused-parameter',
+  '-Werror=missing-prototypes',
 ]
 
 if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
