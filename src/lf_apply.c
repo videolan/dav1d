@@ -178,14 +178,16 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
             y_hmask[imin(idx, lpf_y[y - starty4])] |= mask;
         }
 
-        uint32_t *const uv_hmask = lflvl[x].filter_uv[0][cbx4];
-        for (unsigned y = starty4 >> ss_ver, uv_mask = 1 << y; y < uv_endy4;
-             y++, uv_mask <<= 1)
-        {
-            const int idx = !!(uv_hmask[1] & uv_mask);
-            uv_hmask[1] &= ~uv_mask;
-            uv_hmask[0] &= ~uv_mask;
-            uv_hmask[imin(idx, lpf_uv[y - (starty4 >> ss_ver)])] |= uv_mask;
+        if (f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I400) {
+            uint32_t *const uv_hmask = lflvl[x].filter_uv[0][cbx4];
+            for (unsigned y = starty4 >> ss_ver, uv_mask = 1 << y; y < uv_endy4;
+                 y++, uv_mask <<= 1)
+            {
+                const int idx = !!(uv_hmask[1] & uv_mask);
+                uv_hmask[1] &= ~uv_mask;
+                uv_hmask[0] &= ~uv_mask;
+                uv_hmask[imin(idx, lpf_uv[y - (starty4 >> ss_ver)])] |= uv_mask;
+            }
         }
         lpf_y  += halign;
         lpf_uv += halign >> ss_ver;
@@ -206,12 +208,14 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
                 y_vmask[imin(idx, a->tx_lpf_y[i])] |= mask;
             }
 
-            uint32_t *const uv_vmask = lflvl[x].filter_uv[1][starty4 >> ss_ver];
-            for (unsigned mask = 1, i = 0; i < (32U >> ss_hor); mask <<= 1, i++) {
-                const int idx = !!(uv_vmask[1] & mask);
-                uv_vmask[1] &= ~mask;
-                uv_vmask[0] &= ~mask;
-                uv_vmask[imin(idx, a->tx_lpf_uv[i])] |= mask;
+            if (f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I400) {
+                uint32_t *const uv_vmask = lflvl[x].filter_uv[1][starty4 >> ss_ver];
+                for (unsigned mask = 1, i = 0; i < (32U >> ss_hor); mask <<= 1, i++) {
+                    const int idx = !!(uv_vmask[1] & mask);
+                    uv_vmask[1] &= ~mask;
+                    uv_vmask[0] &= ~mask;
+                    uv_vmask[imin(idx, a->tx_lpf_uv[i])] |= mask;
+                }
             }
         }
     }
