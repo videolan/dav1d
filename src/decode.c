@@ -1811,10 +1811,14 @@ static int decode_b(Dav1dTileContext *const t,
     memset(&t->l.skip[by4], b->skip, bh4);
     memset(&t->a->skip[bx4], b->skip, bw4);
     if (!b->skip) {
-        uint32_t *noskip_mask = &t->lf_mask->noskip_mask[by4];
-        const unsigned mask = ((1ULL << bw4) - 1) << bx4;
-        for (int y = 0; y < bh4; y++)
-            *noskip_mask++ |= mask;
+        uint16_t (*noskip_mask)[2] = &t->lf_mask->noskip_mask[by4];
+        const unsigned mask = (~0U >> (32 - bw4)) << (bx4 & 15);
+        const int bx_idx = (bx4 & 16) >> 4;
+        for (int y = 0; y < bh4; y++, noskip_mask++) {
+            (*noskip_mask)[bx_idx] |= mask;
+            if (bw4 == 32) // this should be mask >> 16, but it's 0xffffffff anyway
+                (*noskip_mask)[1] |= mask;
+        }
     }
 
     return 0;

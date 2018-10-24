@@ -152,10 +152,10 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
 
                 // check if this 8x8 block had any coded coefficients; if not,
                 // go to the next block
-                const unsigned bx_mask = 3U << (bx & 30);
-                const int by_idx = by & 30;
-                if (!((lflvl[sb128x].noskip_mask[by_idx + 0] |
-                       lflvl[sb128x].noskip_mask[by_idx + 1]) & bx_mask))
+                const unsigned bx_mask = 3U << (bx & 14);
+                const int by_idx = by & 30, bx_idx = (bx & 16) >> 4;
+                if (!((lflvl[sb128x].noskip_mask[by_idx + 0][bx_idx] |
+                       lflvl[sb128x].noskip_mask[by_idx + 1][bx_idx]) & bx_mask))
                 {
                     last_skip = 1;
                     goto next_b;
