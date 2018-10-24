@@ -2862,7 +2862,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             const int refidx = f->frame_hdr.refidx[i];
             if (!c->refs[refidx].p.p.data[0] ||
                 f->frame_hdr.width  != c->refs[refidx].p.p.p.w ||
-                f->frame_hdr.height != c->refs[refidx].p.p.p.h)
+                f->frame_hdr.height != c->refs[refidx].p.p.p.h ||
+                f->seq_hdr.layout != c->refs[refidx].p.p.p.layout)
             {
                 for (int j = 0; j < i; j++)
                     dav1d_thread_picture_unref(&f->refp[j]);
