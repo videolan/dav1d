@@ -73,7 +73,7 @@ static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /*
     }
 }
 
-static inline void mask_edges_inter(uint32_t (*const masks)[32][3],
+static inline void mask_edges_inter(uint16_t (*const masks)[32][3][2],
                                     const int by4, const int bx4,
                                     const int w4, const int h4, const int skip,
                                     const enum RectTxfmSize max_tx,
@@ -91,21 +91,29 @@ static inline void mask_edges_inter(uint32_t (*const masks)[32][3],
 
     // left block edge
     unsigned mask = 1U << by4;
-    for (y = 0; y < h4; y++, mask <<= 1)
-        masks[0][bx4][imin(txa[0][0][y][0], l[y])] |= mask;
+    for (y = 0; y < h4; y++, mask <<= 1) {
+        const int sidx = mask >= 0x10000;
+        const unsigned smask = mask >> (sidx << 4);
+        masks[0][bx4][imin(txa[0][0][y][0], l[y])][sidx] |= smask;
+    }
 
     // top block edge
-    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1)
-        masks[1][by4][imin(txa[1][0][0][x], a[x])] |= mask;
+    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1) {
+        const int sidx = mask >= 0x10000;
+        const unsigned smask = mask >> (sidx << 4);
+        masks[1][by4][imin(txa[1][0][0][x], a[x])][sidx] |= smask;
+    }
 
     if (!skip) {
         // inner (tx) left|right edges
         for (y = 0, mask = 1U << by4; y < h4; y++, mask <<= 1) {
+            const int sidx = mask >= 0x10000U;
+            const unsigned smask = mask >> (sidx << 4);
             int ltx = txa[0][0][y][0];
             int step = txa[0][1][y][0];
             for (x = step; x < w4; x += step) {
                 const int rtx = txa[0][0][y][x];
-                masks[0][bx4 + x][imin(rtx, ltx)] |= mask;
+                masks[0][bx4 + x][imin(rtx, ltx)][sidx] |= smask;
                 ltx = rtx;
                 step = txa[0][1][y][x];
             }
@@ -115,11 +123,13 @@ static inline void mask_edges_inter(uint32_t (*const masks)[32][3],
         // inner (tx) --- edges
         //           bottom
         for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1) {
+            const int sidx = mask >= 0x10000U;
+            const unsigned smask = mask >> (sidx << 4);
             int ttx = txa[1][0][0][x];
             int step = txa[1][1][0][x];
             for (y = step; y < h4; y += step) {
                 const int btx = txa[1][0][y][x];
-                masks[1][by4 + y][imin(ttx, btx)] |= mask;
+                masks[1][by4 + y][imin(ttx, btx)][sidx] |= smask;
                 ttx = btx;
                 step = txa[1][1][y][x];
             }
@@ -131,7 +141,7 @@ static inline void mask_edges_inter(uint32_t (*const masks)[32][3],
     memcpy(a, txa[1][0][h4 - 1], w4);
 }
 
-static inline void mask_edges_intra(uint32_t (*const masks)[32][3],
+static inline void mask_edges_intra(uint16_t (*const masks)[32][3][2],
                                     const int by4, const int bx4,
                                     const int w4, const int h4,
                                     const enum RectTxfmSize tx,
@@ -144,19 +154,28 @@ static inline void mask_edges_intra(uint32_t (*const masks)[32][3],
 
     // left block edge
     unsigned mask = 1U << by4;
-    for (y = 0; y < h4; y++, mask <<= 1)
-        masks[0][bx4][imin(twl4c, l[y])] |= mask;
+    for (y = 0; y < h4; y++, mask <<= 1) {
+        const int sidx = mask >= 0x10000;
+        const unsigned smask = mask >> (sidx << 4);
+        masks[0][bx4][imin(twl4c, l[y])][sidx] |= smask;
+    }
 
     // top block edge
-    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1)
-        masks[1][by4][imin(thl4c, a[x])] |= mask;
+    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1) {
+        const int sidx = mask >= 0x10000;
+        const unsigned smask = mask >> (sidx << 4);
+        masks[1][by4][imin(thl4c, a[x])][sidx] |= smask;
+    }
 
     // inner (tx) left|right edges
     const int hstep = t_dim->w;
     unsigned t = 1U << by4;
     unsigned inner = (((uint64_t) t) << h4) - t;
-    for (x = hstep; x < w4; x += hstep)
-        masks[0][bx4 + x][twl4c] |= inner;
+    unsigned inner1 = inner & 0xffff, inner2 = inner >> 16;
+    for (x = hstep; x < w4; x += hstep) {
+        if (inner1) masks[0][bx4 + x][twl4c][0] |= inner1;
+        if (inner2) masks[0][bx4 + x][twl4c][1] |= inner2;
+    }
 
     //            top
     // inner (tx) --- edges
@@ -164,41 +183,58 @@ static inline void mask_edges_intra(uint32_t (*const masks)[32][3],
     const int vstep = t_dim->h;
     t = 1U << bx4;
     inner = (((uint64_t) t) << w4) - t;
-    for (y = vstep; y < h4; y += vstep)
-        masks[1][by4 + y][thl4c] |= inner;
+    inner1 = inner & 0xffff;
+    inner2 = inner >> 16;
+    for (y = vstep; y < h4; y += vstep) {
+        if (inner1) masks[1][by4 + y][thl4c][0] |= inner1;
+        if (inner2) masks[1][by4 + y][thl4c][1] |= inner2;
+    }
 
     memset(a, thl4c, w4);
     memset(l, twl4c, h4);
 }
 
-static inline void mask_edges_chroma(uint32_t (*const masks)[32][2],
+static inline void mask_edges_chroma(uint16_t (*const masks)[32][2][2],
                                      const int cby4, const int cbx4,
                                      const int cw4, const int ch4,
                                      const int skip_inter,
                                      const enum RectTxfmSize tx,
-                                     uint8_t *const a, uint8_t *const l)
+                                     uint8_t *const a, uint8_t *const l,
+                                     const int ss_hor, const int ss_ver)
 {
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
     const int twl4 = t_dim->lw, thl4 = t_dim->lh;
     const int twl4c = !!twl4, thl4c = !!thl4;
     int y, x;
+    const int vbits = 4 - ss_ver, hbits = 4 - ss_hor;
+    const int vmask = 16 >> ss_ver, hmask = 16 >> ss_hor;
+    const unsigned vmax = 1 << vmask, hmax = 1 << hmask;
 
     // left block edge
     unsigned mask = 1U << cby4;
-    for (y = 0; y < ch4; y++, mask <<= 1)
-        masks[0][cbx4][imin(twl4c, l[y])] |= mask;
+    for (y = 0; y < ch4; y++, mask <<= 1) {
+        const int sidx = mask >= vmax;
+        const unsigned smask = mask >> (sidx << vbits);
+        masks[0][cbx4][imin(twl4c, l[y])][sidx] |= smask;
+    }
 
     // top block edge
-    for (x = 0, mask = 1U << cbx4; x < cw4; x++, mask <<= 1)
-        masks[1][cby4][imin(thl4c, a[x])] |= mask;
+    for (x = 0, mask = 1U << cbx4; x < cw4; x++, mask <<= 1) {
+        const int sidx = mask >= hmax;
+        const unsigned smask = mask >> (sidx << hbits);
+        masks[1][cby4][imin(thl4c, a[x])][sidx] |= smask;
+    }
 
     if (!skip_inter) {
         // inner (tx) left|right edges
         const int hstep = t_dim->w;
-        int t = 1U << cby4;
+        unsigned t = 1U << cby4;
         unsigned inner = (((uint64_t) t) << ch4) - t;
-        for (x = hstep; x < cw4; x += hstep)
-            masks[0][cbx4 + x][twl4c] |= inner;
+        unsigned inner1 = inner & ((1 << vmask) - 1), inner2 = inner >> vmask;
+        for (x = hstep; x < cw4; x += hstep) {
+            if (inner1) masks[0][cbx4 + x][twl4c][0] |= inner1;
+            if (inner2) masks[0][cbx4 + x][twl4c][1] |= inner2;
+        }
 
         //            top
         // inner (tx) --- edges
@@ -206,8 +242,11 @@ static inline void mask_edges_chroma(uint32_t (*const masks)[32][2],
         const int vstep = t_dim->h;
         t = 1U << cbx4;
         inner = (((uint64_t) t) << cw4) - t;
-        for (y = vstep; y < ch4; y += vstep)
-            masks[1][cby4 + y][thl4c] |= inner;
+        inner1 = inner & ((1 << hmask) - 1), inner2 = inner >> hmask;
+        for (y = vstep; y < ch4; y += vstep) {
+            if (inner1) masks[1][cby4 + y][thl4c][0] |= inner1;
+            if (inner2) masks[1][cby4 + y][thl4c][1] |= inner2;
+        }
     }
 
     memset(a, thl4c, cw4);
@@ -271,7 +310,8 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
         level_cache_ptr += b4_stride;
     }
 
-    mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, 0, uvtx, auv, luv);
+    mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, 0, uvtx,
+                      auv, luv, ss_hor, ss_ver);
 }
 
 void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
@@ -332,7 +372,8 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
         level_cache_ptr += b4_stride;
     }
 
-    mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, skip, uvtx, auv, luv);
+    mask_edges_chroma(lflvl->filter_uv, cby4, cbx4, cbw4, cbh4, skip, uvtx,
+                      auv, luv, ss_hor, ss_ver);
 }
 
 void dav1d_calc_eih(Av1FilterLUT *const lim_lut, const int filter_sharpness) {

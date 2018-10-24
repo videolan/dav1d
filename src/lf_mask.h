@@ -50,8 +50,8 @@ typedef struct Av1RestorationUnit {
 // each struct describes one 128x128 area (1 or 4 SBs)
 typedef struct Av1Filter {
     // each bit is 1 col
-    uint32_t filter_y[2 /* 0=col, 1=row */][32][3];
-    uint32_t filter_uv[2 /* 0=col, 1=row */][32][2];
+    uint16_t filter_y[2 /* 0=col, 1=row */][32][3][2];
+    uint16_t filter_uv[2 /* 0=col, 1=row */][32][2][2];
     int8_t cdef_idx[4]; // -1 means "unset"
     uint16_t noskip_mask[32][2];
     Av1RestorationUnit lr[3][4];
