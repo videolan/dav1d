@@ -728,6 +728,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400) {
             hdr->restoration.type[1] = dav1d_get_bits(gb, 2);
             hdr->restoration.type[2] = dav1d_get_bits(gb, 2);
+        } else {
+            hdr->restoration.type[1] =
+            hdr->restoration.type[2] = RESTORATION_NONE;
         }
 
         if (hdr->restoration.type[0] || hdr->restoration.type[1] ||
