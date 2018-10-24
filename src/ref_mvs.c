@@ -2024,26 +2024,6 @@ void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
     av1_find_mv_refs(cm, &xd, xd.mi, refidx, mv_cnt,
                      mv_stack, mv_list, gmvs, by4, bx4,
                      single_context);
-#if !defined(NDEBUG)
-    if (refidx_dav1d[1] == -1 && mv_cnt[refidx] >= 1) {
-        int_mv tmpa = { .as_int = mv_stack[refidx][0].this_mv.as_int };
-        clamp_mv_ref(&tmpa.as_mv, bw4 * 4, bh4 * 4, &xd);
-        int_mv tmp1 = { .as_mv =
-                 av1_clamp_mv(mv_stack[refidx][0].this_mv.as_mv,
-                              bx4, by4, bw4, bh4, w4, h4) };
-        assert(tmpa.as_int == tmp1.as_int);
-        assert(tmp1.as_int == mv_list[refidx][0].as_int);
-        if (mv_cnt[refidx] >= 2) {
-            int_mv tmpb = { .as_int = mv_stack[refidx][1].this_mv.as_int };
-            clamp_mv_ref(&tmpb.as_mv, bw4 * 4, bh4 * 4, &xd);
-            int_mv tmp2 = { .as_mv =
-                     av1_clamp_mv(mv_stack[refidx][1].this_mv.as_mv,
-                                  bx4, by4, bw4, bh4, w4, h4) };
-            assert(tmp2.as_int == tmpb.as_int);
-            assert(tmp2.as_int == mv_list[refidx][1].as_int);
-        }
-    }
-#endif
     for (int i = 0; i < mv_cnt[refidx]; i++)
         mvstack[i] = mv_stack[refidx][i];
     *cnt = mv_cnt[refidx];
