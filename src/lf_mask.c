@@ -297,6 +297,9 @@ void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,
                           (b_dim[0] + ss_hor) >> ss_hor);
     const int cbh4 = imin(((ih + ss_ver) >> ss_ver) - (by >> ss_ver),
                           (b_dim[1] + ss_ver) >> ss_ver);
+
+    if (!cbw4 || !cbh4) return;
+
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
 
@@ -359,6 +362,9 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
                           (b_dim[0] + ss_hor) >> ss_hor);
     const int cbh4 = imin(((ih + ss_ver) >> ss_ver) - (by >> ss_ver),
                           (b_dim[1] + ss_ver) >> ss_ver);
+
+    if (!cbw4 || !cbh4) return;
+
     const int cbx4 = bx4 >> ss_hor;
     const int cby4 = by4 >> ss_ver;
 
