@@ -1967,20 +1967,6 @@ const uint8_t sbtype_to_bs[BLOCK_SIZES_ALL] = {
     [BLOCK_4X4] = BS_4x4,
 };
 
-static inline struct MV av1_clamp_mv(const struct MV mv,
-                                    const int bx4, const int by4,
-                                    const int bw4, const int bh4,
-                                    const int iw4, const int ih4)
-{
-    const int left = -(bx4 + bw4 + 4) * 4 * 8;
-    const int right = (iw4 - bx4 + 0 * bw4 + 4) * 4 * 8;
-    const int top = -(by4 + bh4 + 4) * 4 * 8;
-    const int bottom = (ih4 - by4 + 0 * bh4 + 4) * 4 * 8;
-
-    return (struct MV) { .col = iclip(mv.col, left, right),
-                         .row = iclip(mv.row, top, bottom) };
-}
-
 #include <stdio.h>
 
 void av1_find_ref_mvs(CANDIDATE_MV *mvstack, int *cnt, int_mv (*mvlist)[2],
