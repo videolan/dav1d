@@ -52,17 +52,17 @@ libdav1d_sources = files(
 # These files are compiled for each bitdepth with
 # `BITDEPTH` defined to the currently built bitdepth.
 libdav1d_tmpl_sources = files(
-    'ipred.c',
-    'itx.c',
-    'ipred_prepare.c',
-    'lf_apply.c',
-    'loopfilter.c',
-    'mc.c',
-    'cdef_apply.c',
-    'cdef.c',
-    'lr_apply.c',
-    'looprestoration.c',
-    'recon.c'
+    'ipred_tmpl.c',
+    'itx_tmpl.c',
+    'ipred_prepare_tmpl.c',
+    'lf_apply_tmpl.c',
+    'loopfilter_tmpl.c',
+    'mc_tmpl.c',
+    'cdef_apply_tmpl.c',
+    'cdef_tmpl.c',
+    'lr_apply_tmpl.c',
+    'looprestoration_tmpl.c',
+    'recon_tmpl.c'
 )
 
 # libdav1d entrypoint source files
