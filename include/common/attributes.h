@@ -28,7 +28,22 @@
 #ifndef __DAV1D_COMMON_ATTRIBUTES_H__
 #define __DAV1D_COMMON_ATTRIBUTES_H__
 
+#include "config.h"
+
 #include <stddef.h>
+
+#if ARCH_X86
+#define ALIGN_32_VAL 32
+#define ALIGN_16_VAL 16
+#elif ARCH_ARM || ARCH_AARCH64
+// ARM doesn't benefit from anything more than 16 byte alignment.
+#define ALIGN_32_VAL 16
+#define ALIGN_16_VAL 16
+#else
+// No need for extra alignment on platforms without assembly.
+#define ALIGN_32_VAL 8
+#define ALIGN_16_VAL 8
+#endif
 
 /*
  * API for variables, struct members (ALIGN()) like:
@@ -51,10 +66,10 @@
  * ALIGN_STK_$align(uint8_t, var, 1, [2][3][4])
  */
 #define ALIGN_STK_32(type, var, sz1d, sznd) \
-    ALIGN(type var[sz1d]sznd, 32)
+    ALIGN(type var[sz1d]sznd, ALIGN_32_VAL)
 // as long as stack is itself 16-byte aligned, this works (win64, gcc)
 #define ALIGN_STK_16(type, var, sz1d, sznd) \
-    ALIGN(type var[sz1d]sznd, 16)
+    ALIGN(type var[sz1d]sznd, ALIGN_16_VAL)
 
 /*
  * Forbid inlining of a function:
