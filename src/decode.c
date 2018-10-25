@@ -2608,7 +2608,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 if (f->frame_hdr.tiling.n_bytes > size) goto error;
                 tile_sz = 0;
                 for (unsigned k = 0; k < f->frame_hdr.tiling.n_bytes; k++)
-                    tile_sz |= *data++ << (k * 8);
+                    tile_sz |= (unsigned)*data++ << (k * 8);
                 tile_sz++;
                 size -= f->frame_hdr.tiling.n_bytes;
                 if (tile_sz > size) goto error;
