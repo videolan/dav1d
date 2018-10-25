@@ -1,5 +1,6 @@
 stages:
     - build
+    - test
 
 build-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
@@ -102,3 +103,17 @@ build-debian-werror:
     script:
         - env CC='clang-7' CFLAGS='-Werror' meson build -Dbuild_tests=false
         - ninja -C build
+
+test-debian:
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20180928151533
+    stage: test
+    tags:
+        - debian
+        - amd64
+    only:
+        - master@videolan/dav1d
+    script:
+        - git clone --depth 1 https://code.videolan.org/videolan/dav1d-test-data.git tests/dav1d-test-data
+        - meson build --buildtype release -Dtestdata_tests=true
+        - ninja -C build
+        - cd build && time meson test -v
