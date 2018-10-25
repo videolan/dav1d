@@ -93,14 +93,14 @@ static inline int clzll(const unsigned long long mask) {
     _BitScanReverse64(&leading_zero, mask);
     return (63 - leading_zero);
 }
-#else /* _M_IX86 */
+#else /* _WIN64 */
 static inline int clzll(const unsigned long long mask) {
     if (mask >> 32)
         return clz((unsigned)(mask >> 32));
     else
         return clz((unsigned)mask) + 32;
 }
-#endif /* _M_IX86 */
+#endif /* _WIN64 */
 #else /* !_MSC_VER */
 static inline int ctz(const unsigned int mask) {
     return __builtin_ctz(mask);
