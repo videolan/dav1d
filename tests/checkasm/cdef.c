@@ -32,14 +32,53 @@
 #include "src/levels.h"
 #include "src/cdef.h"
 
-static void init_tmp(pixel *buf, const ptrdiff_t stride,
-                     const int w, const int h)
+static void init_tmp(pixel *buf, int n) {
+    while (n--)
+        *buf++ = rand() & ((1 << BITDEPTH) - 1);
+}
+
+static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
+                              const char *const name)
 {
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++)
-            buf[x] = rand() & ((1 << BITDEPTH) - 1);
-        buf += PXSTRIDE(stride);
+    ALIGN_STK_32(pixel, src, 10 * 16 + 8, );
+    ALIGN_STK_32(pixel, c_src, 10 * 16 + 8, ), *const c_src_ptr = c_src + 8;
+    ALIGN_STK_32(pixel, a_src, 10 * 16 + 8, ), *const a_src_ptr = a_src + 8;
+    ALIGN_STK_32(pixel, top, 16 * 2 + 8, ), *const top_ptr = top + 8;
+    pixel left[8][2];
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel (*left)[2],
+                 pixel *const top[2], int pri_strength, int sec_strength,
+                 int dir, int damping, enum CdefEdgeFlags edges);
+
+    init_tmp(src, 10 * 16 + 8);
+    init_tmp(top, 16 * 2 + 8);
+    init_tmp((pixel *) left,8 * 2);
+
+    if (check_func(fn, "%s_%dbpc", name, BITDEPTH)) {
+        for (int dir = 0; dir < 8; dir++) {
+            for (enum CdefEdgeFlags edges = 0; edges <= 0xf; edges++) {
+                memcpy(a_src, src, (10 * 16 + 8) * sizeof(pixel));
+                memcpy(c_src, src, (10 * 16 + 8) * sizeof(pixel));
+
+                const int lvl = 1 + (rand() % 62);
+                const int damping = 3 + (rand() & 3);
+                const int pri_strength = (lvl >> 2) << (BITDEPTH - 8);
+                int sec_strength = lvl & 3;
+                sec_strength += sec_strength == 3;
+                call_ref(c_src_ptr, 16 * sizeof(pixel), left,
+                         (pixel *[2]) { top_ptr, top_ptr + 16 },
+                         pri_strength, sec_strength, dir, damping, edges);
+                call_new(a_src_ptr, 16 * sizeof(pixel), left,
+                         (pixel *[2]) { top_ptr, top_ptr + 16 },
+                         pri_strength, sec_strength, dir, damping, edges);
+                if (memcmp(a_src, c_src, (10 * 16 + 8) * sizeof(pixel))) fail();
+                bench_new(a_src_ptr, 16 * sizeof(pixel), left,
+                          (pixel *[2]) { top_ptr, top_ptr + 16 },
+                          pri_strength, sec_strength, dir, damping, edges);
+            }
+        }
     }
+    report(name);
 }
 
 static void check_cdef_direction(const cdef_dir_fn fn) {
@@ -47,7 +86,7 @@ static void check_cdef_direction(const cdef_dir_fn fn) {
 
     declare_func(int, pixel *src, ptrdiff_t dst_stride, unsigned *var);
 
-    init_tmp(src, 8 * sizeof(pixel), 8, 8);
+    init_tmp(src, 64);
 
     if (check_func(fn, "cdef_dir_%dbpc", BITDEPTH)) {
         unsigned c_var, a_var;
@@ -66,4 +105,7 @@ void bitfn(checkasm_check_cdef)(void) {
     bitfn(dav1d_cdef_dsp_init)(&c);
 
     check_cdef_direction(c.dir);
+    check_cdef_filter(c.fb[0], 8, 8, "cdef_filter_8x8");
+    check_cdef_filter(c.fb[1], 4, 8, "cdef_filter_4x8");
+    check_cdef_filter(c.fb[2], 4, 4, "cdef_filter_4x4");
 }
