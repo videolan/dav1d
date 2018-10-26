@@ -41,7 +41,7 @@ struct MuxerContext {
     const Muxer *impl;
 };
 
-#define MAX_NUM_MUXERS 3
+#define MAX_NUM_MUXERS 4
 static const Muxer *muxers[MAX_NUM_MUXERS];
 static int num_muxers = 0;
 
@@ -52,6 +52,7 @@ static int num_muxers = 0;
 }
 
 void init_muxers(void) {
+    register_muxer(null_muxer);
     register_muxer(md5_muxer);
     register_muxer(yuv_muxer);
     register_muxer(y4m2_muxer);
