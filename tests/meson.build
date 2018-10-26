@@ -87,19 +87,22 @@ if is_asm_enabled
 endif
 
 dav1d_fuzzer_sources =  files('libfuzzer/dav1d_fuzzer.c')
-fuzzer_flags = []
+fuzzer_ldflags = []
 
 if fuzzing_engine == 'none'
     dav1d_fuzzer_sources += files('libfuzzer/main.c')
 elif fuzzing_engine == 'libfuzzer'
-    fuzzer_flags += ['-fsanitize=fuzzer']
+    fuzzer_ldflags += ['-fsanitize=fuzzer']
+elif fuzzing_engine == 'oss-fuzz'
+    # libFuzzingEngine needs libc++
+    fuzzer_ldflags += ['-lFuzzingEngine', '-lc++']
 endif
 
 dav1d_fuzzer = executable('dav1d_fuzzer',
     dav1d_fuzzer_sources,
     include_directories: dav1d_inc_dirs,
-    c_args: [stackalign_flag, stackrealign_flag] + fuzzer_flags,
-    link_args: fuzzer_flags,
+    c_args: [stackalign_flag, stackrealign_flag],
+    link_args: fuzzer_ldflags,
     link_with : libdav1d,
     build_by_default: true,
     dependencies : [thread_dependency],
@@ -108,9 +111,8 @@ dav1d_fuzzer = executable('dav1d_fuzzer',
 dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
     dav1d_fuzzer_sources,
     include_directories: dav1d_inc_dirs,
-    c_args: [stackalign_flag, stackrealign_flag] + fuzzer_flags +
-            ['-DDAV1D_MT_FUZZING'],
-    link_args: fuzzer_flags,
+    c_args: [stackalign_flag, stackrealign_flag, '-DDAV1D_MT_FUZZING'],
+    link_args: fuzzer_ldflags,
     link_with : libdav1d,
     build_by_default: true,
     dependencies : [thread_dependency],
