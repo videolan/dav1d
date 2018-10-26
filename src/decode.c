@@ -406,7 +406,7 @@ static void read_pal_plane(Dav1dTileContext *const t, Av1Block *const b,
     // find reused cache entries
     int i = 0;
     for (int n = 0; n < n_cache && i < pal_sz; n++)
-        if (msac_decode_bool(&ts->msac, 128 << 7))
+        if (msac_decode_bool(&ts->msac, EC_BOOL_EPROB))
             used_cache[i++] = cache[n];
     const int n_used_cache = i;
 
@@ -470,13 +470,13 @@ static void read_pal_uv(Dav1dTileContext *const t, Av1Block *const b,
     uint16_t *const pal = f->frame_thread.pass ?
         f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
                             ((t->bx >> 1) + (t->by & 1))][2] : t->pal[2];
-    if (msac_decode_bool(&ts->msac, 128 << 7)) {
+    if (msac_decode_bool(&ts->msac, EC_BOOL_EPROB)) {
         const int bits = f->cur.p.p.bpc - 4 + msac_decode_bools(&ts->msac, 2);
         int prev = pal[0] = msac_decode_bools(&ts->msac, f->cur.p.p.bpc);
         const int max = (1 << f->cur.p.p.bpc) - 1;
         for (int i = 1; i < b->pal_sz[1]; i++) {
             int delta = msac_decode_bools(&ts->msac, bits);
-            if (delta && msac_decode_bool(&ts->msac, 128 << 7)) delta = -delta;
+            if (delta && msac_decode_bool(&ts->msac, EC_BOOL_EPROB)) delta = -delta;
             prev = pal[i] = (prev + delta) & max;
         }
     } else {
@@ -865,7 +865,7 @@ static int decode_b(Dav1dTileContext *const t,
                 delta_q = msac_decode_bools(&ts->msac, n_bits) + 1 + (1 << n_bits);
             }
             if (delta_q) {
-                if (msac_decode_bool(&ts->msac, 128 << 7)) delta_q = -delta_q;
+                if (msac_decode_bool(&ts->msac, EC_BOOL_EPROB)) delta_q = -delta_q;
                 delta_q *= 1 << f->frame_hdr.delta.q.res_log2;
             }
             ts->last_qidx = iclip(ts->last_qidx + delta_q, 1, 255);
@@ -887,7 +887,7 @@ static int decode_b(Dav1dTileContext *const t,
                                    1 + (1 << n_bits);
                     }
                     if (delta_lf) {
-                        if (msac_decode_bool(&ts->msac, 128 << 7))
+                        if (msac_decode_bool(&ts->msac, EC_BOOL_EPROB))
                             delta_lf = -delta_lf;
                         delta_lf *= 1 << f->frame_hdr.delta.lf.res_log2;
                     }
@@ -1497,7 +1497,7 @@ static int decode_b(Dav1dTileContext *const t,
                 } else {
                     b->comp_type = COMP_INTER_SEG;
                 }
-                b->mask_sign = msac_decode_bool(&ts->msac, 128 << 7);
+                b->mask_sign = msac_decode_bool(&ts->msac, EC_BOOL_EPROB);
                 if (DEBUG_BLOCK_INFO)
                     printf("Post-seg/wedge[%d,wedge_idx=%d,sign=%d]: r=%d\n",
                            b->comp_type == COMP_INTER_WEDGE,
