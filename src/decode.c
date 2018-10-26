@@ -3041,6 +3041,22 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     if (c->n_fc == 1) {
         if ((res = dav1d_decode_frame(f)) < 0) {
             dav1d_picture_unref(&c->out);
+            for (int i = 0; i < 8; i++) {
+                if (f->frame_hdr.refresh_frame_flags & (1 << i)) {
+                    if (c->refs[i].p.p.data[0])
+                        dav1d_thread_picture_unref(&c->refs[i].p);
+                    if (c->cdf[i].cdf)
+                        dav1d_cdf_thread_unref(&c->cdf[i]);
+                    if (c->refs[i].segmap) {
+                        dav1d_ref_dec(c->refs[i].segmap);
+                        c->refs[i].segmap = NULL;
+                    }
+                    if (c->refs[i].refmvs) {
+                        dav1d_ref_dec(c->refs[i].refmvs);
+                        c->refs[i].refmvs = NULL;
+                    }
+                }
+            }
             return res;
         }
     } else {
