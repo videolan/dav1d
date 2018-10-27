@@ -260,7 +260,7 @@ void dav1d_close(Dav1dContext **const c_out) {
                 t->tile_thread.die = 1;
             }
             pthread_cond_broadcast(&f->tile_thread.cond);
-            while (f->tile_thread.available != (1U << f->n_tc) - 1)
+            while (f->tile_thread.available != ~0ULL >> (64 - f->n_tc))
                 pthread_cond_wait(&f->tile_thread.icond,
                                   &f->tile_thread.lock);
             pthread_mutex_unlock(&f->tile_thread.lock);
