@@ -273,4 +273,8 @@ void bitfn(dav1d_cdef_dsp_init)(Dav1dCdefDSPContext *const c) {
     c->fb[0] = cdef_filter_block_8x8_c;
     c->fb[1] = cdef_filter_block_4x8_c;
     c->fb[2] = cdef_filter_block_4x4_c;
+
+#if HAVE_ASM && ARCH_X86 && BITDEPTH == 8
+    bitfn(dav1d_cdef_dsp_init_x86)(c);
+#endif
 }

@@ -101,6 +101,7 @@ if is_asm_enabled
         )
 
         libdav1d_tmpl_sources += files(
+            'x86/cdef_init_tmpl.c',
             'x86/ipred_init_tmpl.c',
             'x86/itx_init_tmpl.c',
             'x86/loopfilter_init_tmpl.c',
@@ -110,6 +111,7 @@ if is_asm_enabled
 
         # NASM source files
         libdav1d_sources_asm = files(
+            'x86/cdef.asm',
             'x86/cpuid.asm',
             'x86/ipred.asm',
             'x86/itx.asm',

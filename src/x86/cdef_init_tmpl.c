@@ -25,43 +25,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_CDEF_H__
-#define __DAV1D_SRC_CDEF_H__
+#include "src/cpu.h"
+#include "src/cdef.h"
 
-#include <stddef.h>
-#include <stdint.h>
+decl_cdef_dir_fn(dav1d_cdef_dir_avx2);
 
-#include "common/bitdepth.h"
+void bitfn(dav1d_cdef_dsp_init_x86)(Dav1dCdefDSPContext *const c) {
+    const unsigned flags = dav1d_get_cpu_flags();
 
-enum CdefEdgeFlags {
-    HAVE_LEFT = 1 << 0,
-    HAVE_RIGHT = 1 << 1,
-    HAVE_TOP = 1 << 2,
-    HAVE_BOTTOM = 1 << 3,
-};
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
-// CDEF operates entirely on pre-filter data; if bottom/right edges are
-// present (according to $edges), then the pre-filter data is located in
-// $dst. However, the edge pixels above $dst may be post-filter, so in
-// order to get access to pre-filter top pixels, use $top.
-typedef void (*cdef_fn)(pixel *dst, ptrdiff_t stride,
-                        /*const*/ pixel *const top[2],
-                        int pri_strength, int sec_strength,
-                        int dir, int damping, enum CdefEdgeFlags edges);
-
-#define decl_cdef_dir_fn(name) \
-int (name)(const pixel *dst, ptrdiff_t dst_stride, unsigned *var)
-typedef decl_cdef_dir_fn(*cdef_dir_fn);
-
-typedef struct Dav1dCdefDSPContext {
-    cdef_dir_fn dir;
-    cdef_fn fb[3 /* 444/luma, 422, 420 */];
-} Dav1dCdefDSPContext;
-
-void dav1d_cdef_dsp_init_8bpc(Dav1dCdefDSPContext *c);
-void dav1d_cdef_dsp_init_10bpc(Dav1dCdefDSPContext *c);
-
-void dav1d_cdef_dsp_init_x86_8bpc(Dav1dCdefDSPContext *c);
-void dav1d_cdef_dsp_init_x86_10bpc(Dav1dCdefDSPContext *c);
-
-#endif /* __DAV1D_SRC_CDEF_H__ */
+#if BITDEPTH == 8 && ARCH_X86_64
+    c->dir = dav1d_cdef_dir_avx2;
+#endif
+}
