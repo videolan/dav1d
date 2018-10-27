@@ -1070,9 +1070,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             fgd->grain_scale_shift = dav1d_get_bits(gb, 2);
             for (int pl = 0; pl < 2; pl++)
                 if (fgd->num_uv_points[pl]) {
-                    fgd->uv_mult[pl] = dav1d_get_bits(gb, 8);
-                    fgd->uv_luma_mult[pl] = dav1d_get_bits(gb, 8);
-                    fgd->uv_offset[pl] = dav1d_get_bits(gb, 9);
+                    fgd->uv_mult[pl] = dav1d_get_bits(gb, 8) - 128;
+                    fgd->uv_luma_mult[pl] = dav1d_get_bits(gb, 8) - 128;
+                    fgd->uv_offset[pl] = dav1d_get_bits(gb, 9) - 256;
                 }
             fgd->overlap_flag = dav1d_get_bits(gb, 1);
             fgd->clip_to_restricted_range = dav1d_get_bits(gb, 1);

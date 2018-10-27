@@ -403,9 +403,9 @@ typedef struct Av1FilmGrainData {
     int8_t ar_coeffs_uv[2][25];
     int ar_coeff_shift;
     int grain_scale_shift;
-    int uv_mult[2];
-    int uv_luma_mult[2];
-    int uv_offset[2];
+    int8_t uv_mult[2];
+    int8_t uv_luma_mult[2];
+    int16_t uv_offset[2];
     int overlap_flag;
     int clip_to_restricted_range;
 } Av1FilmGrainData;
