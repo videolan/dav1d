@@ -118,7 +118,7 @@ int output_open(MuxerContext **const c_out,
     }
     c->impl = impl;
     c->data = (MuxerPriv *) &c[1];
-    if ((res = impl->write_header(c->data, filename, p, fps)) < 0) {
+    if (impl->write_header && (res = impl->write_header(c->data, filename, p, fps)) < 0) {
         free(c);
         return res;
     }
@@ -137,6 +137,7 @@ int output_write(MuxerContext *const ctx, Dav1dPicture *const p) {
 }
 
 void output_close(MuxerContext *const ctx) {
-    ctx->impl->write_trailer(ctx->data);
+    if (ctx->impl->write_trailer)
+        ctx->impl->write_trailer(ctx->data);
     free(ctx);
 }

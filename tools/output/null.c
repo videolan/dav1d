@@ -31,26 +31,14 @@
 
 typedef struct MuxerPriv NullOutputContext;
 
-static int null_open(NullOutputContext *const c, const char *const file,
-                    const Dav1dPictureParameters *const p,
-                    const unsigned fps[2])
-{
-    return 0;
-}
-
 static int null_write(NullOutputContext *const c, Dav1dPicture *const p) {
     dav1d_picture_unref(p);
     return 0;
-}
-
-static void null_close(NullOutputContext *const c) {
 }
 
 const Muxer null_muxer = {
     .priv_data_size = 0,
     .name = "null",
     .extension = "null",
-    .write_header = null_open,
     .write_picture = null_write,
-    .write_trailer = null_close,
 };
