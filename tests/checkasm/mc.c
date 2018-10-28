@@ -67,7 +67,9 @@ static void check_mc(Dav1dMCDSPContext *const c) {
                         if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
                             fail();
 
-                        bench_new(a_dst, w, src, w, w, h, mx, my);
+                        if (filter == FILTER_2D_8TAP_REGULAR ||
+                            filter == FILTER_2D_BILINEAR)
+                            bench_new(a_dst, w, src, w, w, h, mx, my);
                     }
                 }
     report("mc");
@@ -100,7 +102,9 @@ static void check_mct(Dav1dMCDSPContext *const c) {
                         if (memcmp(c_tmp, a_tmp, w * h * sizeof(*c_tmp)))
                             fail();
 
-                        bench_new(a_tmp, src, w, w, h, mx, my);
+                        if (filter == FILTER_2D_8TAP_REGULAR ||
+                            filter == FILTER_2D_BILINEAR)
+                            bench_new(a_tmp, src, w, w, h, mx, my);
                     }
     report("mct");
 }
