@@ -43,9 +43,10 @@
 #include "src/ref.h"
 #include "src/warpmv.h"
 
-static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb) {
+static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
+                         Av1SequenceHeader *const hdr)
+{
     const uint8_t *const init_ptr = gb->ptr;
-    Av1SequenceHeader *const hdr = &c->seq_hdr;
 
 #define DEBUG_SEQ_HDR 0
 
@@ -1042,14 +1043,38 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     if (len > in->sz - off) goto error;
 
     switch (type) {
-    case OBU_SEQ_HDR:
-        c->have_seq_hdr = 0;
+    case OBU_SEQ_HDR: {
+        Av1SequenceHeader hdr, *const hdr_ptr = c->have_seq_hdr ? &hdr : &c->seq_hdr;
+        memset(hdr_ptr, 0, sizeof(*hdr_ptr));
         c->have_frame_hdr = 0;
-        if ((res = parse_seq_hdr(c, &gb)) < 0)
+        if ((res = parse_seq_hdr(c, &gb, hdr_ptr)) < 0) {
+            c->have_seq_hdr = 0;
             return res;
-        if ((unsigned)res != len) goto error;
+        }
+        if ((unsigned)res != len) {
+            c->have_seq_hdr = 0;
+            goto error;
+        }
+        if (c->have_seq_hdr && memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
+            for (int i = 0; i < 8; i++) {
+                if (c->refs[i].p.p.data[0])
+                    dav1d_thread_picture_unref(&c->refs[i].p);
+                if (c->refs[i].segmap) {
+                    dav1d_ref_dec(c->refs[i].segmap);
+                    c->refs[i].segmap = NULL;
+                }
+                if (c->refs[i].refmvs) {
+                    dav1d_ref_dec(c->refs[i].refmvs);
+                    c->refs[i].refmvs = NULL;
+                }
+                if (c->cdf[i].cdf)
+                    dav1d_cdf_thread_unref(&c->cdf[i]);
+            }
+            c->seq_hdr = hdr;
+        }
         c->have_seq_hdr = 1;
         break;
+    }
     case OBU_REDUNDANT_FRAME_HDR:
         if (c->have_frame_hdr) break;
         // fall-through
