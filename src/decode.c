@@ -2028,8 +2028,8 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
             const Av1Block *const b = &f->frame_thread.b[t->by * f->b4_stride + t->bx];
             is_split = b->bl != bl;
         } else {
-            const unsigned p = gather_top_partition_prob(pc, bl);
-            is_split = msac_decode_bool(&t->ts->msac, p);
+            const uint16_t cdf[2] = { gather_top_partition_prob(pc, bl), 0 };
+            is_split = msac_decode_symbol(&t->ts->msac, cdf, 2);
             if (DEBUG_BLOCK_INFO)
                 printf("poc=%d,y=%d,x=%d,bl=%d,ctx=%d,bp=%d: r=%d\n",
                        f->frame_hdr.frame_offset, t->by, t->bx, bl, ctx,
@@ -2057,8 +2057,8 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
             const Av1Block *const b = &f->frame_thread.b[t->by * f->b4_stride + t->bx];
             is_split = b->bl != bl;
         } else {
-            const unsigned p = gather_left_partition_prob(pc, bl);
-            is_split = msac_decode_bool(&t->ts->msac, p);
+            uint16_t cdf[2] = { gather_left_partition_prob(pc, bl), 0 };
+            is_split = msac_decode_symbol(&t->ts->msac, cdf, 2);
             if (f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I422 && !is_split)
                 return 1;
             if (DEBUG_BLOCK_INFO)
