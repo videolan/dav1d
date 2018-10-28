@@ -1043,17 +1043,19 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     switch (type) {
     case OBU_SEQ_HDR:
+        c->have_seq_hdr = 0;
+        c->have_frame_hdr = 0;
         if ((res = parse_seq_hdr(c, &gb)) < 0)
             return res;
         if ((unsigned)res != len) goto error;
         c->have_seq_hdr = 1;
-        c->have_frame_hdr = 0;
         break;
     case OBU_REDUNDANT_FRAME_HDR:
         if (c->have_frame_hdr) break;
         // fall-through
     case OBU_FRAME:
     case OBU_FRAME_HDR:
+        c->have_frame_hdr = 0;
         if (!c->have_seq_hdr) goto error;
         if ((res = parse_frame_hdr(c, &gb, type != OBU_FRAME)) < 0)
             return res;
