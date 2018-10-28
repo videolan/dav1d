@@ -86,14 +86,16 @@ static int ivf_open(IvfInputContext *const c, const char *const file,
 
 static int ivf_read(IvfInputContext *const c, Dav1dData *const buf) {
     uint8_t data[4];
+    uint8_t *ptr;
     int res;
 
     if ((res = fread(data, 4, 1, c->f)) != 1)
         return -1; // EOF
     fseek(c->f, 8, SEEK_CUR); // skip timestamp
     const ptrdiff_t sz = rl32(data);
-    dav1d_data_create(buf, sz);
-    if ((res = fread(buf->data, sz, 1, c->f)) != 1) {
+    ptr = dav1d_data_create(buf, sz);
+    if (!ptr) return -1;
+    if ((res = fread(ptr, sz, 1, c->f)) != 1) {
         fprintf(stderr, "Failed to read frame data: %s\n", strerror(errno));
         dav1d_data_unref(buf);
         return -1;

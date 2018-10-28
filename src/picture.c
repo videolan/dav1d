@@ -86,14 +86,15 @@ void default_picture_release(uint8_t *const data, void *const allocator_data,
 struct pic_ctx_context {
     Dav1dPicAllocator allocator;
     void *allocator_data;
+    uint8_t *data;
     void *extra_ptr; /* MUST BE AT THE END */
 };
 
-static void free_buffer(uint8_t *data, void *user_data)
+static void free_buffer(const uint8_t *data, void *user_data)
 {
     struct pic_ctx_context *pic_ctx = user_data;
 
-    pic_ctx->allocator.release_picture_callback(data,
+    pic_ctx->allocator.release_picture_callback(pic_ctx->data,
                                                 pic_ctx->allocator_data,
                                                 pic_ctx->allocator.cookie);
     free(pic_ctx);
@@ -133,6 +134,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
 
     pic_ctx->allocator = *p_allocator;
     pic_ctx->allocator_data = p->allocator_data;
+    pic_ctx->data = p->data[0];
 
     if (!(p->ref = dav1d_ref_wrap(p->data[0], free_buffer, pic_ctx))) {
         p_allocator->release_picture_callback(p->data[0], p->allocator_data,

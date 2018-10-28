@@ -37,19 +37,19 @@
 
 #include "src/ref.h"
 
-int dav1d_data_create(Dav1dData *const buf, const size_t sz) {
-    validate_input_or_ret(buf != NULL, -EINVAL);
+uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
+    validate_input_or_ret(buf != NULL, NULL);
 
     buf->ref = dav1d_ref_create(sz);
-    if (!buf->ref) return -ENOMEM;
-    buf->data = buf->ref->data;
+    if (!buf->ref) return NULL;
+    buf->data = buf->ref->const_data;
     buf->sz = sz;
 
-    return 0;
+    return buf->ref->data;
 }
 
-int dav1d_data_wrap(Dav1dData *const buf, uint8_t *const ptr, const size_t sz,
-                    void (*free_callback)(uint8_t *data, void *user_data),
+int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t sz,
+                    void (*free_callback)(const uint8_t *data, void *user_data),
                     void *user_data)
 {
     validate_input_or_ret(buf != NULL, -EINVAL);

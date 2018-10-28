@@ -65,6 +65,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     while (ptr <= data + size - 12) {
         Dav1dData buf;
+        uint8_t *p;
 
         size_t frame_size = r32le(ptr);
         ptr += 12;
@@ -73,9 +74,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             break;
 
         // copy frame data to a new buffer to catch reads past the end of input
-        err = dav1d_data_create(&buf, frame_size);
-        if (err) goto cleanup;
-        memcpy(buf.data, ptr, frame_size);
+        p = dav1d_data_create(&buf, frame_size);
+        if (!p) goto cleanup;
+        memcpy(p, ptr, frame_size);
         ptr += frame_size;
 
         do {
