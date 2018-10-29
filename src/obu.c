@@ -102,7 +102,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
 
         hdr->display_model_info_present = dav1d_get_bits(gb, 1);
         hdr->num_operating_points = dav1d_get_bits(gb, 5) + 1;
-        for (int i = 0; i < c->seq_hdr.num_operating_points; i++) {
+        for (int i = 0; i < hdr->num_operating_points; i++) {
             struct Av1SequenceHeaderOperatingPoint *const op =
                 &hdr->operating_points[i];
             op->idc = dav1d_get_bits(gb, 12);
@@ -246,7 +246,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
-    c->seq_hdr.film_grain_present = dav1d_get_bits(gb, 1);
+    hdr->film_grain_present = dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
     printf("SEQHDR: post-filmgrain: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
