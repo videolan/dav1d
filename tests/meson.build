@@ -83,7 +83,7 @@ if is_asm_enabled
         dependencies : [thread_dependency, m_lib],
         )
 
-    test('checkasm test', checkasm)
+    test('checkasm test', checkasm, is_parallel: false)
 endif
 
 dav1d_fuzzer_sources =  files('libfuzzer/dav1d_fuzzer.c')
