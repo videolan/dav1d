@@ -43,7 +43,7 @@ struct MuxerContext {
 
 #define MAX_NUM_MUXERS 4
 static const Muxer *muxers[MAX_NUM_MUXERS];
-static int num_muxers = 0;
+static unsigned num_muxers = 0;
 
 #define register_muxer(impl) { \
     extern const Muxer impl; \
@@ -81,7 +81,8 @@ int output_open(MuxerContext **const c_out,
 {
     const Muxer *impl;
     MuxerContext *c;
-    int res, i;
+    unsigned i;
+    int res;
 
     if (name) {
         for (i = 0; i < num_muxers; i++) {
