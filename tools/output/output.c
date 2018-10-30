@@ -142,3 +142,11 @@ void output_close(MuxerContext *const ctx) {
         ctx->impl->write_trailer(ctx->data);
     free(ctx);
 }
+
+int output_verify(MuxerContext *const ctx, const char *const md5_Str) {
+    int res = 0;
+    if (ctx->impl->verify)
+        res = ctx->impl->verify(ctx->data, md5_Str);
+    free(ctx);
+    return res;
+}
