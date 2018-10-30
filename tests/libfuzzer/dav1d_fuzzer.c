@@ -37,6 +37,19 @@ static unsigned r32le(const uint8_t *const p) {
     return ((uint32_t)p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
 }
 
+#define DAV1D_FUZZ_MAX_SIZE 4096
+
+#if defined(DAV1D_FUZZ_MAX_SIZE)
+static int (*default_picture_allocator)(Dav1dPicture *, void *);
+
+static int fuzz_picture_allocator(Dav1dPicture *pic, void *cookie) {
+    if (pic->p.w > DAV1D_FUZZ_MAX_SIZE || pic->p.h > DAV1D_FUZZ_MAX_SIZE)
+        return -EINVAL;
+
+    return default_picture_allocator(pic, cookie);
+}
+#endif
+
 // expects ivf input
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -58,6 +71,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     settings.n_frame_threads = settings.n_tile_threads = 2;
 #else
     settings.n_frame_threads = settings.n_tile_threads = 1;
+#endif
+#if defined(DAV1D_FUZZ_MAX_SIZE)
+    default_picture_allocator = settings.allocator.alloc_picture_callback;
+    settings.allocator.alloc_picture_callback = fuzz_picture_allocator;
 #endif
 
     err = dav1d_open(&ctx, &settings);
