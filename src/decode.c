@@ -2902,9 +2902,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                                           f->frame_hdr.show_frame,
                                           &c->allocator)) < 0)
     {
-        if (f->frame_hdr.refresh_context)
-            dav1d_cdf_thread_unref(&f->out_cdf);
-        return res;
+        goto error;
     }
 
     f->cur.p.poc = f->frame_hdr.frame_offset;
