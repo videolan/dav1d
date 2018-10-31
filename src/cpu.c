@@ -37,7 +37,7 @@ unsigned dav1d_get_cpu_flags(void) {
     static uint8_t checked = 0;
 
     if (!checked) {
-#if ARCH_AARCH64 || ARCH_ARM
+#if (ARCH_AARCH64 || ARCH_ARM) && HAVE_ASM
         flags = dav1d_get_cpu_flags_arm();
 #elif ARCH_X86 && HAVE_ASM
         flags = dav1d_get_cpu_flags_x86();
