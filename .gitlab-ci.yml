@@ -110,8 +110,15 @@ test-debian:
     tags:
         - debian
         - amd64
+    cache:
+        key: testdata.git
+        paths:
+            - cache/dav1d-test-data.git/
     script:
-        - git clone --depth 1 https://code.videolan.org/videolan/dav1d-test-data.git tests/dav1d-test-data
+        - test -d cache || mkdir cache
+        - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch
+        - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
+        - git clone cache/dav1d-test-data.git tests/dav1d-test-data
         - meson build --buildtype release -Dtestdata_tests=true
         - ninja -C build
         - cd build && time meson test -v
