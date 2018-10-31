@@ -110,8 +110,6 @@ test-debian:
     tags:
         - debian
         - amd64
-    only:
-        - master@videolan/dav1d
     script:
         - git clone --depth 1 https://code.videolan.org/videolan/dav1d-test-data.git tests/dav1d-test-data
         - meson build --buildtype release -Dtestdata_tests=true
