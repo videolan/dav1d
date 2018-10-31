@@ -1060,7 +1060,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
                 dav1d_ref_dec(&c->refs[i].segmap);
+                c->refs[i].segmap = NULL;
                 dav1d_ref_dec(&c->refs[i].refmvs);
+                c->refs[i].refmvs = NULL;
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
@@ -1187,6 +1189,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 if (c->refs[r].segmap)
                     dav1d_ref_inc(c->refs[r].segmap);
                 dav1d_ref_dec(&c->refs[i].refmvs);
+                c->refs[i].refmvs = NULL;
                 c->refs[i].qidx = c->refs[r].qidx;
             }
         }
