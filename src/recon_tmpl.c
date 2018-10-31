@@ -265,7 +265,11 @@ static void read_coef_tree(Dav1dTileContext *const t,
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[ytx];
     const int txw = t_dim->w, txh = t_dim->h;
 
-    if (depth < 2 && tx_split[depth] & (1 << (y_off * 4 + x_off))) {
+    /* y_off can be larger than 3 since lossless blocks use TX_4X4 but can't
+     * be splitted. Aviods an undefined left shift. */
+    if (depth < 2 && tx_split[depth] &&
+        tx_split[depth] & (1 << (y_off * 4 + x_off)))
+    {
         const enum RectTxfmSize sub = t_dim->sub;
         const TxfmInfo *const sub_t_dim = &dav1d_txfm_dimensions[sub];
         const int txsw = sub_t_dim->w, txsh = sub_t_dim->h;
