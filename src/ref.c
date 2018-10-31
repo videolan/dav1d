@@ -72,9 +72,14 @@ void dav1d_ref_inc(Dav1dRef *const ref) {
     atomic_fetch_add(&ref->ref_cnt, 1);
 }
 
-void dav1d_ref_dec(Dav1dRef *const ref) {
+void dav1d_ref_dec(Dav1dRef **const pref) {
+    assert(pref != NULL);
+
+    Dav1dRef *const ref = *pref;
+    if (!ref) return;
+
     if (atomic_fetch_sub(&ref->ref_cnt, 1) == 1) {
         ref->free_callback(ref->const_data, ref->user_data);
-        free(ref);
+        freep(pref);
     }
 }

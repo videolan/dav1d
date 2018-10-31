@@ -313,10 +313,8 @@ void dav1d_close(Dav1dContext **const c_out) {
             dav1d_cdf_thread_unref(&c->cdf[n]);
         if (c->refs[n].p.p.data[0])
             dav1d_thread_picture_unref(&c->refs[n].p);
-        if (c->refs[n].refmvs)
-            dav1d_ref_dec(c->refs[n].refmvs);
-        if (c->refs[n].segmap)
-            dav1d_ref_dec(c->refs[n].segmap);
+        dav1d_ref_dec(&c->refs[n].refmvs);
+        dav1d_ref_dec(&c->refs[n].segmap);
     }
     dav1d_freep_aligned(c_out);
 }

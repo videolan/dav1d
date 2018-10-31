@@ -69,7 +69,7 @@ void dav1d_data_unref(Dav1dData *const buf) {
 
     if (buf->ref) {
         validate_input(buf->data != NULL);
-        dav1d_ref_dec(buf->ref);
+        dav1d_ref_dec(&buf->ref);
     }
     memset(buf, 0, sizeof(*buf));
 }

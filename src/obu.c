@@ -1059,14 +1059,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             for (int i = 0; i < 8; i++) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
-                if (c->refs[i].segmap) {
-                    dav1d_ref_dec(c->refs[i].segmap);
-                    c->refs[i].segmap = NULL;
-                }
-                if (c->refs[i].refmvs) {
-                    dav1d_ref_dec(c->refs[i].refmvs);
-                    c->refs[i].refmvs = NULL;
-                }
+                dav1d_ref_dec(&c->refs[i].segmap);
+                dav1d_ref_dec(&c->refs[i].refmvs);
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
@@ -1188,14 +1182,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                     c->refs[i].gmv[j] = dav1d_default_wm_params;
                 c->refs[i].film_grain = c->refs[r].film_grain;
 
-                if (c->refs[i].segmap)
-                    dav1d_ref_dec(c->refs[i].segmap);
+                dav1d_ref_dec(&c->refs[i].segmap);
                 c->refs[i].segmap = c->refs[r].segmap;
                 if (c->refs[r].segmap)
                     dav1d_ref_inc(c->refs[r].segmap);
-                if (c->refs[i].refmvs)
-                    dav1d_ref_dec(c->refs[i].refmvs);
-                c->refs[i].refmvs = NULL;
+                dav1d_ref_dec(&c->refs[i].refmvs);
                 c->refs[i].qidx = c->refs[r].qidx;
             }
         }

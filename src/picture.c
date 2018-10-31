@@ -198,7 +198,7 @@ void dav1d_picture_unref(Dav1dPicture *const p) {
 
     if (p->ref) {
         validate_input(p->data[0] != NULL);
-        dav1d_ref_dec(p->ref);
+        dav1d_ref_dec(&p->ref);
     }
     memset(p, 0, sizeof(*p));
 }

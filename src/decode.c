@@ -2760,20 +2760,16 @@ error:
     for (int i = 0; i < 7; i++) {
         if (f->refp[i].p.data[0])
             dav1d_thread_picture_unref(&f->refp[i]);
-        if (f->ref_mvs_ref[i])
-            dav1d_ref_dec(f->ref_mvs_ref[i]);
+        dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }
 
     dav1d_thread_picture_unref(&f->cur);
     dav1d_cdf_thread_unref(&f->in_cdf);
     if (f->frame_hdr.refresh_context)
             dav1d_cdf_thread_unref(&f->out_cdf);
-    if (f->cur_segmap_ref)
-        dav1d_ref_dec(f->cur_segmap_ref);
-    if (f->prev_segmap_ref)
-        dav1d_ref_dec(f->prev_segmap_ref);
-    if (f->mvs_ref)
-        dav1d_ref_dec(f->mvs_ref);
+    dav1d_ref_dec(&f->cur_segmap_ref);
+    dav1d_ref_dec(&f->prev_segmap_ref);
+    dav1d_ref_dec(&f->mvs_ref);
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
@@ -3017,16 +3013,12 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             memcpy(c->refs[i].gmv, f->frame_hdr.gmv, sizeof(c->refs[i].gmv));
             c->refs[i].film_grain = f->frame_hdr.film_grain.data;
 
-            if (c->refs[i].segmap)
-                dav1d_ref_dec(c->refs[i].segmap);
+            dav1d_ref_dec(&c->refs[i].segmap);
             c->refs[i].segmap = f->cur_segmap_ref;
             if (f->cur_segmap_ref)
                 dav1d_ref_inc(f->cur_segmap_ref);
-            if (c->refs[i].refmvs)
-                dav1d_ref_dec(c->refs[i].refmvs);
-            if (f->frame_hdr.allow_intrabc) {
-                c->refs[i].refmvs = NULL;
-            } else {
+            dav1d_ref_dec(&c->refs[i].refmvs);
+            if (!f->frame_hdr.allow_intrabc) {
                 c->refs[i].refmvs = f->mvs_ref;
                 if (f->mvs_ref)
                     dav1d_ref_inc(f->mvs_ref);
@@ -3045,14 +3037,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                         dav1d_thread_picture_unref(&c->refs[i].p);
                     if (c->cdf[i].cdf)
                         dav1d_cdf_thread_unref(&c->cdf[i]);
-                    if (c->refs[i].segmap) {
-                        dav1d_ref_dec(c->refs[i].segmap);
-                        c->refs[i].segmap = NULL;
-                    }
-                    if (c->refs[i].refmvs) {
-                        dav1d_ref_dec(c->refs[i].refmvs);
-                        c->refs[i].refmvs = NULL;
-                    }
+                    dav1d_ref_dec(&c->refs[i].segmap);
+                    dav1d_ref_dec(&c->refs[i].refmvs);
                 }
             }
             return res;
@@ -3070,13 +3056,11 @@ error:
     for (int i = 0; i < 7; i++) {
         if (f->refp[i].p.data[0])
             dav1d_thread_picture_unref(&f->refp[i]);
-        if (f->ref_mvs_ref[i])
-            dav1d_ref_dec(f->ref_mvs_ref[i]);
+        dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }
     dav1d_picture_unref(&c->out);
     dav1d_thread_picture_unref(&f->cur);
-    if (f->mvs_ref)
-        dav1d_ref_dec(f->mvs_ref);
+    dav1d_ref_dec(&f->mvs_ref);
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
