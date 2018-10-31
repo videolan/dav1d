@@ -523,11 +523,6 @@ const int16_t dav1d_sgr_x_by_xplus1[256] = {
   256,
 };
 
-const int16_t dav1d_sgr_one_by_x[25] = {
-  4096, 2048, 1365, 1024, 819, 683, 585, 512, 455, 410, 372, 341, 315,
-  293,  273,  256,  241,  228, 216, 205, 195, 186, 178, 171, 164,
-};
-
 const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
     [FILTER_8TAP_REGULAR] = {
         {   0,   1,  -3,  63,   4,  -1,   0,   0 },

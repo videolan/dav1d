@@ -412,6 +412,8 @@ static void selfguided_filter(int32_t *dst, const pixel *src,
                               const ptrdiff_t src_stride, const int w,
                               const int h, const int n, const int s)
 {
+    const int sgr_one_by_x = n == 25 ? 164 : 455;
+
     // Selfguided filter is applied to a maximum stripe height of 64 + 3 pixels
     // of padding above and below
     int32_t A_[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
@@ -444,7 +446,7 @@ static void selfguided_filter(int32_t *dst, const pixel *src,
 
             const int x = dav1d_sgr_x_by_xplus1[imin(z, 255)];
             // This is where we invert A and B, so that B is of size coef.
-            AA[i] = (((1 << 8) - x) * BB[i] * dav1d_sgr_one_by_x[n - 1] + (1 << 11)) >> 12;
+            AA[i] = (((1 << 8) - x) * BB[i] * sgr_one_by_x + (1 << 11)) >> 12;
             BB[i] = x;
         }
         AA += step * REST_UNIT_STRIDE;
