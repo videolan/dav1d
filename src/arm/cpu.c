@@ -25,8 +25,30 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include "src/arm/cpu.h"
 
+#if HAVE_GETAUXVAL
+#include <sys/auxv.h>
+
+#if ARCH_AARCH64
+#define NEON_HWCAP HWCAP_ASIMD
+#elif ARCH_ARM
+#define NEON_HWCAP HWCAP_ARM_NEON
+#endif
+#endif
+
 unsigned dav1d_get_cpu_flags_arm(void) {
-    return DAV1D_ARM_CPU_FLAG_NEON;
+    unsigned flags = 0;
+#if HAVE_GETAUXVAL
+    unsigned long hw_cap = getauxval(AT_HWCAP);
+    flags |= (hw_cap & NEON_HWCAP) ? DAV1D_ARM_CPU_FLAG_NEON : 0;
+#elif __APPLE__
+    flags |= DAV1D_ARM_CPU_FLAG_NEON;
+#elif defined(_WIN32)
+    flags |= DAV1D_ARM_CPU_FLAG_NEON;
+#endif
+
+    return flags;
 }

@@ -132,6 +132,12 @@ elif cc.has_function('_aligned_malloc', prefix : '#include <malloc.h>', args : t
     cdata.set('HAVE_ALIGNED_MALLOC', 1)
 endif
 
+if (host_machine.cpu_family() == 'aarch64' or
+    host_machine.cpu_family().startswith('arm'))
+    if cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
+        cdata.set('HAVE_GETAUXVAL', 1)
+    endif
+endif
 
 # Compiler flag tests
 
