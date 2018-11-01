@@ -37,6 +37,36 @@
 #elif ARCH_ARM
 #define NEON_HWCAP HWCAP_ARM_NEON
 #endif
+
+#elif defined(__ANDROID__)
+#include <stdio.h>
+#include <string.h>
+
+static unsigned parse_proc_cpuinfo(const char *flag) {
+    FILE *file = fopen("/proc/cpuinfo", "r");
+    if (!file)
+        return 0;
+
+    char line_buffer[120];
+    const char *line;
+
+    while ((line = fgets(line_buffer, sizeof(line_buffer), file))) {
+        if (strstr(line, flag)) {
+            fclose(file);
+            return 1;
+        }
+        // if line is incomplete seek back to avoid splitting the search
+        // string into two buffers
+        if (!strchr(line, '\n') && strlen(line) > strlen(flag)) {
+            if (fseek(file, -strlen(flag), SEEK_CUR))
+                break;
+        }
+    }
+
+    fclose(file);
+
+    return 0;
+}
 #endif
 
 unsigned dav1d_get_cpu_flags_arm(void) {
@@ -44,6 +74,8 @@ unsigned dav1d_get_cpu_flags_arm(void) {
 #if HAVE_GETAUXVAL
     unsigned long hw_cap = getauxval(AT_HWCAP);
     flags |= (hw_cap & NEON_HWCAP) ? DAV1D_ARM_CPU_FLAG_NEON : 0;
+#elif defined(__ANDROID__)
+    flags |= parse_proc_cpuinfo("neon") ? DAV1D_ARM_CPU_FLAG_NEON : 0;
 #elif __APPLE__
     flags |= DAV1D_ARM_CPU_FLAG_NEON;
 #elif defined(_WIN32)
