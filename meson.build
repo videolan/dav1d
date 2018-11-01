@@ -66,6 +66,9 @@ is_asm_enabled = (get_option('build_asm') == true and
      host_machine.cpu_family().startswith('arm'))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
+if is_asm_enabled and get_option('b_sanitize') == 'memory'
+    error('asm causes false positive with memory sanitizer. Use \'-Dbuild_asm=false\'.')
+endif
 
 
 #
