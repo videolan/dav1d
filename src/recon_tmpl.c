@@ -101,15 +101,15 @@ static int decode_coefs(Dav1dTileContext *const t,
             idx = 0;
         } else {
             const int set_idx = dav1d_tx_type_set_index[!intra][set];
-            const enum IntraPredMode y_mode_nofilt = b->y_mode == FILTER_PRED ?
-                dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode;
+            const enum IntraPredMode y_mode_nofilt = intra ? b->y_mode == FILTER_PRED ?
+                dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode : 0;
             uint16_t *const txtp_cdf = intra ?
                        ts->cdf.m.txtp_intra[set_idx][t_dim->min][y_mode_nofilt] :
                        ts->cdf.m.txtp_inter[set_idx][t_dim->min];
             idx = msac_decode_symbol_adapt(&ts->msac, txtp_cdf, set_cnt);
             if (dbg)
             printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
-                   set, set_idx, tx, t_dim->min, b->intra ? (int)y_mode_nofilt : -1,
+                   set, set_idx, tx, t_dim->min, intra ? (int)y_mode_nofilt : -1,
                    idx, dav1d_tx_types_per_set[set][idx], ts->msac.rng);
         }
         *txtp = dav1d_tx_types_per_set[set][idx];
