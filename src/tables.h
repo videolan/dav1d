@@ -108,7 +108,6 @@ extern const WarpedMotionParams dav1d_default_wm_params;
 
 extern const int16_t dav1d_sgr_params[16][4];
 extern const int16_t dav1d_sgr_x_by_xplus1[256];
-extern const int16_t dav1d_sgr_one_by_x[25];
 
 extern const int8_t dav1d_mc_subpel_filters[5][15][8];
 extern const int8_t dav1d_mc_warp_filter[][8];
