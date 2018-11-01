@@ -52,14 +52,14 @@ unsigned msac_decode_bool(MsacContext *s, unsigned f);
 unsigned msac_decode_bools(MsacContext *c, unsigned l);
 int msac_decode_subexp(MsacContext *c, int ref, int n, unsigned k);
 int msac_decode_uniform(MsacContext *c, unsigned n);
-void update_cdf(uint16_t *cdf, unsigned val, unsigned nsymbs);
+void msac_update_cdf(uint16_t *cdf, unsigned val, unsigned n_symbols);
 
 static inline unsigned msac_decode_symbol_adapt(MsacContext *const c,
                                                 uint16_t *const cdf,
                                                 const unsigned n_symbols)
 {
     const unsigned val = msac_decode_symbol(c, cdf, n_symbols);
-    update_cdf(cdf, val, n_symbols);
+    msac_update_cdf(cdf, val, n_symbols);
     return val;
 }
 
@@ -68,7 +68,7 @@ static inline unsigned msac_decode_bool_adapt(MsacContext *const c,
 {
     const unsigned bit = msac_decode_bool(c, *cdf >> EC_PROB_SHIFT);
     uint16_t bak_cdf[3] = { cdf[0], 0, cdf[1] };
-    update_cdf(bak_cdf, bit, 2);
+    msac_update_cdf(bak_cdf, bit, 2);
     cdf[0] = bak_cdf[0];
     cdf[1] = bak_cdf[2];
     return bit;

@@ -140,24 +140,17 @@ int msac_decode_uniform(MsacContext *const c, const unsigned n) {
     return v < m ? v : (v << 1) - m + msac_decode_bool(c, EC_BOOL_EPROB);
 }
 
-void update_cdf(uint16_t *cdf, unsigned val, unsigned nsymbs) {
-    int rate;
+void msac_update_cdf(uint16_t *const cdf, const unsigned val,
+                     const unsigned n_symbols)
+{
+    const int rate = 4 + (cdf[n_symbols] > 15) + (cdf[n_symbols] > 31) +
+                     (n_symbols > 3);
     unsigned i;
-
-    static const int nsymbs2speed[17] = {
-        0, 0, 1, 1, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2
-    };
-    assert(nsymbs < 17);
-    rate = 3 + (cdf[nsymbs] > 15) + (cdf[nsymbs] > 31) + nsymbs2speed[nsymbs];
-
     for (i = 0; i < val; ++i)
         cdf[i] += (32768 - cdf[i]) >> rate;
-
-    for (i = val; i < nsymbs - 1; i++)
+    for (i = val; i < n_symbols - 1; i++)
         cdf[i] -= cdf[i] >> rate;
-
-    cdf[nsymbs] += (cdf[nsymbs] < 32);
+    cdf[n_symbols] += (cdf[n_symbols] < 32);
 }
 
 void msac_init(MsacContext *const s, const uint8_t *const data,
