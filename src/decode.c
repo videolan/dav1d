@@ -3018,9 +3018,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             if (f->cur_segmap_ref)
                 dav1d_ref_inc(f->cur_segmap_ref);
             dav1d_ref_dec(&c->refs[i].refmvs);
-            if (f->frame_hdr.allow_intrabc) {
-                c->refs[i].refmvs = NULL;
-            } else {
+            if (!f->frame_hdr.allow_intrabc) {
                 c->refs[i].refmvs = f->mvs_ref;
                 if (f->mvs_ref)
                     dav1d_ref_inc(f->mvs_ref);
@@ -3040,9 +3038,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                     if (c->cdf[i].cdf)
                         dav1d_cdf_thread_unref(&c->cdf[i]);
                     dav1d_ref_dec(&c->refs[i].segmap);
-                    c->refs[i].segmap = NULL;
                     dav1d_ref_dec(&c->refs[i].refmvs);
-                    c->refs[i].refmvs = NULL;
                 }
             }
             return res;
