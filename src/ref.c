@@ -80,6 +80,7 @@ void dav1d_ref_dec(Dav1dRef **const pref) {
 
     if (atomic_fetch_sub(&ref->ref_cnt, 1) == 1) {
         ref->free_callback(ref->const_data, ref->user_data);
-        freep(pref);
+        free(ref);
     }
+    *pref = NULL;
 }
