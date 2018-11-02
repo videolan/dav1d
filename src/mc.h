@@ -82,7 +82,7 @@ typedef decl_w_mask_fn(*w_mask_fn);
 
 #define decl_blend_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const pixel *tmp, ptrdiff_t tmp_stride, int w, int h, \
+            const pixel *tmp, int w, int h, \
             const uint8_t *mask, ptrdiff_t mstride)
 typedef decl_blend_fn(*blend_fn);
 

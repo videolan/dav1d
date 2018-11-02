@@ -589,15 +589,14 @@ static void obmc(Dav1dTileContext *const t,
                 dav1d_block_dimensions[sbtype_to_bs[a_r->sb_type]];
 
             if (a_r->ref[0] > 0) {
-                mc(t, lap, NULL, 128 * sizeof(pixel),
-                   iclip(a_b_dim[0], 2, b_dim[0]), imin(b_dim[1], 16) >> 1,
+                const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
+                const int oh4 = imin(b_dim[1], 16) >> 1;
+                mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, oh4,
                    t->bx + x, t->by, pl, a_r->mv[0],
                    &f->refp[a_r->ref[0] - 1],
                    dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
-                f->dsp->mc.blend(&dst[x * h_mul], dst_stride,
-                                 lap, 128 * sizeof(pixel),
-                                 h_mul * iclip(a_b_dim[0], 2, b_dim[0]),
-                                 v_mul * imin(b_dim[1], 16) >> 1,
+                f->dsp->mc.blend(&dst[x * h_mul], dst_stride, lap,
+                                 h_mul * ow4, v_mul * oh4,
                                  obmc_masks[imin(b_dim[3], 4) - ss_ver], 1);
                 i++;
             }
@@ -613,16 +612,14 @@ static void obmc(Dav1dTileContext *const t,
                 dav1d_block_dimensions[sbtype_to_bs[l_r->sb_type]];
 
             if (l_r->ref[0] > 0) {
-                mc(t, lap, NULL, 32 * sizeof(pixel),
-                   imin(b_dim[0], 16) >> 1,
-                   iclip(l_b_dim[1], 2, b_dim[1]),
+                const int ow4 = imin(b_dim[0], 16) >> 1;
+                const int oh4 = iclip(l_b_dim[1], 2, b_dim[1]);
+                mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
                    t->bx, t->by + y, pl, l_r->mv[0],
                    &f->refp[l_r->ref[0] - 1],
                    dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
                 f->dsp->mc.blend(&dst[y * v_mul * PXSTRIDE(dst_stride)], dst_stride,
-                                 lap, 32 * sizeof(pixel),
-                                 h_mul * imin(b_dim[0], 16) >> 1,
-                                 v_mul * iclip(l_b_dim[1], 2, b_dim[1]),
+                                 lap, h_mul * ow4, v_mul * oh4,
                                  obmc_masks[imin(b_dim[2], 4) - ss_hor], 0);
                 i++;
             }
@@ -1127,7 +1124,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                 b->interintra_type == INTER_INTRA_BLEND ?
                      dav1d_ii_masks[bs][0][b->interintra_mode] :
                      dav1d_wedge_masks[bs][0][0][b->wedge_idx];
-            dsp->mc.blend(dst, f->cur.p.stride[0], tmp, bw4 * 4 * sizeof(pixel),
+            dsp->mc.blend(dst, f->cur.p.stride[0], tmp,
                           bw4 * 4, bh4 * 4, ii_mask, bw4 * 4);
         }
 
@@ -1247,7 +1244,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                                                           &angle, cbw4, cbh4, tl_edge);
                     dsp->ipred.intra_pred[m](tmp, cbw4 * 4 * sizeof(pixel),
                                              tl_edge, cbw4 * 4, cbh4 * 4, 0);
-                    dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp, cbw4 * 4 * sizeof(pixel),
+                    dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp,
                                   cbw4 * 4, cbh4 * 4, ii_mask, cbw4 * 4);
                 }
             }

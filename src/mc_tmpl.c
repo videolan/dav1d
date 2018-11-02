@@ -373,8 +373,7 @@ static void mask_c(pixel *dst, const ptrdiff_t dst_stride,
 }
 
 static void blend_c(pixel *dst, const ptrdiff_t dst_stride,
-                    const pixel *tmp, const ptrdiff_t tmp_stride,
-                    const int w, const int h,
+                    const pixel *tmp, const int w, const int h,
                     const uint8_t *mask, const ptrdiff_t m_stride)
 {
     for (int y = 0; y < h; y++) {
@@ -383,7 +382,7 @@ static void blend_c(pixel *dst, const ptrdiff_t dst_stride,
             dst[x] = blend_px(dst[x], tmp[x], mask[m_stride == 1 ? 0 : x]);
         }
         dst += PXSTRIDE(dst_stride);
-        tmp += PXSTRIDE(tmp_stride);
+        tmp += w;
         mask += m_stride;
     }
 }
