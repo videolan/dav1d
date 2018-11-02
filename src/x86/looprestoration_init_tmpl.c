@@ -30,6 +30,7 @@
 
 #include "common/attributes.h"
 #include "common/intops.h"
+#include "src/tables.h"
 
 #if BITDEPTH == 8 && ARCH_X86_64
 void dav1d_wiener_filter_h_avx2(int16_t *dst, const pixel (*left)[4],
@@ -73,6 +74,128 @@ static void wiener_filter_avx2(pixel *const dst, const ptrdiff_t dst_stride,
 
     dav1d_wiener_filter_v_avx2(dst, dst_stride, &mid[2*384], w, h, fv, edges);
 }
+
+void dav1d_sgr_box3_h_avx2(int32_t *sumsq, int16_t *sum,
+                           const pixel (*left)[4],
+                           const pixel *src, const ptrdiff_t stride,
+                           const int w, const int h,
+                           const enum LrEdgeFlags edges);
+void dav1d_sgr_box3_v_avx2(int32_t *sumsq, int16_t *sum,
+                           const int w, const int h,
+                           const enum LrEdgeFlags edges);
+void dav1d_sgr_calc_ab1_avx2(int32_t *a, int16_t *b,
+                             const int w, const int h, const int strength);
+void dav1d_sgr_finish_filter1_avx2(coef *tmp,
+                                   const pixel *src, const ptrdiff_t stride,
+                                   const int32_t *a, const int16_t *b,
+                                   const int w, const int h);
+
+// filter with a 3x3 box (radius=1)
+static void dav1d_sgr_filter1_avx2(coef *tmp,
+                                   const pixel *src, const ptrdiff_t stride,
+                                   const pixel (*left)[4],
+                                   const pixel *lpf, const ptrdiff_t lpf_stride,
+                                   const int w, const int h, const int strength,
+                                   const enum LrEdgeFlags edges)
+{
+    ALIGN_STK_32(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
+    int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
+    ALIGN_STK_32(int16_t, sum_mem, (384 + 16) * 68 + 16,);
+    int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
+
+    dav1d_sgr_box3_h_avx2(sumsq, sum, left, src, stride, w, h, edges);
+    if (edges & LR_HAVE_TOP)
+        dav1d_sgr_box3_h_avx2(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
+                              NULL, lpf, lpf_stride, w, 2, edges);
+
+    if (edges & LR_HAVE_BOTTOM)
+        dav1d_sgr_box3_h_avx2(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
+                              NULL, lpf + 6 * PXSTRIDE(lpf_stride),
+                              lpf_stride, w, 2, edges);
+
+    dav1d_sgr_box3_v_avx2(sumsq, sum, w, h, edges);
+    dav1d_sgr_calc_ab1_avx2(a, b, w, h, strength);
+    dav1d_sgr_finish_filter1_avx2(tmp, src, stride, a, b, w, h);
+}
+
+void dav1d_sgr_box5_h_avx2(int32_t *sumsq, int16_t *sum,
+                           const pixel (*left)[4],
+                           const pixel *src, const ptrdiff_t stride,
+                           const int w, const int h,
+                           const enum LrEdgeFlags edges);
+void dav1d_sgr_box5_v_avx2(int32_t *sumsq, int16_t *sum,
+                           const int w, const int h,
+                           const enum LrEdgeFlags edges);
+void dav1d_sgr_calc_ab2_avx2(int32_t *a, int16_t *b,
+                             const int w, const int h, const int strength);
+void dav1d_sgr_finish_filter2_avx2(coef *tmp,
+                                   const pixel *src, const ptrdiff_t stride,
+                                   const int32_t *a, const int16_t *b,
+                                   const int w, const int h);
+
+// filter with a 5x5 box (radius=2)
+static void dav1d_sgr_filter2_avx2(coef *tmp,
+                                   const pixel *src, const ptrdiff_t stride,
+                                   const pixel (*left)[4],
+                                   const pixel *lpf, const ptrdiff_t lpf_stride,
+                                   const int w, const int h, const int strength,
+                                   const enum LrEdgeFlags edges)
+{
+    ALIGN_STK_32(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
+    int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
+    ALIGN_STK_32(int16_t, sum_mem, (384 + 16) * 68 + 16,);
+    int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
+
+    dav1d_sgr_box5_h_avx2(sumsq, sum, left, src, stride, w, h, edges);
+    if (edges & LR_HAVE_TOP)
+        dav1d_sgr_box5_h_avx2(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
+                              NULL, lpf, lpf_stride, w, 2, edges);
+
+    if (edges & LR_HAVE_BOTTOM)
+        dav1d_sgr_box5_h_avx2(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
+                              NULL, lpf + 6 * PXSTRIDE(lpf_stride),
+                              lpf_stride, w, 2, edges);
+
+    dav1d_sgr_box5_v_avx2(sumsq, sum, w, h, edges);
+    dav1d_sgr_calc_ab2_avx2(a, b, w, h, strength);
+    dav1d_sgr_finish_filter2_avx2(tmp, src, stride, a, b, w, h);
+}
+
+void dav1d_sgr_weighted1_avx2(pixel *dst, const ptrdiff_t stride,
+                              const coef *t1, const int w, const int h,
+                              const int wt);
+void dav1d_sgr_weighted2_avx2(pixel *dst, const ptrdiff_t stride,
+                              const coef *t1, const coef *t2,
+                              const int w, const int h,
+                              const int16_t wt[2]);
+
+static void sgr_filter_avx2(pixel *const dst, const ptrdiff_t dst_stride,
+                            const pixel (*const left)[4],
+                            const pixel *lpf, const ptrdiff_t lpf_stride,
+                            const int w, const int h, const int sgr_idx,
+                            const int16_t sgr_wt[7], const enum LrEdgeFlags edges)
+{
+    if (!dav1d_sgr_params[sgr_idx][0]) {
+        ALIGN_STK_32(coef, tmp, 64 * 384,);
+        dav1d_sgr_filter1_avx2(tmp, dst, dst_stride, left, lpf, lpf_stride,
+                               w, h, dav1d_sgr_params[sgr_idx][3], edges);
+        dav1d_sgr_weighted1_avx2(dst, dst_stride, tmp, w, h, (1 << 7) - sgr_wt[1]);
+    } else if (!dav1d_sgr_params[sgr_idx][1]) {
+        ALIGN_STK_32(coef, tmp, 64 * 384,);
+        dav1d_sgr_filter2_avx2(tmp, dst, dst_stride, left, lpf, lpf_stride,
+                               w, h, dav1d_sgr_params[sgr_idx][2], edges);
+        dav1d_sgr_weighted1_avx2(dst, dst_stride, tmp, w, h, sgr_wt[0]);
+    } else {
+        ALIGN_STK_32(coef, tmp1, 64 * 384,);
+        ALIGN_STK_32(coef, tmp2, 64 * 384,);
+        dav1d_sgr_filter2_avx2(tmp1, dst, dst_stride, left, lpf, lpf_stride,
+                               w, h, dav1d_sgr_params[sgr_idx][2], edges);
+        dav1d_sgr_filter1_avx2(tmp2, dst, dst_stride, left, lpf, lpf_stride,
+                               w, h, dav1d_sgr_params[sgr_idx][3], edges);
+        const int16_t wt[2] = { sgr_wt[0], 128 - sgr_wt[0] - sgr_wt[1] };
+        dav1d_sgr_weighted2_avx2(dst, dst_stride, tmp1, tmp2, w, h, wt);
+    }
+}
 #endif
 
 void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPContext *const c) {
@@ -82,5 +205,6 @@ void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPContext *
 
 #if BITDEPTH == 8 && ARCH_X86_64
     c->wiener = wiener_filter_avx2;
+    c->selfguided = sgr_filter_avx2;
 #endif
 }
