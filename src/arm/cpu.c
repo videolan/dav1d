@@ -29,14 +29,13 @@
 
 #include "src/arm/cpu.h"
 
-#if defined(HAVE_GETAUXVAL)
+#if defined(HAVE_GETAUXVAL) && ARCH_ARM
 #include <sys/auxv.h>
 
-#if ARCH_AARCH64
-#define NEON_HWCAP HWCAP_ASIMD
-#elif ARCH_ARM
-#define NEON_HWCAP HWCAP_ARM_NEON
+#ifndef HWCAP_ARM_NEON
+#define HWCAP_ARM_NEON (1 << 12)
 #endif
+#define NEON_HWCAP HWCAP_ARM_NEON
 
 #elif defined(__ANDROID__)
 #include <stdio.h>
@@ -71,7 +70,9 @@ static unsigned parse_proc_cpuinfo(const char *flag) {
 
 unsigned dav1d_get_cpu_flags_arm(void) {
     unsigned flags = 0;
-#if defined(HAVE_GETAUXVAL)
+#if ARCH_AARCH64
+    flags |= DAV1D_ARM_CPU_FLAG_NEON;
+#elif defined(HAVE_GETAUXVAL) && ARCH_ARM
     unsigned long hw_cap = getauxval(AT_HWCAP);
     flags |= (hw_cap & NEON_HWCAP) ? DAV1D_ARM_CPU_FLAG_NEON : 0;
 #elif defined(__ANDROID__)
