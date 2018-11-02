@@ -140,8 +140,8 @@ int msac_decode_uniform(MsacContext *const c, const unsigned n) {
     return v < m ? v : (v << 1) - m + msac_decode_bool(c, EC_BOOL_EPROB);
 }
 
-void msac_update_cdf(uint16_t *const cdf, const unsigned val,
-                     const unsigned n_symbols)
+static void update_cdf(uint16_t *const cdf, const unsigned val,
+                       const unsigned n_symbols)
 {
     const int rate = 4 + (cdf[n_symbols] > 15) + (cdf[n_symbols] > 31) +
                      (n_symbols > 3);
@@ -151,6 +151,29 @@ void msac_update_cdf(uint16_t *const cdf, const unsigned val,
     for (i = val; i < n_symbols - 1; i++)
         cdf[i] -= cdf[i] >> rate;
     cdf[n_symbols] += (cdf[n_symbols] < 32);
+}
+
+unsigned msac_decode_symbol_adapt(MsacContext *const c,
+                                  uint16_t *const cdf, const unsigned n_symbols)
+{
+    const unsigned val = msac_decode_symbol(c, cdf, n_symbols);
+    update_cdf(cdf, val, n_symbols);
+    return val;
+}
+
+unsigned msac_decode_bool_adapt(MsacContext *const c, uint16_t *const cdf) {
+    const unsigned bit = msac_decode_bool(c, *cdf >> EC_PROB_SHIFT);
+
+    // update_cdf() specialized for boolean CDFs
+    const int rate = 4 + (cdf[1] > 15) + (cdf[1] > 31);
+    if (bit) {
+        cdf[0] += (32768 - cdf[0]) >> rate;
+    } else {
+        cdf[0] -= cdf[0] >> rate;
+    }
+    cdf[1] += (cdf[1] < 32);
+
+    return bit;
 }
 
 void msac_init(MsacContext *const s, const uint8_t *const data,
