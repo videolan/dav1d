@@ -234,7 +234,7 @@ static int md5_verify(MD5Context *const md5, const char *const md5_str) {
         }
     }
 
-    return memcmp(abcd, md5->abcd, sizeof(abcd));
+    return !!memcmp(abcd, md5->abcd, sizeof(abcd));
 }
 
 const Muxer md5_muxer = {
