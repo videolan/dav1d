@@ -235,7 +235,8 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
              x < f->sb128w; x++, a++)
         {
             uint16_t (*const y_vmask)[2] = lflvl[x].filter_y[1][starty4];
-            for (unsigned mask = 1, i = 0; i < 32; mask <<= 1, i++) {
+            const unsigned w = imin(32, (f->w4 >> sbl2) - x);
+            for (unsigned mask = 1, i = 0; i < w; mask <<= 1, i++) {
                 const int sidx = mask >= 0x10000U;
                 const unsigned smask = mask >> (sidx << 4);
                 const int idx = 2 * !!(y_vmask[2][sidx] & smask) +
@@ -247,8 +248,9 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
             }
 
             if (f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I400) {
+                const unsigned cw = (w + ss_hor) >> ss_hor;
                 uint16_t (*const uv_vmask)[2] = lflvl[x].filter_uv[1][starty4 >> ss_ver];
-                for (unsigned uv_mask = 1, i = 0; i < (32U >> ss_hor); uv_mask <<= 1, i++) {
+                for (unsigned uv_mask = 1, i = 0; i < cw; uv_mask <<= 1, i++) {
                     const int sidx = uv_mask >= hmax;
                     const unsigned smask = uv_mask >> (sidx << (4 - ss_hor));
                     const int idx = !!(uv_vmask[1][sidx] & smask);
