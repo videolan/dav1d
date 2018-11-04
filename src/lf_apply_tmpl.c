@@ -177,7 +177,6 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
 {
     int x, have_left;
     // Don't filter outside the frame
-    const int hy4 = (f->cur.p.p.h + 3) >> 2;
     const int have_top = sby > 0;
     const int is_sb64 = !f->seq_hdr.sb128;
     const int starty4 = (sby & is_sb64) << 4;
@@ -188,7 +187,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     const int ss_hor = f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
     const int vmask = 16 >> ss_ver, hmask = 16 >> ss_hor;
     const unsigned vmax = 1U << vmask, hmax = 1U << hmask;
-    const unsigned endy4 = starty4 + imin(hy4 - sby * sbsz, sbsz);
+    const unsigned endy4 = starty4 + imin(f->h4 - sby * sbsz, sbsz);
     const unsigned uv_endy4 = (endy4 + ss_ver) >> ss_ver;
 
     // fix lpf strength at tile col boundaries

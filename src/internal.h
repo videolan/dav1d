@@ -149,7 +149,7 @@ struct Dav1dFrameContext {
     int ipred_edge_sz;
     pixel *ipred_edge[3];
     ptrdiff_t b4_stride;
-    int bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step;
+    int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step;
     uint16_t dq[NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint8_t *qm[2 /* is_1d */][N_RECT_TX_SIZES][3 /* plane */];
     BlockContext *a;

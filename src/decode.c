@@ -1099,8 +1099,7 @@ static int decode_b(Dav1dTileContext *const t,
         dav1d_create_lf_mask_intra(t->lf_mask, f->lf.level, f->b4_stride,
                                    &f->frame_hdr, (const uint8_t (*)[8][2])
                                    &ts->lflvl[b->seg_id][0][0][0],
-                                   t->bx, t->by, (f->cur.p.p.w + 3) >> 2,
-                                   (f->cur.p.p.h + 3) >> 2, bs,
+                                   t->bx, t->by, f->w4, f->h4, bs,
                                    b->tx, b->uvtx, f->cur.p.p.layout,
                                    &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
                                    has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
@@ -1749,9 +1748,7 @@ static int decode_b(Dav1dTileContext *const t,
             &ts->lflvl[b->seg_id][0][b->ref[0] + 1][!is_globalmv];
         dav1d_create_lf_mask_inter(t->lf_mask, f->lf.level, f->b4_stride,
                                    &f->frame_hdr, lf_lvls, t->bx, t->by,
-                                   (f->cur.p.p.w + 3) >> 2,
-                                   (f->cur.p.p.h + 3) >> 2,
-                                   b->skip, bs, b->tx_split,
+                                   f->w4, f->h4, b->skip, bs, b->tx_split,
                                    b->uvtx, f->cur.p.p.layout,
                                    &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
                                    has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
@@ -2917,6 +2914,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         dav1d_thread_picture_ref(out_delayed, &f->cur);
     }
 
+    f->w4 = (f->frame_hdr.width + 3) >> 2;
+    f->h4 = (f->frame_hdr.height + 3) >> 2;
     f->bw = ((f->frame_hdr.width + 7) >> 3) << 1;
     f->bh = ((f->frame_hdr.height + 7) >> 3) << 1;
     f->sb128w = (f->bw + 31) >> 5;
