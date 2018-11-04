@@ -34,13 +34,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/intops.h"
-
 #include "input/demuxer.h"
 
 typedef struct DemuxerPriv {
     FILE *f;
 } IvfInputContext;
+
+static unsigned rl32(const uint8_t *const p) {
+    return ((uint32_t)p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
+}
 
 static int ivf_open(IvfInputContext *const c, const char *const file,
                     unsigned fps[2], unsigned *const num_frames)

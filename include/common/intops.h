@@ -60,14 +60,6 @@ static inline int u64log2(const uint64_t v) {
     return 63 - clzll(v);
 }
 
-static inline unsigned rl16(const uint8_t *const ptr) {
-    return (ptr[1] << 8) | ptr[0];
-}
-
-static inline unsigned rl32(const uint8_t *const ptr) {
-    return (rl16(&ptr[2]) << 16) | rl16(ptr);
-}
-
 static inline unsigned inv_recenter(const unsigned r, const unsigned v) {
     if (v > (r << 1))
         return v;
