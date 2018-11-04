@@ -488,12 +488,12 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
     }
 }
 
-static void mc(Dav1dTileContext *const t,
-               pixel *const dst8, coef *const dst16, const ptrdiff_t dst_stride,
-               const int bw4, const int bh4,
-               const int bx, const int by, const int pl,
-               const mv mv, const Dav1dThreadPicture *const refp,
-               const enum Filter2d filter_2d)
+static int mc(Dav1dTileContext *const t,
+              pixel *const dst8, coef *const dst16, const ptrdiff_t dst_stride,
+              const int bw4, const int bh4,
+              const int bx, const int by, const int pl,
+              const mv mv, const Dav1dThreadPicture *const refp,
+              const enum Filter2d filter_2d)
 {
     assert((dst8 != NULL) ^ (dst16 != NULL));
     const Dav1dFrameContext *const f = t->f;
@@ -509,8 +509,11 @@ static void mc(Dav1dTileContext *const t,
     int w, h;
 
     if (refp != &f->cur) { // i.e. not for intrabc
-        dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
-                                  PLANE_TYPE_Y + !!pl);
+        if (dav1d_thread_picture_wait(refp, dy + bh4 * v_mul + !!my * 4,
+                                      PLANE_TYPE_Y + !!pl))
+        {
+            return -1;
+        }
         w = (f->cur.p.p.w + ss_hor) >> ss_hor;
         h = (f->cur.p.p.h + ss_ver) >> ss_ver;
     } else {
@@ -538,12 +541,13 @@ static void mc(Dav1dTileContext *const t,
         f->dsp->mc.mct[filter_2d](dst16, ref, ref_stride, bw4 * h_mul,
                                   bh4 * v_mul, mx << !ss_hor, my << !ss_ver);
     }
+    return 0;
 }
 
-static void obmc(Dav1dTileContext *const t,
-                 pixel *const dst, const ptrdiff_t dst_stride,
-                 const uint8_t *const b_dim, const int pl,
-                 const int bx4, const int by4, const int w4, const int h4)
+static int obmc(Dav1dTileContext *const t,
+                pixel *const dst, const ptrdiff_t dst_stride,
+                const uint8_t *const b_dim, const int pl,
+                const int bx4, const int by4, const int w4, const int h4)
 {
     assert(!(t->bx & 1) && !(t->by & 1));
     const Dav1dFrameContext *const f = t->f;
@@ -564,6 +568,7 @@ static void obmc(Dav1dTileContext *const t,
     const int ss_ver = !!pl && f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = !!pl && f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
     const int h_mul = 4 >> ss_hor, v_mul = 4 >> ss_ver;
+    int res;
 
     if (t->by > t->ts->tiling.row_start &&
         (!pl || b_dim[0] * h_mul + b_dim[1] * v_mul >= 16))
@@ -577,10 +582,11 @@ static void obmc(Dav1dTileContext *const t,
             if (a_r->ref[0] > 0) {
                 const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
                 const int oh4 = imin(b_dim[1], 16) >> 1;
-                mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, oh4,
-                   t->bx + x, t->by, pl, a_r->mv[0],
-                   &f->refp[a_r->ref[0] - 1],
-                   dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
+                res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, oh4,
+                         t->bx + x, t->by, pl, a_r->mv[0],
+                         &f->refp[a_r->ref[0] - 1],
+                         dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
+                if (res) return res;
                 f->dsp->mc.blend(&dst[x * h_mul], dst_stride, lap,
                                  h_mul * ow4, v_mul * oh4,
                                  obmc_masks[imin(b_dim[3], 4) - ss_ver], 1);
@@ -600,10 +606,11 @@ static void obmc(Dav1dTileContext *const t,
             if (l_r->ref[0] > 0) {
                 const int ow4 = imin(b_dim[0], 16) >> 1;
                 const int oh4 = iclip(l_b_dim[1], 2, b_dim[1]);
-                mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
-                   t->bx, t->by + y, pl, l_r->mv[0],
-                   &f->refp[l_r->ref[0] - 1],
-                   dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
+                res = mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
+                         t->bx, t->by + y, pl, l_r->mv[0],
+                         &f->refp[l_r->ref[0] - 1],
+                         dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
+                if (res) return res;
                 f->dsp->mc.blend(&dst[y * v_mul * PXSTRIDE(dst_stride)], dst_stride,
                                  lap, h_mul * ow4, v_mul * oh4,
                                  obmc_masks[imin(b_dim[2], 4) - ss_hor], 0);
@@ -611,13 +618,14 @@ static void obmc(Dav1dTileContext *const t,
             }
             y += imax(l_b_dim[1], 2);
         }
+    return 0;
 }
 
-static void warp_affine(Dav1dTileContext *const t,
-                        pixel *dst8, coef *dst16, const ptrdiff_t dstride,
-                        const uint8_t *const b_dim, const int pl,
-                        const Dav1dThreadPicture *const refp,
-                        const WarpedMotionParams *const wmp)
+static int warp_affine(Dav1dTileContext *const t,
+                       pixel *dst8, coef *dst16, const ptrdiff_t dstride,
+                       const uint8_t *const b_dim, const int pl,
+                       const Dav1dThreadPicture *const refp,
+                       const WarpedMotionParams *const wmp)
 {
     assert((dst8 != NULL) ^ (dst16 != NULL));
     const Dav1dFrameContext *const f = t->f;
@@ -649,8 +657,11 @@ static void warp_affine(Dav1dTileContext *const t,
             const pixel *ref_ptr;
             ptrdiff_t ref_stride = refp->p.stride[!!pl];
 
-            dav1d_thread_picture_wait(refp, dy + 4 + 8,
-                                      PLANE_TYPE_Y + !!pl);
+            if (dav1d_thread_picture_wait(refp, dy + 4 + 8,
+                                          PLANE_TYPE_Y + !!pl))
+            {
+                return -1;
+            }
             if (dx < 3 || dx + 8 + 4 > width || dy < 3 || dy + 8 + 4 > height) {
                 f->dsp->mc.emu_edge(t->emu_edge, 160 * sizeof(pixel),
                                     refp->p.data[pl], ref_stride,
@@ -670,6 +681,7 @@ static void warp_affine(Dav1dTileContext *const t,
         if (dst8) dst8  += 8 * PXSTRIDE(dstride);
         else      dst16 += 8 * dstride;
     }
+    return 0;
 }
 
 void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize bs,
@@ -1054,7 +1066,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
     }
 }
 
-void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize bs,
+int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize bs,
                                  const Av1Block *const b)
 {
     Dav1dTileState *const ts = t->ts;
@@ -1072,6 +1084,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                            (bh4 > ss_ver || t->by & 1);
     const int chr_layout_idx = f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I400 ? 0 :
                                DAV1D_PIXEL_LAYOUT_I444 - f->cur.p.p.layout;
+    int res;
 
     // prediction
     const int cbh4 = (bh4 + ss_ver) >> ss_ver, cbw4 = (bw4 + ss_hor) >> ss_hor;
@@ -1081,13 +1094,16 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
         4 * ((t->bx >> ss_hor) + (t->by >> ss_ver) * PXSTRIDE(f->cur.p.stride[1]));
     if (!(f->frame_hdr.frame_type & 1)) {
         // intrabc
-        mc(t, dst, NULL, f->cur.p.stride[0],
-           bw4, bh4, t->bx, t->by, 0, b->mv[0], &f->cur, FILTER_2D_BILINEAR);
-        if (has_chroma) for (int pl = 1; pl < 3; pl++)
-            mc(t, ((pixel *) f->cur.p.data[pl]) + uvdstoff, NULL, f->cur.p.stride[1],
-               bw4 << (bw4 == ss_hor), bh4 << (bh4 == ss_ver),
-               t->bx & ~ss_hor, t->by & ~ss_ver,
-               pl, b->mv[0], &f->cur, FILTER_2D_BILINEAR);
+        res = mc(t, dst, NULL, f->cur.p.stride[0],
+                 bw4, bh4, t->bx, t->by, 0, b->mv[0], &f->cur, FILTER_2D_BILINEAR);
+        if (res) return res;
+        if (has_chroma) for (int pl = 1; pl < 3; pl++) {
+            res = mc(t, ((pixel *)f->cur.p.data[pl]) + uvdstoff, NULL, f->cur.p.stride[1],
+                     bw4 << (bw4 == ss_hor), bh4 << (bh4 == ss_ver),
+                     t->bx & ~ss_hor, t->by & ~ss_ver,
+                     pl, b->mv[0], &f->cur, FILTER_2D_BILINEAR);
+            if (res) return res;
+        }
     } else if (b->comp_type == COMP_INTER_NONE) {
         const Dav1dThreadPicture *const refp = &f->refp[b->ref[0]];
         const enum Filter2d filter_2d = b->filter2d;
@@ -1098,14 +1114,18 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
              (b->motion_mode == MM_WARP &&
               t->warpmv.type > WM_TYPE_TRANSLATION)))
         {
-            warp_affine(t, dst, NULL, f->cur.p.stride[0], b_dim, 0, refp,
-                        b->motion_mode == MM_WARP ? &t->warpmv :
-                            &f->frame_hdr.gmv[b->ref[0]]);
+            res = warp_affine(t, dst, NULL, f->cur.p.stride[0], b_dim, 0, refp,
+                              b->motion_mode == MM_WARP ? &t->warpmv :
+                                  &f->frame_hdr.gmv[b->ref[0]]);
+            if (res) return res;
         } else {
-            mc(t, dst, NULL, f->cur.p.stride[0],
-               bw4, bh4, t->bx, t->by, 0, b->mv[0], refp, filter_2d);
-            if (b->motion_mode == MM_OBMC)
-                obmc(t, dst, f->cur.p.stride[0], b_dim, 0, bx4, by4, w4, h4);
+            res = mc(t, dst, NULL, f->cur.p.stride[0],
+                     bw4, bh4, t->bx, t->by, 0, b->mv[0], refp, filter_2d);
+            if (res) return res;
+            if (b->motion_mode == MM_OBMC) {
+                res = obmc(t, dst, f->cur.p.stride[0], b_dim, 0, bx4, by4, w4, h4);
+                if (res) return res;
+            }
         }
         if (b->interintra_type) {
             ALIGN_STK_32(pixel, tl_edge_buf, 65,);
@@ -1154,43 +1174,51 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
             assert(ss_hor == 1);
             int h_off = 0, v_off = 0;
             if (bw4 == 1 && bh4 == ss_ver) {
-                for (int pl = 0; pl < 2; pl++)
-                    mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
-                       NULL, f->cur.p.stride[1],
-                       bw4, bh4, t->bx - 1, t->by - 1, 1 + pl,
-                       r[-(f->b4_stride + 1)].mv[0],
-                       &f->refp[r[-(f->b4_stride + 1)].ref[0] - 1],
-                       f->frame_thread.pass != 2 ? t->tl_4x4_filter :
-                           f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx - 1].filter2d);
+                for (int pl = 0; pl < 2; pl++) {
+                    res = mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
+                             NULL, f->cur.p.stride[1],
+                             bw4, bh4, t->bx - 1, t->by - 1, 1 + pl,
+                             r[-(f->b4_stride + 1)].mv[0],
+                             &f->refp[r[-(f->b4_stride + 1)].ref[0] - 1],
+                             f->frame_thread.pass != 2 ? t->tl_4x4_filter :
+                                 f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx - 1].filter2d);
+                    if (res) return res;
+                }
                 v_off = 2 * PXSTRIDE(f->cur.p.stride[1]);
                 h_off = 2;
             }
             if (bw4 == 1) {
                 const enum Filter2d left_filter_2d =
                     dav1d_filter_2d[t->l.filter[1][by4]][t->l.filter[0][by4]];
-                for (int pl = 0; pl < 2; pl++)
-                    mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + v_off, NULL,
-                       f->cur.p.stride[1], bw4, bh4, t->bx - 1,
-                       t->by, 1 + pl, r[-1].mv[0], &f->refp[r[-1].ref[0] - 1],
-                       f->frame_thread.pass != 2 ? left_filter_2d :
-                           f->frame_thread.b[(t->by * f->b4_stride) + t->bx - 1].filter2d);
+                for (int pl = 0; pl < 2; pl++) {
+                    res = mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + v_off, NULL,
+                             f->cur.p.stride[1], bw4, bh4, t->bx - 1,
+                             t->by, 1 + pl, r[-1].mv[0], &f->refp[r[-1].ref[0] - 1],
+                             f->frame_thread.pass != 2 ? left_filter_2d :
+                                 f->frame_thread.b[(t->by * f->b4_stride) + t->bx - 1].filter2d);
+                    if (res) return res;
+                }
                 h_off = 2;
             }
             if (bh4 == ss_ver) {
                 const enum Filter2d top_filter_2d =
                     dav1d_filter_2d[t->a->filter[1][bx4]][t->a->filter[0][bx4]];
-                for (int pl = 0; pl < 2; pl++)
-                    mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + h_off, NULL,
-                       f->cur.p.stride[1], bw4, bh4, t->bx, t->by - 1,
-                       1 + pl, r[-f->b4_stride].mv[0],
-                       &f->refp[r[-f->b4_stride].ref[0] - 1],
-                       f->frame_thread.pass != 2 ? top_filter_2d :
-                           f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx].filter2d);
+                for (int pl = 0; pl < 2; pl++) {
+                    res = mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + h_off, NULL,
+                             f->cur.p.stride[1], bw4, bh4, t->bx, t->by - 1,
+                             1 + pl, r[-f->b4_stride].mv[0],
+                             &f->refp[r[-f->b4_stride].ref[0] - 1],
+                             f->frame_thread.pass != 2 ? top_filter_2d :
+                                 f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx].filter2d);
+                    if (res) return res;
+                }
                 v_off = 2 * PXSTRIDE(f->cur.p.stride[1]);
             }
-            for (int pl = 0; pl < 2; pl++)
-                mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + h_off + v_off, NULL, f->cur.p.stride[1],
-                   bw4, bh4, t->bx, t->by, 1 + pl, b->mv[0], refp, filter_2d);
+            for (int pl = 0; pl < 2; pl++) {
+                res = mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff + h_off + v_off, NULL, f->cur.p.stride[1],
+                         bw4, bh4, t->bx, t->by, 1 + pl, b->mv[0], refp, filter_2d);
+                if (res) return res;
+            }
         } else {
             if (imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
                 ((b->inter_mode == GLOBALMV &&
@@ -1198,21 +1226,26 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                  (b->motion_mode == MM_WARP &&
                   t->warpmv.type > WM_TYPE_TRANSLATION)))
             {
-                for (int pl = 0; pl < 2; pl++)
-                    warp_affine(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff, NULL,
-                                f->cur.p.stride[1], b_dim, 1 + pl, refp,
-                                b->motion_mode == MM_WARP ? &t->warpmv :
-                                    &f->frame_hdr.gmv[b->ref[0]]);
+                for (int pl = 0; pl < 2; pl++) {
+                    res = warp_affine(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff, NULL,
+                                      f->cur.p.stride[1], b_dim, 1 + pl, refp,
+                                      b->motion_mode == MM_WARP ? &t->warpmv :
+                                          &f->frame_hdr.gmv[b->ref[0]]);
+                    if (res) return res;
+                }
             } else {
                 for (int pl = 0; pl < 2; pl++) {
-                    mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
-                       NULL, f->cur.p.stride[1],
-                       bw4 << (bw4 == ss_hor), bh4 << (bh4 == ss_ver),
-                       t->bx & ~ss_hor, t->by & ~ss_ver,
-                       1 + pl, b->mv[0], refp, filter_2d);
-                    if (b->motion_mode == MM_OBMC)
-                        obmc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
-                             f->cur.p.stride[1], b_dim, 1 + pl, bx4, by4, w4, h4);
+                    res = mc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
+                             NULL, f->cur.p.stride[1],
+                             bw4 << (bw4 == ss_hor), bh4 << (bh4 == ss_ver),
+                             t->bx & ~ss_hor, t->by & ~ss_ver,
+                             1 + pl, b->mv[0], refp, filter_2d);
+                    if (res) return res;
+                    if (b->motion_mode == MM_OBMC) {
+                        res = obmc(t, ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff,
+                                   f->cur.p.stride[1], b_dim, 1 + pl, bx4, by4, w4, h4);
+                        if (res) return res;
+                    }
                 }
             }
             if (b->interintra_type) {
@@ -1273,11 +1306,13 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
             if (b->inter_mode == GLOBALMV_GLOBALMV && !f->frame_hdr.force_integer_mv &&
                 f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
             {
-                warp_affine(t, NULL, tmp[i], bw4 * 4, b_dim, 0, refp,
-                            &f->frame_hdr.gmv[b->ref[i]]);
+                res = warp_affine(t, NULL, tmp[i], bw4 * 4, b_dim, 0, refp,
+                                  &f->frame_hdr.gmv[b->ref[i]]);
+                if (res) return res;
             } else {
-                mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by, 0,
-                   b->mv[i], refp, filter_2d);
+                res = mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by, 0,
+                         b->mv[i], refp, filter_2d);
+                if (res) return res;
             }
         }
         switch (b->comp_type) {
@@ -1314,11 +1349,13 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                     imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
                     f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
                 {
-                    warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,
-                                refp, &f->frame_hdr.gmv[b->ref[i]]);
+                    res = warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,
+                                      refp, &f->frame_hdr.gmv[b->ref[i]]);
+                    if (res) return res;
                 } else {
-                    mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by,
-                       1 + pl, b->mv[i], refp, filter_2d);
+                    res = mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by,
+                             1 + pl, b->mv[i], refp, filter_2d);
+                    if (res) return res;
                 }
             }
             pixel *const uvdst = ((pixel *) f->cur.p.data[1 + pl]) + uvdstoff;
@@ -1368,7 +1405,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
             case_set(cbw4, a->, 0, cbx4);
 #undef set_ctx
         }
-        return;
+        return 0;
     }
 
     const TxfmInfo *const uvtx = &dav1d_txfm_dimensions[b->uvtx];
@@ -1465,6 +1502,7 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
             }
         }
     }
+    return 0;
 }
 
 void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {

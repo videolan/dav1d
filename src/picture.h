@@ -74,14 +74,17 @@ void dav1d_thread_picture_unref(Dav1dThreadPicture *p);
  * units, else it is in chroma units.
  * plane_type is used to determine how many pixels delay are
  * introduced by loopfilter processes.
+ *
+ * Returns 0 on success, and 1 if there was an error while decoding p
  */
-void dav1d_thread_picture_wait(const Dav1dThreadPicture *p, int y,
+int dav1d_thread_picture_wait(const Dav1dThreadPicture *p, int y,
                                enum PlaneType plane_type);
 
 /**
  * Signal decoding progress.
  *
- * y is in full-pixel luma units.
+ * y is in full-pixel luma units. FRAME_ERROR is used to signal a decoding
+ * error to frames using this frame as reference frame.
  * plane_type denotes whether we have completed block data (pass 1;
  * PLANE_TYPE_BLOCK), pixel data (pass 2, PLANE_TYPE_Y) or both (no
  * 2-pass decoding; PLANE_TYPE_ALL).

@@ -665,8 +665,11 @@ static inline unsigned get_prev_frame_segid(const Dav1dFrameContext *const f,
     unsigned seg_id = 8;
 
     assert(f->frame_hdr.primary_ref_frame != PRIMARY_REF_NONE);
-    dav1d_thread_picture_wait(&f->refp[f->frame_hdr.primary_ref_frame],
-                              (by + h4) * 4, PLANE_TYPE_BLOCK);
+    if (dav1d_thread_picture_wait(&f->refp[f->frame_hdr.primary_ref_frame],
+                                  (by + h4) * 4, PLANE_TYPE_BLOCK))
+    {
+        return 8;
+    }
 
     ref_seg_map += by * stride + bx;
     do {
@@ -730,7 +733,7 @@ static int decode_b(Dav1dTileContext *const t,
                                   have_left, have_top, b->ref[0], mask);
                 derive_warpmv(t, bw4, bh4, mask, b->mv[0], &t->warpmv);
             }
-            f->bd_fn.recon_b_inter(t, bs, b);
+            if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
 
             const uint8_t *const filter = dav1d_filter_dir[b->filter2d];
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
@@ -773,9 +776,15 @@ static int decode_b(Dav1dTileContext *const t,
     int seg_pred = 0;
     if (f->frame_hdr.segmentation.enabled) {
         if (!f->frame_hdr.segmentation.update_map) {
-            b->seg_id = f->prev_segmap ?
-                        get_prev_frame_segid(f, t->by, t->bx, w4, h4,
-                                             f->prev_segmap, f->b4_stride) : 0;
+            if (f->prev_segmap) {
+                unsigned seg_id = get_prev_frame_segid(f, t->by, t->bx, w4, h4,
+                                                       f->prev_segmap,
+                                                       f->b4_stride);
+                if (seg_id >= 8) return -1;
+                b->seg_id = seg_id;
+            } else {
+                b->seg_id = 0;
+            }
         } else if (f->frame_hdr.segmentation.seg_data.preskip) {
             if (f->frame_hdr.segmentation.temporal &&
                 (seg_pred = msac_decode_bool_adapt(&ts->msac,
@@ -783,9 +792,16 @@ static int decode_b(Dav1dTileContext *const t,
                                                           t->l.seg_pred[by4]])))
             {
                 // temporal predicted seg_id
-                b->seg_id = f->prev_segmap ?
-                            get_prev_frame_segid(f, t->by, t->bx, w4, h4,
-                                                 f->prev_segmap, f->b4_stride) : 0;
+                if (f->prev_segmap) {
+                    unsigned seg_id = get_prev_frame_segid(f, t->by, t->bx,
+                                                           w4, h4,
+                                                           f->prev_segmap,
+                                                           f->b4_stride);
+                    if (seg_id >= 8) return -1;
+                    b->seg_id = seg_id;
+                } else {
+                    b->seg_id = 0;
+                }
             } else {
                 int seg_ctx;
                 const unsigned pred_seg_id =
@@ -828,9 +844,15 @@ static int decode_b(Dav1dTileContext *const t,
                                                       t->l.seg_pred[by4]])))
         {
             // temporal predicted seg_id
-            b->seg_id = f->prev_segmap ?
-                        get_prev_frame_segid(f, t->by, t->bx, w4, h4,
-                                             f->prev_segmap, f->b4_stride) : 0;
+            if (f->prev_segmap) {
+                unsigned seg_id = get_prev_frame_segid(f, t->by, t->bx, w4, h4,
+                                                       f->prev_segmap,
+                                                       f->b4_stride);
+                if (seg_id >= 8) return -1;
+                b->seg_id = seg_id;
+            } else {
+                b->seg_id = 0;
+            }
         } else {
             int seg_ctx;
             const unsigned pred_seg_id =
@@ -1278,7 +1300,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (f->frame_thread.pass == 1) {
             f->bd_fn.read_coef_blocks(t, bs, b);
         } else {
-            f->bd_fn.recon_b_inter(t, bs, b);
+            if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
         }
 
         splat_intrabc_mv(f->mvs, f->b4_stride, t->by, t->bx, bs, b->mv[0]);
@@ -1770,7 +1792,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (f->frame_thread.pass == 1) {
             f->bd_fn.read_coef_blocks(t, bs, b);
         } else {
-            f->bd_fn.recon_b_inter(t, bs, b);
+            if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
         }
 
         const int is_globalmv =
@@ -2227,8 +2249,11 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
 
     if (c->n_fc > 1 && f->frame_hdr.use_ref_frame_mvs) {
         for (int n = 0; n < 7; n++)
-            dav1d_thread_picture_wait(&f->refp[n], 4 * (t->by + sb_step),
-                                      PLANE_TYPE_BLOCK);
+            if (dav1d_thread_picture_wait(&f->refp[n], 4 * (t->by + sb_step),
+                                          PLANE_TYPE_BLOCK))
+            {
+                return 1;
+            }
         av1_init_ref_mv_tile_row(f->libaom_cm,
                                  ts->tiling.col_start, ts->tiling.col_end,
                                  t->by, imin(t->by + sb_step, f->bh));
@@ -2745,6 +2770,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                             pthread_mutex_unlock(&ts->tile_thread.lock);
                         }
                         if (progress == TILE_ERROR) {
+                            dav1d_thread_picture_signal(&f->cur, FRAME_ERROR,
+                                                        progress_plane_type);
                             const uint64_t all_mask = ~0ULL >> (64 - f->n_tc);
                             pthread_mutex_lock(&f->tile_thread.lock);
                             while (f->tile_thread.available != all_mask)
@@ -2792,10 +2819,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
     }
 
-    dav1d_thread_picture_signal(&f->cur, UINT_MAX, PLANE_TYPE_ALL);
-
     retval = 0;
 error:
+    dav1d_thread_picture_signal(&f->cur, retval == 0 ? UINT_MAX : FRAME_ERROR,
+                                PLANE_TYPE_ALL);
     for (int i = 0; i < 7; i++) {
         if (f->refp[i].p.data[0])
             dav1d_thread_picture_unref(&f->refp[i]);

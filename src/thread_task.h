@@ -32,6 +32,7 @@
 
 #include "src/internal.h"
 
+#define FRAME_ERROR (UINT_MAX - 1)
 #define TILE_ERROR (INT_MAX - 1)
 
 int dav1d_decode_frame(Dav1dFrameContext *f);
