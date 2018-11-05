@@ -37,6 +37,7 @@
 #include "common/mem.h"
 
 #include "src/cdef_apply.h"
+#include "src/ctx.h"
 #include "src/ipred_prepare.h"
 #include "src/lf_apply.h"
 #include "src/lr_apply.h"
@@ -315,10 +316,22 @@ static void read_coef_tree(Dav1dTileContext *const t,
             if (DEBUG_BLOCK_INFO)
                 printf("Post-y-cf-blk[tx=%d,txtp=%d,eob=%d]: r=%d\n",
                        ytx, txtp, eob, ts->msac.rng);
-            memset(&t->a->lcoef[bx4], cf_ctx, imin(txw, f->bw - t->bx));
-            memset(&t->l.lcoef[by4], cf_ctx, imin(txh, f->bh - t->by));
-            for (int y = 0; y < txh; y++)
-                memset(&t->txtp_map[(by4 + y) * 32 + bx4], txtp, txw);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir lcoef, off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+            memset(&t->dir lcoef[off], cf_ctx, sz)
+            case_set_upto16_with_default(imin(txh, f->bh - t->by), l., 1, by4);
+            case_set_upto16_with_default(imin(txw, f->bw - t->bx), a->, 0, bx4);
+#undef default_memset
+#undef set_ctx
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            for (int y = 0; y < txh; y++) { \
+                rep_macro(type, txtp_map, 0, mul * txtp); \
+                txtp_map += 32; \
+            }
+            uint8_t *txtp_map = &t->txtp_map[by4 * 32 + bx4];
+            case_set_upto16(txw,,,);
+#undef set_ctx
             if (f->frame_thread.pass == 1) {
                 cbi->eob[0] = eob;
                 cbi->txtp[0] = txtp;
@@ -356,11 +369,18 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
                            (bh4 > ss_ver || t->by & 1);
 
     if (b->skip) {
-        memset(&t->a->lcoef[bx4], 0x40, bw4);
-        memset(&t->l.lcoef[by4], 0x40, bh4);
-        if (has_chroma) for (int pl = 0; pl < 2; pl++) {
-            memset(&t->a->ccoef[pl][cbx4], 0x40, cbw4);
-            memset(&t->l.ccoef[pl][cby4], 0x40, cbh4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir lcoef, off, mul * 0x40)
+        case_set(bh4, l., 1, by4);
+        case_set(bw4, a->, 0, bx4);
+#undef set_ctx
+        if (has_chroma) {
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir ccoef[0], off, mul * 0x40); \
+            rep_macro(type, t->dir ccoef[1], off, mul * 0x40)
+            case_set(cbh4, l., 1, cby4);
+            case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
         }
         return;
     }
@@ -402,10 +422,16 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
                                    b->tx, txtp, eob, ts->msac.rng);
                         cbi[t->bx].txtp[0] = txtp;
                         ts->frame_thread.cf += imin(t_dim->w, 8) * imin(t_dim->h, 8) * 16;
-                        memset(&t->a->lcoef[bx4 + x], cf_ctx,
-                               imin(t_dim->w, f->bw - t->bx));
-                        memset(&t->l.lcoef[by4 + y], cf_ctx,
-                               imin(t_dim->h, f->bh - t->by));
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                        rep_macro(type, t->dir lcoef, off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+                        memset(&t->dir lcoef[off], cf_ctx, sz)
+                        case_set_upto16_with_default(imin(t_dim->h, f->bh - t->by),
+                                                     l., 1, by4 + y);
+                        case_set_upto16_with_default(imin(t_dim->w, f->bw - t->bx),
+                                                     a->, 0, bx4 + x);
+#undef default_memset
+#undef set_ctx
                     }
                 }
                 t->bx -= x;
@@ -441,10 +467,18 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
                                    pl, b->uvtx, txtp, eob, ts->msac.rng);
                         cbi[t->bx].txtp[1 + pl] = txtp;
                         ts->frame_thread.cf += uv_t_dim->w * uv_t_dim->h * 16;
-                        memset(&t->a->ccoef[pl][cbx4 + x], cf_ctx,
-                               imin(uv_t_dim->w, (f->bw - t->bx + ss_hor) >> ss_hor));
-                        memset(&t->l.ccoef[pl][cby4 + y], cf_ctx,
-                               imin(uv_t_dim->h, (f->bh - t->by + ss_ver) >> ss_ver));
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                        rep_macro(type, t->dir ccoef[pl], off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+                        memset(&t->dir ccoef[pl][off], cf_ctx, sz)
+                        case_set_upto16_with_default( \
+                                 imin(uv_t_dim->h, (f->bh - t->by + ss_ver) >> ss_ver),
+                                 l., 1, cby4 + y);
+                        case_set_upto16_with_default( \
+                                 imin(uv_t_dim->w, (f->bw - t->bx + ss_hor) >> ss_hor),
+                                 a->, 0, cbx4 + x);
+#undef default_memset
+#undef set_ctx
                     }
                     t->bx -= x << ss_hor;
                 }
@@ -763,10 +797,16 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                             if (DEBUG_BLOCK_INFO)
                                 printf("Post-y-cf-blk[tx=%d,txtp=%d,eob=%d]: r=%d\n",
                                        b->tx, txtp, eob, ts->msac.rng);
-                            memset(&t->a->lcoef[bx4 + x], cf_ctx,
-                                   imin(t_dim->w, f->bw - t->bx));
-                            memset(&t->l.lcoef[by4 + y], cf_ctx,
-                                   imin(t_dim->h, f->bh - t->by));
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                            rep_macro(type, t->dir lcoef, off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+                            memset(&t->dir lcoef[off], cf_ctx, sz)
+                            case_set_upto16_with_default(imin(t_dim->h, f->bh - t->by), \
+                                                         l., 1, by4 + y);
+                            case_set_upto16_with_default(imin(t_dim->w, f->bw - t->bx), \
+                                                         a->, 0, bx4 + x);
+#undef default_memset
+#undef set_ctx
                         }
                         if (eob >= 0) {
                             if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS)
@@ -781,8 +821,11 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                          t_dim->w * 4, t_dim->h * 4, "recon");
                         }
                     } else if (!f->frame_thread.pass) {
-                        memset(&t->a->lcoef[bx4 + x], 0x40, t_dim->w);
-                        memset(&t->l.lcoef[by4 + y], 0x40, t_dim->h);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                        rep_macro(type, t->dir lcoef, off, mul * 0x40)
+                        case_set_upto16(t_dim->h, l., 1, by4 + y);
+                        case_set_upto16(t_dim->w, a->, 0, bx4 + x);
+#undef set_ctx
                     }
                     dst += 4 * t_dim->w;
                 }
@@ -970,10 +1013,18 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                     printf("Post-uv-cf-blk[pl=%d,tx=%d,"
                                            "txtp=%d,eob=%d]: r=%d [x=%d,cbx4=%d]\n",
                                            pl, b->uvtx, txtp, eob, ts->msac.rng, x, cbx4);
-                                memset(&t->a->ccoef[pl][cbx4 + x], cf_ctx,
-                                       imin(uv_t_dim->w, (f->bw - t->bx + ss_hor) >> ss_hor));
-                                memset(&t->l.ccoef[pl][cby4 + y], cf_ctx,
-                                       imin(uv_t_dim->h, (f->bh - t->by + ss_ver) >> ss_ver));
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                                rep_macro(type, t->dir ccoef[pl], off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+                                memset(&t->dir ccoef[pl][off], cf_ctx, sz)
+                                case_set_upto16_with_default( \
+                                         imin(uv_t_dim->h, (f->bh - t->by + ss_ver) >> ss_ver),
+                                         l., 1, cby4 + y);
+                                case_set_upto16_with_default( \
+                                         imin(uv_t_dim->w, (f->bw - t->bx + ss_hor) >> ss_hor),
+                                         a->, 0, cbx4 + x);
+#undef default_memset
+#undef set_ctx
                             }
                             if (eob >= 0) {
                                 if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS)
@@ -987,8 +1038,11 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                              uv_t_dim->h * 4, "recon");
                             }
                         } else if (!f->frame_thread.pass) {
-                            memset(&t->a->ccoef[pl][cbx4 + x], 0x40, uv_t_dim->w);
-                            memset(&t->l.ccoef[pl][cby4 + y], 0x40, uv_t_dim->h);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                            rep_macro(type, t->dir ccoef[pl], off, mul * 0x40)
+                            case_set_upto16(uv_t_dim->h, l., 1, cby4 + y);
+                            case_set_upto16(uv_t_dim->w, a->, 0, cbx4 + x);
+#undef set_ctx
                         }
                         dst += uv_t_dim->w * 4;
                     }
@@ -1301,13 +1355,18 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
 
     if (b->skip) {
         // reset coef contexts
-        memset(&t->a->lcoef[bx4], 0x40, w4);
-        memset(&t->l.lcoef[by4], 0x40, h4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir lcoef, off, mul * 0x40)
+        case_set(bh4, l., 1, by4);
+        case_set(bw4, a->, 0, bx4);
+#undef set_ctx
         if (has_chroma) {
-            memset(&t->a->ccoef[0][cbx4], 0x40, cw4);
-            memset(&t->l.ccoef[0][cby4], 0x40, ch4);
-            memset(&t->a->ccoef[1][cbx4], 0x40, cw4);
-            memset(&t->l.ccoef[1][cby4], 0x40, ch4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir ccoef[0], off, mul * 0x40); \
+            rep_macro(type, t->dir ccoef[1], off, mul * 0x40)
+            case_set(cbh4, l., 1, cby4);
+            case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
         }
         return;
     }
@@ -1372,10 +1431,18 @@ void bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize
                                 printf("Post-uv-cf-blk[pl=%d,tx=%d,"
                                        "txtp=%d,eob=%d]: r=%d\n",
                                        pl, b->uvtx, txtp, eob, ts->msac.rng);
-                            memset(&t->a->ccoef[pl][cbx4 + x], cf_ctx,
-                                   imin(uvtx->w, (f->bw - t->bx + ss_hor) >> ss_hor));
-                            memset(&t->l.ccoef[pl][cby4 + y], cf_ctx,
-                                   imin(uvtx->h, (f->bh - t->by + ss_ver) >> ss_ver));
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                            rep_macro(type, t->dir ccoef[pl], off, mul * cf_ctx)
+#define default_memset(dir, diridx, off, sz) \
+                            memset(&t->dir ccoef[pl][off], cf_ctx, sz)
+                            case_set_upto16_with_default( \
+                                     imin(uvtx->h, (f->bh - t->by + ss_ver) >> ss_ver),
+                                     l., 1, cby4 + y);
+                            case_set_upto16_with_default( \
+                                     imin(uvtx->w, (f->bw - t->bx + ss_hor) >> ss_hor),
+                                     a->, 0, cbx4 + x);
+#undef default_memset
+#undef set_ctx
                         }
                         if (eob >= 0) {
                             if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS)

@@ -38,6 +38,7 @@
 #include "common/intops.h"
 #include "common/mem.h"
 
+#include "src/ctx.h"
 #include "src/decode.h"
 #include "src/dequant_tables.h"
 #include "src/env.h"
@@ -171,8 +172,14 @@ static void read_tx_tree(Dav1dTileContext *const t,
         }
         t->by -= txsh;
     } else {
-        memset(&t->a->tx[bx4], is_split ? TX_4X4 : txw, t_dim->w);
-        memset(&t->l.tx[by4], is_split ? TX_4X4 : txh, t_dim->h);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir tx, off, is_split ? TX_4X4 : mul * txh)
+        case_set_upto16(t_dim->h, l., 1, by4);
+#undef set_ctx
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir tx, off, is_split ? TX_4X4 : mul * txw)
+        case_set_upto16(t_dim->w, a->, 0, bx4);
+#undef set_ctx
     }
 }
 
@@ -611,13 +618,19 @@ static void read_vartx_tree(Dav1dTileContext *const t,
     {
         b->max_ytx = b->uvtx = TX_4X4;
         if (f->frame_hdr.txfm_mode == TX_SWITCHABLE) {
-            memset(&t->a->tx[bx4], TX_4X4, bw4);
-            memset(&t->l.tx[by4], TX_4X4, bh4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir tx, off, TX_4X4)
+            case_set(bh4, l., 1, by4);
+            case_set(bw4, a->, 0, bx4);
+#undef set_ctx
         }
     } else if (f->frame_hdr.txfm_mode != TX_SWITCHABLE || b->skip) {
         if (f->frame_hdr.txfm_mode == TX_SWITCHABLE) {
-            memset(&t->a->tx[bx4], b_dim[2], bw4);
-            memset(&t->l.tx[by4], b_dim[3], bh4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir tx, off, mul * b_dim[2 + diridx])
+            case_set(bh4, l., 1, by4);
+            case_set(bw4, a->, 0, bx4);
+#undef set_ctx
         } else {
             assert(f->frame_hdr.txfm_mode == TX_LARGEST);
         }
@@ -694,14 +707,22 @@ static int decode_b(Dav1dTileContext *const t,
         if (b->intra) {
             f->bd_fn.recon_b_intra(t, bs, intra_edge_flags, b);
 
-            if (has_chroma) {
-                memset(&t->l.uvmode[cby4], b->uv_mode, cbh4);
-                memset(&t->a->uvmode[cbx4], b->uv_mode, cbw4);
-            }
             const enum IntraPredMode y_mode_nofilt =
                 b->y_mode == FILTER_PRED ? DC_PRED : b->y_mode;
-            memset(&t->l.mode[by4], y_mode_nofilt, bh4);
-            memset(&t->a->mode[bx4], y_mode_nofilt, bw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir mode, off, mul * y_mode_nofilt); \
+            rep_macro(type, t->dir intra, off, mul)
+            case_set(bh4, l., 1, by4);
+            case_set(bw4, a->, 0, bx4);
+#undef set_ctx
+
+            if (has_chroma) {
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                rep_macro(type, t->dir uvmode, off, mul * b->uv_mode)
+                case_set(cbh4, l., 1, cby4);
+                case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
+            }
         } else {
             if (b->comp_type == COMP_INTER_NONE && b->motion_mode == MM_WARP) {
                 uint64_t mask[2] = { 0, 0 };
@@ -712,17 +733,22 @@ static int decode_b(Dav1dTileContext *const t,
             f->bd_fn.recon_b_inter(t, bs, b);
 
             const uint8_t *const filter = dav1d_filter_dir[b->filter2d];
-            memset(&t->l.filter[0][by4], filter[0], bh4);
-            memset(&t->a->filter[0][bx4], filter[0], bw4);
-            memset(&t->l.filter[1][by4], filter[1], bh4);
-            memset(&t->a->filter[1][bx4], filter[1], bw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir filter[0], off, mul * filter[0]); \
+            rep_macro(type, t->dir filter[1], off, mul * filter[1]); \
+            rep_macro(type, t->dir intra, off, 0)
+            case_set(bh4, l., 1, by4);
+            case_set(bw4, a->, 0, bx4);
+#undef set_ctx
+
             if (has_chroma) {
-                memset(&t->l.uvmode[cby4], DC_PRED, cbh4);
-                memset(&t->a->uvmode[cbx4], DC_PRED, cbw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                rep_macro(type, t->dir uvmode, off, mul * DC_PRED)
+                case_set(cbh4, l., 1, cby4);
+                case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
             }
         }
-        memset(&t->l.intra[by4], b->intra, bh4);
-        memset(&t->a->intra[bx4], b->intra, bw4);
         return 0;
     }
 
@@ -1106,14 +1132,29 @@ static int decode_b(Dav1dTileContext *const t,
                                    has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
 
         // update contexts
-        memset(&t->a->tx_intra[bx4], t_dim->lw, bw4);
-        memset(&t->l.tx_intra[by4], t_dim->lh, bh4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir tx_intra, off, mul * (((uint8_t *) &t_dim->lw)[diridx])); \
+        rep_macro(type, t->dir tx, off, mul * (((uint8_t *) &t_dim->lw)[diridx])); \
+        rep_macro(type, t->dir mode, off, mul * y_mode_nofilt); \
+        rep_macro(type, t->dir pal_sz, off, mul * b->pal_sz[0]); \
+        rep_macro(type, t->dir seg_pred, off, mul * seg_pred); \
+        rep_macro(type, t->dir skip_mode, off, 0); \
+        rep_macro(type, t->dir intra, off, mul); \
+        rep_macro(type, t->dir skip, off, mul * b->skip); \
+        /* see aomedia bug 2183 for why we use luma coordinates here */ \
+        rep_macro(type, t->pal_sz_uv[diridx], off, mul * (has_chroma ? b->pal_sz[1] : 0)); \
+        if (f->frame_hdr.frame_type & 1) { \
+            rep_macro(type, t->dir comp_type, off, mul * b->skip); \
+            rep_macro(type, t->dir ref[0], off, mul * ((uint8_t) -1)); \
+            rep_macro(type, t->dir ref[1], off, mul * ((uint8_t) -1)); \
+            rep_macro(type, t->dir filter[0], off, mul * N_SWITCHABLE_FILTERS); \
+            rep_macro(type, t->dir filter[1], off, mul * N_SWITCHABLE_FILTERS); \
+        }
         const enum IntraPredMode y_mode_nofilt =
             b->y_mode == FILTER_PRED ? DC_PRED : b->y_mode;
-        memset(&t->l.mode[by4], y_mode_nofilt, bh4);
-        memset(&t->a->mode[bx4], y_mode_nofilt, bw4);
-        memset(&t->l.pal_sz[by4], b->pal_sz[0], bh4);
-        memset(&t->a->pal_sz[bx4], b->pal_sz[0], bw4);
+        case_set(bh4, l., 1, by4);
+        case_set(bw4, a->, 0, bx4);
+#undef set_ctx
         if (b->pal_sz[0]) {
             uint16_t *const pal = f->frame_thread.pass ?
                 f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
@@ -1124,11 +1165,11 @@ static int decode_b(Dav1dTileContext *const t,
                 memcpy(t->al_pal[1][by4 + y][0], pal, 16);
         }
         if (has_chroma) {
-            memset(&t->l.uvmode[cby4], b->uv_mode, cbh4);
-            memset(&t->a->uvmode[cbx4], b->uv_mode, cbw4);
-            // see aomedia bug 2183 for why we use luma coordinates here
-            memset(&t->pal_sz_uv[1][by4], b->pal_sz[1], bh4);
-            memset(&t->pal_sz_uv[0][bx4], b->pal_sz[1], bw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+                rep_macro(type, t->dir uvmode, off, mul * b->uv_mode)
+                case_set(cbh4, l., 1, cby4);
+                case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
             if (b->pal_sz[1]) for (int pl = 1; pl < 3; pl++) {
                 uint16_t *const pal = f->frame_thread.pass ?
                     f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
@@ -1139,27 +1180,10 @@ static int decode_b(Dav1dTileContext *const t,
                 for (int y = 0; y < bh4; y++)
                     memcpy(t->al_pal[1][by4 + y][pl], pal, 16);
             }
-        } else { // see aomedia bug 2183 for why we reset this
-            memset(&t->pal_sz_uv[1][by4], 0, bh4);
-            memset(&t->pal_sz_uv[0][bx4], 0, bw4);
         }
         if ((f->frame_hdr.frame_type & 1) || f->frame_hdr.allow_intrabc) {
-            memset(&t->a->tx[bx4], t_dim->lw, bw4);
-            memset(&t->l.tx[by4], t_dim->lh, bh4);
             splat_intraref(f->mvs, f->b4_stride, t->by, t->bx, bs,
                            y_mode_nofilt);
-        }
-        if (f->frame_hdr.frame_type & 1) {
-            memset(&t->l.comp_type[by4], COMP_INTER_NONE, bh4);
-            memset(&t->a->comp_type[bx4], COMP_INTER_NONE, bw4);
-            memset(&t->l.ref[0][by4], -1, bh4);
-            memset(&t->a->ref[0][bx4], -1, bw4);
-            memset(&t->l.ref[1][by4], -1, bh4);
-            memset(&t->a->ref[1][bx4], -1, bw4);
-            memset(&t->l.filter[0][by4], N_SWITCHABLE_FILTERS, bh4);
-            memset(&t->a->filter[0][bx4], N_SWITCHABLE_FILTERS, bw4);
-            memset(&t->l.filter[1][by4], N_SWITCHABLE_FILTERS, bh4);
-            memset(&t->a->filter[1][bx4], N_SWITCHABLE_FILTERS, bw4);
         }
     } else if (!(f->frame_hdr.frame_type & 1)) {
         // intra block copy
@@ -1259,18 +1283,25 @@ static int decode_b(Dav1dTileContext *const t,
 
         splat_intrabc_mv(f->mvs, f->b4_stride, t->by, t->bx, bs, b->mv[0]);
 
-        memset(&t->a->tx_intra[bx4], b_dim[2], bw4);
-        memset(&t->l.tx_intra[by4], b_dim[3], bh4);
-        memset(&t->l.mode[by4], DC_PRED, bh4);
-        memset(&t->a->mode[bx4], DC_PRED, bw4);
-        memset(&t->l.pal_sz[by4], 0, bh4);
-        memset(&t->a->pal_sz[bx4], 0, bw4);
-        // see aomedia bug 2183 for why this is outside if (has_chroma)
-        memset(&t->pal_sz_uv[1][by4], 0, bh4);
-        memset(&t->pal_sz_uv[0][bx4], 0, bw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir tx_intra, off, mul * b_dim[2 + diridx]); \
+        rep_macro(type, t->dir mode, off, mul * DC_PRED); \
+        rep_macro(type, t->dir pal_sz, off, 0); \
+        /* see aomedia bug 2183 for why this is outside if (has_chroma) */ \
+        rep_macro(type, t->pal_sz_uv[diridx], off, 0); \
+        rep_macro(type, t->dir seg_pred, off, seg_pred); \
+        rep_macro(type, t->dir skip_mode, off, 0); \
+        rep_macro(type, t->dir intra, off, 0); \
+        rep_macro(type, t->dir skip, off, b->skip)
+        case_set(bh4, l., 1, by4);
+        case_set(bw4, a->, 0, bx4);
+#undef set_ctx
         if (has_chroma) {
-            memset(&t->l.uvmode[cby4], DC_PRED, cbh4);
-            memset(&t->a->uvmode[cbx4], DC_PRED, cbw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir uvmode, off, mul * DC_PRED)
+            case_set(cbh4, l., 1, cby4);
+            case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
         }
     } else {
         // inter-specific mode/mv coding
@@ -1764,29 +1795,33 @@ static int decode_b(Dav1dTileContext *const t,
                             b->inter_mode, b->ref[0], b->mv[0],
                             b->interintra_type);
         }
-        memset(&t->l.pal_sz[by4], 0, bh4);
-        memset(&t->a->pal_sz[bx4], 0, bw4);
-        // see aomedia bug 2183 for why this is outside if (has_chroma)
-        memset(&t->pal_sz_uv[1][by4], 0, bh4);
-        memset(&t->pal_sz_uv[0][bx4], 0, bw4);
+
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->dir seg_pred, off, mul * seg_pred); \
+        rep_macro(type, t->dir skip_mode, off, mul * b->skip_mode); \
+        rep_macro(type, t->dir intra, off, 0); \
+        rep_macro(type, t->dir skip, off, mul * b->skip); \
+        rep_macro(type, t->dir pal_sz, off, 0); \
+        /* see aomedia bug 2183 for why this is outside if (has_chroma) */ \
+        rep_macro(type, t->pal_sz_uv[diridx], off, 0); \
+        rep_macro(type, t->dir tx_intra, off, mul * b_dim[2 + diridx]); \
+        rep_macro(type, t->dir comp_type, off, mul * b->comp_type); \
+        rep_macro(type, t->dir filter[0], off, mul * filter[0]); \
+        rep_macro(type, t->dir filter[1], off, mul * filter[1]); \
+        rep_macro(type, t->dir mode, off, mul * b->inter_mode); \
+        rep_macro(type, t->dir ref[0], off, mul * b->ref[0]); \
+        rep_macro(type, t->dir ref[1], off, mul * ((uint8_t) b->ref[1]))
+        case_set(bh4, l., 1, by4);
+        case_set(bw4, a->, 0, bx4);
+#undef set_ctx
+
         if (has_chroma) {
-            memset(&t->l.uvmode[cby4], DC_PRED, cbh4);
-            memset(&t->a->uvmode[cbx4], DC_PRED, cbw4);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+            rep_macro(type, t->dir uvmode, off, mul * DC_PRED)
+            case_set(cbh4, l., 1, cby4);
+            case_set(cbw4, a->, 0, cbx4);
+#undef set_ctx
         }
-        memset(&t->a->tx_intra[bx4], b_dim[2], bw4);
-        memset(&t->l.tx_intra[by4], b_dim[3], bh4);
-        memset(&t->l.comp_type[by4], b->comp_type, bh4);
-        memset(&t->a->comp_type[bx4], b->comp_type, bw4);
-        memset(&t->l.filter[0][by4], filter[0], bh4);
-        memset(&t->a->filter[0][bx4], filter[0], bw4);
-        memset(&t->l.filter[1][by4], filter[1], bh4);
-        memset(&t->a->filter[1][bx4], filter[1], bw4);
-        memset(&t->l.mode[by4], b->inter_mode, bh4);
-        memset(&t->a->mode[bx4], b->inter_mode, bw4);
-        memset(&t->l.ref[0][by4], b->ref[0], bh4);
-        memset(&t->a->ref[0][bx4], b->ref[0], bw4);
-        memset(&t->l.ref[1][by4], b->ref[1], bh4);
-        memset(&t->a->ref[1][bx4], b->ref[1], bw4);
     }
 
     // update contexts
@@ -1794,19 +1829,14 @@ static int decode_b(Dav1dTileContext *const t,
         f->frame_hdr.segmentation.update_map)
     {
         uint8_t *seg_ptr = &f->cur_segmap[t->by * f->b4_stride + t->bx];
-        for (int y = 0; y < bh4; y++) {
-            memset(seg_ptr, b->seg_id, bw4);
-            seg_ptr += f->b4_stride;
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        for (int y = 0; y < bh4; y++) { \
+            rep_macro(type, seg_ptr, 0, mul * b->seg_id); \
+            seg_ptr += f->b4_stride; \
         }
+        case_set(bw4, NULL, 0, 0);
+#undef set_ctx
     }
-    memset(&t->l.seg_pred[by4], seg_pred, bh4);
-    memset(&t->a->seg_pred[bx4], seg_pred, bw4);
-    memset(&t->l.skip_mode[by4], b->skip_mode, bh4);
-    memset(&t->a->skip_mode[bx4], b->skip_mode, bw4);
-    memset(&t->l.intra[by4], b->intra, bh4);
-    memset(&t->a->intra[bx4], b->intra, bw4);
-    memset(&t->l.skip[by4], b->skip, bh4);
-    memset(&t->a->skip[bx4], b->skip, bw4);
     if (!b->skip) {
         uint16_t (*noskip_mask)[2] = &t->lf_mask->noskip_mask[by4];
         const unsigned mask = (~0U >> (32 - bw4)) << (bx4 & 15);
@@ -2081,8 +2111,11 @@ static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
     }
 
     if (f->frame_thread.pass != 2 && (bp != PARTITION_SPLIT || bl == BL_8X8)) {
-        memset(&t->a->partition[bx8], dav1d_al_part_ctx[0][bl][bp], hsz);
-        memset(&t->l.partition[by8], dav1d_al_part_ctx[1][bl][bp], hsz);
+#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+        rep_macro(type, t->a->partition, bx8, mul * dav1d_al_part_ctx[0][bl][bp]); \
+        rep_macro(type, t->l.partition, by8, mul * dav1d_al_part_ctx[1][bl][bp])
+        case_set_upto16(hsz,,,);
+#undef set_ctx
     }
 
     return 0;
