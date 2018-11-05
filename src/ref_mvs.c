@@ -301,8 +301,8 @@ static INLINE int is_global_mv_block(const MB_MODE_INFO *const mbmi,
   const BLOCK_SIZE bsize = mbmi->sb_type;
   const int block_size_allowed =
       AOMMIN(block_size_wide[bsize], block_size_high[bsize]) >= 8;
-  return (mode == GLOBALMV || mode == GLOBAL_GLOBALMV) && type > TRANSLATION &&
-         block_size_allowed;
+  return block_size_allowed && type > TRANSLATION &&
+         (mode == GLOBALMV || mode == GLOBAL_GLOBALMV);
 }
 
 typedef struct {
