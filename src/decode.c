@@ -2809,7 +2809,7 @@ error:
 
 int dav1d_submit_frame(Dav1dContext *const c) {
     Dav1dFrameContext *f;
-    int res;
+    int res = -1;
 
     // wait for c->out_delayed[next] and move into c->out if visible
     Dav1dThreadPicture *out_delayed;
@@ -2861,7 +2861,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         default:
             fprintf(stderr, "Compiled without support for %d-bit decoding\n",
                     f->seq_hdr.bpc);
-            return -ENOPROTOOPT;
+            res = -ENOPROTOOPT;
+            goto error;
         }
     }
 
@@ -2885,8 +2886,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     if (f->frame_hdr.frame_type & 1) {
         if (f->frame_hdr.primary_ref_frame != PRIMARY_REF_NONE) {
             const int pri_ref = f->frame_hdr.refidx[f->frame_hdr.primary_ref_frame];
-            if (!c->refs[pri_ref].p.p.data[0])
-                return -EINVAL;
+            if (!c->refs[pri_ref].p.p.data[0]) {
+                res = -EINVAL;
+                goto error;
+            }
         }
         for (int i = 0; i < 7; i++) {
             const int refidx = f->frame_hdr.refidx[i];
@@ -2898,7 +2901,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             {
                 for (int j = 0; j < i; j++)
                     dav1d_thread_picture_unref(&f->refp[j]);
-                return -EINVAL;
+                res = -EINVAL;
+                goto error;
             }
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
         }
@@ -3097,5 +3101,5 @@ error:
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
 
-    return -1;
+    return res;
 }
