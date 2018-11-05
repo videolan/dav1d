@@ -226,6 +226,69 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
     report("w_mask");
 }
 
+static void check_warp8x8(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_32(pixel, src_buf, 15 * 15,);
+    ALIGN_STK_32(pixel, c_dst,    8 *  8,);
+    ALIGN_STK_32(pixel, a_dst,    8 *  8,);
+    int16_t abcd[4];
+    const pixel *src = src_buf + 15 * 3 + 3;
+    const ptrdiff_t dst_stride =  8 * sizeof(pixel);
+    const ptrdiff_t src_stride = 15 * sizeof(pixel);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel *src,
+                 ptrdiff_t src_stride, const int16_t *abcd, int mx, int my);
+
+    if (check_func(c->warp8x8, "warp_8x8_%dbpc", BITDEPTH)) {
+        const int mx = (rand() & 0x1fff) - 0x800;
+        const int my = (rand() & 0x1fff) - 0x800;
+
+        for (int i = 0; i < 4; i++)
+            abcd[i] = (rand() & 0x1fff) - 0x800;
+
+        for (int i = 0; i < 15 * 15; i++)
+            src_buf[i] = rand() & ((1 << BITDEPTH) - 1);
+
+        call_ref(c_dst, dst_stride, src, src_stride, abcd, mx, my);
+        call_new(a_dst, dst_stride, src, src_stride, abcd, mx, my);
+        if (memcmp(c_dst, a_dst, 8 * 8 * sizeof(*c_dst)))
+            fail();
+
+        bench_new(a_dst, dst_stride, src, src_stride, abcd, mx, my);
+    }
+    report("warp8x8");
+}
+
+static void check_warp8x8t(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_32(pixel, src_buf, 15 * 15,);
+    ALIGN_STK_32(coef,  c_tmp,    8 *  8,);
+    ALIGN_STK_32(coef,  a_tmp,    8 *  8,);
+    int16_t abcd[4];
+    const pixel *src = src_buf + 15 * 3 + 3;
+    const ptrdiff_t src_stride = 15 * sizeof(pixel);
+
+    declare_func(void, coef *tmp, ptrdiff_t tmp_stride, const pixel *src,
+                 ptrdiff_t src_stride, const int16_t *abcd, int mx, int my);
+
+    if (check_func(c->warp8x8t, "warp_8x8t_%dbpc", BITDEPTH)) {
+        const int mx = (rand() & 0x1fff) - 0x800;
+        const int my = (rand() & 0x1fff) - 0x800;
+
+        for (int i = 0; i < 4; i++)
+            abcd[i] = (rand() & 0x1fff) - 0x800;
+
+        for (int i = 0; i < 15 * 15; i++)
+            src_buf[i] = rand() & ((1 << BITDEPTH) - 1);
+
+        call_ref(c_tmp, 8, src, src_stride, abcd, mx, my);
+        call_new(a_tmp, 8, src, src_stride, abcd, mx, my);
+        if (memcmp(c_tmp, a_tmp, 8 * 8 * sizeof(*c_tmp)))
+            fail();
+
+        bench_new(a_tmp, 8, src, src_stride, abcd, mx, my);
+    }
+    report("warp8x8t");
+}
+
 void bitfn(checkasm_check_mc)(void) {
     Dav1dMCDSPContext c;
     bitfn(dav1d_mc_dsp_init)(&c);
@@ -236,4 +299,6 @@ void bitfn(checkasm_check_mc)(void) {
     check_w_avg(&c);
     check_mask(&c);
     check_w_mask(&c);
+    check_warp8x8(&c);
+    check_warp8x8t(&c);
 }
