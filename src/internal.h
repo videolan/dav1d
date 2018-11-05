@@ -217,7 +217,7 @@ struct Dav1dTileState {
     CdfContext cdf;
     MsacContext msac;
 
-    atomic_int progress; // in sby units
+    atomic_int progress; // in sby units, TILE_ERROR after a decoding error
     struct {
         pthread_mutex_t lock;
         pthread_cond_t cond;
