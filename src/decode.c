@@ -2795,8 +2795,10 @@ error:
 
     dav1d_thread_picture_unref(&f->cur);
     dav1d_cdf_thread_unref(&f->in_cdf);
-    if (f->frame_hdr.refresh_context)
-            dav1d_cdf_thread_unref(&f->out_cdf);
+    if (f->frame_hdr.refresh_context) {
+        dav1d_cdf_thread_signal(&f->out_cdf);
+        dav1d_cdf_thread_unref(&f->out_cdf);
+    }
     dav1d_ref_dec(&f->cur_segmap_ref);
     dav1d_ref_dec(&f->prev_segmap_ref);
     dav1d_ref_dec(&f->mvs_ref);
@@ -3100,6 +3102,12 @@ error:
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
+    f->n_tile_data = 0;
+
+    if (c->n_fc > 1) {
+        pthread_cond_signal(&f->frame_thread.td.cond);
+        pthread_mutex_unlock(&f->frame_thread.td.lock);
+    }
 
     return res;
 }
