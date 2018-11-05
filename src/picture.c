@@ -161,6 +161,7 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
         picture_alloc_with_edges(&p->p, w, h, layout, bpc, p_allocator,
                                  t != NULL ? sizeof(atomic_int) * 2 : 0,
                                  (void **) &p->progress);
+    if (res) return res;
 
     p->visible = visible;
     p->flushed = 0;
