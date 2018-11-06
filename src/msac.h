@@ -40,12 +40,13 @@ typedef struct MsacContext {
     ec_win dif;
     uint16_t rng;
     int cnt;
+    int allow_update_cdf;
 } MsacContext;
 
 #define EC_PROB_SHIFT 6
 #define EC_BOOL_EPROB 256
 
-void msac_init(MsacContext *c, const uint8_t *data, size_t sz);
+void msac_init(MsacContext *c, const uint8_t *data, size_t sz, int disable_cdf_update_flag);
 unsigned msac_decode_symbol(MsacContext *s, const uint16_t *cdf,
                             const unsigned n_symbols);
 unsigned msac_decode_symbol_adapt(MsacContext *s, uint16_t *cdf,

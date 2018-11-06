@@ -157,33 +157,37 @@ unsigned msac_decode_symbol_adapt(MsacContext *const c,
                                   uint16_t *const cdf, const unsigned n_symbols)
 {
     const unsigned val = msac_decode_symbol(c, cdf, n_symbols);
-    update_cdf(cdf, val, n_symbols);
+    if(c->allow_update_cdf)
+        update_cdf(cdf, val, n_symbols);
     return val;
 }
 
 unsigned msac_decode_bool_adapt(MsacContext *const c, uint16_t *const cdf) {
     const unsigned bit = msac_decode_bool(c, *cdf >> EC_PROB_SHIFT);
 
-    // update_cdf() specialized for boolean CDFs
-    const unsigned count = cdf[1];
-    const int rate = (count >> 4) | 4;
-    if (bit) {
-        cdf[0] += (32768 - cdf[0]) >> rate;
-    } else {
-        cdf[0] -= cdf[0] >> rate;
+    if(c->allow_update_cdf){
+        // update_cdf() specialized for boolean CDFs
+        const unsigned count = cdf[1];
+        const int rate = (count >> 4) | 4;
+        if (bit) {
+            cdf[0] += (32768 - cdf[0]) >> rate;
+        } else {
+            cdf[0] -= cdf[0] >> rate;
+        }
+        cdf[1] = count + (count < 32);
     }
-    cdf[1] = count + (count < 32);
 
     return bit;
 }
 
 void msac_init(MsacContext *const s, const uint8_t *const data,
-               const size_t sz)
+               const size_t sz, const int disable_cdf_update_flag)
 {
     s->buf_pos = data;
     s->buf_end = data + sz;
     s->dif = ((ec_win)1 << (EC_WIN_SIZE - 1)) - 1;
     s->rng = 0x8000;
     s->cnt = -15;
+    s->allow_update_cdf = !disable_cdf_update_flag;
     ctx_refill(s);
 }

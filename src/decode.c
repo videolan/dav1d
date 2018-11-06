@@ -2134,7 +2134,7 @@ static void setup_tile(Dav1dTileState *const ts,
     ts->last_qidx = f->frame_hdr.quant.yac;
     memset(ts->last_delta_lf, 0, sizeof(ts->last_delta_lf));
 
-    msac_init(&ts->msac, data, sz);
+    msac_init(&ts->msac, data, sz, f->frame_hdr.disable_cdf_update);
 
     ts->tiling.row = tile_row;
     ts->tiling.col = tile_col;
