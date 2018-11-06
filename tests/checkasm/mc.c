@@ -26,6 +26,9 @@
  */
 
 #include "tests/checkasm/checkasm.h"
+
+#include <assert.h>
+
 #include "src/levels.h"
 #include "src/mc.h"
 
@@ -296,6 +299,90 @@ static void check_warp8x8t(Dav1dMCDSPContext *const c) {
     report("warp8x8t");
 }
 
+static int cmp2d(const pixel *a, const pixel *b, const ptrdiff_t stride,
+                 const int w, const int h)
+{
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++)
+            if (a[x] != b[x]) return (y << 16) | x;
+        a += PXSTRIDE(stride);
+        b += PXSTRIDE(stride);
+    }
+    return -1;
+}
+
+enum EdgeFlags {
+    HAVE_TOP = 1,
+    HAVE_BOTTOM = 2,
+    HAVE_LEFT = 4,
+    HAVE_RIGHT = 8,
+};
+
+static void random_offset_for_edge(int *const x, int *const y,
+                                   const int bw, const int bh,
+                                   int *const iw, int *const ih,
+                                   const enum EdgeFlags edge)
+{
+#define set_off(edge1, edge2, pos, dim) \
+    *i##dim = edge & (HAVE_##edge1 | HAVE_##edge2) ? 160 : 1 + (rand() % (b##dim - 2)); \
+    switch (edge & (HAVE_##edge1 | HAVE_##edge2)) { \
+    case HAVE_##edge1 | HAVE_##edge2: \
+        assert(b##dim <= *i##dim); \
+        *pos = rand() % (*i##dim - b##dim + 1); \
+        break; \
+    case HAVE_##edge1: \
+        *pos = (*i##dim - b##dim) + 1 + (rand() % (b##dim - 1)); \
+        break; \
+    case HAVE_##edge2: \
+        *pos = -(1 + (rand() % (b##dim - 1))); \
+        break; \
+    case 0: \
+        assert(b##dim - 1 > *i##dim); \
+        *pos = -(1 + (rand() % (b##dim - *i##dim - 1))); \
+        break; \
+    }
+    set_off(LEFT, RIGHT, x, w);
+    set_off(TOP, BOTTOM, y, h);
+}
+
+static void check_emuedge(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_32(pixel, c_dst, 135 * 160,);
+    ALIGN_STK_32(pixel, a_dst, 135 * 160,);
+    ALIGN_STK_32(pixel, src,   160 * 160,);
+
+    for (int i = 0; i < 160 * 160; i++)
+        src[i] = rand() & ((1U << BITDEPTH) - 1);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride,
+                 const pixel *src, ptrdiff_t src_stride,
+                 int bw, int bh, int iw, int ih, int x, int y);
+
+    int x, y, iw, ih;
+    for (int w = 4; w <= 128; w <<= 1)
+        if (check_func(c->emu_edge, "emu_edge_w%d_%dbpc", w, BITDEPTH)) {
+            for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1) {
+                // we skip 0xf, since it implies that we don't need emu_edge
+                for (enum EdgeFlags edge = 0; edge < 0xf; edge++) {
+                    const int bw = w + (rand() & 7);
+                    const int bh = h + (rand() & 7);
+                    random_offset_for_edge(&x, &y, bw, bh, &iw, &ih, edge);
+                    call_ref(c_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
+                             bw, bh, iw, ih, x, y);
+                    call_new(a_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
+                             bw, bh, iw, ih, x, y);
+                    const int res = cmp2d(c_dst, a_dst, 160 * sizeof(pixel), bw, bh);
+                    if (res != -1) fail();
+                }
+            }
+            for (enum EdgeFlags edge = 1; edge < 0xf; edge <<= 1) {
+                random_offset_for_edge(&x, &y, w + 7, w + 7, &iw, &ih, edge);
+                bench_new(a_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
+                          w + 7, w + 7, iw, ih, x, y);
+            }
+        }
+    report("emu_edge");
+}
+
 void bitfn(checkasm_check_mc)(void) {
     Dav1dMCDSPContext c;
     bitfn(dav1d_mc_dsp_init)(&c);
@@ -308,4 +395,5 @@ void bitfn(checkasm_check_mc)(void) {
     check_w_mask(&c);
     check_warp8x8(&c);
     check_warp8x8t(&c);
+    check_emuedge(&c);
 }
