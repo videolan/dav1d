@@ -2813,8 +2813,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 const int tile_start_off = f->frame_thread.tile_start_off[tile_idx];
                 ts->frame_thread.pal_idx = &f->frame_thread.pal_idx[tile_start_off * 2];
                 ts->frame_thread.cf = &((int32_t *) f->frame_thread.cf)[tile_start_off * 3];
-                if (f->n_tc > 0)
-                    atomic_init(&ts->progress, 0);
+                if (f->n_tc > 0) {
+                    unsigned row_sb_start = f->frame_hdr.tiling.row_start_sb[ts->tiling.row];
+                    atomic_init(&ts->progress, row_sb_start);
+                }
             }
         }
     }
