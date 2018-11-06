@@ -95,7 +95,7 @@ unsigned dav1d_get_vlc(GetBits *const c) {
     while (!dav1d_get_bits(c, 1))
         if (++n_bits == 32)
             return 0xFFFFFFFFU;
-    return n_bits ? ((1 << n_bits) - 1) + dav1d_get_bits(c, n_bits) : 0;
+    return n_bits ? ((1U << n_bits) - 1) + dav1d_get_bits(c, n_bits) : 0;
 }
 
 static unsigned get_bits_subexp_u(GetBits *const c, const unsigned ref,
