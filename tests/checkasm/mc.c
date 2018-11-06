@@ -55,8 +55,10 @@ static void check_mc(Dav1dMCDSPContext *const c) {
             for (int mxy = 0; mxy < 4; mxy++)
                 if (check_func(c->mc[filter], "mc_%s_w%d_%s_%dbpc",
                     filter_names[filter], w, mxy_names[mxy], BITDEPTH))
-                    for (int h = imax(w / 4, 2); h <= imin(w * 4, 128); h <<= 1)
-                    {
+                {
+                    const int min = w <= 32 ? 2 : w / 4;
+                    const int max = imax(imin(w * 4, 128), 32);
+                    for (int h = min; h <= max; h <<= 1) {
                         const int mx = (mxy & 1) ? rand() % 15 + 1 : 0;
                         const int my = (mxy & 2) ? rand() % 15 + 1 : 0;
 
@@ -67,6 +69,7 @@ static void check_mc(Dav1dMCDSPContext *const c) {
 
                         bench_new(a_dst, w, src, w, w, h, mx, my);
                     }
+                }
     report("mc");
 }
 
