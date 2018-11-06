@@ -87,9 +87,8 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
 typedef decl_blend_fn(*blend_fn);
 
 #define decl_emu_edge_fn(name) \
-void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const pixel *src, ptrdiff_t src_stride, \
-            int bw, int bh, int iw, int ih, int x, int y)
+void (name)(intptr_t bw, intptr_t bh, intptr_t iw, intptr_t ih, intptr_t x, intptr_t y, \
+            pixel *dst, ptrdiff_t dst_stride, const pixel *src, ptrdiff_t src_stride)
 typedef decl_emu_edge_fn(*emu_edge_fn);
 
 typedef struct Dav1dMCDSPContext {

@@ -346,16 +346,17 @@ static void random_offset_for_edge(int *const x, int *const y,
 }
 
 static void check_emuedge(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(pixel, c_dst, 135 * 160,);
-    ALIGN_STK_32(pixel, a_dst, 135 * 160,);
+    ALIGN_STK_32(pixel, c_dst, 135 * 192,);
+    ALIGN_STK_32(pixel, a_dst, 135 * 192,);
     ALIGN_STK_32(pixel, src,   160 * 160,);
 
     for (int i = 0; i < 160 * 160; i++)
         src[i] = rand() & ((1U << BITDEPTH) - 1);
 
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride,
-                 const pixel *src, ptrdiff_t src_stride,
-                 int bw, int bh, int iw, int ih, int x, int y);
+    declare_func(void, intptr_t bw, intptr_t bh, intptr_t iw, intptr_t ih,
+                 intptr_t x, intptr_t y,
+                 pixel *dst, ptrdiff_t dst_stride,
+                 const pixel *src, ptrdiff_t src_stride);
 
     int x, y, iw, ih;
     for (int w = 4; w <= 128; w <<= 1)
@@ -366,18 +367,18 @@ static void check_emuedge(Dav1dMCDSPContext *const c) {
                     const int bw = w + (rand() & 7);
                     const int bh = h + (rand() & 7);
                     random_offset_for_edge(&x, &y, bw, bh, &iw, &ih, edge);
-                    call_ref(c_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
-                             bw, bh, iw, ih, x, y);
-                    call_new(a_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
-                             bw, bh, iw, ih, x, y);
-                    const int res = cmp2d(c_dst, a_dst, 160 * sizeof(pixel), bw, bh);
+                    call_ref(bw, bh, iw, ih, x, y,
+                             c_dst, 192 * sizeof(pixel), src, 160 * sizeof(pixel));
+                    call_new(bw, bh, iw, ih, x, y,
+                             a_dst, 192 * sizeof(pixel), src, 160 * sizeof(pixel));
+                    const int res = cmp2d(c_dst, a_dst, 192 * sizeof(pixel), bw, bh);
                     if (res != -1) fail();
                 }
             }
             for (enum EdgeFlags edge = 1; edge < 0xf; edge <<= 1) {
                 random_offset_for_edge(&x, &y, w + 7, w + 7, &iw, &ih, edge);
-                bench_new(a_dst, 160 * sizeof(pixel), src, 160 * sizeof(pixel),
-                          w + 7, w + 7, iw, ih, x, y);
+                bench_new(w + 7, w + 7, iw, ih, x, y,
+                          a_dst, 192 * sizeof(pixel), src, 160 * sizeof(pixel));
             }
         }
     report("emu_edge");
