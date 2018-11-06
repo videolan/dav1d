@@ -35,7 +35,7 @@
 union alias64 { uint64_t u64; uint8_t u8[8]; } ATTR_ALIAS;
 union alias32 { uint32_t u32; uint8_t u8[4]; } ATTR_ALIAS;
 union alias16 { uint16_t u16; uint8_t u8[2]; } ATTR_ALIAS;
-union alias8 { uint8_t u8; };
+union alias8 { uint8_t u8; } ATTR_ALIAS;
 
 #define set_ctx_rep4(type, var, off, val) do { \
         const uint64_t const_val = val; \
