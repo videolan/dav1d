@@ -454,55 +454,6 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
     }
 }
 
-static void emu_edge(pixel *dst, const ptrdiff_t dst_stride,
-                     const pixel *ref, const ptrdiff_t ref_stride,
-                     const int bw, const int bh,
-                     const int iw, const int ih,
-                     const int x, const int y)
-{
-    // find offset in reference of visible block to copy
-    ref += iclip(y, 0, ih - 1) * PXSTRIDE(ref_stride) + iclip(x, 0, iw - 1);
-
-    // number of pixels to extend (left, right, top, bottom)
-    const int left_ext = iclip(-x, 0, bw - 1);
-    const int right_ext = iclip(x + bw - iw, 0, bw - 1);
-    assert(left_ext + right_ext < bw);
-    const int top_ext = iclip(-y, 0, bh - 1);
-    const int bottom_ext = iclip(y + bh - ih, 0, bh - 1);
-    assert(top_ext + bottom_ext < bh);
-
-    // copy visible portion first
-    pixel *blk = dst + top_ext * PXSTRIDE(dst_stride);
-    const int center_w = bw - left_ext - right_ext;
-    const int center_h = bh - top_ext - bottom_ext;
-    for (int y = 0; y < center_h; y++) {
-        pixel_copy(blk + left_ext, ref, center_w);
-        // extend left edge for this line
-        if (left_ext)
-            pixel_set(blk, blk[left_ext], left_ext);
-        // extend right edge for this line
-        if (right_ext)
-            pixel_set(blk + left_ext + center_w, blk[left_ext + center_w - 1],
-                      right_ext);
-        ref += PXSTRIDE(ref_stride);
-        blk += PXSTRIDE(dst_stride);
-    }
-
-    // copy top
-    blk = dst + top_ext * PXSTRIDE(dst_stride);
-    for (int y = 0; y < top_ext; y++) {
-        pixel_copy(dst, blk, bw);
-        dst += PXSTRIDE(dst_stride);
-    }
-
-    // copy bottom
-    dst += center_h * PXSTRIDE(dst_stride);
-    for (int y = 0; y < bottom_ext; y++) {
-        pixel_copy(dst, &dst[-PXSTRIDE(dst_stride)], bw);
-        dst += PXSTRIDE(dst_stride);
-    }
-}
-
 static void mc(Dav1dTileContext *const t,
                pixel *const dst8, coef *const dst16, const ptrdiff_t dst_stride,
                const int bw4, const int bh4,
@@ -536,9 +487,10 @@ static void mc(Dav1dTileContext *const t,
         dx + bw4 * h_mul + !!mx * 4 > w ||
         dy + bh4 * v_mul + !!my * 4 > h)
     {
-        emu_edge(t->emu_edge, 160 * sizeof(pixel), refp->p.data[pl], ref_stride,
-                 bw4 * h_mul + !!mx * 7, bh4 * v_mul + !!my * 7, w, h,
-                 dx - !!mx * 3, dy - !!my * 3);
+        f->dsp->mc.emu_edge(t->emu_edge, 160 * sizeof(pixel),
+                            refp->p.data[pl], ref_stride,
+                            bw4 * h_mul + !!mx * 7, bh4 * v_mul + !!my * 7,
+                            w, h, dx - !!mx * 3, dy - !!my * 3);
         ref = &t->emu_edge[160 * !!my * 3 + !!mx * 3];
         ref_stride = 160 * sizeof(pixel);
     } else {
@@ -666,8 +618,9 @@ static void warp_affine(Dav1dTileContext *const t,
             dav1d_thread_picture_wait(refp, dy + 4 + 8,
                                       PLANE_TYPE_Y + !!pl);
             if (dx < 3 || dx + 8 + 4 > width || dy < 3 || dy + 8 + 4 > height) {
-                emu_edge(t->emu_edge, 160 * sizeof(pixel), refp->p.data[pl],
-                         ref_stride, 15, 15, width, height, dx - 3, dy - 3);
+                f->dsp->mc.emu_edge(t->emu_edge, 160 * sizeof(pixel),
+                                    refp->p.data[pl], ref_stride,
+                                    15, 15, width, height, dx - 3, dy - 3);
                 ref_ptr = &t->emu_edge[160 * 3 + 3];
                 ref_stride = 160 * sizeof(pixel);
             } else {

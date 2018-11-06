@@ -86,6 +86,12 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
             const uint8_t *mask, ptrdiff_t mstride)
 typedef decl_blend_fn(*blend_fn);
 
+#define decl_emu_edge_fn(name) \
+void (name)(pixel *dst, ptrdiff_t dst_stride, \
+            const pixel *src, ptrdiff_t src_stride, \
+            int bw, int bh, int iw, int ih, int x, int y)
+typedef decl_emu_edge_fn(*emu_edge_fn);
+
 typedef struct Dav1dMCDSPContext {
     mc_fn mc[N_2D_FILTERS];
     mct_fn mct[N_2D_FILTERS];
@@ -96,6 +102,7 @@ typedef struct Dav1dMCDSPContext {
     blend_fn blend;
     warp8x8_fn warp8x8;
     warp8x8t_fn warp8x8t;
+    emu_edge_fn emu_edge;
 } Dav1dMCDSPContext;
 
 void dav1d_mc_dsp_init_8bpc(Dav1dMCDSPContext *c);
