@@ -206,15 +206,13 @@ int dav1d_decode(Dav1dContext *const c,
         in->data += res;
         if (!in->sz) dav1d_data_unref(in);
         if (c->out.data[0]) {
-            dav1d_picture_ref(out, &c->out);
-            dav1d_picture_unref(&c->out);
+            dav1d_picture_move_ref(out, &c->out);
             return 0;
         }
     }
 
     if (c->out.data[0]) {
-        dav1d_picture_ref(out, &c->out);
-        dav1d_picture_unref(&c->out);
+        dav1d_picture_move_ref(out, &c->out);
         return 0;
     }
 

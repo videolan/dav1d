@@ -68,6 +68,11 @@ void dav1d_thread_picture_ref(Dav1dThreadPicture *dst,
 void dav1d_thread_picture_unref(Dav1dThreadPicture *p);
 
 /**
+ * Move a picture reference.
+ */
+void dav1d_picture_move_ref(Dav1dPicture *dst, Dav1dPicture *src);
+
+/**
  * Wait for picture to reach a certain stage.
  *
  * y is in full-pixel units. If pt is not UV, this is in luma

@@ -185,6 +185,18 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
     *dst = *src;
 }
 
+void dav1d_picture_move_ref(Dav1dPicture *const dst, Dav1dPicture *const src) {
+    validate_input(dst != NULL);
+    validate_input(dst->data[0] == NULL);
+    validate_input(src != NULL);
+
+    if (src->ref)
+        validate_input(src->data[0] != NULL);
+
+    *dst = *src;
+    memset(src, 0, sizeof(*src));
+}
+
 void dav1d_thread_picture_ref(Dav1dThreadPicture *dst,
                               const Dav1dThreadPicture *src)
 {
