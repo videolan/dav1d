@@ -2392,9 +2392,10 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
     int align_h = (f->bh + 31) & ~31;
     memcpy(&f->lf.tx_lpf_right_edge[0][align_h * tile_col + t->by],
            &t->l.tx_lpf_y[t->by & 16], sb_step);
-    align_h >>= 1;
-    memcpy(&f->lf.tx_lpf_right_edge[1][align_h * tile_col + (t->by >> 1)],
-           &t->l.tx_lpf_uv[(t->by & 16) >> 1], sb_step >> 1);
+    align_h >>= ss_ver;
+
+    memcpy(&f->lf.tx_lpf_right_edge[1][align_h * tile_col + (t->by >> ss_ver)],
+           &t->l.tx_lpf_uv[(t->by & 16) >> ss_ver], sb_step >> ss_ver);
 
     return 0;
 }
