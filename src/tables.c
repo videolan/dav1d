@@ -446,7 +446,7 @@ const uint8_t /* enum FilterMode */ dav1d_filter_dir[N_2D_FILTERS][2] = {
     [FILTER_2D_8TAP_SMOOTH_REGULAR] = { FILTER_8TAP_REGULAR, FILTER_8TAP_SMOOTH  },
     [FILTER_2D_8TAP_SMOOTH]         = { FILTER_8TAP_SMOOTH,  FILTER_8TAP_SMOOTH  },
     [FILTER_2D_8TAP_SMOOTH_SHARP]   = { FILTER_8TAP_SHARP,   FILTER_8TAP_SMOOTH  },
-    [FILTER_2D_BILINEAR]            = { FILTER_2D_BILINEAR,  FILTER_2D_BILINEAR  },
+    [FILTER_2D_BILINEAR]            = { FILTER_BILINEAR,     FILTER_BILINEAR     },
 };
 
 const uint8_t dav1d_filter_mode_to_y_mode[5] = {
