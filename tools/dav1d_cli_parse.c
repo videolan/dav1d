@@ -180,6 +180,9 @@ void parse(const int argc, char *const *const argv,
 
     if (!cli_settings->inputfile)
         usage(argv[0], "Input file (-i/--input) is required");
-    if (strcmp(cli_settings->muxer,"null") && !cli_settings->outputfile)
+    if ((!cli_settings->muxer || strcmp(cli_settings->muxer, "null")) &&
+        !cli_settings->outputfile)
+    {
         usage(argv[0], "Output file (-o/--output) is required");
+    }
 }
