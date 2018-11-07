@@ -237,12 +237,12 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
 }
 
 static void check_blend(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(pixel, tmp, 128 * 128,);
-    ALIGN_STK_32(pixel, c_dst, 128 * 128,);
-    ALIGN_STK_32(pixel, a_dst, 128 * 128,);
-    ALIGN_STK_32(uint8_t, mask, 128 * 128,);
+    ALIGN_STK_32(pixel, tmp, 128 * 32,);
+    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
+    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
+    ALIGN_STK_32(uint8_t, mask, 128 * 32,);
 
-    for (int i = 0; i < 128 * 128; i++) {
+    for (int i = 0; i < 128 * 32; i++) {
         tmp[i] = rand() & ((1 << BITDEPTH) - 1);
         mask[i] = rand() % 65;
     }
@@ -252,9 +252,11 @@ static void check_blend(Dav1dMCDSPContext *const c) {
 
     for (int w = 2; w <= 128; w <<= 1) {
         const ptrdiff_t dst_stride = w * sizeof(pixel);
+        const int h_min = (w == 128) ? 4 : 2;
+        const int h_max = (w > 32) ? 32 : (w == 2) ? 64 : 128;
         for (int ms = 0; ms <= w; ms += ms ? w - 1 : 1)
             if (check_func(c->blend, "blend_w%d_ms%d_%dbpc", w, ms, BITDEPTH))
-                for (int h = imax(w / 8, 2); h <= imin(w * 8, 128); h <<= 1) {
+                for (int h = h_min; h <= h_max; h <<= 1) {
                     for (int i = 0; i < w * h; i++)
                         c_dst[i] = a_dst[i] = rand() & ((1 << BITDEPTH) - 1);
 
