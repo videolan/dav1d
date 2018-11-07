@@ -530,10 +530,10 @@ static int mc(Dav1dTileContext *const t,
     {
         f->dsp->mc.emu_edge(bw4 * h_mul + !!mx * 7, bh4 * v_mul + !!my * 7,
                             w, h, dx - !!mx * 3, dy - !!my * 3,
-                            t->emu_edge, 160 * sizeof(pixel),
+                            t->emu_edge, 192 * sizeof(pixel),
                             refp->p.data[pl], ref_stride);
-        ref = &t->emu_edge[160 * !!my * 3 + !!mx * 3];
-        ref_stride = 160 * sizeof(pixel);
+        ref = &t->emu_edge[192 * !!my * 3 + !!mx * 3];
+        ref_stride = 192 * sizeof(pixel);
     } else {
         ref = ((pixel *) refp->p.data[pl]) + PXSTRIDE(ref_stride) * dy + dx;
     }
@@ -668,10 +668,10 @@ static int warp_affine(Dav1dTileContext *const t,
             }
             if (dx < 3 || dx + 8 + 4 > width || dy < 3 || dy + 8 + 4 > height) {
                 f->dsp->mc.emu_edge(15, 15, width, height, dx - 3, dy - 3,
-                                    t->emu_edge, 160 * sizeof(pixel),
+                                    t->emu_edge, 192 * sizeof(pixel),
                                     refp->p.data[pl], ref_stride);
-                ref_ptr = &t->emu_edge[160 * 3 + 3];
-                ref_stride = 160 * sizeof(pixel);
+                ref_ptr = &t->emu_edge[192 * 3 + 3];
+                ref_stride = 192 * sizeof(pixel);
             } else {
                 ref_ptr = ((pixel *) refp->p.data[pl]) + PXSTRIDE(ref_stride) * dy + dx;
             }
