@@ -28,6 +28,10 @@
 #ifndef __DAV1D_H__
 #define __DAV1D_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common.h"
 #include "picture.h"
 #include "data.h"
@@ -101,5 +105,9 @@ DAV1D_API void dav1d_close(Dav1dContext **c_out);
  * @param c Input decoder instance.
  */
 DAV1D_API void dav1d_flush(Dav1dContext *c);
+
+# ifdef __cplusplus
+}
+# endif
 
 #endif /* __DAV1D_H__ */
