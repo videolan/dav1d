@@ -79,7 +79,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --input/-i  $file:   input file\n"
             " --output/-o $file:   output file\n"
             " --demuxer $name:     force demuxer type (must be 'ivf'; default: detect from extension)\n"
-            " --muxer $name:       force muxer type ('md5', 'yuv' or 'yuv4mpeg2'; default: detect from extension)\n"
+            " --muxer $name:       force muxer type ('md5', 'yuv', 'yuv4mpeg2' or 'null'; default: detect from extension)\n"
             " --quiet/-q:          disable status messages\n"
             " --limit/-l $num:     stop decoding after $num frames\n"
             " --skip/-s $num:      skip decoding of the first $num frames\n"
@@ -180,6 +180,6 @@ void parse(const int argc, char *const *const argv,
 
     if (!cli_settings->inputfile)
         usage(argv[0], "Input file (-i/--input) is required");
-    if (!cli_settings->outputfile)
+    if (strcmp(cli_settings->muxer,"null") && !cli_settings->outputfile)
         usage(argv[0], "Output file (-o/--output) is required");
 }
