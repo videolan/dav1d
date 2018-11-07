@@ -108,6 +108,11 @@ if not cc.check_header('stdatomic.h')
         stdatomic_dependency = declare_dependency(
             include_directories : include_directories('include/compat'),
         )
+    elif cc.compiles('''int main() { int v = 0; return __atomic_fetch_add(&v, 1, __ATOMIC_SEQ_CST); }''',
+                     name : 'GCC-style atomics', args : test_args)
+        stdatomic_dependency = declare_dependency(
+            include_directories : include_directories('include/compat/gcc'),
+        )
     else
         error('Atomics not supported')
     endif
