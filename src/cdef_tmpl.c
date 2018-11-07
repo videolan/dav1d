@@ -128,7 +128,7 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
             const int px = dst[x];
             int max = px, min = px;
             for (int k = 0; k < 2; k++) {
-                const int8_t off1 = cdef_directions[dir][k];
+                const int off1 = cdef_directions[dir][k];
                 const int p0 = tmp[x + off1];
                 const int p1 = tmp[x - off1];
                 sum += pri_taps[k] * constrain(p0 - px, pri_strength, damping);
@@ -137,10 +137,10 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
                 if (p1 != INT16_MAX) max = imax(p1, max);
                 min = imin(p0, min);
                 min = imin(p1, min);
-                const int8_t off2 = cdef_directions[(dir + 2) & 7][k];
+                const int off2 = cdef_directions[(dir + 2) & 7][k];
                 const int s0 = tmp[x + off2];
                 const int s1 = tmp[x - off2];
-                const int8_t off3 = cdef_directions[(dir + 6) & 7][k];
+                const int off3 = cdef_directions[(dir + 6) & 7][k];
                 const int s2 = tmp[x + off3];
                 const int s3 = tmp[x - off3];
                 if (s0 != INT16_MAX) max = imax(s0, max);
