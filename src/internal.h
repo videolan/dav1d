@@ -40,6 +40,7 @@ typedef struct Dav1dTileContext Dav1dTileContext;
 
 #include "src/cdef.h"
 #include "src/cdf.h"
+#include "src/data.h"
 #include "src/env.h"
 #include "src/intra_edge.h"
 #include "src/ipred.h"
@@ -80,6 +81,7 @@ struct Dav1dContext {
     Av1FrameHeader frame_hdr; // FIXME make ref?
 
     // decoded output picture queue
+    Dav1dData in;
     Dav1dPicture out;
     struct {
         Dav1dThreadPicture *out_delayed;

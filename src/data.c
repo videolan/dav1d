@@ -35,6 +35,7 @@
 
 #include "common/validate.h"
 
+#include "src/data.h"
 #include "src/ref.h"
 
 uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
@@ -62,6 +63,18 @@ int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t
     buf->sz = sz;
 
     return 0;
+}
+
+void dav1d_data_move_ref(Dav1dData *const dst, Dav1dData *const src) {
+    validate_input(dst != NULL);
+    validate_input(dst->data == NULL);
+    validate_input(src != NULL);
+
+    if (src->ref)
+        validate_input(src->data != NULL);
+
+    *dst = *src;
+    memset(src, 0, sizeof(*src));
 }
 
 void dav1d_data_unref(Dav1dData *const buf) {

@@ -157,15 +157,28 @@ error:
     return -ENOMEM;
 }
 
-int dav1d_decode(Dav1dContext *const c,
-                 Dav1dData *const in, Dav1dPicture *const out)
+int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
+{
+    validate_input_or_ret(c != NULL, -EINVAL);
+    validate_input_or_ret(in != NULL, -EINVAL);
+    validate_input_or_ret(in->data == NULL || in->sz, -EINVAL);
+
+    if (c->in.data)
+        return -EAGAIN;
+    dav1d_data_move_ref(&c->in, in);
+
+    return 0;
+}
+
+int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res;
 
     validate_input_or_ret(c != NULL, -EINVAL);
     validate_input_or_ret(out != NULL, -EINVAL);
 
-    if (!in) {
+    Dav1dData *const in = &c->in;
+    if (!in->data) {
         if (c->n_fc == 1) return -EAGAIN;
 
         // flush
@@ -198,8 +211,10 @@ int dav1d_decode(Dav1dContext *const c,
     }
 
     while (in->sz > 0) {
-        if ((res = dav1d_parse_obus(c, in)) < 0)
+        if ((res = dav1d_parse_obus(c, in)) < 0) {
+            dav1d_data_unref(in);
             return res;
+        }
 
         assert((size_t)res <= in->sz);
         in->sz -= res;
@@ -220,6 +235,8 @@ int dav1d_decode(Dav1dContext *const c,
 }
 
 void dav1d_flush(Dav1dContext *const c) {
+    dav1d_data_unref(&c->in);
+
     if (c->n_fc == 1) return;
 
     for (unsigned n = 0; n < c->n_fc; n++)
@@ -298,6 +315,7 @@ void dav1d_close(Dav1dContext **const c_out) {
         dav1d_free_aligned(f->lf.lr_lpf_line);
     }
     dav1d_free_aligned(c->fc);
+    dav1d_data_unref(&c->in);
     if (c->n_fc > 1) {
         for (unsigned n = 0; n < c->n_fc; n++)
             if (c->frame_thread.out_delayed[n].p.data[0])

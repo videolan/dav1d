@@ -97,8 +97,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         ptr += frame_size;
 
         do {
+            if ((err = dav1d_send_data(ctx, &buf)) < 0) {
+                if (err != -EAGAIN)
+                    break;
+            }
             memset(&pic, 0, sizeof(pic));
-            err = dav1d_decode(ctx, &buf, &pic);
+            err = dav1d_get_picture(ctx, &pic);
             if (err == 0) {
                 dav1d_picture_unref(&pic);
             } else if (err != -EAGAIN) {
@@ -112,7 +116,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     do {
         memset(&pic, 0, sizeof(pic));
-        err = dav1d_decode(ctx, NULL, &pic);
+        err = dav1d_get_picture(ctx, &pic);
         if (err == 0)
             dav1d_picture_unref(&pic);
     } while (err == 0);
