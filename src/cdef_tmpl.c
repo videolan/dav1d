@@ -110,14 +110,12 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
         {  1 * 12 + 0,  2 * 12 + 0 },
         {  1 * 12 + 0,  2 * 12 - 1 }
     };
-    static const uint8_t cdef_pri_taps[2][2] = { { 4, 2 }, { 3, 3 } };
-    static const uint8_t sec_taps[2] = { 2, 1 };
     const ptrdiff_t tmp_stride = 12;
     assert((w == 4 || w == 8) && (h == 4 || h == 8));
     uint16_t tmp_buf[144];  // 12*12 is the maximum value of tmp_stride * (h + 4)
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 2;
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-    const uint8_t *const pri_taps = cdef_pri_taps[(pri_strength >> bitdepth_min_8) & 1];
+    const int pri_tap = 4 - ((pri_strength >> bitdepth_min_8) & 1);
 
     padding(tmp, tmp_stride, dst, dst_stride, left, top, w, h, edges);
 
@@ -127,12 +125,15 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
             int sum = 0;
             const int px = dst[x];
             int max = px, min = px;
+            int pri_tap_k = pri_tap;
             for (int k = 0; k < 2; k++) {
                 const int off1 = cdef_directions[dir][k];
                 const int p0 = tmp[x + off1];
                 const int p1 = tmp[x - off1];
-                sum += pri_taps[k] * constrain(p0 - px, pri_strength, damping);
-                sum += pri_taps[k] * constrain(p1 - px, pri_strength, damping);
+                sum += pri_tap_k * constrain(p0 - px, pri_strength, damping);
+                sum += pri_tap_k * constrain(p1 - px, pri_strength, damping);
+                // if pri_tap_k == 4 then it becomes 2 else it remains 3
+                pri_tap_k -= (pri_tap_k << 1) - 6;
                 if (p0 != INT16_MAX) max = imax(p0, max);
                 if (p1 != INT16_MAX) max = imax(p1, max);
                 min = imin(p0, min);
@@ -151,10 +152,12 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
                 min = imin(s1, min);
                 min = imin(s2, min);
                 min = imin(s3, min);
-                sum += sec_taps[k] * constrain(s0 - px, sec_strength, damping);
-                sum += sec_taps[k] * constrain(s1 - px, sec_strength, damping);
-                sum += sec_taps[k] * constrain(s2 - px, sec_strength, damping);
-                sum += sec_taps[k] * constrain(s3 - px, sec_strength, damping);
+                // sec_tap starts at 2 and becomes 1
+                const int sec_tap = 2 - k;
+                sum += sec_tap * constrain(s0 - px, sec_strength, damping);
+                sum += sec_tap * constrain(s1 - px, sec_strength, damping);
+                sum += sec_tap * constrain(s2 - px, sec_strength, damping);
+                sum += sec_tap * constrain(s3 - px, sec_strength, damping);
             }
             dst[x] = iclip(px + ((8 + sum - (sum < 0)) >> 4), min, max);
         }
