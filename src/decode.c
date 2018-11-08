@@ -1166,7 +1166,7 @@ static int decode_b(Dav1dTileContext *const t,
         /* see aomedia bug 2183 for why we use luma coordinates here */ \
         rep_macro(type, t->pal_sz_uv[diridx], off, mul * (has_chroma ? b->pal_sz[1] : 0)); \
         if (f->frame_hdr.frame_type & 1) { \
-            rep_macro(type, t->dir comp_type, off, mul * b->skip); \
+            rep_macro(type, t->dir comp_type, off, mul * COMP_INTER_NONE); \
             rep_macro(type, t->dir ref[0], off, mul * ((uint8_t) -1)); \
             rep_macro(type, t->dir ref[1], off, mul * ((uint8_t) -1)); \
             rep_macro(type, t->dir filter[0], off, mul * N_SWITCHABLE_FILTERS); \
@@ -1311,10 +1311,10 @@ static int decode_b(Dav1dTileContext *const t,
         rep_macro(type, t->dir pal_sz, off, 0); \
         /* see aomedia bug 2183 for why this is outside if (has_chroma) */ \
         rep_macro(type, t->pal_sz_uv[diridx], off, 0); \
-        rep_macro(type, t->dir seg_pred, off, seg_pred); \
+        rep_macro(type, t->dir seg_pred, off, mul * seg_pred); \
         rep_macro(type, t->dir skip_mode, off, 0); \
         rep_macro(type, t->dir intra, off, 0); \
-        rep_macro(type, t->dir skip, off, b->skip)
+        rep_macro(type, t->dir skip, off, mul * b->skip)
         case_set(bh4, l., 1, by4);
         case_set(bw4, a->, 0, bx4);
 #undef set_ctx
