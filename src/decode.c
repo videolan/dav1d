@@ -1299,6 +1299,7 @@ static int decode_b(Dav1dTileContext *const t,
         // reconstruction
         if (f->frame_thread.pass == 1) {
             f->bd_fn.read_coef_blocks(t, bs, b);
+            b->filter2d = FILTER_2D_BILINEAR;
         } else {
             if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
         }
