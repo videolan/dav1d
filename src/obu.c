@@ -454,8 +454,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     int max_tile_width_sb = 4096 >> sbsz_log2;
     int max_tile_area_sb = 4096 * 2304 >> (2 * sbsz_log2);
     hdr->tiling.min_log2_cols = tile_log2(max_tile_width_sb, sbw);
-    hdr->tiling.max_log2_cols = tile_log2(1, imin(sbw, 1024));
-    hdr->tiling.max_log2_rows = tile_log2(1, imin(sbh, 1024));
+    hdr->tiling.max_log2_cols = tile_log2(1, imin(sbw, MAX_TILE_COLS));
+    hdr->tiling.max_log2_rows = tile_log2(1, imin(sbh, MAX_TILE_ROWS));
     int min_log2_tiles = imax(tile_log2(max_tile_area_sb, sbw * sbh),
                               hdr->tiling.min_log2_cols);
     if (hdr->tiling.uniform) {
@@ -479,7 +479,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
     } else {
         hdr->tiling.cols = 0;
         int widest_tile = 0, max_tile_area_sb = sbw * sbh;
-        for (int sbx = 0; sbx < sbw; hdr->tiling.cols++) {
+        for (int sbx = 0; sbx < sbw && hdr->tiling.cols < MAX_TILE_COLS; hdr->tiling.cols++) {
             const int tile_width_sb = imin(sbw - sbx, max_tile_width_sb);
             const int tile_w = (tile_width_sb > 1) ?
                                    1 + dav1d_get_uniform(gb, tile_width_sb) :
@@ -493,7 +493,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
         int max_tile_height_sb = imax(max_tile_area_sb / widest_tile, 1);
 
         hdr->tiling.rows = 0;
-        for (int sby = 0; sby < sbh; hdr->tiling.rows++) {
+        for (int sby = 0; sby < sbh && hdr->tiling.rows < MAX_TILE_ROWS; hdr->tiling.rows++) {
             const int tile_height_sb = imin(sbh - sby, max_tile_height_sb);
             const int tile_h = (tile_height_sb > 1) ?
                                    1 + dav1d_get_uniform(gb, tile_height_sb) :
