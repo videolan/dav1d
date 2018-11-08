@@ -2054,7 +2054,9 @@ int av1_init_ref_mv_common(AV1_COMMON *cm,
         const int ref_poc = cm->buffer_pool.frame_bufs[i].cur_frame_offset;
         cm->ref_frame_sign_bias[1 + i] = get_relative_dist(cm, ref_poc, cur_poc) > 0;
     }
-    av1_setup_motion_field(cm);
+    if (allow_ref_frame_mvs) {
+        av1_setup_motion_field(cm);
+    }
 
     return 0;
 }

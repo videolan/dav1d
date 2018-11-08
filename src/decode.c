@@ -3009,8 +3009,12 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f->mvs_ref = dav1d_ref_create(f->sb128h * 32 * f->b4_stride *
                                       sizeof(*f->mvs));
         f->mvs = f->mvs_ref->data;
-        for (int i = 0; i < 7; i++)
-            f->refpoc[i] = f->refp[i].p.poc;
+        if (!f->frame_hdr.allow_intrabc) {
+            for (int i = 0; i < 7; i++)
+                f->refpoc[i] = f->refp[i].p.poc;
+        } else {
+            memset(f->refpoc, 0, sizeof(f->refpoc));
+        }
         if (f->frame_hdr.use_ref_frame_mvs) {
             for (int i = 0; i < 7; i++) {
                 const int refidx = f->frame_hdr.refidx[i];

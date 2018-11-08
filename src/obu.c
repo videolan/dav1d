@@ -1046,15 +1046,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         Av1SequenceHeader hdr, *const hdr_ptr = c->have_seq_hdr ? &hdr : &c->seq_hdr;
         memset(hdr_ptr, 0, sizeof(*hdr_ptr));
         c->have_frame_hdr = 0;
-        if ((res = parse_seq_hdr(c, &gb, hdr_ptr)) < 0) {
-            c->have_seq_hdr = 0;
+        if ((res = parse_seq_hdr(c, &gb, hdr_ptr)) < 0)
             return res;
-        }
-        if ((unsigned)res != len) {
-            c->have_seq_hdr = 0;
+        if ((unsigned)res != len)
             goto error;
-        }
-        if (c->have_seq_hdr && memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
+        if (!c->have_frame_hdr || memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
             for (int i = 0; i < 8; i++) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
@@ -1063,7 +1059,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
-            c->seq_hdr = hdr;
+            if (c->have_seq_hdr)
+                c->seq_hdr = hdr;
         }
         c->have_seq_hdr = 1;
         break;
