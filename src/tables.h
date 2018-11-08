@@ -116,4 +116,6 @@ extern const uint8_t dav1d_sm_weights[128];
 extern const int16_t dav1d_dr_intra_derivative[90];
 extern const int8_t dav1d_filter_intra_taps[5][64];
 
+extern const uint8_t dav1d_obmc_masks[64];
+
 #endif /* __DAV1D_SRC_TABLES_H__ */

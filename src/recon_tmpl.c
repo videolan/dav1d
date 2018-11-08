@@ -557,18 +557,6 @@ static int obmc(Dav1dTileContext *const t,
     const Dav1dFrameContext *const f = t->f;
     const refmvs *const r = &f->mvs[t->by * f->b4_stride + t->bx];
     pixel *const lap = t->scratch.lap;
-    static const uint8_t obmc_mask_2[2] = { 19,  0 };
-    static const uint8_t obmc_mask_4[4] = { 25, 14,  5,  0 };
-    static const uint8_t obmc_mask_8[8] = { 28, 22, 16, 11,  7,  3,  0,  0 };
-    static const uint8_t obmc_mask_16[16] = { 30, 27, 24, 21, 18, 15, 12, 10,
-                                               8,  6,  4,  3,  0,  0,  0,  0 };
-    static const uint8_t obmc_mask_32[32] = { 31, 29, 28, 26, 24, 23, 21, 20,
-                                              19, 17, 16, 14, 13, 12, 11,  9,
-                                               8,  7,  6,  5,  4,  4,  3,  2,
-                                               0,  0,  0,  0,  0,  0,  0,  0 };
-    static const uint8_t *const obmc_masks[] = {
-        obmc_mask_2, obmc_mask_4, obmc_mask_8, obmc_mask_16, obmc_mask_32
-    };
     const int ss_ver = !!pl && f->cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = !!pl && f->cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
     const int h_mul = 4 >> ss_hor, v_mul = 4 >> ss_ver;
@@ -593,7 +581,7 @@ static int obmc(Dav1dTileContext *const t,
                 if (res) return res;
                 f->dsp->mc.blend(&dst[x * h_mul], dst_stride, lap,
                                  h_mul * ow4, v_mul * oh4,
-                                 obmc_masks[imin(b_dim[3], 4) - ss_ver], 1);
+                                 &dav1d_obmc_masks[v_mul * oh4], 1);
                 i++;
             }
             x += imax(a_b_dim[0], 2);
@@ -615,9 +603,9 @@ static int obmc(Dav1dTileContext *const t,
                          &f->refp[l_r->ref[0] - 1],
                          dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
                 if (res) return res;
-                f->dsp->mc.blend(&dst[y * v_mul * PXSTRIDE(dst_stride)], dst_stride,
-                                 lap, h_mul * ow4, v_mul * oh4,
-                                 obmc_masks[imin(b_dim[2], 4) - ss_hor], 0);
+                f->dsp->mc.blend(&dst[y * v_mul * PXSTRIDE(dst_stride)],
+                                 dst_stride, lap, h_mul * ow4, v_mul * oh4,
+                                 &dav1d_obmc_masks[h_mul * ow4], 0);
                 i++;
             }
             y += imax(l_b_dim[1], 2);
