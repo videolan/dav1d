@@ -34,19 +34,6 @@
 
 #include "src/cdef.h"
 
-static const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-    { -1 * 12 + 1, -2 * 12 + 2 },
-    {  0 * 12 + 1, -1 * 12 + 2 },
-    {  0 * 12 + 1,  0 * 12 + 2 },
-    {  0 * 12 + 1,  1 * 12 + 2 },
-    {  1 * 12 + 1,  2 * 12 + 2 },
-    {  1 * 12 + 0,  2 * 12 + 1 },
-    {  1 * 12 + 0,  2 * 12 + 0 },
-    {  1 * 12 + 0,  2 * 12 - 1 }
-};
-static const uint8_t cdef_pri_taps[2][2] = { { 4, 2 }, { 3, 3 } };
-static const uint8_t cdef_sec_taps[2][2] = { { 2, 1 }, { 2, 1 } };
-
 static inline int constrain(const int diff, const int threshold,
                             const int damping)
 {
@@ -112,12 +99,23 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
                     const int sec_strength, const int dir,
                     const int damping, const enum CdefEdgeFlags edges)
 {
+    static const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
+        { -1 * 12 + 1, -2 * 12 + 2 },
+        {  0 * 12 + 1, -1 * 12 + 2 },
+        {  0 * 12 + 1,  0 * 12 + 2 },
+        {  0 * 12 + 1,  1 * 12 + 2 },
+        {  1 * 12 + 1,  2 * 12 + 2 },
+        {  1 * 12 + 0,  2 * 12 + 1 },
+        {  1 * 12 + 0,  2 * 12 + 0 },
+        {  1 * 12 + 0,  2 * 12 - 1 }
+    };
+    static const uint8_t cdef_pri_taps[2][2] = { { 4, 2 }, { 3, 3 } };
+    static const uint8_t sec_taps[2] = { 2, 1 };
     const ptrdiff_t tmp_stride = 12;
     assert((w == 4 || w == 8) && (h == 4 || h == 8));
     uint16_t tmp_buf[144];  // 12*12 is the maximum value of tmp_stride * (h + 4)
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 2;
     const uint8_t *const pri_taps = cdef_pri_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
-    const uint8_t *const sec_taps = cdef_sec_taps[(pri_strength >> (BITDEPTH - 8)) & 1];
 
     padding(tmp, tmp_stride, dst, dst_stride, left, top, w, h, edges);
 
