@@ -131,7 +131,7 @@ endif
 # Windows .rc file
 #
 
-if host_machine.system() == 'windows'
+if host_machine.system() == 'windows' and get_option('default_library') != 'static'
     winmod = import('windows')
     rc_data = configuration_data()
     rc_data.set('VERSION_MAJOR', dav1d_version_major)
