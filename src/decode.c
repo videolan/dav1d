@@ -727,7 +727,9 @@ static int decode_b(Dav1dTileContext *const t,
 #undef set_ctx
             }
         } else {
-            if (b->comp_type == COMP_INTER_NONE && b->motion_mode == MM_WARP) {
+            if (f->frame_hdr.frame_type & 1 /* not intrabc */ &&
+                b->comp_type == COMP_INTER_NONE && b->motion_mode == MM_WARP)
+            {
                 uint64_t mask[2] = { 0, 0 };
                 find_matching_ref(t, intra_edge_flags, bw4, bh4, w4, h4,
                                   have_left, have_top, b->ref[0], mask);
