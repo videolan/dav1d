@@ -614,7 +614,7 @@ static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
 static NOINLINE void
 cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
          const int w_pad, const int h_pad, const int width, const int height,
-         const int ss_hor, const int ss_ver, const int log2sz)
+         const int ss_hor, const int ss_ver)
 {
     int y, x;
     int16_t *const ac_orig = ac;
@@ -642,6 +642,7 @@ cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
         ac += width;
     }
 
+    const int log2sz = ctz(width) + ctz(height);
     int sum = (1 << log2sz) >> 1;
     for (ac = ac_orig, y = 0; y < height; y++) {
         for (x = 0; x < width; x++)
@@ -658,49 +659,17 @@ cfl_ac_c(int16_t *ac, const pixel *ypx, const ptrdiff_t stride,
     }
 }
 
-#define cfl_ac_fn(lw, lh, cw, ch, ss_hor, ss_ver, log2sz) \
-static void cfl_ac_##lw##x##lh##_to_##cw##x##ch##_c(int16_t *const ac, \
-                                                    const pixel *const ypx, \
-                                                    const ptrdiff_t stride, \
-                                                    const int w_pad, \
-                                                    const int h_pad) \
+#define cfl_ac_fn(fmt, ss_hor, ss_ver) \
+static void cfl_ac_##fmt##_c(int16_t *const ac, const pixel *const ypx, \
+                             const ptrdiff_t stride, const int w_pad, \
+                             const int h_pad, const int cw, const int ch) \
 { \
-    cfl_ac_c(ac, ypx, stride, w_pad, h_pad, cw, ch, ss_hor, ss_ver, log2sz); \
+    cfl_ac_c(ac, ypx, stride, w_pad, h_pad, cw, ch, ss_hor, ss_ver); \
 }
 
-cfl_ac_fn( 8,  8,  4,  4, 1, 1, 4)
-cfl_ac_fn( 8, 16,  4,  8, 1, 1, 5)
-cfl_ac_fn( 8, 32,  4, 16, 1, 1, 6)
-cfl_ac_fn(16,  8,  8,  4, 1, 1, 5)
-cfl_ac_fn(16, 16,  8,  8, 1, 1, 6)
-cfl_ac_fn(16, 32,  8, 16, 1, 1, 7)
-cfl_ac_fn(32,  8, 16,  4, 1, 1, 6)
-cfl_ac_fn(32, 16, 16,  8, 1, 1, 7)
-cfl_ac_fn(32, 32, 16, 16, 1, 1, 8)
-
-cfl_ac_fn( 8,  4,  4,  4, 1, 0, 4)
-cfl_ac_fn( 8,  8,  4,  8, 1, 0, 5)
-cfl_ac_fn(16,  4,  8,  4, 1, 0, 5)
-cfl_ac_fn(16,  8,  8,  8, 1, 0, 6)
-cfl_ac_fn(16, 16,  8, 16, 1, 0, 7)
-cfl_ac_fn(32,  8, 16,  8, 1, 0, 7)
-cfl_ac_fn(32, 16, 16, 16, 1, 0, 8)
-cfl_ac_fn(32, 32, 16, 32, 1, 0, 9)
-
-cfl_ac_fn( 4,  4,  4,  4, 0, 0, 4)
-cfl_ac_fn( 4,  8,  4,  8, 0, 0, 5)
-cfl_ac_fn( 4, 16,  4, 16, 0, 0, 6)
-cfl_ac_fn( 8,  4,  8,  4, 0, 0, 5)
-cfl_ac_fn( 8,  8,  8,  8, 0, 0, 6)
-cfl_ac_fn( 8, 16,  8, 16, 0, 0, 7)
-cfl_ac_fn( 8, 32,  8, 32, 0, 0, 8)
-cfl_ac_fn(16,  4, 16,  4, 0, 0, 6)
-cfl_ac_fn(16,  8, 16,  8, 0, 0, 7)
-cfl_ac_fn(16, 16, 16, 16, 0, 0, 8)
-cfl_ac_fn(16, 32, 16, 32, 0, 0, 9)
-cfl_ac_fn(32,  8, 32,  8, 0, 0, 8)
-cfl_ac_fn(32, 16, 32, 16, 0, 0, 9)
-cfl_ac_fn(32, 32, 32, 32, 0, 0, 10)
+cfl_ac_fn(420, 1, 1)
+cfl_ac_fn(422, 1, 0)
+cfl_ac_fn(444, 0, 0)
 
 static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
                        const uint16_t *const pal, const uint8_t *idx,
@@ -730,40 +699,9 @@ void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
     c->intra_pred[Z3_PRED      ] = ipred_z3_c;
     c->intra_pred[FILTER_PRED  ] = ipred_filter_c;
 
-    // cfl functions are split per chroma subsampling type
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][ TX_4X4  ] = cfl_ac_8x8_to_4x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_4X8  ] = cfl_ac_8x16_to_4x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_4X16 ] = cfl_ac_8x32_to_4x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_8X4  ] = cfl_ac_16x8_to_8x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][ TX_8X8  ] = cfl_ac_16x16_to_8x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_8X16 ] = cfl_ac_16x32_to_8x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_16X4 ] = cfl_ac_32x8_to_16x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][RTX_16X8 ] = cfl_ac_32x16_to_16x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1][ TX_16X16] = cfl_ac_32x32_to_16x16_c;
-
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_4X4  ] = cfl_ac_8x4_to_4x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_4X8  ] = cfl_ac_8x8_to_4x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X4  ] = cfl_ac_16x4_to_8x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_8X8  ] = cfl_ac_16x8_to_8x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_8X16 ] = cfl_ac_16x16_to_8x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_16X8 ] = cfl_ac_32x8_to_16x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][ TX_16X16] = cfl_ac_32x16_to_16x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1][RTX_16X32] = cfl_ac_32x32_to_16x32_c;
-
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][ TX_4X4  ] = cfl_ac_4x4_to_4x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_4X8  ] = cfl_ac_4x8_to_4x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_4X16 ] = cfl_ac_4x16_to_4x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_8X4  ] = cfl_ac_8x4_to_8x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][ TX_8X8  ] = cfl_ac_8x8_to_8x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_8X16 ] = cfl_ac_8x16_to_8x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_8X32 ] = cfl_ac_8x32_to_8x32_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_16X4 ] = cfl_ac_16x4_to_16x4_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_16X8 ] = cfl_ac_16x8_to_16x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][ TX_16X16] = cfl_ac_16x16_to_16x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_16X32] = cfl_ac_16x32_to_16x32_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_32X8 ] = cfl_ac_32x8_to_32x8_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][RTX_32X16] = cfl_ac_32x16_to_32x16_c;
-    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1][ TX_32X32] = cfl_ac_32x32_to_32x32_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1] = cfl_ac_420_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1] = cfl_ac_422_c;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1] = cfl_ac_444_c;
 
     c->cfl_pred[DC_PRED     ] = ipred_cfl_c;
     c->cfl_pred[DC_128_PRED ] = ipred_cfl_128_c;

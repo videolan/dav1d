@@ -856,10 +856,10 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                     ((cw4 << ss_hor) + t_dim->w - 1) & ~(t_dim->w - 1);
                 const int furthest_b =
                     ((ch4 << ss_ver) + t_dim->h - 1) & ~(t_dim->h - 1);
-                dsp->ipred.cfl_ac[f->cur.p.p.layout - 1]
-                                 [b->uvtx](ac, y_src, f->cur.p.stride[0],
-                                           cbw4 - (furthest_r >> ss_hor),
-                                           cbh4 - (furthest_b >> ss_ver));
+                dsp->ipred.cfl_ac[f->cur.p.p.layout - 1](ac, y_src, f->cur.p.stride[0],
+                                                         cbw4 - (furthest_r >> ss_hor),
+                                                         cbh4 - (furthest_b >> ss_ver),
+                                                         cbw4 * 4, cbh4 * 4);
                 for (int pl = 0; pl < 2; pl++) {
                     if (!b->cfl_alpha[pl]) continue;
                     int angle = 0;
