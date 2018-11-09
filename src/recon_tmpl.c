@@ -766,7 +766,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           t_dim->w, t_dim->h, edge);
                     dsp->ipred.intra_pred[m](dst, f->cur.p.stride[0], edge,
                                              t_dim->w * 4, t_dim->h * 4,
-                                             angle | sm_fl);
+                                             angle | sm_fl,
+                                             f->cur.p.p.w - 4 * t->bx,
+                                             f->cur.p.p.h - 4 * t->by);
 
                     if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                         hex_dump(edge - t_dim->h * 4, t_dim->h * 4,
@@ -981,7 +983,11 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                         dsp->ipred.intra_pred[m](dst, stride, edge,
                                                  uv_t_dim->w * 4,
                                                  uv_t_dim->h * 4,
-                                                 angle | sm_uv_fl);
+                                                 angle | sm_uv_fl,
+                                                 (f->cur.p.p.w + ss_hor -
+                                                  4 * (t->bx & ~ss_hor)) >> ss_hor,
+                                                 (f->cur.p.p.w + ss_ver -
+                                                  4 * (t->by & ~ss_ver)) >> ss_ver);
                         if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                             hex_dump(edge - uv_t_dim->h * 4, uv_t_dim->h * 4,
                                      uv_t_dim->h * 4, 2, "l");
@@ -1136,7 +1142,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                                                   0, dst, f->cur.p.stride[0], top_sb_edge,
                                                   m, &angle, bw4, bh4, tl_edge);
             dsp->ipred.intra_pred[m](tmp, 4 * bw4 * sizeof(pixel),
-                                     tl_edge, bw4 * 4, bh4 * 4, 0);
+                                     tl_edge, bw4 * 4, bh4 * 4, 0, 0, 0);
             const uint8_t *const ii_mask =
                 b->interintra_type == INTER_INTRA_BLEND ?
                      dav1d_ii_masks[bs][0][b->interintra_mode] :
@@ -1273,7 +1279,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                                                           top_sb_edge, m,
                                                           &angle, cbw4, cbh4, tl_edge);
                     dsp->ipred.intra_pred[m](tmp, cbw4 * 4 * sizeof(pixel),
-                                             tl_edge, cbw4 * 4, cbh4 * 4, 0);
+                                             tl_edge, cbw4 * 4, cbh4 * 4, 0, 0, 0);
                     dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp,
                                   cbw4 * 4, cbh4 * 4, ii_mask);
                 }

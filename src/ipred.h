@@ -41,7 +41,7 @@
  */
 #define decl_angular_ipred_fn(name) \
 void (name)(pixel *dst, ptrdiff_t stride, const pixel *topleft, \
-            int width, int height, int angle)
+            int width, int height, int angle, int max_width, int max_height)
 typedef decl_angular_ipred_fn(*angular_ipred_fn);
 
 /*
