@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+#include <errno.h>
+
 #include "common.h"
 #include "picture.h"
 #include "data.h"
