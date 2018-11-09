@@ -373,19 +373,46 @@ static void mask_c(pixel *dst, const ptrdiff_t dst_stride,
     } while (--h);
 }
 
-static void blend_c(pixel *dst, const ptrdiff_t dst_stride,
-                    const pixel *tmp, const int w, const int h,
-                    const uint8_t *mask, const ptrdiff_t m_stride)
-{
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
 #define blend_px(a, b, m) (((a * (64 - m) + b * m) + 32) >> 6)
-            dst[x] = blend_px(dst[x], tmp[x], mask[m_stride == 1 ? 0 : x]);
+static NOINLINE void
+blend_internal_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                 const int w, int h, const uint8_t *mask,
+                 const ptrdiff_t mask_stride)
+{
+    do {
+        for (int x = 0; x < w; x++) {
+            dst[x] = blend_px(dst[x], tmp[x], mask[x]);
         }
         dst += PXSTRIDE(dst_stride);
         tmp += w;
-        mask += m_stride;
-    }
+        mask += mask_stride;
+    } while (--h);
+}
+
+static void blend_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                    const int w, const int h, const uint8_t *mask)
+{
+    blend_internal_c(dst, dst_stride, tmp, w, h, mask, w);
+}
+
+static void blend_v_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                      const int w, const int h)
+{
+    blend_internal_c(dst, dst_stride, tmp, w, h, &dav1d_obmc_masks[w], 0);
+}
+
+static void blend_h_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                      const int w, int h)
+{
+    const uint8_t *mask = &dav1d_obmc_masks[h];
+    do {
+        const int m = *mask++;
+        for (int x = 0; x < w; x++) {
+            dst[x] = blend_px(dst[x], tmp[x], m);
+        }
+        dst += PXSTRIDE(dst_stride);
+        tmp += w;
+    } while (--h);
 }
 
 static void w_mask_c(pixel *dst, const ptrdiff_t dst_stride,
@@ -591,6 +618,8 @@ void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
     c->w_avg    = w_avg_c;
     c->mask     = mask_c;
     c->blend    = blend_c;
+    c->blend_v  = blend_v_c;
+    c->blend_h  = blend_h_c;
     c->w_mask[0] = w_mask_444_c;
     c->w_mask[1] = w_mask_422_c;
     c->w_mask[2] = w_mask_420_c;

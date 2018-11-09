@@ -579,9 +579,8 @@ static int obmc(Dav1dTileContext *const t,
                          &f->refp[a_r->ref[0] - 1],
                          dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
                 if (res) return res;
-                f->dsp->mc.blend(&dst[x * h_mul], dst_stride, lap,
-                                 h_mul * ow4, v_mul * oh4,
-                                 &dav1d_obmc_masks[v_mul * oh4], 1);
+                f->dsp->mc.blend_h(&dst[x * h_mul], dst_stride, lap,
+                                   h_mul * ow4, v_mul * oh4);
                 i++;
             }
             x += imax(a_b_dim[0], 2);
@@ -603,9 +602,8 @@ static int obmc(Dav1dTileContext *const t,
                          &f->refp[l_r->ref[0] - 1],
                          dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
                 if (res) return res;
-                f->dsp->mc.blend(&dst[y * v_mul * PXSTRIDE(dst_stride)],
-                                 dst_stride, lap, h_mul * ow4, v_mul * oh4,
-                                 &dav1d_obmc_masks[h_mul * ow4], 0);
+                f->dsp->mc.blend_v(&dst[y * v_mul * PXSTRIDE(dst_stride)],
+                                   dst_stride, lap, h_mul * ow4, v_mul * oh4);
                 i++;
             }
             y += imax(l_b_dim[1], 2);
@@ -1144,7 +1142,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                      dav1d_ii_masks[bs][0][b->interintra_mode] :
                      dav1d_wedge_masks[bs][0][0][b->wedge_idx];
             dsp->mc.blend(dst, f->cur.p.stride[0], tmp,
-                          bw4 * 4, bh4 * 4, ii_mask, bw4 * 4);
+                          bw4 * 4, bh4 * 4, ii_mask);
         }
 
         if (!has_chroma) goto skip_inter_chroma_pred;
@@ -1277,7 +1275,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                     dsp->ipred.intra_pred[m](tmp, cbw4 * 4 * sizeof(pixel),
                                              tl_edge, cbw4 * 4, cbh4 * 4, 0);
                     dsp->mc.blend(uvdst, f->cur.p.stride[1], tmp,
-                                  cbw4 * 4, cbh4 * 4, ii_mask, cbw4 * 4);
+                                  cbw4 * 4, cbh4 * 4, ii_mask);
                 }
             }
         }

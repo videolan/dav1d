@@ -237,38 +237,93 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
 }
 
 static void check_blend(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(pixel, tmp, 128 * 32,);
-    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
-    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
-    ALIGN_STK_32(uint8_t, mask, 128 * 32,);
+    ALIGN_STK_32(pixel, tmp, 32 * 32,);
+    ALIGN_STK_32(pixel, c_dst, 32 * 32,);
+    ALIGN_STK_32(pixel, a_dst, 32 * 32,);
+    ALIGN_STK_32(uint8_t, mask, 32 * 32,);
 
-    for (int i = 0; i < 128 * 32; i++) {
+    for (int i = 0; i < 32 * 32; i++) {
         tmp[i] = rand() & ((1 << BITDEPTH) - 1);
         mask[i] = rand() % 65;
     }
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel *tmp,
-                 int w, int h, const uint8_t *mask, ptrdiff_t mstride);
+                 int w, int h, const uint8_t *mask);
+
+    for (int w = 4; w <= 32; w <<= 1) {
+        const ptrdiff_t dst_stride = w * sizeof(pixel);
+        if (check_func(c->blend, "blend_w%d_%dbpc", w, BITDEPTH))
+            for (int h = imax(w / 2, 4); h <= imin(w * 2, 32); h <<= 1) {
+                for (int i = 0; i < w * h; i++)
+                    c_dst[i] = a_dst[i] = rand() & ((1 << BITDEPTH) - 1);
+
+                call_ref(c_dst, dst_stride, tmp, w, h, mask);
+                call_new(a_dst, dst_stride, tmp, w, h, mask);
+                if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
+                    fail();
+
+                bench_new(a_dst, dst_stride, tmp, w, h, mask);
+            }
+    }
+    report("blend");
+}
+
+static void check_blend_v(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_32(pixel, tmp,   32 * 128,);
+    ALIGN_STK_32(pixel, c_dst, 32 * 128,);
+    ALIGN_STK_32(pixel, a_dst, 32 * 128,);
+
+    for (int i = 0; i < 32 * 128; i++)
+        tmp[i] = rand() & ((1 << BITDEPTH) - 1);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel *tmp,
+                 int w, int h);
+
+    for (int w = 2; w <= 32; w <<= 1) {
+        const ptrdiff_t dst_stride = w * sizeof(pixel);
+        if (check_func(c->blend_v, "blend_v_w%d_%dbpc", w, BITDEPTH))
+            for (int h = 2; h <= (w == 2 ? 64 : 128); h <<= 1) {
+                for (int i = 0; i < w * h; i++)
+                    c_dst[i] = a_dst[i] = rand() & ((1 << BITDEPTH) - 1);
+
+                call_ref(c_dst, dst_stride, tmp, w, h);
+                call_new(a_dst, dst_stride, tmp, w, h);
+                if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
+                    fail();
+
+                bench_new(a_dst, dst_stride, tmp, w, h);
+            }
+    }
+    report("blend_v");
+}
+
+static void check_blend_h(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_32(pixel, tmp,   128 * 32,);
+    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
+    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
+
+    for (int i = 0; i < 128 * 32; i++)
+        tmp[i] = rand() & ((1 << BITDEPTH) - 1);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel *tmp,
+                 int w, int h);
 
     for (int w = 2; w <= 128; w <<= 1) {
         const ptrdiff_t dst_stride = w * sizeof(pixel);
-        const int h_min = (w == 128) ? 4 : 2;
-        const int h_max = (w > 32) ? 32 : (w == 2) ? 64 : 128;
-        for (int ms = 0; ms <= w; ms += ms ? w - 1 : 1)
-            if (check_func(c->blend, "blend_w%d_ms%d_%dbpc", w, ms, BITDEPTH))
-                for (int h = h_min; h <= h_max; h <<= 1) {
-                    for (int i = 0; i < w * h; i++)
-                        c_dst[i] = a_dst[i] = rand() & ((1 << BITDEPTH) - 1);
+        if (check_func(c->blend_h, "blend_h_w%d_%dbpc", w, BITDEPTH))
+            for (int h = (w == 128 ? 4 : 2); h <= 32; h <<= 1) {
+                for (int i = 0; i < w * h; i++)
+                    c_dst[i] = a_dst[i] = rand() & ((1 << BITDEPTH) - 1);
 
-                    call_ref(c_dst, dst_stride, tmp, w, h, mask, ms);
-                    call_new(a_dst, dst_stride, tmp, w, h, mask, ms);
-                    if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
-                        fail();
+                call_ref(c_dst, dst_stride, tmp, w, h);
+                call_new(a_dst, dst_stride, tmp, w, h);
+                if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
+                    fail();
 
-                    bench_new(a_dst, dst_stride, tmp, w, h, mask, ms);
-                }
+                bench_new(a_dst, dst_stride, tmp, w, h);
+            }
     }
-    report("blend");
+    report("blend_h");
 }
 
 static void check_warp8x8(Dav1dMCDSPContext *const c) {
@@ -430,6 +485,8 @@ void bitfn(checkasm_check_mc)(void) {
     check_mask(&c);
     check_w_mask(&c);
     check_blend(&c);
+    check_blend_v(&c);
+    check_blend_h(&c);
     check_warp8x8(&c);
     check_warp8x8t(&c);
     check_emuedge(&c);

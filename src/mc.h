@@ -81,10 +81,13 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
 typedef decl_w_mask_fn(*w_mask_fn);
 
 #define decl_blend_fn(name) \
-void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const pixel *tmp, int w, int h, \
-            const uint8_t *mask, ptrdiff_t mstride)
+void (name)(pixel *dst, ptrdiff_t dst_stride, const pixel *tmp, \
+            int w, int h, const uint8_t *mask)
 typedef decl_blend_fn(*blend_fn);
+
+#define decl_blend_dir_fn(name) \
+void (name)(pixel *dst, ptrdiff_t dst_stride, const pixel *tmp, int w, int h)
+typedef decl_blend_dir_fn(*blend_dir_fn);
 
 #define decl_emu_edge_fn(name) \
 void (name)(intptr_t bw, intptr_t bh, intptr_t iw, intptr_t ih, intptr_t x, intptr_t y, \
@@ -99,6 +102,8 @@ typedef struct Dav1dMCDSPContext {
     mask_fn mask;
     w_mask_fn w_mask[3 /* 444, 422, 420 */];
     blend_fn blend;
+    blend_dir_fn blend_v;
+    blend_dir_fn blend_h;
     warp8x8_fn warp8x8;
     warp8x8t_fn warp8x8t;
     emu_edge_fn emu_edge;
