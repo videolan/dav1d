@@ -387,23 +387,24 @@ static void ipred_z1_c(pixel *dst, const ptrdiff_t stride,
                        const int width, const int height, int angle,
                        const int max_width, const int max_height)
 {
-    const int is_sm = angle >> 9;
+    const int is_sm = (angle >> 9) & 0x1;
+    const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle < 90);
     const int dx = dav1d_dr_intra_derivative[angle];
     pixel top_out[(64 + 64) * 2];
     const pixel *top;
     int max_base_x;
-    const int upsample_above = get_upsample(width + height, 90 - angle, is_sm);
+    const int upsample_above = enable_intra_edge_filter ?
+        get_upsample(width + height, 90 - angle, is_sm) : 0;
     if (upsample_above) {
         upsample_edge(top_out, width + height,
                       &topleft_in[1], -1, width + imin(width, height));
         top = top_out;
         max_base_x = 2 * (width + height) - 2;
     } else {
-        const int filter_strength =
-            get_filter_strength(width + height, 90 - angle, is_sm);
-
+        const int filter_strength = enable_intra_edge_filter ?
+            get_filter_strength(width + height, 90 - angle, is_sm) : 0;
         if (filter_strength) {
             filter_edge(top_out, width + height, 0, width + height,
                         &topleft_in[1], -1, width + imin(width, height),
@@ -440,21 +441,24 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
                        const int width, const int height, int angle,
                        const int max_width, const int max_height)
 {
-    const int is_sm = angle >> 9;
+    const int is_sm = (angle >> 9) & 0x1;
+    const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle > 90 && angle < 180);
     const int dy = dav1d_dr_intra_derivative[angle - 90];
     const int dx = dav1d_dr_intra_derivative[180 - angle];
-    const int upsample_left = get_upsample(width + height, 180 - angle, is_sm);
-    const int upsample_above = get_upsample(width + height, angle - 90, is_sm);
+    const int upsample_left = enable_intra_edge_filter ?
+        get_upsample(width + height, 180 - angle, is_sm) : 0;
+    const int upsample_above = enable_intra_edge_filter ?
+        get_upsample(width + height, angle - 90, is_sm) : 0;
     pixel edge[64 * 2 + 64 * 2 + 1];
     pixel *const topleft = &edge[height * 2];
 
     if (upsample_above) {
         upsample_edge(topleft, width + 1, topleft_in, 0, width + 1);
     } else {
-        const int filter_strength =
-            get_filter_strength(width + height, angle - 90, is_sm);
+        const int filter_strength = enable_intra_edge_filter ?
+            get_filter_strength(width + height, angle - 90, is_sm) : 0;
 
         if (filter_strength) {
             filter_edge(&topleft[1], width, 0, max_width,
@@ -467,8 +471,8 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
     if (upsample_left) {
         upsample_edge(edge, height + 1, &topleft_in[-height], 0, height + 1);
     } else {
-        const int filter_strength =
-            get_filter_strength(width + height, 180 - angle, is_sm);
+        const int filter_strength = enable_intra_edge_filter ?
+            get_filter_strength(width + height, 180 - angle, is_sm) : 0;
 
         if (filter_strength) {
             filter_edge(&topleft[-height], height, height - max_height, height,
@@ -514,14 +518,16 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
                        const int width, const int height, int angle,
                        const int max_width, const int max_height)
 {
-    const int is_sm = angle >> 9;
+    const int is_sm = (angle >> 9) & 0x1;
+    const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle > 180);
     const int dy = dav1d_dr_intra_derivative[270 - angle];
     pixel left_out[(64 + 64) * 2];
     const pixel *left;
     int max_base_y;
-    const int upsample_left = get_upsample(width + height, angle - 180, is_sm);
+    const int upsample_left = enable_intra_edge_filter ?
+        get_upsample(width + height, angle - 180, is_sm) : 0;
     if (upsample_left) {
         upsample_edge(left_out, width + height,
                       &topleft_in[-(width + height)],
@@ -529,8 +535,8 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
         left = &left_out[2 * (width + height) - 2];
         max_base_y = 2 * (width + height) - 2;
     } else {
-        const int filter_strength =
-            get_filter_strength(width + height, angle - 180, is_sm);
+        const int filter_strength = enable_intra_edge_filter ?
+            get_filter_strength(width + height, angle - 180, is_sm) : 0;
 
         if (filter_strength) {
             filter_edge(left_out, width + height, 0, width + height,

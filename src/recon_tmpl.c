@@ -753,6 +753,8 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
     pixel *const edge = edge_buf + 128;
     const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
 
+    const int intra_edge_filter_flag = f->seq_hdr.intra_edge_filter << 10;
+
     for (int init_y = 0; init_y < h4; init_y += 16) {
         for (int init_x = 0; init_x < w4; init_x += 16) {
             if (b->pal_sz[0]) {
@@ -775,7 +777,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                              bw4 * 4, bh4 * 4, "y-pal-pred");
             }
 
-            const int sm_fl = sm_flag(t->a, bx4) | sm_flag(&t->l, by4);
+            const int intra_flags = (sm_flag(t->a, bx4) |
+                                     sm_flag(&t->l, by4) |
+                                     intra_edge_filter_flag);
             const int sb_has_tr = init_x + 16 < w4 ? 1 : init_y ? 0 :
                               intra_edge_flags & EDGE_I444_TOP_HAS_RIGHT;
             const int sb_has_bl = init_x ? 0 : init_y + 16 < h4 ? 1 :
@@ -819,7 +823,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           t_dim->w, t_dim->h, edge);
                     dsp->ipred.intra_pred[m](dst, f->cur.p.stride[0], edge,
                                              t_dim->w * 4, t_dim->h * 4,
-                                             angle | sm_fl,
+                                             angle | intra_flags,
                                              4 * f->bw - 4 * t->bx,
                                              4 * f->bh - 4 * t->by);
 
@@ -1033,6 +1037,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                               top_sb_edge, uv_mode,
                                                               &angle, uv_t_dim->w,
                                                               uv_t_dim->h, edge);
+                        angle |= intra_edge_filter_flag;
                         dsp->ipred.intra_pred[m](dst, stride, edge,
                                                  uv_t_dim->w * 4,
                                                  uv_t_dim->h * 4,
