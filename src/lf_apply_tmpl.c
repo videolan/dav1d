@@ -235,7 +235,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
              x < f->sb128w; x++, a++)
         {
             uint16_t (*const y_vmask)[2] = lflvl[x].filter_y[1][starty4];
-            const unsigned w = imin(32, (f->w4 >> sbl2) - x);
+            const unsigned w = imin(32, f->w4 - (x << 5));
             for (unsigned mask = 1, i = 0; i < w; mask <<= 1, i++) {
                 const int sidx = mask >= 0x10000U;
                 const unsigned smask = mask >> (sidx << 4);
