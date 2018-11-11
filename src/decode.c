@@ -3052,7 +3052,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             const int ref_h = (f->refp[pri_ref].p.p.h + 3) >> 2;
             if (ref_w == f->bw && ref_h == f->bh) {
                 f->prev_segmap_ref = c->refs[f->frame_hdr.refidx[pri_ref]].segmap;
-                if (f->prev_segmap_ref == NULL) goto error;
+                if (f->prev_segmap_ref == NULL) {
+                    res = -EINVAL;
+                    goto error;
+                }
                 dav1d_ref_inc(f->prev_segmap_ref);
                 f->prev_segmap = f->prev_segmap_ref->data;
             } else {
@@ -3071,6 +3074,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             dav1d_ref_inc(f->cur_segmap_ref);
             f->cur_segmap = f->prev_segmap_ref->data;
         } else {
+            res = -EINVAL;
             goto error;
         }
     } else {
