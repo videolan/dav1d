@@ -3045,7 +3045,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // segmap
     if (f->frame_hdr.segmentation.enabled) {
-        if (f->frame_hdr.segmentation.temporal) {
+        if (f->frame_hdr.segmentation.temporal || !f->frame_hdr.segmentation.update_map) {
             const int pri_ref = f->frame_hdr.primary_ref_frame;
             assert(pri_ref != PRIMARY_REF_NONE);
             const int ref_w = (f->refp[pri_ref].p.p.w + 3) >> 2;
