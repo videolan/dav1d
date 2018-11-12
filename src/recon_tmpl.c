@@ -986,7 +986,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                  angle | sm_uv_fl,
                                                  (f->cur.p.p.w + ss_hor -
                                                   4 * (t->bx & ~ss_hor)) >> ss_hor,
-                                                 (f->cur.p.p.w + ss_ver -
+                                                 (f->cur.p.p.h + ss_ver -
                                                   4 * (t->by & ~ss_ver)) >> ss_ver);
                         if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                             hex_dump(edge - uv_t_dim->h * 4, uv_t_dim->h * 4,

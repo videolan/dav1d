@@ -349,7 +349,7 @@ static void filter_edge(pixel *const out, const int sz,
 
     assert(strength > 0);
     int i = 0;
-    for (; i < lim_from; i++)
+    for (; i < imin(sz, lim_from); i++)
         out[i] = in[iclip(i, from, to - 1)];
     for (; i < imin(lim_to, sz); i++) {
         int s = 0;
