@@ -965,7 +965,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb,
             fgd->clip_to_restricted_range = dav1d_get_bits(gb, 1);
         }
     } else {
-        memset(&hdr->film_grain.data, 0, sizeof(hdr->film_grain));
+        memset(&hdr->film_grain.data, 0, sizeof(hdr->film_grain.data));
     }
 #if DEBUG_FRAME_HDR
     printf("HDR: post-filmgrain: off=%ld\n",
