@@ -40,7 +40,7 @@
 
 #include "dav1d_cli_parse.h"
 
-static const char short_opts[] = "i:o:vql:";
+static const char short_opts[] = "i:o:vql:s:";
 
 enum {
     ARG_DEMUXER,
