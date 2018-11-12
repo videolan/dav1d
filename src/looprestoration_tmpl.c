@@ -324,7 +324,7 @@ static void boxsum3sqr(int32_t *dst, const pixel *src, const int w, const int h)
 
     // We skip the first and last columns, as they are never used
     for (int x = 1; x < w - 1; x++) {
-        int *ds = dst + x;
+        int32_t *ds = dst + x;
         const pixel *s = src + x;
         int a = s[0] * s[0];
         int b = s[REST_UNIT_STRIDE] * s[REST_UNIT_STRIDE];
@@ -367,7 +367,7 @@ static void boxsum5sqr(int32_t *dst, const pixel *const src, const int w,
     dst += REST_UNIT_STRIDE;
 
     for (int x = 0; x < w; x++) {
-        int *ds = dst + x;
+        int32_t *ds = dst + x;
         const pixel *s = src + 3 * REST_UNIT_STRIDE + x;
         int a = s[-3 * REST_UNIT_STRIDE] * s[-3 * REST_UNIT_STRIDE];
         int b = s[-2 * REST_UNIT_STRIDE] * s[-2 * REST_UNIT_STRIDE];
