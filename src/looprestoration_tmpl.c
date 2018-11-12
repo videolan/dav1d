@@ -441,7 +441,7 @@ static void selfguided_filter(int16_t *dst, const pixel *src,
             const int b =
                 (BB[i] + (1 << (BITDEPTH - 8) >> 1)) >> (BITDEPTH - 8);
 
-            const unsigned p = a * n - b * b;
+            const unsigned p = imax(a * n - b * b, 0);
             const unsigned z = (p * s + (1 << 19)) >> 20;
 
             const int x = dav1d_sgr_x_by_xplus1[imin(z, 255)];
