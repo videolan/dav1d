@@ -3099,6 +3099,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     f->sr_cur.p.poc = f->frame_hdr.frame_offset;
     f->sr_cur.p.p.type = f->frame_hdr.frame_type;
+    f->sr_cur.p.p.film_grain = f->frame_hdr.film_grain.data;
     f->sr_cur.p.p.pri = f->seq_hdr.pri;
     f->sr_cur.p.p.trc = f->seq_hdr.trc;
     f->sr_cur.p.p.mtrx = f->seq_hdr.mtrx;

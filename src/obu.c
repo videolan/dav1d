@@ -1008,7 +1008,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                               (hdr->show_frame || hdr->showable_frame) &&
                               dav1d_get_bits(gb, 1);
     if (hdr->film_grain.present) {
-        hdr->film_grain.seed = dav1d_get_bits(gb, 16);
+        const unsigned seed = dav1d_get_bits(gb, 16);
         hdr->film_grain.update = hdr->frame_type != DAV1D_FRAME_TYPE_INTER || dav1d_get_bits(gb, 1);
         if (!hdr->film_grain.update) {
             const int refidx = dav1d_get_bits(gb, 3);
@@ -1018,8 +1018,10 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                     break;
             if (i == 7) goto error;
             hdr->film_grain.data = c->refs[refidx].film_grain;
+            hdr->film_grain.data.seed = seed;
         } else {
-            Av1FilmGrainData *const fgd = &hdr->film_grain.data;
+            Dav1dFilmGrainData *const fgd = &hdr->film_grain.data;
+            fgd->seed = seed;
 
             fgd->num_y_points = dav1d_get_bits(gb, 4);
             if (fgd->num_y_points > 14) goto error;

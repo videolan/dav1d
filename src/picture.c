@@ -126,6 +126,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     p->p.chr = DAV1D_CHR_UNKNOWN;
     p->p.layout = layout;
     p->p.bpc = bpc;
+    p->p.film_grain = (Dav1dFilmGrainData) { 0 };
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
     if (res < 0) {
         free(pic_ctx);

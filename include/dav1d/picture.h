@@ -106,6 +106,26 @@ enum Dav1dChromaSamplePosition {
     DAV1D_CHR_COLOCATED = 2, ///< Co-located with luma(0, 0) sample
 };
 
+typedef struct Dav1dFilmGrainData {
+    uint16_t seed;
+    int num_y_points;
+    uint8_t y_points[14][2 /* value, scaling */];
+    int chroma_scaling_from_luma;
+    int num_uv_points[2];
+    uint8_t uv_points[2][10][2 /* value, scaling */];
+    int scaling_shift;
+    int ar_coeff_lag;
+    int8_t ar_coeffs_y[24];
+    int8_t ar_coeffs_uv[2][25];
+    int ar_coeff_shift;
+    int grain_scale_shift;
+    int8_t uv_mult[2];
+    int8_t uv_luma_mult[2];
+    int16_t uv_offset[2];
+    int overlap_flag;
+    int clip_to_restricted_range;
+} Dav1dFilmGrainData;
+
 typedef struct Dav1dPictureParameters {
     int w; ///< width (in pixels)
     int h; ///< height (in pixels)
@@ -122,6 +142,8 @@ typedef struct Dav1dPictureParameters {
      * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
      */
     int fullrange;
+
+    Dav1dFilmGrainData film_grain; ///< film grain parameters
 } Dav1dPictureParameters;
 
 typedef struct Dav1dPicture {
