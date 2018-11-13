@@ -767,8 +767,8 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                     dsp->ipred.intra_pred[m](dst, f->cur.p.stride[0], edge,
                                              t_dim->w * 4, t_dim->h * 4,
                                              angle | sm_fl,
-                                             f->cur.p.p.w - 4 * t->bx,
-                                             f->cur.p.p.h - 4 * t->by);
+                                             4 * f->bw - 4 * t->bx,
+                                             4 * f->bh - 4 * t->by);
 
                     if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                         hex_dump(edge - t_dim->h * 4, t_dim->h * 4,
@@ -984,9 +984,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                  uv_t_dim->w * 4,
                                                  uv_t_dim->h * 4,
                                                  angle | sm_uv_fl,
-                                                 (f->cur.p.p.w + ss_hor -
+                                                 (4 * f->bw + ss_hor -
                                                   4 * (t->bx & ~ss_hor)) >> ss_hor,
-                                                 (f->cur.p.p.h + ss_ver -
+                                                 (4 * f->bh + ss_ver -
                                                   4 * (t->by & ~ss_ver)) >> ss_ver);
                         if (DEBUG_BLOCK_INFO && DEBUG_B_PIXELS) {
                             hex_dump(edge - uv_t_dim->h * 4, uv_t_dim->h * 4,
