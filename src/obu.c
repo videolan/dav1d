@@ -1090,7 +1090,10 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             return res;
         if (check_for_overrun(&gb, init_bit_pos, len))
             return -EINVAL;
-        if (!c->have_frame_hdr || memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
+        // If we have read a sequence header which is different from
+        // the old one, this is a new video sequence and can't use any
+        // previous state. Free that state.
+        if (c->have_seq_hdr && memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
             for (int i = 0; i < 8; i++) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
@@ -1099,8 +1102,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
-            if (c->have_seq_hdr)
-                c->seq_hdr = hdr;
+            c->seq_hdr = hdr;
         }
         c->have_seq_hdr = 1;
         break;
