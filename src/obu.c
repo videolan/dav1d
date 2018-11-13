@@ -293,8 +293,8 @@ static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
     if (hdr->super_res) return -1; // FIXME
     hdr->have_render_size = dav1d_get_bits(gb, 1);
     if (hdr->have_render_size) {
-        hdr->render_width = dav1d_get_bits(gb, seqhdr->width_n_bits) + 1;
-        hdr->render_height = dav1d_get_bits(gb, seqhdr->height_n_bits) + 1;
+        hdr->render_width = dav1d_get_bits(gb, 16) + 1;
+        hdr->render_height = dav1d_get_bits(gb, 16) + 1;
     } else {
         hdr->render_width = hdr->width;
         hdr->render_height = hdr->height;
