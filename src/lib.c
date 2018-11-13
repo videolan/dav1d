@@ -117,7 +117,7 @@ int dav1d_open(Dav1dContext **const c_out,
             if (!t->scratch.mem) goto error;
             memset(t->cf, 0, 32 * 32 * sizeof(int32_t));
             t->emu_edge =
-                dav1d_alloc_aligned(192 * (128 + 7) * sizeof(uint16_t), 32);
+                dav1d_alloc_aligned(320 * (256 + 7) * sizeof(uint16_t), 32);
             if (!t->emu_edge) goto error;
             if (f->n_tc > 1) {
                 pthread_mutex_init(&t->tile_thread.td.lock, NULL);

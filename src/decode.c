@@ -1720,7 +1720,8 @@ static int decode_b(Dav1dTileContext *const t,
                 uint64_t mask[2] = { 0, 0 };
                 find_matching_ref(t, intra_edge_flags, bw4, bh4, w4, h4,
                                   have_left, have_top, b->ref[0], mask);
-                const int allow_warp = !f->frame_hdr.force_integer_mv &&
+                const int allow_warp = !f->svc[b->ref[0]][0].scale &&
+                    !f->frame_hdr.force_integer_mv &&
                     f->frame_hdr.warp_motion && (mask[0] | mask[1]);
 
                 b->motion_mode = allow_warp ?
@@ -2938,8 +2939,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         for (int i = 0; i < 7; i++) {
             const int refidx = f->frame_hdr.refidx[i];
             if (!c->refs[refidx].p.p.data[0] ||
-                f->frame_hdr.width  != c->refs[refidx].p.p.p.w ||
-                f->frame_hdr.height != c->refs[refidx].p.p.p.h ||
+                f->frame_hdr.width * 2 < c->refs[refidx].p.p.p.w ||
+                f->frame_hdr.height * 2 < c->refs[refidx].p.p.p.h ||
+                f->frame_hdr.width > c->refs[refidx].p.p.p.w * 16 ||
+                f->frame_hdr.height > c->refs[refidx].p.p.p.h * 16 ||
                 f->seq_hdr.layout != c->refs[refidx].p.p.p.layout ||
                 f->seq_hdr.bpc != c->refs[refidx].p.p.p.bpc)
             {
@@ -2949,6 +2952,21 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 goto error;
             }
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
+            if (f->frame_hdr.width  != c->refs[refidx].p.p.p.w ||
+                f->frame_hdr.height != c->refs[refidx].p.p.p.h)
+            {
+#define scale_fac(ref_sz, this_sz) \
+    (((ref_sz << 14) + (this_sz >> 1)) / this_sz)
+                f->svc[i][0].scale = scale_fac(c->refs[refidx].p.p.p.w,
+                                               f->frame_hdr.width);
+                f->svc[i][1].scale = scale_fac(c->refs[refidx].p.p.p.h,
+                                               f->frame_hdr.height);
+#undef scale_fac
+                f->svc[i][0].step = (f->svc[i][0].scale + 8) >> 4;
+                f->svc[i][1].step = (f->svc[i][1].scale + 8) >> 4;
+            } else {
+                f->svc[i][0].scale = 0;
+            }
         }
     }
 

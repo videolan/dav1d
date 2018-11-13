@@ -41,6 +41,12 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
             int w, int h, int mx, int my)
 typedef decl_mc_fn(*mc_fn);
 
+#define decl_mc_scaled_fn(name) \
+void (name)(pixel *dst, ptrdiff_t dst_stride, \
+            const pixel *src, ptrdiff_t src_stride, \
+            int w, int h, int mx, int my, int dx, int dy)
+typedef decl_mc_scaled_fn(*mc_scaled_fn);
+
 #define decl_warp8x8_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
             const pixel *src, ptrdiff_t src_stride, \
@@ -51,6 +57,11 @@ typedef decl_warp8x8_fn(*warp8x8_fn);
 void (name)(coef *tmp, const pixel *src, ptrdiff_t src_stride, \
             int w, int h, int mx, int my)
 typedef decl_mct_fn(*mct_fn);
+
+#define decl_mct_scaled_fn(name) \
+void (name)(coef *tmp, const pixel *src, ptrdiff_t src_stride, \
+            int w, int h, int mx, int my, int dx, int dy)
+typedef decl_mct_scaled_fn(*mct_scaled_fn);
 
 #define decl_warp8x8t_fn(name) \
 void (name)(coef *tmp, const ptrdiff_t tmp_stride, \
@@ -96,7 +107,9 @@ typedef decl_emu_edge_fn(*emu_edge_fn);
 
 typedef struct Dav1dMCDSPContext {
     mc_fn mc[N_2D_FILTERS];
+    mc_scaled_fn mc_scaled[N_2D_FILTERS];
     mct_fn mct[N_2D_FILTERS];
+    mct_scaled_fn mct_scaled[N_2D_FILTERS];
     avg_fn avg;
     w_avg_fn w_avg;
     mask_fn mask;

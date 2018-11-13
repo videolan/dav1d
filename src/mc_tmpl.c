@@ -78,13 +78,19 @@ prep_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
 #define FILTER_8TAP_CLIP(src, x, F, stride, sh) \
     iclip_pixel(FILTER_8TAP_RND(src, x, F, stride, sh))
 
+#define GET_H_FILTER(mx) \
+    const int8_t *const fh = !(mx) ? NULL : w > 4 ? \
+        dav1d_mc_subpel_filters[filter_type & 3][(mx) - 1] : \
+        dav1d_mc_subpel_filters[3 + (filter_type & 1)][(mx) - 1]
+
+#define GET_V_FILTER(my) \
+    const int8_t *const fv = !(my) ? NULL : h > 4 ? \
+        dav1d_mc_subpel_filters[filter_type >> 2][(my) - 1] : \
+        dav1d_mc_subpel_filters[3 + ((filter_type >> 2) & 1)][(my) - 1]
+
 #define GET_FILTERS() \
-    const int8_t *const fh = !mx ? NULL : w > 4 ? \
-        dav1d_mc_subpel_filters[filter_type & 3][mx - 1] : \
-        dav1d_mc_subpel_filters[3 + (filter_type & 1)][mx - 1]; \
-    const int8_t *const fv = !my ? NULL : h > 4 ? \
-        dav1d_mc_subpel_filters[filter_type >> 2][my - 1] : \
-        dav1d_mc_subpel_filters[3 + ((filter_type >> 2) & 1)][my - 1]; \
+    GET_H_FILTER(mx); \
+    GET_V_FILTER(my)
 
 static NOINLINE void
 put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
@@ -142,6 +148,48 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
 }
 
 static NOINLINE void
+put_8tap_scaled_c(pixel *dst, const ptrdiff_t dst_stride,
+                  const pixel *src, const ptrdiff_t src_stride,
+                  const int w, int h, const int mx, int my,
+                  const int dx, const int dy, const int filter_type)
+{
+    int tmp_h = (((h - 1) * dy + my) >> 10) + 8;
+    coef mid[128 * (256 + 7)], *mid_ptr = mid;
+
+    src -= src_stride * 3;
+    do {
+        int x;
+        int imx = mx, ioff = 0;
+
+        for (x = 0; x < w; x++) {
+            GET_H_FILTER(imx >> 6);
+            mid_ptr[x] = fh ? FILTER_8TAP_RND(src, ioff, fh, 1, 2) : src[ioff] << 4;
+            imx += dx;
+            ioff += imx >> 10;
+            imx &= 0x3ff;
+        }
+
+        mid_ptr += 128;
+        src += PXSTRIDE(src_stride);
+    } while (--tmp_h);
+
+    mid_ptr = mid + 128 * 3;
+    for (int y = 0; y < h; y++) {
+        int x;
+        GET_V_FILTER(my >> 6);
+
+        for (x = 0; x < w; x++)
+            dst[x] = fv ? FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 10) :
+                          (mid_ptr[x] + 8) >> 4;
+
+        my += dy;
+        mid_ptr += (my >> 10) * 128;
+        my &= 0x3ff;
+        dst += PXSTRIDE(dst_stride);
+    }
+}
+
+static NOINLINE void
 prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
             const int w, int h, const int mx, const int my,
             const int filter_type)
@@ -192,6 +240,46 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
         prep_c(tmp, src, src_stride, w, h);
 }
 
+static NOINLINE void
+prep_8tap_scaled_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
+                   const int w, int h, const int mx, int my,
+                   const int dx, const int dy, const int filter_type)
+{
+    int tmp_h = (((h - 1) * dy + my) >> 10) + 8;
+    coef mid[128 * (256 + 7)], *mid_ptr = mid;
+
+    src -= src_stride * 3;
+    do {
+        int x;
+        int imx = mx, ioff = 0;
+
+        for (x = 0; x < w; x++) {
+            GET_H_FILTER(imx >> 6);
+            mid_ptr[x] = fh ? FILTER_8TAP_RND(src, ioff, fh, 1, 2) : src[ioff] << 4;
+            imx += dx;
+            ioff += imx >> 10;
+            imx &= 0x3ff;
+        }
+
+        mid_ptr += 128;
+        src += PXSTRIDE(src_stride);
+    } while (--tmp_h);
+
+    mid_ptr = mid + 128 * 3;
+    for (int y = 0; y < h; y++) {
+        int x;
+        GET_V_FILTER(my >> 6);
+
+        for (x = 0; x < w; x++)
+            tmp[x] = fv ? FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 6) : mid_ptr[x];
+
+        my += dy;
+        mid_ptr += (my >> 10) * 128;
+        my &= 0x3ff;
+        tmp += w;
+    }
+}
+
 #define filter_fns(type, type_h, type_v) \
 static void put_8tap_##type##_c(pixel *const dst, \
                                 const ptrdiff_t dst_stride, \
@@ -203,6 +291,17 @@ static void put_8tap_##type##_c(pixel *const dst, \
     put_8tap_c(dst, dst_stride, src, src_stride, w, h, mx, my, \
                type_h | (type_v << 2)); \
 } \
+static void put_8tap_##type##_scaled_c(pixel *const dst, \
+                                       const ptrdiff_t dst_stride, \
+                                       const pixel *const src, \
+                                       const ptrdiff_t src_stride, \
+                                       const int w, const int h, \
+                                       const int mx, const int my, \
+                                       const int dx, const int dy) \
+{ \
+    put_8tap_scaled_c(dst, dst_stride, src, src_stride, w, h, mx, my, dx, dy, \
+                      type_h | (type_v << 2)); \
+} \
 static void prep_8tap_##type##_c(coef *const tmp, \
                                  const pixel *const src, \
                                  const ptrdiff_t src_stride, \
@@ -211,6 +310,16 @@ static void prep_8tap_##type##_c(coef *const tmp, \
 { \
     prep_8tap_c(tmp, src, src_stride, w, h, mx, my, \
                 type_h | (type_v << 2)); \
+} \
+static void prep_8tap_##type##_scaled_c(coef *const tmp, \
+                                        const pixel *const src, \
+                                        const ptrdiff_t src_stride, \
+                                        const int w, const int h, \
+                                        const int mx, const int my, \
+                                        const int dx, const int dy) \
+{ \
+    prep_8tap_scaled_c(tmp, src, src_stride, w, h, mx, my, dx, dy, \
+                       type_h | (type_v << 2)); \
 }
 
 filter_fns(regular,        FILTER_8TAP_REGULAR, FILTER_8TAP_REGULAR)
@@ -281,6 +390,43 @@ static void put_bilin_c(pixel *dst, ptrdiff_t dst_stride,
         put_c(dst, dst_stride, src, src_stride, w, h);
 }
 
+static void put_bilin_scaled_c(pixel *dst, ptrdiff_t dst_stride,
+                               const pixel *src, ptrdiff_t src_stride,
+                               const int w, int h, const int mx, int my,
+                               const int dx, const int dy)
+{
+    int tmp_h = (((h - 1) * dy + my) >> 10) + 2;
+    coef mid[128 * (256 + 1)], *mid_ptr = mid;
+
+    do {
+        int x;
+        int imx = mx, ioff = 0;
+
+        for (x = 0; x < w; x++) {
+            mid_ptr[x] = FILTER_BILIN(src, ioff, imx >> 6, 1);
+            imx += dx;
+            ioff += imx >> 10;
+            imx &= 0x3ff;
+        }
+
+        mid_ptr += 128;
+        src += PXSTRIDE(src_stride);
+    } while (--tmp_h);
+
+    mid_ptr = mid;
+    do {
+        int x;
+
+        for (x = 0; x < w; x++)
+            dst[x] = FILTER_BILIN_CLIP(mid_ptr, x, my >> 6, 128, 8);
+
+        my += dy;
+        mid_ptr += (my >> 10) * 128;
+        my &= 0x3ff;
+        dst += PXSTRIDE(dst_stride);
+    } while (--h);
+}
+
 static void prep_bilin_c(coef *tmp,
                          const pixel *src, ptrdiff_t src_stride,
                          const int w, int h, const int mx, const int my)
@@ -327,6 +473,43 @@ static void prep_bilin_c(coef *tmp,
         } while (--h);
     } else
         prep_c(tmp, src, src_stride, w, h);
+}
+
+static void prep_bilin_scaled_c(coef *tmp,
+                                const pixel *src, ptrdiff_t src_stride,
+                                const int w, int h, const int mx, int my,
+                                const int dx, const int dy)
+{
+    int tmp_h = (((h - 1) * dy + my) >> 10) + 2;
+    coef mid[128 * (256 + 1)], *mid_ptr = mid;
+
+    do {
+        int x;
+        int imx = mx, ioff = 0;
+
+        for (x = 0; x < w; x++) {
+            mid_ptr[x] = FILTER_BILIN(src, ioff, imx >> 6, 1);
+            imx += dx;
+            ioff += imx >> 10;
+            imx &= 0x3ff;
+        }
+
+        mid_ptr += 128;
+        src += PXSTRIDE(src_stride);
+    } while (--tmp_h);
+
+    mid_ptr = mid;
+    do {
+        int x;
+
+        for (x = 0; x < w; x++)
+            tmp[x] = FILTER_BILIN_RND(mid_ptr, x, my >> 6, 128, 4);
+
+        my += dy;
+        mid_ptr += (my >> 10) * 128;
+        my &= 0x3ff;
+        tmp += w;
+    } while (--h);
 }
 
 static void avg_c(pixel *dst, const ptrdiff_t dst_stride,
@@ -599,8 +782,10 @@ static void emu_edge_c(const intptr_t bw, const intptr_t bh,
 
 void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
 #define init_mc_fns(type, name) do { \
-    c->mc [type] = put_##name##_c; \
-    c->mct[type] = prep_##name##_c; \
+    c->mc        [type] = put_##name##_c; \
+    c->mc_scaled [type] = put_##name##_scaled_c; \
+    c->mct       [type] = prep_##name##_c; \
+    c->mct_scaled[type] = prep_##name##_scaled_c; \
 } while (0)
 
     init_mc_fns(FILTER_2D_8TAP_REGULAR,        8tap_regular);

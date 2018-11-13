@@ -52,6 +52,10 @@ static inline int apply_sign(const int v, const int s) {
     return s < 0 ? -v : v;
 }
 
+static inline int apply_sign64(const int v, const int64_t s) {
+    return s < 0 ? -v : v;
+}
+
 static inline int ulog2(const unsigned v) {
     return 31 - clz(v);
 }

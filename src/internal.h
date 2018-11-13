@@ -132,6 +132,12 @@ struct Dav1dFrameContext {
     } tile[256];
     int n_tile_data;
 
+    // for scalable references
+    struct ScalableMotionParams {
+        int scale; // if no scaling, this is 0
+        int step;
+    } svc[7][2 /* x, y */];
+
     const Dav1dContext *c;
     Dav1dTileContext *tc;
     int n_tc;
@@ -244,7 +250,7 @@ struct Dav1dTileContext {
     int bx, by;
     BlockContext l, *a;
     coef *cf;
-    pixel *emu_edge; // stride=160
+    pixel *emu_edge; // stride=192 for non-SVC, or 320 for SVC
     // FIXME types can be changed to pixel (and dynamically allocated)
     // which would make copy/assign operations slightly faster?
     uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
