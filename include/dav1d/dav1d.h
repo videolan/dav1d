@@ -45,6 +45,7 @@ typedef struct Dav1dSettings {
     int n_frame_threads;
     int n_tile_threads;
     Dav1dPicAllocator allocator;
+    int apply_grain;
 } Dav1dSettings;
 
 /**

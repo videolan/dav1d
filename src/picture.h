@@ -64,6 +64,11 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *p, int w, int h,
                                Dav1dPicAllocator *);
 
 /**
+ * Allocate a picture with identical metadata to an existing picture.
+ */
+int dav1d_picture_alloc_copy(Dav1dPicture *dst, const Dav1dPicture *src);
+
+/**
  * Create a copy of a picture.
  */
 void dav1d_picture_ref(Dav1dPicture *dst, const Dav1dPicture *src);

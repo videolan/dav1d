@@ -48,6 +48,7 @@ enum {
     ARG_FRAME_THREADS,
     ARG_TILE_THREADS,
     ARG_VERIFY,
+    ARG_FILM_GRAIN,
 };
 
 static const struct option long_opts[] = {
@@ -62,6 +63,7 @@ static const struct option long_opts[] = {
     { "framethreads",   1, NULL, ARG_FRAME_THREADS },
     { "tilethreads",    1, NULL, ARG_TILE_THREADS },
     { "verify",         1, NULL, ARG_VERIFY },
+    { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
     { NULL,             0, NULL, 0 },
 };
 
@@ -86,6 +88,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --version/-v:        print version and exit\n"
             " --framethreads $num: number of frame threads (default: 1)\n"
             " --tilethreads $num:  number of tile threads (default: 1)\n"
+            " --filmgrain          enable film grain application (default: 1, except if muxer is md5)\n"
             " --verify $md5:       verify decoded md5. implies --muxer md5, no output\n");
     exit(1);
 }
@@ -124,6 +127,7 @@ void parse(const int argc, char *const *const argv,
 
     memset(cli_settings, 0, sizeof(*cli_settings));
     dav1d_default_settings(lib_settings);
+    int grain_specified = 0;
 
     while ((o = getopt_long(argc, argv, short_opts, long_opts, NULL)) >= 0) {
         switch (o) {
@@ -159,6 +163,11 @@ void parse(const int argc, char *const *const argv,
         case ARG_VERIFY:
             cli_settings->verify = optarg;
             break;
+        case ARG_FILM_GRAIN:
+            lib_settings->apply_grain =
+                !!parse_unsigned(optarg, ARG_FILM_GRAIN, argv[0]);
+            grain_specified = 1;
+            break;
         case 'v':
             fprintf(stderr, "%s\n", dav1d_version());
             exit(0);
@@ -176,6 +185,12 @@ void parse(const int argc, char *const *const argv,
         cli_settings->outputfile = "-";
         if (!cli_settings->muxer)
             cli_settings->muxer = "md5";
+    }
+
+    if (!grain_specified && cli_settings->muxer &&
+        !strcmp(cli_settings->muxer, "md5"))
+    {
+        lib_settings->apply_grain = 0;
     }
 
     if (!cli_settings->inputfile)

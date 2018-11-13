@@ -43,6 +43,7 @@
 #include "src/ref.h"
 #include "src/thread_task.h"
 #include "src/wedge.h"
+#include "src/film_grain.h"
 
 static void init_internal(void) {
     dav1d_init_wedge_masks();
@@ -57,6 +58,7 @@ const char *dav1d_version(void) {
 void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_frame_threads = 1;
     s->n_tile_threads = 1;
+    s->apply_grain = 1;
     s->allocator.cookie = NULL;
     s->allocator.alloc_picture_callback = default_picture_allocator;
     s->allocator.release_picture_callback = default_picture_release;
@@ -84,6 +86,7 @@ int dav1d_open(Dav1dContext **const c_out,
     memset(c, 0, sizeof(*c));
 
     c->allocator = s->allocator;
+    c->apply_grain = s->apply_grain;
     c->n_fc = s->n_frame_threads;
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * s->n_frame_threads, 32);
     if (!c->fc) goto error;
@@ -170,6 +173,39 @@ int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
     return 0;
 }
 
+static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
+                        Dav1dPicture *const in)
+{
+    const Dav1dFilmGrainData *fgdata = &in->p.film_grain;
+    int has_grain = fgdata->num_y_points || fgdata->num_uv_points[0] ||
+                    fgdata->num_uv_points[1];
+
+    // If there is nothing to be done, skip the allocation/copy
+    if (!c->apply_grain || !has_grain) {
+        dav1d_picture_move_ref(out, in);
+        return 0;
+    }
+
+    // Apply film grain to a new copy of the image to avoid corrupting refs
+    int res = dav1d_picture_alloc_copy(out, in);
+    if (res < 0)
+        return res;
+
+    switch (out->p.bpc) {
+    case 8:
+        dav1d_apply_grain_8bpc(out, in);
+        break;
+    case 10:
+        dav1d_apply_grain_10bpc(out, in);
+        break;
+    default:
+        assert(!"apply_grain: missing bit depth");
+    }
+
+    dav1d_picture_unref(in);
+    return 0;
+}
+
 int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res;
@@ -220,16 +256,12 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
         in->sz -= res;
         in->data += res;
         if (!in->sz) dav1d_data_unref(in);
-        if (c->out.data[0]) {
-            dav1d_picture_move_ref(out, &c->out);
-            return 0;
-        }
+        if (c->out.data[0])
+            break;
     }
 
-    if (c->out.data[0]) {
-        dav1d_picture_move_ref(out, &c->out);
-        return 0;
-    }
+    if (c->out.data[0])
+        return output_image(c, out, &c->out);
 
     return -EAGAIN;
 }

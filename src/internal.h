@@ -115,6 +115,7 @@ struct Dav1dContext {
     } intra_edge;
 
     Dav1dPicAllocator allocator;
+    int apply_grain;
 };
 
 struct Dav1dFrameContext {

@@ -119,4 +119,6 @@ extern const int8_t dav1d_filter_intra_taps[5][64];
 
 extern const uint8_t dav1d_obmc_masks[64];
 
+extern const int16_t dav1d_gaussian_sequence[2048]; // for fgs
+
 #endif /* __DAV1D_SRC_TABLES_H__ */

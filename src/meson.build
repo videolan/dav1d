@@ -62,7 +62,8 @@ libdav1d_tmpl_sources = files(
     'cdef_tmpl.c',
     'lr_apply_tmpl.c',
     'looprestoration_tmpl.c',
-    'recon_tmpl.c'
+    'recon_tmpl.c',
+    'film_grain_tmpl.c',
 )
 
 # libdav1d entrypoint source files

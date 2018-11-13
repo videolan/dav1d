@@ -180,6 +180,21 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
     return res;
 }
 
+int dav1d_picture_alloc_copy(Dav1dPicture *const dst,
+                             const Dav1dPicture *const src)
+{
+    struct pic_ctx_context *const pic_ctx = src->ref->user_data;
+    int res = dav1d_picture_alloc(dst, src->p.w, src->p.h, src->p.layout,
+                                  src->p.bpc, &pic_ctx->allocator);
+
+    if (!res) {
+        dst->poc = src->poc;
+        dst->p = src->p;
+    }
+
+    return res;
+}
+
 void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
     validate_input(dst != NULL);
     validate_input(dst->data[0] == NULL);
