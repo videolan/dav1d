@@ -149,12 +149,13 @@ put_8tap_c(pixel *dst, ptrdiff_t dst_stride,
 
 static NOINLINE void
 put_8tap_scaled_c(pixel *dst, const ptrdiff_t dst_stride,
-                  const pixel *src, const ptrdiff_t src_stride,
+                  const pixel *src, ptrdiff_t src_stride,
                   const int w, int h, const int mx, int my,
                   const int dx, const int dy, const int filter_type)
 {
     int tmp_h = (((h - 1) * dy + my) >> 10) + 8;
     coef mid[128 * (256 + 7)], *mid_ptr = mid;
+    src_stride = PXSTRIDE(src_stride);
 
     src -= src_stride * 3;
     do {
@@ -170,7 +171,7 @@ put_8tap_scaled_c(pixel *dst, const ptrdiff_t dst_stride,
         }
 
         mid_ptr += 128;
-        src += PXSTRIDE(src_stride);
+        src += src_stride;
     } while (--tmp_h);
 
     mid_ptr = mid + 128 * 3;
@@ -241,12 +242,13 @@ prep_8tap_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
 }
 
 static NOINLINE void
-prep_8tap_scaled_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
+prep_8tap_scaled_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
                    const int w, int h, const int mx, int my,
                    const int dx, const int dy, const int filter_type)
 {
     int tmp_h = (((h - 1) * dy + my) >> 10) + 8;
     coef mid[128 * (256 + 7)], *mid_ptr = mid;
+    src_stride = PXSTRIDE(src_stride);
 
     src -= src_stride * 3;
     do {
@@ -262,7 +264,7 @@ prep_8tap_scaled_c(coef *tmp, const pixel *src, const ptrdiff_t src_stride,
         }
 
         mid_ptr += 128;
-        src += PXSTRIDE(src_stride);
+        src += src_stride;
     } while (--tmp_h);
 
     mid_ptr = mid + 128 * 3;
