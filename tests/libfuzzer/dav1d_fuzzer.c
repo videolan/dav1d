@@ -90,6 +90,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (frame_size > size || ptr > data + size - frame_size)
             break;
 
+        if (!frame_size) continue;
+
         // copy frame data to a new buffer to catch reads past the end of input
         p = dav1d_data_create(&buf, frame_size);
         if (!p) goto cleanup;
@@ -110,7 +112,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
         } while (buf.sz > 0);
 
-        if (buf.sz > 0 || frame_size == 0)
+        if (buf.sz > 0)
             dav1d_data_unref(&buf);
     }
 
