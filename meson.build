@@ -61,9 +61,9 @@ endforeach
 
 # ASM option
 is_asm_enabled = (get_option('build_asm') == true and
-    (host_machine.cpu_family().startswith('x86')) or
-     host_machine.cpu_family() == 'aarch64'       or
-     host_machine.cpu_family().startswith('arm'))
+    (host_machine.cpu_family().startswith('x86') or
+     host_machine.cpu_family() == 'aarch64'      or
+     host_machine.cpu_family().startswith('arm')))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
 if is_asm_enabled and get_option('b_sanitize') == 'memory'
