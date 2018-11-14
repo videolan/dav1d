@@ -91,35 +91,34 @@ static inline int get_partition_ctx(const BlockContext *const a,
 }
 
 static inline unsigned cdf_element_prob(const uint16_t *const cdf, const int e) {
-    return (e > 0 ? cdf[e - 1] : 32768) - cdf[e];
+    assert(e > 0);
+    return cdf[e - 1] - cdf[e];
 }
 
 static inline unsigned gather_left_partition_prob(const uint16_t *const in,
                                                   const enum BlockLevel bl)
 {
-    unsigned out = 32768;
-    out -= cdf_element_prob(in, PARTITION_H);
+    unsigned out = 0;
+    out += cdf_element_prob(in, PARTITION_H);
     if (bl != BL_128X128)
-        out -= cdf_element_prob(in, PARTITION_H4);
-    out -= cdf_element_prob(in, PARTITION_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_TOP_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_BOTTOM_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_LEFT_SPLIT);
-    return 32768 - out;
+        out += cdf_element_prob(in, PARTITION_H4);
+    // Exploit the fact that cdfs for PARTITION_SPLIT, PARTITION_T_TOP_SPLIT,
+    //  PARTITION_T_BOTTOM_SPLIT and PARTITION_T_LEFT_SPLIT are neighbors.
+    out += in[PARTITION_SPLIT - 1] - in[PARTITION_T_LEFT_SPLIT];
+    return out;
 }
 
 static inline unsigned gather_top_partition_prob(const uint16_t *const in,
                                                  const enum BlockLevel bl)
 {
-    unsigned out = 32768;
-    out -= cdf_element_prob(in, PARTITION_V);
+    unsigned out = 0;
     if (bl != BL_128X128)
-        out -= cdf_element_prob(in, PARTITION_V4);
-    out -= cdf_element_prob(in, PARTITION_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_TOP_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_LEFT_SPLIT);
-    out -= cdf_element_prob(in, PARTITION_T_RIGHT_SPLIT);
-    return 32768 - out;
+        out += cdf_element_prob(in, PARTITION_V4);
+    // Exploit the fact that cdfs for PARTITION_T_LEFT_SPLIT and PARTITION_T_RIGHT_SPLIT,
+    //  and PARTITION_V, PARTITION_SPLIT and PARTITION_T_TOP_SPLIT are neighbors.
+    out += in[PARTITION_T_LEFT_SPLIT - 1] - in[PARTITION_T_RIGHT_SPLIT];
+    out += in[PARTITION_V - 1] - in[PARTITION_T_TOP_SPLIT];
+    return out;
 }
 
 static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
