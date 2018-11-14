@@ -763,16 +763,7 @@ static int decode_b(Dav1dTileContext *const t,
     b->bp = bp;
     b->bs = bs;
 
-    // skip_mode
-    if (f->frame_hdr.skip_mode_enabled && imin(bw4, bh4) > 1) {
-        const int smctx = t->a->skip_mode[bx4] + t->l.skip_mode[by4];
-        b->skip_mode = msac_decode_bool_adapt(&ts->msac,
-                                              ts->cdf.m.skip_mode[smctx]);
-        if (DEBUG_BLOCK_INFO)
-            printf("Post-skipmode[%d]: r=%d\n", b->skip_mode, ts->msac.rng);
-    } else {
-        b->skip_mode = 0;
-    }
+    const Av1SegmentationData *seg = NULL;
 
     // segment_id (if seg_feature for skip/ref/gmv is enabled)
     int seg_pred = 0;
@@ -787,6 +778,7 @@ static int decode_b(Dav1dTileContext *const t,
             } else {
                 b->seg_id = 0;
             }
+            seg = &f->frame_hdr.segmentation.seg_data.d[b->seg_id];
         } else if (f->frame_hdr.segmentation.seg_data.preskip) {
             if (f->frame_hdr.segmentation.temporal &&
                 (seg_pred = msac_decode_bool_adapt(&ts->msac,
@@ -823,17 +815,35 @@ static int decode_b(Dav1dTileContext *const t,
             if (DEBUG_BLOCK_INFO)
                 printf("Post-segid[preskip;%d]: r=%d\n",
                        b->seg_id, ts->msac.rng);
+
+            seg = &f->frame_hdr.segmentation.seg_data.d[b->seg_id];
         }
     } else {
         b->seg_id = 0;
     }
 
+    // skip_mode
+    if ((!seg || (!seg->globalmv && seg->ref == -1 && !seg->skip)) &&
+        f->frame_hdr.skip_mode_enabled && imin(bw4, bh4) > 1)
+    {
+        const int smctx = t->a->skip_mode[bx4] + t->l.skip_mode[by4];
+        b->skip_mode = msac_decode_bool_adapt(&ts->msac,
+                                              ts->cdf.m.skip_mode[smctx]);
+        if (DEBUG_BLOCK_INFO)
+            printf("Post-skipmode[%d]: r=%d\n", b->skip_mode, ts->msac.rng);
+    } else {
+        b->skip_mode = 0;
+    }
+
     // skip
-    const int sctx = t->a->skip[bx4] + t->l.skip[by4];
-    b->skip = b->skip_mode ? 1 :
-              msac_decode_bool_adapt(&ts->msac, ts->cdf.m.skip[sctx]);
-    if (DEBUG_BLOCK_INFO)
-        printf("Post-skip[%d]: r=%d\n", b->skip, ts->msac.rng);
+    if (b->skip_mode || (seg && seg->skip)) {
+        b->skip = 1;
+    } else {
+        const int sctx = t->a->skip[bx4] + t->l.skip[by4];
+        b->skip = msac_decode_bool_adapt(&ts->msac, ts->cdf.m.skip[sctx]);
+        if (DEBUG_BLOCK_INFO)
+            printf("Post-skip[%d]: r=%d\n", b->skip, ts->msac.rng);
+    }
 
     // segment_id
     if (f->frame_hdr.segmentation.enabled &&
@@ -874,6 +884,8 @@ static int decode_b(Dav1dTileContext *const t,
             }
             if (b->seg_id >= NUM_SEGMENTS) b->seg_id = 0; // error?
         }
+
+        seg = &f->frame_hdr.segmentation.seg_data.d[b->seg_id];
 
         if (DEBUG_BLOCK_INFO)
             printf("Post-segid[postskip;%d]: r=%d\n",
@@ -970,11 +982,15 @@ static int decode_b(Dav1dTileContext *const t,
     if (b->skip_mode) {
         b->intra = 0;
     } else if (f->frame_hdr.frame_type & 1) {
-        const int ictx = get_intra_ctx(t->a, &t->l, by4, bx4,
-                                       have_top, have_left);
-        b->intra = !msac_decode_bool_adapt(&ts->msac, ts->cdf.m.intra[ictx]);
-        if (DEBUG_BLOCK_INFO)
-            printf("Post-intra[%d]: r=%d\n", b->intra, ts->msac.rng);
+        if (seg && (seg->ref >= 0 || seg->globalmv)) {
+            b->intra = !seg->ref;
+        } else {
+            const int ictx = get_intra_ctx(t->a, &t->l, by4, bx4,
+                                           have_top, have_left);
+            b->intra = !msac_decode_bool_adapt(&ts->msac, ts->cdf.m.intra[ictx]);
+            if (DEBUG_BLOCK_INFO)
+                printf("Post-intra[%d]: r=%d\n", b->intra, ts->msac.rng);
+        }
     } else if (f->frame_hdr.allow_intrabc) {
         b->intra = !msac_decode_bool_adapt(&ts->msac, ts->cdf.m.intrabc);
         if (DEBUG_BLOCK_INFO)
@@ -1334,7 +1350,9 @@ static int decode_b(Dav1dTileContext *const t,
 
         if (b->skip_mode) {
             is_comp = 1;
-        } else if (f->frame_hdr.switchable_comp_refs && imin(bw4, bh4) > 1) {
+        } else if ((!seg || seg->ref == -1) &&
+                   f->frame_hdr.switchable_comp_refs && imin(bw4, bh4) > 1)
+        {
             const int ctx = get_comp_ctx(t->a, &t->l, by4, bx4,
                                          have_top, have_left);
             is_comp = msac_decode_bool_adapt(&ts->msac, ts->cdf.m.comp[ctx]);
@@ -1562,37 +1580,43 @@ static int decode_b(Dav1dTileContext *const t,
             b->comp_type = COMP_INTER_NONE;
 
             // ref
-            const int ctx1 = av1_get_ref_ctx(t->a, &t->l, by4, bx4,
-                                             have_top, have_left);
-            if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[0][ctx1])) {
-                const int ctx2 = av1_get_ref_2_ctx(t->a, &t->l, by4, bx4,
-                                                   have_top, have_left);
-                if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[1][ctx2])) {
-                    b->ref[0] = 6;
-                } else {
-                    const int ctx3 = av1_get_ref_6_ctx(t->a, &t->l, by4, bx4,
-                                                       have_top, have_left);
-                    b->ref[0] = 4 + msac_decode_bool_adapt(&ts->msac,
-                                                       ts->cdf.m.ref[5][ctx3]);
-                }
+            if (seg && seg->ref > 0) {
+                b->ref[0] = seg->ref - 1;
+            } else if (seg && (seg->globalmv || seg->skip)) {
+                b->ref[0] = 0;
             } else {
-                const int ctx2 = av1_get_ref_3_ctx(t->a, &t->l, by4, bx4,
-                                                   have_top, have_left);
-                if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[2][ctx2])) {
-                    const int ctx3 = av1_get_ref_5_ctx(t->a, &t->l, by4, bx4,
+                const int ctx1 = av1_get_ref_ctx(t->a, &t->l, by4, bx4,
+                                                 have_top, have_left);
+                if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[0][ctx1])) {
+                    const int ctx2 = av1_get_ref_2_ctx(t->a, &t->l, by4, bx4,
                                                        have_top, have_left);
-                    b->ref[0] = 2 + msac_decode_bool_adapt(&ts->msac,
-                                                       ts->cdf.m.ref[4][ctx3]);
+                    if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[1][ctx2])) {
+                        b->ref[0] = 6;
+                    } else {
+                        const int ctx3 = av1_get_ref_6_ctx(t->a, &t->l, by4, bx4,
+                                                           have_top, have_left);
+                        b->ref[0] = 4 + msac_decode_bool_adapt(&ts->msac,
+                                                           ts->cdf.m.ref[5][ctx3]);
+                    }
                 } else {
-                    const int ctx3 = av1_get_ref_4_ctx(t->a, &t->l, by4, bx4,
+                    const int ctx2 = av1_get_ref_3_ctx(t->a, &t->l, by4, bx4,
                                                        have_top, have_left);
-                    b->ref[0] = msac_decode_bool_adapt(&ts->msac,
-                                                       ts->cdf.m.ref[3][ctx3]);
+                    if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.ref[2][ctx2])) {
+                        const int ctx3 = av1_get_ref_5_ctx(t->a, &t->l, by4, bx4,
+                                                           have_top, have_left);
+                        b->ref[0] = 2 + msac_decode_bool_adapt(&ts->msac,
+                                                           ts->cdf.m.ref[4][ctx3]);
+                    } else {
+                        const int ctx3 = av1_get_ref_4_ctx(t->a, &t->l, by4, bx4,
+                                                           have_top, have_left);
+                        b->ref[0] = msac_decode_bool_adapt(&ts->msac,
+                                                           ts->cdf.m.ref[3][ctx3]);
+                    }
                 }
+                if (DEBUG_BLOCK_INFO)
+                    printf("Post-ref[%d]: r=%d\n", b->ref[0], ts->msac.rng);
             }
             b->ref[1] = -1;
-            if (DEBUG_BLOCK_INFO)
-                printf("Post-ref[%d]: r=%d\n", b->ref[0], ts->msac.rng);
 
             candidate_mv mvstack[8];
             int n_mvs, ctx;
@@ -1604,8 +1628,11 @@ static int decode_b(Dav1dTileContext *const t,
                              ts->tiling.row_end, f->libaom_cm);
 
             // mode parsing and mv derivation from ref_mvs
-            if (msac_decode_bool_adapt(&ts->msac, ts->cdf.m.newmv_mode[ctx & 7])) {
-                if (!msac_decode_bool_adapt(&ts->msac,
+            if ((seg && (seg->skip || seg->globalmv)) ||
+                msac_decode_bool_adapt(&ts->msac, ts->cdf.m.newmv_mode[ctx & 7]))
+            {
+                if ((seg && (seg->skip || seg->globalmv)) ||
+                    !msac_decode_bool_adapt(&ts->msac,
                                         ts->cdf.m.globalmv_mode[(ctx >> 3) & 1]))
                 {
                     b->inter_mode = GLOBALMV;
