@@ -678,8 +678,8 @@ static int warp_affine(Dav1dTileContext *const t,
     const int h_mul = 4 >> ss_hor, v_mul = 4 >> ss_ver;
     assert(!((b_dim[0] * h_mul) & 7) && !((b_dim[1] * v_mul) & 7));
     const int32_t *const mat = wmp->matrix;
-    const int width = (f->cur.p.p.w + ss_hor) >> ss_hor;
-    const int height = (f->cur.p.p.h + ss_ver) >> ss_ver;
+    const int width = (refp->p.p.w + ss_hor) >> ss_hor;
+    const int height = (refp->p.p.h + ss_ver) >> ss_ver;
 
     for (int y = 0; y < b_dim[1] * v_mul; y += 8) {
         for (int x = 0; x < b_dim[0] * h_mul; x += 8) {
