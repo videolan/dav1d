@@ -1070,7 +1070,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     // We must have read a whole number of bytes at this point (1 byte
     // for the header and whole bytes at a time when reading the
     // leb128 length field).
-    assert(init_bit_pos & 7 == 0);
+    assert((init_bit_pos & 7) == 0);
 
     // We also know that we haven't tried to read more than in->sz
     // bytes yet (otherwise the error flag would have been set by the
@@ -1148,7 +1148,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         // just aligned it) and less than 8*pkt_bytelen because
         // otherwise the overrun check would have fired.
         const unsigned bit_pos = dav1d_get_bits_pos(&gb);
-        assert(bit_pos & 7 == 0);
+        assert((bit_pos & 7) == 0);
         assert(pkt_bytelen > (bit_pos >> 3));
         dav1d_ref_inc(in->ref);
         c->tile[c->n_tile_data].data.ref = in->ref;
