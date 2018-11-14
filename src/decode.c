@@ -3093,8 +3093,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (f->frame_hdr.segmentation.temporal || !f->frame_hdr.segmentation.update_map) {
             const int pri_ref = f->frame_hdr.primary_ref_frame;
             assert(pri_ref != PRIMARY_REF_NONE);
-            const int ref_w = (f->refp[pri_ref].p.p.w + 3) >> 2;
-            const int ref_h = (f->refp[pri_ref].p.p.h + 3) >> 2;
+            const int ref_w = ((f->refp[pri_ref].p.p.w + 7) >> 3) << 1;
+            const int ref_h = ((f->refp[pri_ref].p.p.h + 7) >> 3) << 1;
             if (ref_w == f->bw && ref_h == f->bh) {
                 f->prev_segmap_ref = c->refs[f->frame_hdr.refidx[pri_ref]].segmap;
                 if (f->prev_segmap_ref == NULL) {
