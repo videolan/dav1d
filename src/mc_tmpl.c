@@ -335,7 +335,7 @@ filter_fns(sharp_regular,  FILTER_8TAP_SHARP,   FILTER_8TAP_REGULAR)
 filter_fns(sharp_smooth,   FILTER_8TAP_SHARP,   FILTER_8TAP_SMOOTH)
 
 #define FILTER_BILIN(src, x, mxy, stride) \
-    (16 * src[x] + (mxy * (src[x + stride] - src[x])))
+    (16 * src[x] + ((mxy) * (src[x + stride] - src[x])))
 
 #define FILTER_BILIN_RND(src, x, mxy, stride, sh) \
     ((FILTER_BILIN(src, x, mxy, stride) + ((1 << sh) >> 1)) >> sh)
