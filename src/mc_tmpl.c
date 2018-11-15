@@ -273,7 +273,7 @@ prep_8tap_scaled_c(coef *tmp, const pixel *src, ptrdiff_t src_stride,
         GET_V_FILTER(my >> 6);
 
         for (x = 0; x < w; x++)
-            tmp[x] = fv ? FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 6) : mid_ptr[x];
+            tmp[x] = fv ? FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6) : mid_ptr[x];
 
         my += dy;
         mid_ptr += (my >> 10) * 128;
