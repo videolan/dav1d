@@ -893,7 +893,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             mat[1] = dav1d_get_bits_subexp(gb, ref_mat[1] >> shift, bits) * (1 << shift);
 
             if (dav1d_get_shear_params(&hdr->gmv[i]))
-                goto error;
+                hdr->gmv[i].type = WM_TYPE_TRANSLATION;
         }
     }
 #if DEBUG_FRAME_HDR
