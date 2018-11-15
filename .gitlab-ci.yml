@@ -101,7 +101,7 @@ build-debian-werror:
         - aarch64
         - debian
     script:
-        - env CC='clang-7' CFLAGS='-Werror' meson build -Dbuild_tests=false
+        - env CC='clang-7' CFLAGS='-Werror' meson build --buildtype debug
         - ninja -C build
 
 test-debian:
