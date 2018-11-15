@@ -431,9 +431,12 @@ typedef struct Av1FrameHeader {
     } operating_points[32];
     int frame_offset;
     int refresh_frame_flags;
-    int width, height;
+    int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
     int render_width, render_height;
-    int super_res;
+    struct {
+        int width_scale_denominator;
+        int enabled;
+    } super_res;
     int have_render_size;
     int allow_intrabc;
     int frame_ref_short_signaling;

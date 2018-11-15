@@ -280,29 +280,44 @@ static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
                     &c->refs[c->frame_hdr.refidx[i]].p;
                 if (!ref->p.data[0]) return -1;
                 // FIXME render_* may be wrong
-                hdr->render_width = hdr->width = ref->p.p.w;
+                hdr->render_width = hdr->width[1] = ref->p.p.w;
                 hdr->render_height = hdr->height = ref->p.p.h;
-                hdr->super_res = 0; // FIXME probably wrong
+                hdr->super_res.enabled = seqhdr->super_res && dav1d_get_bits(gb, 1);
+                if (hdr->super_res.enabled) {
+                    const int d = hdr->super_res.width_scale_denominator =
+                        9 + dav1d_get_bits(gb, 3);
+                    hdr->width[0] = imax((hdr->width[1] * 8 + (d >> 1)) / d,
+                                         imin(16, hdr->width[1]));
+                } else {
+                    hdr->super_res.width_scale_denominator = 8;
+                    hdr->width[0] = hdr->width[1];
+                }
                 return 0;
             }
         }
     }
 
     if (hdr->frame_size_override) {
-        hdr->width = dav1d_get_bits(gb, seqhdr->width_n_bits) + 1;
+        hdr->width[1] = dav1d_get_bits(gb, seqhdr->width_n_bits) + 1;
         hdr->height = dav1d_get_bits(gb, seqhdr->height_n_bits) + 1;
     } else {
-        hdr->width = seqhdr->max_width;
+        hdr->width[1] = seqhdr->max_width;
         hdr->height = seqhdr->max_height;
     }
-    hdr->super_res = seqhdr->super_res && dav1d_get_bits(gb, 1);
-    if (hdr->super_res) return -1; // FIXME
+    hdr->super_res.enabled = seqhdr->super_res && dav1d_get_bits(gb, 1);
+    if (hdr->super_res.enabled) {
+        const int d = hdr->super_res.width_scale_denominator = 9 + dav1d_get_bits(gb, 3);
+        hdr->width[0] = imax((hdr->width[1] * 8 + (d >> 1)) / d, imin(16, hdr->width[1]));
+    } else {
+        hdr->super_res.width_scale_denominator = 8;
+        hdr->width[0] = hdr->width[1];
+    }
     hdr->have_render_size = dav1d_get_bits(gb, 1);
     if (hdr->have_render_size) {
         hdr->render_width = dav1d_get_bits(gb, 16) + 1;
         hdr->render_height = dav1d_get_bits(gb, 16) + 1;
     } else {
-        hdr->render_width = hdr->width;
+        hdr->render_width = hdr->width[1];
         hdr->render_height = hdr->height;
     }
     return 0;
@@ -411,7 +426,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
         if ((res = read_frame_size(c, gb, 0)) < 0) goto error;
         hdr->allow_intrabc = hdr->allow_screen_content_tools &&
-                             /* FIXME: no superres scaling && */ dav1d_get_bits(gb, 1);
+                             !hdr->super_res.enabled && dav1d_get_bits(gb, 1);
         hdr->use_ref_frame_mvs = 0;
     } else {
         hdr->allow_intrabc = 0;
@@ -455,7 +470,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     hdr->tiling.uniform = dav1d_get_bits(gb, 1);
     const int sbsz_min1 = (64 << seqhdr->sb128) - 1;
     int sbsz_log2 = 6 + seqhdr->sb128;
-    int sbw = (hdr->width + sbsz_min1) >> sbsz_log2;
+    int sbw = (hdr->width[0] + sbsz_min1) >> sbsz_log2;
     int sbh = (hdr->height + sbsz_min1) >> sbsz_log2;
     int max_tile_width_sb = 4096 >> sbsz_log2;
     int max_tile_area_sb = 4096 * 2304 >> (2 * sbsz_log2);
@@ -733,7 +748,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 #endif
 
     // restoration
-    if (!hdr->all_lossless && seqhdr->restoration && !hdr->allow_intrabc) {
+    if ((!hdr->all_lossless || hdr->super_res.enabled) &&
+        seqhdr->restoration && !hdr->allow_intrabc)
+    {
         hdr->restoration.type[0] = dav1d_get_bits(gb, 2);
         if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400) {
             hdr->restoration.type[1] = dav1d_get_bits(gb, 2);

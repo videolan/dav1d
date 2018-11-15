@@ -99,6 +99,7 @@ struct Dav1dContext {
         Av1LoopfilterModeRefDeltas lf_mode_ref_deltas;
         Av1FilmGrainData film_grain;
         uint8_t qidx;
+        unsigned coded_width;
     } refs[8];
     CdfThreadContext cdf[8];
 
@@ -119,7 +120,9 @@ struct Dav1dContext {
 struct Dav1dFrameContext {
     Av1SequenceHeader seq_hdr;
     Av1FrameHeader frame_hdr;
-    Dav1dThreadPicture refp[7], cur;
+    Dav1dThreadPicture refp[7];
+    Dav1dPicture cur; // during block coding / reconstruction
+    Dav1dThreadPicture sr_cur; // after super-resolution upscaling
     Dav1dRef *mvs_ref;
     refmvs *mvs, *ref_mvs[7];
     Dav1dRef *ref_mvs_ref[7];
@@ -127,6 +130,7 @@ struct Dav1dFrameContext {
     uint8_t *cur_segmap;
     const uint8_t *prev_segmap;
     unsigned refpoc[7], refrefpoc[7][7];
+    int ref_coded_width[7];
     CdfThreadContext in_cdf, out_cdf;
     struct {
         Dav1dData data;
@@ -139,6 +143,7 @@ struct Dav1dFrameContext {
         int scale; // if no scaling, this is 0
         int step;
     } svc[7][2 /* x, y */];
+    int resize_step[2 /* y, uv */], resize_start[2 /* y, uv */];
 
     const Dav1dContext *c;
     Dav1dTileContext *tc;
@@ -157,7 +162,7 @@ struct Dav1dFrameContext {
     int ipred_edge_sz;
     pixel *ipred_edge[3];
     ptrdiff_t b4_stride;
-    int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step;
+    int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step, sr_sb128w;
     uint16_t dq[NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint8_t *qm[2 /* is_1d */][N_RECT_TX_SIZES][3 /* plane */];
     BlockContext *a;
@@ -188,8 +193,9 @@ struct Dav1dFrameContext {
     struct {
         uint8_t (*level)[4];
         Av1Filter *mask;
+        Av1Restoration *lr_mask;
         int top_pre_cdef_toggle;
-        int mask_sz /* w*h */, line_sz /* w */, re_sz /* h */;
+        int mask_sz /* w*h */, lr_mask_sz, line_sz /* w */, lr_line_sz, re_sz /* h */;
         Av1FilterLUT lim_lut;
         int last_sharpness;
         uint8_t lvl[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
@@ -201,7 +207,7 @@ struct Dav1dFrameContext {
 
         // in-loop filter per-frame state keeping
         int tile_row; // for carry-over at tile row edges
-        pixel *p[3];
+        pixel *p[3], *sr_p[3];
         Av1Filter *mask_ptr, *prev_mask_ptr;
     } lf;
 

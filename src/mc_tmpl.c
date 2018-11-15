@@ -782,6 +782,34 @@ static void emu_edge_c(const intptr_t bw, const intptr_t bh,
     }
 }
 
+static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
+                     const pixel *src, const ptrdiff_t src_stride,
+                     const int dst_w, const int src_w, int h,
+                     const int dx, const int mx0)
+{
+    do {
+        int mx = mx0, src_x = -1;
+        for (int x = 0; x < dst_w; x++) {
+            const int16_t *const F = dav1d_resize_filter[mx >> 8];
+            dst[x] = iclip_pixel((F[0] * src[iclip(src_x - 3, 0, src_w - 1)] +
+                                  F[1] * src[iclip(src_x - 2, 0, src_w - 1)] +
+                                  F[2] * src[iclip(src_x - 1, 0, src_w - 1)] +
+                                  F[3] * src[iclip(src_x + 0, 0, src_w - 1)] +
+                                  F[4] * src[iclip(src_x + 1, 0, src_w - 1)] +
+                                  F[5] * src[iclip(src_x + 2, 0, src_w - 1)] +
+                                  F[6] * src[iclip(src_x + 3, 0, src_w - 1)] +
+                                  F[7] * src[iclip(src_x + 4, 0, src_w - 1)] +
+                                  64) >> 7);
+            mx += dx;
+            src_x += mx >> 14;
+            mx &= 0x3fff;
+        }
+
+        dst += PXSTRIDE(dst_stride);
+        src += PXSTRIDE(src_stride);
+    } while (--h);
+}
+
 void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
 #define init_mc_fns(type, name) do { \
     c->mc        [type] = put_##name##_c; \
@@ -813,6 +841,7 @@ void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
     c->warp8x8  = warp_affine_8x8_c;
     c->warp8x8t = warp_affine_8x8t_c;
     c->emu_edge = emu_edge_c;
+    c->resize   = resize_c;
 
 #if HAVE_ASM
 #if ARCH_AARCH64 || ARCH_ARM

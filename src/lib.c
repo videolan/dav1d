@@ -266,7 +266,8 @@ void dav1d_close(Dav1dContext **const c_out) {
                     dav1d_thread_picture_unref(&f->refp[i]);
                 dav1d_ref_dec(&f->ref_mvs_ref[i]);
             }
-            dav1d_thread_picture_unref(&f->cur);
+            dav1d_picture_unref(&f->cur);
+            dav1d_thread_picture_unref(&f->sr_cur);
             dav1d_cdf_thread_unref(&f->in_cdf);
             if (f->frame_hdr.refresh_context)
                 dav1d_cdf_thread_unref(&f->out_cdf);
@@ -324,6 +325,7 @@ void dav1d_close(Dav1dContext **const c_out) {
         dav1d_free_aligned(f->ipred_edge[0]);
         free(f->a);
         free(f->lf.mask);
+        free(f->lf.lr_mask);
         free(f->lf.level);
         free(f->lf.tx_lpf_right_edge[0]);
         av1_free_ref_mv_common(f->libaom_cm);

@@ -91,8 +91,7 @@ struct pic_ctx_context {
     void *extra_ptr; /* MUST BE AT THE END */
 };
 
-static void free_buffer(const uint8_t *data, void *user_data)
-{
+static void free_buffer(const uint8_t *const data, void *const user_data) {
     struct pic_ctx_context *pic_ctx = user_data;
 
     pic_ctx->allocator.release_picture_callback(pic_ctx->data,
@@ -148,6 +147,13 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
         *extra_ptr = &pic_ctx->extra_ptr;
 
     return 0;
+}
+
+int dav1d_picture_alloc(Dav1dPicture *const p, const int w, const int h,
+                        const enum Dav1dPixelLayout layout, const int bpc,
+                        Dav1dPicAllocator *const p_allocator)
+{
+    return picture_alloc_with_edges(p, w, h, layout, bpc, p_allocator, 0, NULL);
 }
 
 int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
