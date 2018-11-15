@@ -259,6 +259,22 @@ void dav1d_close(Dav1dContext **const c_out) {
             pthread_cond_signal(&f->frame_thread.td.cond);
             pthread_mutex_unlock(&f->frame_thread.td.lock);
             pthread_join(f->frame_thread.td.thread, NULL);
+            // free references from dav1d_submit_frame() usually freed by
+            // dav1d_decode_frame
+            for (int i = 0; i < 7; i++) {
+                if (f->refp[i].p.data[0])
+                    dav1d_thread_picture_unref(&f->refp[i]);
+                dav1d_ref_dec(&f->ref_mvs_ref[i]);
+            }
+            dav1d_thread_picture_unref(&f->cur);
+            dav1d_cdf_thread_unref(&f->in_cdf);
+            if (f->frame_hdr.refresh_context)
+                dav1d_cdf_thread_unref(&f->out_cdf);
+            dav1d_ref_dec(&f->cur_segmap_ref);
+            dav1d_ref_dec(&f->prev_segmap_ref);
+            dav1d_ref_dec(&f->mvs_ref);
+            for (int i = 0; i < f->n_tile_data; i++)
+                dav1d_data_unref(&f->tile[i].data);
             freep(&f->frame_thread.b);
             dav1d_freep_aligned(&f->frame_thread.pal_idx);
             dav1d_freep_aligned(&f->frame_thread.cf);
