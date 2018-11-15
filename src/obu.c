@@ -1149,7 +1149,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         // otherwise the overrun check would have fired.
         const unsigned bit_pos = dav1d_get_bits_pos(&gb);
         assert((bit_pos & 7) == 0);
-        assert(pkt_bytelen > (bit_pos >> 3));
+        assert(pkt_bytelen >= (bit_pos >> 3));
         dav1d_ref_inc(in->ref);
         c->tile[c->n_tile_data].data.ref = in->ref;
         c->tile[c->n_tile_data].data.data = in->data + (bit_pos >> 3);
