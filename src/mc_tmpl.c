@@ -181,7 +181,7 @@ put_8tap_scaled_c(pixel *dst, const ptrdiff_t dst_stride,
 
         for (x = 0; x < w; x++)
             dst[x] = fv ? FILTER_8TAP_CLIP(mid_ptr, x, fv, 128, 10) :
-                          (mid_ptr[x] + 8) >> 4;
+                          iclip_pixel((mid_ptr[x] + 8) >> 4);
 
         my += dy;
         mid_ptr += (my >> 10) * 128;
