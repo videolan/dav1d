@@ -151,9 +151,10 @@ int main(const int argc, char *const *const argv) {
             if (res != -EAGAIN) {
                 fprintf(stderr, "Error decoding frame: %s\n",
                         strerror(-res));
-            } else
+            } else {
                 res = 0;
-            break;
+                break;
+            }
         } else {
             if (!n_out) {
                 if ((res = output_open(&out, cli_settings.muxer,

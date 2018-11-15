@@ -121,7 +121,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         err = dav1d_get_picture(ctx, &pic);
         if (err == 0)
             dav1d_picture_unref(&pic);
-    } while (err == 0);
+    } while (err != -EAGAIN);
 
 cleanup:
     dav1d_flush(ctx);
