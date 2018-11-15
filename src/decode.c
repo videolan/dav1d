@@ -1350,7 +1350,7 @@ static int decode_b(Dav1dTileContext *const t,
 
         if (b->skip_mode) {
             is_comp = 1;
-        } else if ((!seg || seg->ref == -1) &&
+        } else if ((!seg || (seg->ref == -1 && !seg->globalmv && !seg->skip)) &&
                    f->frame_hdr.switchable_comp_refs && imin(bw4, bh4) > 1)
         {
             const int ctx = get_comp_ctx(t->a, &t->l, by4, bx4,
