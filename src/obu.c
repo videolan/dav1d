@@ -1042,7 +1042,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     const enum ObuType type = dav1d_get_bits(&gb, 4);
     const int has_extension = dav1d_get_bits(&gb, 1);
     const int has_length_field = dav1d_get_bits(&gb, 1);
-    if (!has_length_field) goto error;
     dav1d_get_bits(&gb, 1); // reserved
     if (has_extension) {
         dav1d_get_bits(&gb, 3); // temporal_layer_id
@@ -1052,15 +1051,18 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     // obu length field
     unsigned len = 0, more, i = 0;
-    do {
-        more = dav1d_get_bits(&gb, 1);
-        unsigned bits = dav1d_get_bits(&gb, 7);
-        if (i <= 3 || (i == 4 && bits < (1 << 4)))
-            len |= bits << (i * 7);
-        else if (bits)
-            goto error;
-        if (more && ++i == 8) goto error;
-    } while (more);
+    if (has_length_field)
+        do {
+            more = dav1d_get_bits(&gb, 1);
+            unsigned bits = dav1d_get_bits(&gb, 7);
+            if (i <= 3 || (i == 4 && bits < (1 << 4)))
+                len |= bits << (i * 7);
+            else if (bits)
+                goto error;
+            if (more && ++i == 8) goto error;
+        } while (more);
+    else
+        len = in->sz - 1 - has_extension;
     if (gb.error) goto error;
 
     const unsigned init_bit_pos = dav1d_get_bits_pos(&gb);
