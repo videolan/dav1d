@@ -127,9 +127,13 @@ static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
                                                 const Av1FrameHeader *const hdr,
                                                 const int seg_id)
 {
-    if (hdr->segmentation.lossless[seg_id]) {
-        assert(tx == (int) TX_4X4);
-        return TXTP_SET_LOSSLESS;
+    if (!hdr->segmentation.qidx[seg_id]) {
+        if (hdr->segmentation.lossless[seg_id]) {
+            assert(tx == (int) TX_4X4);
+            return TXTP_SET_LOSSLESS;
+        } else {
+            return TXTP_SET_DCT;
+        }
     }
 
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
