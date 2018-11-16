@@ -226,12 +226,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     // with a 4:2:0 chroma subsampling, do we store the filter information at
     // the AV1Filter unit located at (128,128) or (256,256)
     // TODO Support chroma subsampling.
-    const int shift_ver = 7 - ss_ver;
     const int shift_hor = 7 - ss_hor;
-
-    int ruy = (row_y >> unit_size_log2);
-    // Merge last restoration unit if its height is < half_unit_size
-    if (ruy > 0) ruy -= (ruy << unit_size_log2) + half_unit_size > h;
 
     pixel pre_lr_border[2][128 + 8 /* maximum sbrow height is 128 + 8 rows offset */][4];
 
@@ -240,7 +235,13 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     enum LrEdgeFlags edges = (y > 0 ? LR_HAVE_TOP : 0) |
                              (row_h < h ? LR_HAVE_BOTTOM : 0);
 
-    for (int x = 0, rux = 0; x < w; x+= unit_w, rux++, edges |= LR_HAVE_LEFT, bit ^= 1) {
+    int aligned_unit_pos = row_y & ~(unit_size - 1);
+    if (aligned_unit_pos && aligned_unit_pos + half_unit_size > h)
+        aligned_unit_pos -= unit_size;
+    aligned_unit_pos <<= ss_ver;
+    const int sb_idx = (aligned_unit_pos >> 7) * f->sr_sb128w;
+    const int unit_idx = ((aligned_unit_pos >> 6) & 1) << 1;
+    for (int x = 0; x < w; x += unit_w, edges |= LR_HAVE_LEFT, bit ^= 1) {
         // TODO Clean up this if statement.
         if (x + max_unit_size > w) {
             unit_w = w - x;
@@ -251,10 +252,9 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
 
         // Based on the position of the restoration unit, find the corresponding
         // AV1Filter unit.
-        const int unit_idx = ((ruy & 16) >> 3) + ((rux & 16) >> 4);
+        const int u_idx = unit_idx + ((x >> (shift_hor - 1)) & 1);
         const Av1RestorationUnit *const lr =
-            &f->lf.lr_mask[(((ruy << (unit_size_log2)) >> shift_ver) * f->sr_sb128w) +
-                           (x >> shift_hor)].lr[plane][unit_idx];
+            &f->lf.lr_mask[sb_idx + (x >> shift_hor)].lr[plane][u_idx];
 
         // FIXME Don't backup if the next restoration unit is RESTORE_NONE
         // This also requires not restoring in the same conditions.
