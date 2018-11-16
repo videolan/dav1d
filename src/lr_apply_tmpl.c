@@ -232,7 +232,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
 
     int unit_w = unit_size, bit = 0;
 
-    enum LrEdgeFlags edges = (y > 0 ? LR_HAVE_TOP : 0) |
+    enum LrEdgeFlags edges = (y > 0 ? LR_HAVE_TOP : 0) | LR_HAVE_RIGHT |
                              (row_h < h ? LR_HAVE_BOTTOM : 0);
 
     int aligned_unit_pos = row_y & ~(unit_size - 1);
@@ -242,12 +242,9 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     const int sb_idx = (aligned_unit_pos >> 7) * f->sr_sb128w;
     const int unit_idx = ((aligned_unit_pos >> 6) & 1) << 1;
     for (int x = 0; x < w; x += unit_w, edges |= LR_HAVE_LEFT, bit ^= 1) {
-        // TODO Clean up this if statement.
         if (x + max_unit_size > w) {
             unit_w = w - x;
             edges &= ~LR_HAVE_RIGHT;
-        } else {
-            edges |= LR_HAVE_RIGHT;
         }
 
         // Based on the position of the restoration unit, find the corresponding
@@ -257,7 +254,6 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
             &f->lf.lr_mask[sb_idx + (x >> shift_hor)].lr[plane][u_idx];
 
         // FIXME Don't backup if the next restoration unit is RESTORE_NONE
-        // This also requires not restoring in the same conditions.
         if (edges & LR_HAVE_RIGHT) {
             backup4xU(pre_lr_border[bit], p + unit_w - 4, p_stride, row_h - y);
         }
