@@ -368,7 +368,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
     const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = b_dim[0], bh4 = b_dim[1];
     const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
-    const int has_chroma = f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 &&
+    const int has_chroma = f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
                            (bw4 > ss_hor || t->bx & 1) &&
                            (bh4 > ss_ver || t->by & 1);
 
@@ -748,7 +748,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
     const int bw4 = b_dim[0], bh4 = b_dim[1];
     const int w4 = imin(bw4, f->bw - t->bx), h4 = imin(bh4, f->bh - t->by);
     const int cw4 = (w4 + ss_hor) >> ss_hor, ch4 = (h4 + ss_ver) >> ss_ver;
-    const int has_chroma = f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 &&
+    const int has_chroma = f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
                            (bw4 > ss_hor || t->bx & 1) &&
                            (bh4 > ss_ver || t->by & 1);
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[b->tx];
@@ -759,7 +759,7 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
     pixel *const edge = edge_buf + 128;
     const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
 
-    const int intra_edge_filter_flag = f->seq_hdr.intra_edge_filter << 10;
+    const int intra_edge_filter_flag = f->seq_hdr->intra_edge_filter << 10;
 
     for (int init_y = 0; init_y < h4; init_y += 16) {
         for (int init_x = 0; init_x < w4; init_x += 16) {
@@ -1139,7 +1139,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
     const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = b_dim[0], bh4 = b_dim[1];
     const int w4 = imin(bw4, f->bw - t->bx), h4 = imin(bh4, f->bh - t->by);
-    const int has_chroma = f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 &&
+    const int has_chroma = f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
                            (bw4 > ss_hor || t->bx & 1) &&
                            (bh4 > ss_ver || t->by & 1);
     const int chr_layout_idx = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I400 ? 0 :
@@ -1579,11 +1579,11 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
                                        start_of_tile_row);
     }
 
-    if (f->seq_hdr.restoration) {
+    if (f->seq_hdr->restoration) {
         // Store loop filtered pixels required by loop restoration
         bytefn(dav1d_lr_copy_lpf)(f, f->lf.p, sby);
     }
-    if (f->seq_hdr.cdef) {
+    if (f->seq_hdr->cdef) {
         if (sby) {
             const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
             pixel *p_up[3] = {
@@ -1618,7 +1618,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
                               f->resize_start[!!pl]);
         }
     }
-    if (f->seq_hdr.restoration) {
+    if (f->seq_hdr->restoration) {
         bytefn(dav1d_lr_sbrow)(f, f->lf.sr_p, sby);
     }
 
@@ -1630,7 +1630,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
     f->lf.sr_p[1] += sbsz * 4 * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver;
     f->lf.sr_p[2] += sbsz * 4 * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver;
     f->lf.prev_mask_ptr = f->lf.mask_ptr;
-    if ((sby & 1) || f->seq_hdr.sb128) {
+    if ((sby & 1) || f->seq_hdr->sb128) {
         f->lf.mask_ptr += f->sb128w;
     }
 }

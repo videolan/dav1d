@@ -110,31 +110,31 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->bh << 2;
         const int w = f->bw << 2;
-        const int row_h = imin((sby + 1) << (6 + f->seq_hdr.sb128), h - 4);
-        const int y_stripe = (sby << (6 + f->seq_hdr.sb128)) - offset;
+        const int row_h = imin((sby + 1) << (6 + f->seq_hdr->sb128), h - 4);
+        const int y_stripe = (sby << (6 + f->seq_hdr->sb128)) - offset;
         backup_lpf(f, f->lf.lr_lpf_line_ptr[0], lr_stride,
                    src[0] - offset * PXSTRIDE(src_stride[0]), src_stride[0],
-                   0, f->seq_hdr.sb128, y_stripe, row_h, w, 0);
+                   0, f->seq_hdr->sb128, y_stripe, row_h, w, 0);
     }
     if (restore_planes & (LR_RESTORE_U | LR_RESTORE_V)) {
         const int ss_ver = f->sr_cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420;
         const int ss_hor = f->sr_cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
         const int h = f->bh << (2 - ss_ver);
         const int w = f->bw << (2 - ss_hor);
-        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr.sb128), h - 4);
+        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr->sb128), h - 4);
         const ptrdiff_t offset_uv = offset >> ss_ver;
         const int y_stripe =
-            (sby << ((6 - ss_ver) + f->seq_hdr.sb128)) - offset_uv;
+            (sby << ((6 - ss_ver) + f->seq_hdr->sb128)) - offset_uv;
 
         if (restore_planes & LR_RESTORE_U) {
             backup_lpf(f, f->lf.lr_lpf_line_ptr[1], lr_stride,
                        src[1] - offset_uv * PXSTRIDE(src_stride[1]), src_stride[1],
-                       ss_ver, f->seq_hdr.sb128, y_stripe, row_h, w, ss_hor);
+                       ss_ver, f->seq_hdr->sb128, y_stripe, row_h, w, ss_hor);
         }
         if (restore_planes & LR_RESTORE_V) {
             backup_lpf(f, f->lf.lr_lpf_line_ptr[2], lr_stride,
                        src[2] - offset_uv * PXSTRIDE(src_stride[1]), src_stride[1],
-                       ss_ver, f->seq_hdr.sb128, y_stripe, row_h, w, ss_hor);
+                       ss_ver, f->seq_hdr->sb128, y_stripe, row_h, w, ss_hor);
         }
     }
 }
@@ -278,8 +278,8 @@ void bytefn(dav1d_lr_sbrow)(Dav1dFrameContext *const f, pixel *const dst[3],
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->sr_cur.p.p.h;
         const int w = f->sr_cur.p.p.w;
-        const int row_h = imin((sby + 1) << (6 + f->seq_hdr.sb128), h);
-        const int y_stripe = (sby << (6 + f->seq_hdr.sb128)) - offset_y;
+        const int row_h = imin((sby + 1) << (6 + f->seq_hdr->sb128), h);
+        const int y_stripe = (sby << (6 + f->seq_hdr->sb128)) - offset_y;
         lr_sbrow(f, dst[0] - offset_y * PXSTRIDE(dst_stride[0]), y_stripe, w,
                  h, row_h, 0);
     }
@@ -288,10 +288,10 @@ void bytefn(dav1d_lr_sbrow)(Dav1dFrameContext *const f, pixel *const dst[3],
         const int ss_hor = f->sr_cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
         const int h = (f->sr_cur.p.p.h + ss_ver) >> ss_ver;
         const int w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
-        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr.sb128), h);
+        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr->sb128), h);
         const ptrdiff_t offset_uv = offset_y >> ss_ver;
         const int y_stripe =
-            (sby << ((6 - ss_ver) + f->seq_hdr.sb128)) - offset_uv;
+            (sby << ((6 - ss_ver) + f->seq_hdr->sb128)) - offset_uv;
         if (restore_planes & LR_RESTORE_U)
             lr_sbrow(f, dst[1] - offset_uv * PXSTRIDE(dst_stride[1]), y_stripe,
                      w, h, row_h, 1);

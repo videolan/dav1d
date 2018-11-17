@@ -274,7 +274,7 @@ error:
 static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
                            const int use_ref)
 {
-    const Av1SequenceHeader *const seqhdr = &c->seq_hdr;
+    const Av1SequenceHeader *const seqhdr = c->seq_hdr;
     Av1FrameHeader *const hdr = &c->frame_hdr;
 
     if (use_ref) {
@@ -344,7 +344,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 #if DEBUG_FRAME_HDR
     const uint8_t *const init_ptr = gb->ptr;
 #endif
-    const Av1SequenceHeader *const seqhdr = &c->seq_hdr;
+    const Av1SequenceHeader *const seqhdr = c->seq_hdr;
     Av1FrameHeader *const hdr = &c->frame_hdr;
     int res;
 
@@ -407,7 +407,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     if (seqhdr->decoder_model_info_present) {
         hdr->buffer_removal_time_present = dav1d_get_bits(gb, 1);
         if (hdr->buffer_removal_time_present) {
-            for (int i = 0; i < c->seq_hdr.num_operating_points; i++) {
+            for (int i = 0; i < c->seq_hdr->num_operating_points; i++) {
                 const struct Av1SequenceHeaderOperatingPoint *const seqop = &seqhdr->operating_points[i];
                 struct Av1FrameHeaderOperatingPoint *const op = &hdr->operating_points[i];
                 if (seqop->decoder_model_param_present) {
@@ -1203,17 +1203,23 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     switch (type) {
     case OBU_SEQ_HDR: {
-        Av1SequenceHeader hdr, *const hdr_ptr = c->have_seq_hdr ? &hdr : &c->seq_hdr;
-        memset(hdr_ptr, 0, sizeof(*hdr_ptr));
+        Dav1dRef *ref = dav1d_ref_create(sizeof(Av1SequenceHeader));
+        if (!ref) return -ENOMEM;
+        Av1SequenceHeader *seq_hdr = ref->data;
+        memset(seq_hdr, 0, sizeof(*seq_hdr));
         c->have_frame_hdr = 0;
-        if ((res = parse_seq_hdr(c, &gb, hdr_ptr)) < 0)
+        if ((res = parse_seq_hdr(c, &gb, seq_hdr)) < 0) {
+            dav1d_ref_dec(&ref);
             return res;
-        if (check_for_overrun(&gb, init_bit_pos, len))
+        }
+        if (check_for_overrun(&gb, init_bit_pos, len)) {
+            dav1d_ref_dec(&ref);
             return -EINVAL;
+        }
         // If we have read a sequence header which is different from
         // the old one, this is a new video sequence and can't use any
         // previous state. Free that state.
-        if (c->have_seq_hdr && memcmp(&hdr, &c->seq_hdr, sizeof(hdr))) {
+        if (c->seq_hdr && memcmp(seq_hdr, c->seq_hdr, sizeof(*seq_hdr))) {
             for (int i = 0; i < 8; i++) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
@@ -1222,9 +1228,10 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
-            c->seq_hdr = hdr;
+            dav1d_ref_dec(&c->seq_hdr_ref);
         }
-        c->have_seq_hdr = 1;
+        c->seq_hdr_ref = ref;
+        c->seq_hdr = seq_hdr;
         break;
     }
     case OBU_REDUNDANT_FRAME_HDR:
@@ -1233,7 +1240,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     case OBU_FRAME:
     case OBU_FRAME_HDR:
         c->have_frame_hdr = 0;
-        if (!c->have_seq_hdr) goto error;
+        if (!c->seq_hdr) goto error;
         c->frame_hdr.temporal_id = temporal_id;
         c->frame_hdr.spatial_id = spatial_id;
         if ((res = parse_frame_hdr(c, &gb)) < 0)
@@ -1306,7 +1313,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         return -EINVAL;
     }
 
-    if (c->have_seq_hdr && c->have_frame_hdr &&
+    if (c->seq_hdr && c->have_frame_hdr &&
         c->n_tiles == c->frame_hdr.tiling.cols * c->frame_hdr.tiling.rows)
     {
         if (!c->n_tile_data)
@@ -1316,7 +1323,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         assert(!c->n_tile_data);
         c->have_frame_hdr = 0;
         c->n_tiles = 0;
-    } else if (c->have_seq_hdr && c->have_frame_hdr &&
+    } else if (c->seq_hdr && c->have_frame_hdr &&
                c->frame_hdr.show_existing_frame)
     {
         if (c->n_fc == 1) {

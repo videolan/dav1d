@@ -178,7 +178,7 @@ void bytefn(dav1d_loopfilter_sbrow)(const Dav1dFrameContext *const f,
     int x, have_left;
     // Don't filter outside the frame
     const int have_top = sby > 0;
-    const int is_sb64 = !f->seq_hdr.sb128;
+    const int is_sb64 = !f->seq_hdr->sb128;
     const int starty4 = (sby & is_sb64) << 4;
     const int sbsz = 32 >> is_sb64;
     const int sbl2 = 5 - is_sb64;
