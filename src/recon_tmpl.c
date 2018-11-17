@@ -367,7 +367,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
     const int cbx4 = bx4 >> ss_hor, cby4 = by4 >> ss_ver;
     const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = b_dim[0], bh4 = b_dim[1];
-    const int cbw4 = (bw4 + 1) >> ss_hor, cbh4 = (bh4 + 1) >> ss_ver;
+    const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
     const int has_chroma = f->seq_hdr.layout != DAV1D_PIXEL_LAYOUT_I400 &&
                            (bw4 > ss_hor || t->bx & 1) &&
                            (bh4 > ss_ver || t->by & 1);
