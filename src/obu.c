@@ -437,9 +437,95 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
         hdr->frame_ref_short_signaling =
             seqhdr->order_hint && dav1d_get_bits(gb, 1);
-        if (hdr->frame_ref_short_signaling) goto error; // FIXME
+        if (hdr->frame_ref_short_signaling) { // FIXME: Nearly verbatim copy from section 7.8
+            hdr->refidx[0] = dav1d_get_bits(gb, 3);
+            hdr->refidx[1] = hdr->refidx[2] = -1;
+            hdr->refidx[3] = dav1d_get_bits(gb, 3);
+            hdr->refidx[4] = hdr->refidx[5] = hdr->refidx[6] = -1;
+
+            int shifted_frame_offset[8];
+            const int current_frame_offset = 1 << (seqhdr->order_hint_n_bits - 1);
+            for (int i = 0; i < 8; i++)
+                shifted_frame_offset[i] =
+                    current_frame_offset + get_poc_diff(seqhdr->order_hint_n_bits, c->refs[i].p.p.poc, hdr->frame_offset);
+
+            int used_frame[8] = { 0 };
+            used_frame[hdr->refidx[0]] = 1;
+            used_frame[hdr->refidx[3]] = 1;
+
+            int latest_frame_offset = -1;
+            for (int i = 0; i < 8; i++) {
+                int hint = shifted_frame_offset[i];
+                if (!used_frame[i] && hint >= current_frame_offset &&
+                    hint >= latest_frame_offset)
+                {
+                    hdr->refidx[6] = i;
+                    latest_frame_offset = hint;
+                }
+            }
+            if (latest_frame_offset != -1)
+                used_frame[hdr->refidx[6]] = 1;
+
+            int earliest_frame_offset = INT_MAX;
+            for (int i = 0; i < 8; i++) {
+                int hint = shifted_frame_offset[i];
+                if (!used_frame[i] && hint >= current_frame_offset &&
+                    hint < earliest_frame_offset)
+                {
+                    hdr->refidx[4] = i;
+                    earliest_frame_offset = hint;
+                }
+            }
+            if (earliest_frame_offset != INT_MAX)
+                used_frame[hdr->refidx[4]] = 1;
+
+            earliest_frame_offset = INT_MAX;
+            for (int i = 0; i < 8; i++) {
+                int hint = shifted_frame_offset[i];
+                if (!used_frame[i] && hint >= current_frame_offset &&
+                    (hint < earliest_frame_offset))
+                {
+                    hdr->refidx[5] = i;
+                    earliest_frame_offset = hint;
+                }
+            }
+            if (earliest_frame_offset != INT_MAX)
+                used_frame[hdr->refidx[5]] = 1;
+
+            for (int i = 1; i < 7; i++) {
+                if (hdr->refidx[i] < 0) {
+                    latest_frame_offset = -1;
+                    for (int j = 0; j < 8; j++) {
+                        int hint = shifted_frame_offset[j];
+                        if (!used_frame[j] && hint < current_frame_offset &&
+                            hint >= latest_frame_offset)
+                        {
+                            hdr->refidx[i] = j;
+                            latest_frame_offset = hint;
+                        }
+                    }
+                    if (latest_frame_offset != -1)
+                        used_frame[hdr->refidx[i]] = 1;
+                }
+            }
+
+            earliest_frame_offset = INT_MAX;
+            int ref = -1;
+            for (int i = 0; i < 8; i++) {
+                int hint = shifted_frame_offset[i];
+                if (hint < earliest_frame_offset) {
+                    ref = i;
+                    earliest_frame_offset = hint;
+                }
+            }
+            for (int i = 0; i < 7; i++) {
+                if (hdr->refidx[i] < 0)
+                    hdr->refidx[i] = ref;
+            }
+        }
         for (int i = 0; i < 7; i++) {
-            hdr->refidx[i] = dav1d_get_bits(gb, 3);
+            if (!hdr->frame_ref_short_signaling)
+                hdr->refidx[i] = dav1d_get_bits(gb, 3);
             if (seqhdr->frame_id_numbers_present)
                 dav1d_get_bits(gb, seqhdr->delta_frame_id_n_bits);
         }
