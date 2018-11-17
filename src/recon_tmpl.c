@@ -1169,11 +1169,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         const Dav1dThreadPicture *const refp = &f->refp[b->ref[0]];
         const enum Filter2d filter_2d = b->filter2d;
 
-        if (imin(bw4, bh4) > 1 && !f->frame_hdr.force_integer_mv &&
-            ((b->inter_mode == GLOBALMV &&
-              f->frame_hdr.gmv[b->ref[0]].type > WM_TYPE_TRANSLATION) ||
-             (b->motion_mode == MM_WARP &&
-              t->warpmv.type > WM_TYPE_TRANSLATION)))
+        if (imin(bw4, bh4) > 1 &&
+            ((b->inter_mode == GLOBALMV && f->gmv_warp_allowed[b->ref[0]]) ||
+             (b->motion_mode == MM_WARP && t->warpmv.type > WM_TYPE_TRANSLATION)))
         {
             res = warp_affine(t, dst, NULL, f->cur.stride[0], b_dim, 0, refp,
                               b->motion_mode == MM_WARP ? &t->warpmv :
@@ -1285,11 +1283,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 if (res) return res;
             }
         } else {
-            if (imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
-                ((b->inter_mode == GLOBALMV &&
-                  f->frame_hdr.gmv[b->ref[0]].type > WM_TYPE_TRANSLATION) ||
-                 (b->motion_mode == MM_WARP &&
-                  t->warpmv.type > WM_TYPE_TRANSLATION)))
+            if (imin(cbw4, cbh4) > 1 &&
+                ((b->inter_mode == GLOBALMV && f->gmv_warp_allowed[b->ref[0]]) ||
+                 (b->motion_mode == MM_WARP && t->warpmv.type > WM_TYPE_TRANSLATION)))
             {
                 for (int pl = 0; pl < 2; pl++) {
                     res = warp_affine(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff, NULL,
@@ -1368,9 +1364,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         for (int i = 0; i < 2; i++) {
             const Dav1dThreadPicture *const refp = &f->refp[b->ref[i]];
 
-            if (b->inter_mode == GLOBALMV_GLOBALMV && !f->frame_hdr.force_integer_mv &&
-                f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
-            {
+            if (b->inter_mode == GLOBALMV_GLOBALMV && f->gmv_warp_allowed[b->ref[i]]) {
                 res = warp_affine(t, NULL, tmp[i], bw4 * 4, b_dim, 0, refp,
                                   &f->frame_hdr.gmv[b->ref[i]]);
                 if (res) return res;
@@ -1413,8 +1407,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
             for (int i = 0; i < 2; i++) {
                 const Dav1dThreadPicture *const refp = &f->refp[b->ref[i]];
                 if (b->inter_mode == GLOBALMV_GLOBALMV &&
-                    imin(cbw4, cbh4) > 1 && !f->frame_hdr.force_integer_mv &&
-                    f->frame_hdr.gmv[b->ref[i]].type > WM_TYPE_TRANSLATION)
+                    imin(cbw4, cbh4) > 1 && f->gmv_warp_allowed[b->ref[i]])
                 {
                     res = warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,
                                       refp, &f->frame_hdr.gmv[b->ref[i]]);

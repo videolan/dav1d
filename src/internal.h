@@ -132,6 +132,7 @@ struct Dav1dFrameContext {
     const uint8_t *prev_segmap;
     unsigned refpoc[7], refrefpoc[7][7];
     int ref_coded_width[7];
+    uint8_t gmv_warp_allowed[7];
     CdfThreadContext in_cdf, out_cdf;
     struct {
         Dav1dData data;

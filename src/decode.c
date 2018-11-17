@@ -3071,6 +3071,9 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             } else {
                 f->svc[i][0].scale = 0;
             }
+            f->gmv_warp_allowed[i] = f->frame_hdr.gmv[i].type > WM_TYPE_TRANSLATION &&
+                                     !f->frame_hdr.force_integer_mv &&
+                                     !dav1d_get_shear_params(&f->frame_hdr.gmv[i]);
         }
     }
 

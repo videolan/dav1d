@@ -41,7 +41,6 @@
 #include "src/levels.h"
 #include "src/obu.h"
 #include "src/ref.h"
-#include "src/warpmv.h"
 
 static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                          Av1SequenceHeader *const hdr)
@@ -994,9 +993,6 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
             mat[0] = dav1d_get_bits_subexp(gb, ref_mat[0] >> shift, bits) * (1 << shift);
             mat[1] = dav1d_get_bits_subexp(gb, ref_mat[1] >> shift, bits) * (1 << shift);
-
-            if (dav1d_get_shear_params(&hdr->gmv[i]))
-                goto error;
         }
     }
 #if DEBUG_FRAME_HDR
