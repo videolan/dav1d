@@ -1616,9 +1616,10 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
             const int ss_hor = pl && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
             const int dst_w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
             const int src_w = (4 * f->bw + ss_hor) >> ss_hor;
+            const int img_h = (f->cur.p.h - sbsz * 4 * sby + ss_ver) >> ss_ver;
 
             f->dsp->mc.resize(dst, dst_stride, src, src_stride, dst_w, src_w,
-                              h_end + h_start, f->resize_step[!!pl],
+                              imin(img_h, h_end) + h_start, f->resize_step[!!pl],
                               f->resize_start[!!pl]);
         }
     }
