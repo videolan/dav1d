@@ -2374,6 +2374,9 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
         return 0;
     }
 
+    // error out on symbol decoder overread
+    if (ts->msac.cnt < -15) return 1;
+
     if (c->n_fc > 1 && f->frame_hdr.use_ref_frame_mvs) {
         for (int n = 0; n < 7; n++)
             if (dav1d_thread_picture_wait(&f->refp[n], 4 * (t->by + sb_step),
