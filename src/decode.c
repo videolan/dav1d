@@ -2241,6 +2241,9 @@ static void setup_tile(Dav1dTileState *const ts,
                    ((ts->tiling.col_start & 16) >> 4);
     }
     for (int p = 0; p < 3; p++) {
+        if (f->frame_hdr.restoration.type[p] == RESTORATION_NONE)
+            continue;
+
         if (f->frame_hdr.super_res.enabled) {
             const int ss_hor = p && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
             const int d = f->frame_hdr.super_res.width_scale_denominator;
@@ -2248,7 +2251,7 @@ static void setup_tile(Dav1dTileState *const ts,
             const int rnd = (8 << unit_size_log2) - 1, shift = unit_size_log2 + 3;
             const int x = ((4 * ts->tiling.col_start * d >> ss_hor) + rnd) >> shift;
             const int px_x = x << (unit_size_log2 + ss_hor);
-            const int u_idx = unit_idx + ((px_x & 64) >> 1);
+            const int u_idx = unit_idx + ((px_x & 64) >> 6);
             ts->lr_ref[p] = &f->lf.lr_mask[sb_idx + (px_x >> 7)].lr[p][u_idx];
         } else {
             ts->lr_ref[p] = &f->lf.lr_mask[sb_idx].lr[p][unit_idx];
