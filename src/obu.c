@@ -1207,7 +1207,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         if (!ref) return -ENOMEM;
         Av1SequenceHeader *seq_hdr = ref->data;
         memset(seq_hdr, 0, sizeof(*seq_hdr));
-        c->have_frame_hdr = 0;
+        c->frame_hdr = NULL;
         if ((res = parse_seq_hdr(c, &gb, seq_hdr)) < 0) {
             dav1d_ref_dec(&ref);
             return res;
@@ -1235,16 +1235,22 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         break;
     }
     case OBU_REDUNDANT_FRAME_HDR:
-        if (c->have_frame_hdr) break;
+        if (c->frame_hdr) break;
         // fall-through
     case OBU_FRAME:
     case OBU_FRAME_HDR:
-        c->have_frame_hdr = 0;
         if (!c->seq_hdr) goto error;
+        if (!c->frame_hdr_ref) {
+            c->frame_hdr_ref = dav1d_ref_create(sizeof(Av1FrameHeader));
+            if (!c->frame_hdr_ref) return -ENOMEM;
+        }
+        c->frame_hdr = c->frame_hdr_ref->data;
         c->frame_hdr->temporal_id = temporal_id;
         c->frame_hdr->spatial_id = spatial_id;
-        if ((res = parse_frame_hdr(c, &gb)) < 0)
+        if ((res = parse_frame_hdr(c, &gb)) < 0) {
+            c->frame_hdr = NULL;
             return res;
+        }
         for (int n = 0; n < c->n_tile_data; n++)
             dav1d_data_unref(&c->tile[n].data);
         c->n_tile_data = 0;
@@ -1253,16 +1259,18 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             // This is actually a frame header OBU so read the
             // trailing bit and check for overrun.
             dav1d_get_bits(&gb, 1);
-            if (check_for_overrun(&gb, init_bit_pos, len))
+            if (check_for_overrun(&gb, init_bit_pos, len)) {
+                c->frame_hdr = NULL;
                 return -EINVAL;
+            }
 
-            c->have_frame_hdr = 1;
             break;
         }
         // OBU_FRAMEs shouldn't be signalled with show_existing_frame
-        if (c->frame_hdr->show_existing_frame) goto error;
-
-        c->have_frame_hdr = 1;
+        if (c->frame_hdr->show_existing_frame) {
+            c->frame_hdr = NULL;
+            goto error;
+        }
 
         // This is the frame header at the start of a frame OBU.
         // There's no trailing bit at the end to skip, but we do need
@@ -1270,7 +1278,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         dav1d_bytealign_get_bits(&gb);
         // fall-through
     case OBU_TILE_GRP: {
-        if (!c->have_frame_hdr) goto error;
+        if (!c->frame_hdr) goto error;
         if (c->n_tile_data >= 256) goto error;
         parse_tile_hdr(c, &gb);
         // Align to the next byte boundary and check for overrun.
@@ -1313,75 +1321,73 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         return -EINVAL;
     }
 
-    if (c->seq_hdr && c->have_frame_hdr &&
-        c->n_tiles == c->frame_hdr->tiling.cols * c->frame_hdr->tiling.rows)
-    {
-        if (!c->n_tile_data)
-            return -EINVAL;
-        if ((res = dav1d_submit_frame(c)) < 0)
-            return res;
-        assert(!c->n_tile_data);
-        c->have_frame_hdr = 0;
-        c->n_tiles = 0;
-    } else if (c->seq_hdr && c->have_frame_hdr &&
-               c->frame_hdr->show_existing_frame)
-    {
-        if (c->n_fc == 1) {
-            dav1d_picture_ref(&c->out,
-                              &c->refs[c->frame_hdr->existing_frame_idx].p.p);
-            c->out.m = in->m;
-        } else {
-            // need to append this to the frame output queue
-            const unsigned next = c->frame_thread.next++;
-            if (c->frame_thread.next == c->n_fc)
-                c->frame_thread.next = 0;
+    if (c->seq_hdr && c->frame_hdr) {
+        if (c->frame_hdr->show_existing_frame) {
+            if (c->n_fc == 1) {
+                dav1d_picture_ref(&c->out,
+                                  &c->refs[c->frame_hdr->existing_frame_idx].p.p);
+                c->out.m = in->m;
+            } else {
+                // need to append this to the frame output queue
+                const unsigned next = c->frame_thread.next++;
+                if (c->frame_thread.next == c->n_fc)
+                    c->frame_thread.next = 0;
 
-            Dav1dFrameContext *const f = &c->fc[next];
-            pthread_mutex_lock(&f->frame_thread.td.lock);
-            while (f->n_tile_data > 0)
-                pthread_cond_wait(&f->frame_thread.td.cond,
-                                  &f->frame_thread.td.lock);
-            Dav1dThreadPicture *const out_delayed =
-                &c->frame_thread.out_delayed[next];
-            if (out_delayed->p.data[0]) {
-                const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
-                                                               memory_order_relaxed);
-                if (out_delayed->visible && progress != FRAME_ERROR)
-                    dav1d_picture_ref(&c->out, &out_delayed->p);
-                dav1d_thread_picture_unref(out_delayed);
+                Dav1dFrameContext *const f = &c->fc[next];
+                pthread_mutex_lock(&f->frame_thread.td.lock);
+                while (f->n_tile_data > 0)
+                    pthread_cond_wait(&f->frame_thread.td.cond,
+                                      &f->frame_thread.td.lock);
+                Dav1dThreadPicture *const out_delayed =
+                    &c->frame_thread.out_delayed[next];
+                if (out_delayed->p.data[0]) {
+                    const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
+                                                                   memory_order_relaxed);
+                    if (out_delayed->visible && progress != FRAME_ERROR)
+                        dav1d_picture_ref(&c->out, &out_delayed->p);
+                    dav1d_thread_picture_unref(out_delayed);
+                }
+                dav1d_thread_picture_ref(out_delayed,
+                                         &c->refs[c->frame_hdr->existing_frame_idx].p);
+                out_delayed->visible = 1;
+                out_delayed->p.m = in->m;
+                pthread_mutex_unlock(&f->frame_thread.td.lock);
             }
-            dav1d_thread_picture_ref(out_delayed,
-                                     &c->refs[c->frame_hdr->existing_frame_idx].p);
-            out_delayed->visible = 1;
-            out_delayed->p.m = in->m;
-            pthread_mutex_unlock(&f->frame_thread.td.lock);
-        }
-        c->have_frame_hdr = 0;
-        if (c->refs[c->frame_hdr->existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
-            const int r = c->frame_hdr->existing_frame_idx;
-            for (int i = 0; i < 8; i++) {
-                if (i == c->frame_hdr->existing_frame_idx) continue;
+            if (c->refs[c->frame_hdr->existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
+                const int r = c->frame_hdr->existing_frame_idx;
+                for (int i = 0; i < 8; i++) {
+                    if (i == c->frame_hdr->existing_frame_idx) continue;
 
-                if (c->refs[i].p.p.data[0])
-                    dav1d_thread_picture_unref(&c->refs[i].p);
-                dav1d_thread_picture_ref(&c->refs[i].p, &c->refs[r].p);
+                    if (c->refs[i].p.p.data[0])
+                        dav1d_thread_picture_unref(&c->refs[i].p);
+                    dav1d_thread_picture_ref(&c->refs[i].p, &c->refs[r].p);
 
-                if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
-                dav1d_init_states(&c->cdf[i], c->refs[r].qidx);
+                    if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
+                    dav1d_init_states(&c->cdf[i], c->refs[r].qidx);
 
-                c->refs[i].lf_mode_ref_deltas = c->refs[r].lf_mode_ref_deltas;
-                c->refs[i].seg_data = c->refs[r].seg_data;
-                for (int j = 0; j < 7; j++)
-                    c->refs[i].gmv[j] = dav1d_default_wm_params;
-                c->refs[i].film_grain = c->refs[r].film_grain;
+                    c->refs[i].lf_mode_ref_deltas = c->refs[r].lf_mode_ref_deltas;
+                    c->refs[i].seg_data = c->refs[r].seg_data;
+                    for (int j = 0; j < 7; j++)
+                        c->refs[i].gmv[j] = dav1d_default_wm_params;
+                    c->refs[i].film_grain = c->refs[r].film_grain;
 
-                dav1d_ref_dec(&c->refs[i].segmap);
-                c->refs[i].segmap = c->refs[r].segmap;
-                if (c->refs[r].segmap)
-                    dav1d_ref_inc(c->refs[r].segmap);
-                dav1d_ref_dec(&c->refs[i].refmvs);
-                c->refs[i].qidx = c->refs[r].qidx;
+                    dav1d_ref_dec(&c->refs[i].segmap);
+                    c->refs[i].segmap = c->refs[r].segmap;
+                    if (c->refs[r].segmap)
+                        dav1d_ref_inc(c->refs[r].segmap);
+                    dav1d_ref_dec(&c->refs[i].refmvs);
+                    c->refs[i].qidx = c->refs[r].qidx;
+                }
             }
+            c->frame_hdr = NULL;
+        } else if (c->n_tiles == c->frame_hdr->tiling.cols * c->frame_hdr->tiling.rows) {
+            if (!c->n_tile_data)
+                return -EINVAL;
+            if ((res = dav1d_submit_frame(c)) < 0)
+                return res;
+            assert(!c->n_tile_data);
+            c->frame_hdr = NULL;
+            c->n_tiles = 0;
         }
     }
 

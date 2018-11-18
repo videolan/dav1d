@@ -2948,6 +2948,7 @@ error:
     dav1d_ref_dec(&f->prev_segmap_ref);
     dav1d_ref_dec(&f->mvs_ref);
     dav1d_ref_dec(&f->seq_hdr_ref);
+    dav1d_ref_dec(&f->frame_hdr_ref);
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
@@ -2990,7 +2991,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->seq_hdr = c->seq_hdr;
     f->seq_hdr_ref = c->seq_hdr_ref;
     dav1d_ref_inc(f->seq_hdr_ref);
-    *f->frame_hdr = *c->frame_hdr;
+    f->frame_hdr = c->frame_hdr;
+    f->frame_hdr_ref = c->frame_hdr_ref;
+    c->frame_hdr = NULL;
+    c->frame_hdr_ref = NULL;
     const int bd_idx = (f->seq_hdr->bpc - 8) >> 1;
     f->dsp = &c->dsp[bd_idx];
 
@@ -3309,6 +3313,7 @@ error:
     dav1d_thread_picture_unref(&f->sr_cur);
     dav1d_ref_dec(&f->mvs_ref);
     dav1d_ref_dec(&f->seq_hdr_ref);
+    dav1d_ref_dec(&f->frame_hdr_ref);
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref(&f->tile[i].data);
