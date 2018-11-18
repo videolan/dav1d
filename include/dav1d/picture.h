@@ -67,6 +67,9 @@ typedef struct Dav1dPicture {
      */
     void *data[3];
     struct Dav1dRef *ref; ///< allocation origin
+    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref;
+    Dav1dSequenceHeader *seq_hdr;
+    Dav1dFrameHeader *frame_hdr;
 
     /**
      * Number of bytes between 2 lines in data[] for luma [0] or chroma [1].

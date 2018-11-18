@@ -3123,6 +3123,12 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->sr_cur.p.p.fullrange = f->seq_hdr->color_range;
     f->sr_cur.p.m = f->tile[0].data.m;
     f->sr_cur.p.p.spatial_id = f->frame_hdr->spatial_id;
+    f->sr_cur.p.frame_hdr = f->frame_hdr;
+    f->sr_cur.p.frame_hdr_ref = f->frame_hdr_ref;
+    dav1d_ref_inc(f->frame_hdr_ref);
+    f->sr_cur.p.seq_hdr = f->seq_hdr;
+    f->sr_cur.p.seq_hdr_ref = f->seq_hdr_ref;
+    dav1d_ref_inc(f->seq_hdr_ref);
 
     if (f->frame_hdr->super_res.enabled) {
         res = dav1d_picture_alloc_copy(&f->cur, f->frame_hdr->width[0], &f->sr_cur.p);

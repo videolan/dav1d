@@ -180,6 +180,12 @@ int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
         dst->p = src->p;
         dst->m = src->m;
         dst->p.w = w;
+        dst->frame_hdr = src->frame_hdr;
+        dst->frame_hdr_ref = src->frame_hdr_ref;
+        if (dst->frame_hdr_ref) dav1d_ref_inc(dst->frame_hdr_ref);
+        dst->seq_hdr = src->seq_hdr;
+        dst->seq_hdr_ref = src->seq_hdr_ref;
+        if (dst->seq_hdr_ref) dav1d_ref_inc(dst->seq_hdr_ref);
     }
 
     return res;
@@ -193,6 +199,8 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
     if (src->ref) {
         validate_input(src->data[0] != NULL);
         dav1d_ref_inc(src->ref);
+        if (src->frame_hdr_ref) dav1d_ref_inc(src->frame_hdr_ref);
+        if (src->seq_hdr_ref) dav1d_ref_inc(src->seq_hdr_ref);
     }
     *dst = *src;
 }
@@ -224,6 +232,8 @@ void dav1d_picture_unref(Dav1dPicture *const p) {
     if (p->ref) {
         validate_input(p->data[0] != NULL);
         dav1d_ref_dec(&p->ref);
+        dav1d_ref_dec(&p->seq_hdr_ref);
+        dav1d_ref_dec(&p->frame_hdr_ref);
     }
     memset(p, 0, sizeof(*p));
 }
