@@ -94,14 +94,8 @@ struct Dav1dContext {
     struct {
         Dav1dThreadPicture p;
         Dav1dRef *segmap;
-        Dav1dSegmentationDataSet seg_data;
         Dav1dRef *refmvs;
         unsigned refpoc[7];
-        Dav1dWarpedMotionParams gmv[7];
-        Dav1dLoopfilterModeRefDeltas lf_mode_ref_deltas;
-        Dav1dFilmGrainData film_grain;
-        uint8_t qidx;
-        unsigned coded_width;
     } refs[8];
     CdfThreadContext cdf[8];
 
@@ -138,7 +132,6 @@ struct Dav1dFrameContext {
     uint8_t *cur_segmap;
     const uint8_t *prev_segmap;
     unsigned refpoc[7], refrefpoc[7][7];
-    int ref_coded_width[7];
     uint8_t gmv_warp_allowed[7];
     CdfThreadContext in_cdf, out_cdf;
     struct {

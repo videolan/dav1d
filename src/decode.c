@@ -3043,6 +3043,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 #undef assign_bitdepth_case
 
+    int ref_coded_width[7];
     if (f->frame_hdr->frame_type & 1) {
         if (f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE) {
             const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
@@ -3067,7 +3068,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 goto error;
             }
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
-            f->ref_coded_width[i] = c->refs[refidx].coded_width;
+            ref_coded_width[i] = c->refs[refidx].p.p.frame_hdr->width[0];
             if (f->frame_hdr->width[0] != c->refs[refidx].p.p.p.w ||
                 f->frame_hdr->height != c->refs[refidx].p.p.p.h)
             {
@@ -3182,7 +3183,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             for (int i = 0; i < 7; i++) {
                 const int refidx = f->frame_hdr->refidx[i];
                 if (c->refs[refidx].refmvs != NULL &&
-                    f->ref_coded_width[i] == f->cur.p.w &&
+                    ref_coded_width[i] == f->cur.p.w &&
                     f->refp[i].p.p.h == f->cur.p.h)
                 {
                     f->ref_mvs_ref[i] = c->refs[refidx].refmvs;
@@ -3214,7 +3215,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (f->frame_hdr->segmentation.temporal || !f->frame_hdr->segmentation.update_map) {
             const int pri_ref = f->frame_hdr->primary_ref_frame;
             assert(pri_ref != DAV1D_PRIMARY_REF_NONE);
-            const int ref_w = ((f->ref_coded_width[pri_ref] + 7) >> 3) << 1;
+            const int ref_w = ((ref_coded_width[pri_ref] + 7) >> 3) << 1;
             const int ref_h = ((f->refp[pri_ref].p.p.h + 7) >> 3) << 1;
             if (ref_w == f->bw && ref_h == f->bh) {
                 f->prev_segmap_ref = c->refs[f->frame_hdr->refidx[pri_ref]].segmap;
@@ -3255,7 +3256,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             if (c->refs[i].p.p.data[0])
                 dav1d_thread_picture_unref(&c->refs[i].p);
             dav1d_thread_picture_ref(&c->refs[i].p, &f->sr_cur);
-            c->refs[i].coded_width = f->frame_hdr->width[0];
 
             if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
             if (f->frame_hdr->refresh_context) {
@@ -3263,11 +3263,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             } else {
                 dav1d_cdf_thread_ref(&c->cdf[i], &f->in_cdf);
             }
-            c->refs[i].lf_mode_ref_deltas =
-                f->frame_hdr->loopfilter.mode_ref_deltas;
-            c->refs[i].seg_data = f->frame_hdr->segmentation.seg_data;
-            memcpy(c->refs[i].gmv, f->frame_hdr->gmv, sizeof(c->refs[i].gmv));
-            c->refs[i].film_grain = f->frame_hdr->film_grain.data;
 
             dav1d_ref_dec(&c->refs[i].segmap);
             c->refs[i].segmap = f->cur_segmap_ref;
@@ -3280,7 +3275,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                     dav1d_ref_inc(f->mvs_ref);
             }
             memcpy(c->refs[i].refpoc, f->refpoc, sizeof(f->refpoc));
-            c->refs[i].qidx = f->frame_hdr->quant.yac;
         }
     }
 

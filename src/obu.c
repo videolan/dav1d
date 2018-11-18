@@ -736,7 +736,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             // segmentation data from the reference frame.
             assert(hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
             const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
-            hdr->segmentation.seg_data = c->refs[pri_ref].seg_data;
+            hdr->segmentation.seg_data =
+                c->refs[pri_ref].p.p.frame_hdr->segmentation.seg_data;
         }
     } else {
         memset(&hdr->segmentation.seg_data, 0, sizeof(Dav1dSegmentationDataSet));
@@ -796,7 +797,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->loopfilter.mode_ref_deltas = default_mode_ref_deltas;
         } else {
             const int ref = hdr->refidx[hdr->primary_ref_frame];
-            hdr->loopfilter.mode_ref_deltas = c->refs[ref].lf_mode_ref_deltas;
+            hdr->loopfilter.mode_ref_deltas =
+                c->refs[ref].p.p.frame_hdr->loopfilter.mode_ref_deltas;
         }
         hdr->loopfilter.mode_ref_delta_enabled = dav1d_get_bits(gb, 1);
         if (hdr->loopfilter.mode_ref_delta_enabled) {
@@ -970,7 +972,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
             const Dav1dWarpedMotionParams *const ref_gmv =
                 hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE ? &dav1d_default_wm_params :
-                &c->refs[hdr->refidx[hdr->primary_ref_frame]].gmv[i];
+                &c->refs[hdr->refidx[hdr->primary_ref_frame]].p.p.frame_hdr->gmv[i];
             int32_t *const mat = hdr->gmv[i].matrix;
             const int32_t *const ref_mat = ref_gmv->matrix;
             int bits, shift;
@@ -1018,7 +1020,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 if (hdr->refidx[i] == refidx)
                     break;
             if (i == 7) goto error;
-            hdr->film_grain.data = c->refs[refidx].film_grain;
+            hdr->film_grain.data = c->refs[refidx].p.p.frame_hdr->film_grain.data;
             hdr->film_grain.data.seed = seed;
         } else {
             Dav1dFilmGrainData *const fgd = &hdr->film_grain.data;
@@ -1363,20 +1365,13 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                     dav1d_thread_picture_ref(&c->refs[i].p, &c->refs[r].p);
 
                     if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
-                    dav1d_init_states(&c->cdf[i], c->refs[r].qidx);
-
-                    c->refs[i].lf_mode_ref_deltas = c->refs[r].lf_mode_ref_deltas;
-                    c->refs[i].seg_data = c->refs[r].seg_data;
-                    for (int j = 0; j < 7; j++)
-                        c->refs[i].gmv[j] = dav1d_default_wm_params;
-                    c->refs[i].film_grain = c->refs[r].film_grain;
+                    dav1d_init_states(&c->cdf[i], c->refs[r].p.p.frame_hdr->quant.yac);
 
                     dav1d_ref_dec(&c->refs[i].segmap);
                     c->refs[i].segmap = c->refs[r].segmap;
                     if (c->refs[r].segmap)
                         dav1d_ref_inc(c->refs[r].segmap);
                     dav1d_ref_dec(&c->refs[i].refmvs);
-                    c->refs[i].qidx = c->refs[r].qidx;
                 }
             }
             c->frame_hdr = NULL;
