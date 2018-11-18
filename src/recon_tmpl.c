@@ -80,7 +80,7 @@ static int decode_coefs(Dav1dTileContext *const t,
            t_dim->ctx, sctx, all_skip, ts->msac.rng);
     if (all_skip) {
         *res_ctx = 0x40;
-        *txtp = f->frame_hdr.segmentation.lossless[b->seg_id] ? WHT_WHT :
+        *txtp = f->frame_hdr->segmentation.lossless[b->seg_id] ? WHT_WHT :
                                                                 DCT_DCT;
         return -1;
     }
@@ -88,14 +88,14 @@ static int decode_coefs(Dav1dTileContext *const t,
     // transform type (chroma: derived, luma: explicitly coded)
     if (chroma) {
         if (intra) {
-            *txtp = get_uv_intra_txtp(b->uv_mode, tx, &f->frame_hdr, b->seg_id);
+            *txtp = get_uv_intra_txtp(b->uv_mode, tx, f->frame_hdr, b->seg_id);
         } else {
             const enum TxfmType y_txtp = *txtp;
-            *txtp = get_uv_inter_txtp(t_dim, y_txtp, &f->frame_hdr, b->seg_id);
+            *txtp = get_uv_inter_txtp(t_dim, y_txtp, f->frame_hdr, b->seg_id);
         }
     } else {
         const enum TxfmTypeSet set = get_ext_txtp_set(tx, !intra,
-                                                      &f->frame_hdr, b->seg_id);
+                                                      f->frame_hdr, b->seg_id);
         const unsigned set_cnt = dav1d_tx_type_count[set];
         unsigned idx;
         if (set_cnt == 1) {
@@ -1152,9 +1152,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         4 * (t->by * PXSTRIDE(f->cur.stride[0]) + t->bx);
     const ptrdiff_t uvdstoff =
         4 * ((t->bx >> ss_hor) + (t->by >> ss_ver) * PXSTRIDE(f->cur.stride[1]));
-    if (!(f->frame_hdr.frame_type & 1)) {
+    if (!(f->frame_hdr->frame_type & 1)) {
         // intrabc
-        assert(!f->frame_hdr.super_res.enabled);
+        assert(!f->frame_hdr->super_res.enabled);
         res = mc(t, dst, NULL, f->cur.stride[0], bw4, bh4, t->bx, t->by, 0,
                  b->mv[0], &f->sr_cur, 0 /* unused */, FILTER_2D_BILINEAR);
         if (res) return res;
@@ -1175,7 +1175,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         {
             res = warp_affine(t, dst, NULL, f->cur.stride[0], b_dim, 0, refp,
                               b->motion_mode == MM_WARP ? &t->warpmv :
-                                  &f->frame_hdr.gmv[b->ref[0]]);
+                                  &f->frame_hdr->gmv[b->ref[0]]);
             if (res) return res;
         } else {
             res = mc(t, dst, NULL, f->cur.stride[0],
@@ -1291,7 +1291,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                     res = warp_affine(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff, NULL,
                                       f->cur.stride[1], b_dim, 1 + pl, refp,
                                       b->motion_mode == MM_WARP ? &t->warpmv :
-                                          &f->frame_hdr.gmv[b->ref[0]]);
+                                          &f->frame_hdr->gmv[b->ref[0]]);
                     if (res) return res;
                 }
             } else {
@@ -1367,7 +1367,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 
             if (b->inter_mode == GLOBALMV_GLOBALMV && f->gmv_warp_allowed[b->ref[i]]) {
                 res = warp_affine(t, NULL, tmp[i], bw4 * 4, b_dim, 0, refp,
-                                  &f->frame_hdr.gmv[b->ref[i]]);
+                                  &f->frame_hdr->gmv[b->ref[i]]);
                 if (res) return res;
             } else {
                 res = mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by, 0,
@@ -1411,7 +1411,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                     imin(cbw4, cbh4) > 1 && f->gmv_warp_allowed[b->ref[i]])
                 {
                     res = warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,
-                                      refp, &f->frame_hdr.gmv[b->ref[i]]);
+                                      refp, &f->frame_hdr->gmv[b->ref[i]]);
                     if (res) return res;
                 } else {
                     res = mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by,
@@ -1569,11 +1569,11 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
     const int sbsz = f->sb_step, sbh = f->sbh;
 
-    if (f->frame_hdr.loopfilter.level_y[0] ||
-        f->frame_hdr.loopfilter.level_y[1])
+    if (f->frame_hdr->loopfilter.level_y[0] ||
+        f->frame_hdr->loopfilter.level_y[1])
     {
         int start_of_tile_row = 0;
-        if (f->frame_hdr.tiling.row_start_sb[f->lf.tile_row] == sby)
+        if (f->frame_hdr->tiling.row_start_sb[f->lf.tile_row] == sby)
             start_of_tile_row = f->lf.tile_row++;
         bytefn(dav1d_loopfilter_sbrow)(f, f->lf.p, f->lf.mask_ptr, sby,
                                        start_of_tile_row);
@@ -1598,7 +1598,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
         bytefn(dav1d_cdef_brow)(f, f->lf.p, f->lf.mask_ptr, sby * sbsz,
                                 imin(sby * sbsz + n_blks, f->bh));
     }
-    if (f->frame_hdr.super_res.enabled) {
+    if (f->frame_hdr->super_res.enabled) {
         const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
         for (int pl = 0; pl < 1 + 2 * has_chroma; pl++) {
             const int ss_ver = pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;

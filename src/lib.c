@@ -89,6 +89,7 @@ int dav1d_open(Dav1dContext **const c_out,
     if (!c) goto error;
     memset(c, 0, sizeof(*c));
 
+    c->frame_hdr = &c->frame_hdr_mem;
     c->allocator = s->allocator;
     c->apply_grain = s->apply_grain;
     c->operating_point = s->operating_point;
@@ -107,6 +108,7 @@ int dav1d_open(Dav1dContext **const c_out,
     for (int n = 0; n < s->n_frame_threads; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
         f->c = c;
+        f->frame_hdr = &f->frame_hdr_mem;
         f->lf.last_sharpness = -1;
         f->n_tc = s->n_tile_threads;
         f->tc = dav1d_alloc_aligned(sizeof(*f->tc) * s->n_tile_threads, 32);

@@ -49,8 +49,8 @@ static void backup_lpf(const Dav1dFrameContext *const f,
                        const int ss_ver, const int sb128,
                        int row, const int row_h, const int src_w, const int ss_hor)
 {
-    const int dst_w = f->frame_hdr.super_res.enabled ?
-                      (f->frame_hdr.width[1] + ss_hor) >> ss_hor : src_w;
+    const int dst_w = f->frame_hdr->super_res.enabled ?
+                      (f->frame_hdr->width[1] + ss_hor) >> ss_hor : src_w;
 
     // The first stripe of the frame is shorter by 8 luma pixel rows.
     int stripe_h = (64 - 8 * !row) >> ss_ver;
@@ -72,7 +72,7 @@ static void backup_lpf(const Dav1dFrameContext *const f,
     dst += 4 * PXSTRIDE(dst_stride);
     src += (stripe_h - 2) * PXSTRIDE(src_stride);
 
-    if (f->frame_hdr.super_res.enabled) {
+    if (f->frame_hdr->super_res.enabled) {
         for (; row + stripe_h <= row_h; row += stripe_h) {
             f->dsp->mc.resize(dst, dst_stride, src, src_stride,
                               dst_w, src_w, 4, f->resize_step[ss_hor],
@@ -103,9 +103,9 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
 
     // TODO Also check block level restore type to reduce copying.
     const int restore_planes =
-        ((f->frame_hdr.restoration.type[0] != RESTORATION_NONE) << 0) +
-        ((f->frame_hdr.restoration.type[1] != RESTORATION_NONE) << 1) +
-        ((f->frame_hdr.restoration.type[2] != RESTORATION_NONE) << 2);
+        ((f->frame_hdr->restoration.type[0] != RESTORATION_NONE) << 0) +
+        ((f->frame_hdr->restoration.type[1] != RESTORATION_NONE) << 1) +
+        ((f->frame_hdr->restoration.type[2] != RESTORATION_NONE) << 2);
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->bh << 2;
@@ -211,7 +211,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
     const int ss_hor = chroma & (f->sr_cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444);
     const ptrdiff_t p_stride = f->sr_cur.p.stride[chroma];
 
-    const int unit_size_log2 = f->frame_hdr.restoration.unit_size[!!plane];
+    const int unit_size_log2 = f->frame_hdr->restoration.unit_size[!!plane];
     const int unit_size = 1 << unit_size_log2;
     const int half_unit_size = unit_size >> 1;
     const int max_unit_size = unit_size + half_unit_size;
@@ -271,9 +271,9 @@ void bytefn(dav1d_lr_sbrow)(Dav1dFrameContext *const f, pixel *const dst[3],
     const ptrdiff_t *const dst_stride = f->sr_cur.p.stride;
 
     const int restore_planes =
-        ((f->frame_hdr.restoration.type[0] != RESTORATION_NONE) << 0) +
-        ((f->frame_hdr.restoration.type[1] != RESTORATION_NONE) << 1) +
-        ((f->frame_hdr.restoration.type[2] != RESTORATION_NONE) << 2);
+        ((f->frame_hdr->restoration.type[0] != RESTORATION_NONE) << 0) +
+        ((f->frame_hdr->restoration.type[1] != RESTORATION_NONE) << 1) +
+        ((f->frame_hdr->restoration.type[2] != RESTORATION_NONE) << 2);
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->sr_cur.p.p.h;

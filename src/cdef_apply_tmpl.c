@@ -88,7 +88,7 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
     pixel *ptrs[3] = { p[0], p[1], p[2] };
     const int sbsz = 16;
     const int sb64w = f->sb128w << 1;
-    const int damping = f->frame_hdr.cdef.damping + BITDEPTH - 8;
+    const int damping = f->frame_hdr->cdef.damping + BITDEPTH - 8;
     const enum Dav1dPixelLayout layout = f->cur.p.layout;
     const int uv_idx = DAV1D_PIXEL_LAYOUT_I444 - layout;
     const int has_chroma = layout != DAV1D_PIXEL_LAYOUT_I400;
@@ -119,15 +119,15 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
             const int sb64_idx = ((by & sbsz) >> 3) + (sbx & 1);
             const int cdef_idx = lflvl[sb128x].cdef_idx[sb64_idx];
             if (cdef_idx == -1 ||
-                (!f->frame_hdr.cdef.y_strength[cdef_idx] &&
-                 !f->frame_hdr.cdef.uv_strength[cdef_idx]))
+                (!f->frame_hdr->cdef.y_strength[cdef_idx] &&
+                 !f->frame_hdr->cdef.uv_strength[cdef_idx]))
             {
                 last_skip = 1;
                 goto next_sb;
             }
 
-            const int y_lvl = f->frame_hdr.cdef.y_strength[cdef_idx];
-            const int uv_lvl = f->frame_hdr.cdef.uv_strength[cdef_idx];
+            const int y_lvl = f->frame_hdr->cdef.y_strength[cdef_idx];
+            const int uv_lvl = f->frame_hdr->cdef.uv_strength[cdef_idx];
             pixel *bptrs[3] = { iptrs[0], iptrs[1], iptrs[2] };
             for (int bx = sbx * sbsz; bx < imin((sbx + 1) * sbsz, f->bw);
                  bx += 2, edges |= HAVE_LEFT)

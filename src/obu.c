@@ -275,13 +275,13 @@ static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
                            const int use_ref)
 {
     const Av1SequenceHeader *const seqhdr = c->seq_hdr;
-    Av1FrameHeader *const hdr = &c->frame_hdr;
+    Av1FrameHeader *const hdr = c->frame_hdr;
 
     if (use_ref) {
         for (int i = 0; i < 7; i++) {
             if (dav1d_get_bits(gb, 1)) {
                 Dav1dThreadPicture *const ref =
-                    &c->refs[c->frame_hdr.refidx[i]].p;
+                    &c->refs[c->frame_hdr->refidx[i]].p;
                 if (!ref->p.data[0]) return -1;
                 // FIXME render_* may be wrong
                 hdr->render_width = hdr->width[1] = ref->p.p.w;
@@ -345,7 +345,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     const uint8_t *const init_ptr = gb->ptr;
 #endif
     const Av1SequenceHeader *const seqhdr = c->seq_hdr;
-    Av1FrameHeader *const hdr = &c->frame_hdr;
+    Av1FrameHeader *const hdr = c->frame_hdr;
     int res;
 
     hdr->show_existing_frame =
@@ -1097,13 +1097,13 @@ error:
 
 static void parse_tile_hdr(Dav1dContext *const c, GetBits *const gb) {
     int have_tile_pos = 0;
-    const int n_tiles = c->frame_hdr.tiling.cols * c->frame_hdr.tiling.rows;
+    const int n_tiles = c->frame_hdr->tiling.cols * c->frame_hdr->tiling.rows;
     if (n_tiles > 1)
         have_tile_pos = dav1d_get_bits(gb, 1);
 
     if (have_tile_pos) {
-        const int n_bits = c->frame_hdr.tiling.log2_cols +
-                           c->frame_hdr.tiling.log2_rows;
+        const int n_bits = c->frame_hdr->tiling.log2_cols +
+                           c->frame_hdr->tiling.log2_rows;
         c->tile[c->n_tile_data].start = dav1d_get_bits(gb, n_bits);
         c->tile[c->n_tile_data].end = dav1d_get_bits(gb, n_bits);
     } else {
@@ -1241,8 +1241,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     case OBU_FRAME_HDR:
         c->have_frame_hdr = 0;
         if (!c->seq_hdr) goto error;
-        c->frame_hdr.temporal_id = temporal_id;
-        c->frame_hdr.spatial_id = spatial_id;
+        c->frame_hdr->temporal_id = temporal_id;
+        c->frame_hdr->spatial_id = spatial_id;
         if ((res = parse_frame_hdr(c, &gb)) < 0)
             return res;
         for (int n = 0; n < c->n_tile_data; n++)
@@ -1260,7 +1260,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             break;
         }
         // OBU_FRAMEs shouldn't be signalled with show_existing_frame
-        if (c->frame_hdr.show_existing_frame) goto error;
+        if (c->frame_hdr->show_existing_frame) goto error;
 
         c->have_frame_hdr = 1;
 
@@ -1314,7 +1314,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     }
 
     if (c->seq_hdr && c->have_frame_hdr &&
-        c->n_tiles == c->frame_hdr.tiling.cols * c->frame_hdr.tiling.rows)
+        c->n_tiles == c->frame_hdr->tiling.cols * c->frame_hdr->tiling.rows)
     {
         if (!c->n_tile_data)
             return -EINVAL;
@@ -1324,11 +1324,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         c->have_frame_hdr = 0;
         c->n_tiles = 0;
     } else if (c->seq_hdr && c->have_frame_hdr &&
-               c->frame_hdr.show_existing_frame)
+               c->frame_hdr->show_existing_frame)
     {
         if (c->n_fc == 1) {
             dav1d_picture_ref(&c->out,
-                              &c->refs[c->frame_hdr.existing_frame_idx].p.p);
+                              &c->refs[c->frame_hdr->existing_frame_idx].p.p);
             c->out.m = in->m;
         } else {
             // need to append this to the frame output queue
@@ -1351,16 +1351,16 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 dav1d_thread_picture_unref(out_delayed);
             }
             dav1d_thread_picture_ref(out_delayed,
-                                     &c->refs[c->frame_hdr.existing_frame_idx].p);
+                                     &c->refs[c->frame_hdr->existing_frame_idx].p);
             out_delayed->visible = 1;
             out_delayed->p.m = in->m;
             pthread_mutex_unlock(&f->frame_thread.td.lock);
         }
         c->have_frame_hdr = 0;
-        if (c->refs[c->frame_hdr.existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
-            const int r = c->frame_hdr.existing_frame_idx;
+        if (c->refs[c->frame_hdr->existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
+            const int r = c->frame_hdr->existing_frame_idx;
             for (int i = 0; i < 8; i++) {
-                if (i == c->frame_hdr.existing_frame_idx) continue;
+                if (i == c->frame_hdr->existing_frame_idx) continue;
 
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);

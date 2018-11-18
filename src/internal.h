@@ -79,7 +79,7 @@ struct Dav1dContext {
     int n_tiles;
     Dav1dRef *seq_hdr_ref;
     Av1SequenceHeader *seq_hdr;
-    Av1FrameHeader frame_hdr; // FIXME make ref?
+    Av1FrameHeader *frame_hdr, frame_hdr_mem; // FIXME make ref?
 
     // decoded output picture queue
     Dav1dData in;
@@ -125,7 +125,7 @@ struct Dav1dContext {
 struct Dav1dFrameContext {
     Dav1dRef *seq_hdr_ref;
     Av1SequenceHeader *seq_hdr;
-    Av1FrameHeader frame_hdr;
+    Av1FrameHeader *frame_hdr, frame_hdr_mem;
     Dav1dThreadPicture refp[7];
     Dav1dPicture cur; // during block coding / reconstruction
     Dav1dThreadPicture sr_cur; // after super-resolution upscaling
