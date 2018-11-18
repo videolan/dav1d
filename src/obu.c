@@ -736,6 +736,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             // segmentation data from the reference frame.
             assert(hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
             const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
+            if (!c->refs[pri_ref].p.p.frame_hdr) return -EINVAL;
             hdr->segmentation.seg_data =
                 c->refs[pri_ref].p.p.frame_hdr->segmentation.seg_data;
         }
@@ -797,6 +798,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->loopfilter.mode_ref_deltas = default_mode_ref_deltas;
         } else {
             const int ref = hdr->refidx[hdr->primary_ref_frame];
+            if (!c->refs[ref].p.p.frame_hdr) return -EINVAL;
             hdr->loopfilter.mode_ref_deltas =
                 c->refs[ref].p.p.frame_hdr->loopfilter.mode_ref_deltas;
         }
@@ -899,6 +901,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         int off_after = -1;
         int off_before_idx[2], off_after_idx;
         for (int i = 0; i < 7; i++) {
+            if (!c->refs[hdr->refidx[i]].p.p.data[0]) return -EINVAL;
             const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.poc;
 
             const int diff = get_poc_diff(seqhdr->order_hint_n_bits, refpoc, poc);
@@ -970,9 +973,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
             if (hdr->gmv[i].type == DAV1D_WM_TYPE_IDENTITY) continue;
 
-            const Dav1dWarpedMotionParams *const ref_gmv =
-                hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE ? &dav1d_default_wm_params :
-                &c->refs[hdr->refidx[hdr->primary_ref_frame]].p.p.frame_hdr->gmv[i];
+            const Dav1dWarpedMotionParams *ref_gmv;
+            if (hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
+                ref_gmv = &dav1d_default_wm_params;
+            } else {
+                const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
+                if (!c->refs[pri_ref].p.p.frame_hdr) return -EINVAL;
+                ref_gmv = &c->refs[pri_ref].p.p.frame_hdr->gmv[i];
+            }
             int32_t *const mat = hdr->gmv[i].matrix;
             const int32_t *const ref_mat = ref_gmv->matrix;
             int bits, shift;
@@ -1325,6 +1333,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     if (c->seq_hdr && c->frame_hdr) {
         if (c->frame_hdr->show_existing_frame) {
+            if (!c->refs[c->frame_hdr->existing_frame_idx].p.p.data[0]) return -EINVAL;
             if (c->n_fc == 1) {
                 dav1d_picture_ref(&c->out,
                                   &c->refs[c->frame_hdr->existing_frame_idx].p.p);

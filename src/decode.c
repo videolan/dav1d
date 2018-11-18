@@ -3279,10 +3279,11 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 
     if (c->n_fc == 1) {
+        const unsigned refresh_frame_flags = f->frame_hdr->refresh_frame_flags;
         if ((res = dav1d_decode_frame(f)) < 0) {
             dav1d_picture_unref(&c->out);
             for (int i = 0; i < 8; i++) {
-                if (f->frame_hdr->refresh_frame_flags & (1 << i)) {
+                if (refresh_frame_flags & (1 << i)) {
                     if (c->refs[i].p.p.data[0])
                         dav1d_thread_picture_unref(&c->refs[i].p);
                     if (c->cdf[i].cdf)
