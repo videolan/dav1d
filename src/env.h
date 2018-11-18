@@ -123,7 +123,7 @@ static inline unsigned gather_top_partition_prob(const uint16_t *const in,
 
 static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
                                                 const int inter,
-                                                const Av1FrameHeader *const hdr,
+                                                const Dav1dFrameHeader *const hdr,
                                                 const int seg_id)
 {
     if (!hdr->segmentation.qidx[seg_id]) {
@@ -156,7 +156,7 @@ static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
 
 static inline enum TxfmType get_uv_intra_txtp(const enum IntraPredMode uv_mode,
                                               const enum RectTxfmSize tx,
-                                              const Av1FrameHeader *const hdr,
+                                              const Dav1dFrameHeader *const hdr,
                                               const int seg_id)
 {
     if (hdr->segmentation.lossless[seg_id]) {
@@ -171,7 +171,7 @@ static inline enum TxfmType get_uv_intra_txtp(const enum IntraPredMode uv_mode,
 
 static inline enum TxfmType get_uv_inter_txtp(const TxfmInfo *const uvt_dim,
                                               const enum TxfmType ytxtp,
-                                              const Av1FrameHeader *const hdr,
+                                              const Dav1dFrameHeader *const hdr,
                                               const int seg_id)
 {
     if (hdr->segmentation.lossless[seg_id]) {
@@ -197,18 +197,18 @@ static inline int get_filter_ctx(const BlockContext *const a,
                                  const int yb4, const int xb4)
 {
     const int a_filter = (a->ref[0][xb4] == ref || a->ref[1][xb4] == ref) ?
-                         a->filter[dir][xb4] : N_SWITCHABLE_FILTERS;
+                         a->filter[dir][xb4] : DAV1D_N_SWITCHABLE_FILTERS;
     const int l_filter = (l->ref[0][yb4] == ref || l->ref[1][yb4] == ref) ?
-                         l->filter[dir][yb4] : N_SWITCHABLE_FILTERS;
+                         l->filter[dir][yb4] : DAV1D_N_SWITCHABLE_FILTERS;
 
     if (a_filter == l_filter) {
         return comp * 4 + a_filter;
-    } else if (a_filter == N_SWITCHABLE_FILTERS) {
+    } else if (a_filter == DAV1D_N_SWITCHABLE_FILTERS) {
         return comp * 4 + l_filter;
-    } else if (l_filter == N_SWITCHABLE_FILTERS) {
+    } else if (l_filter == DAV1D_N_SWITCHABLE_FILTERS) {
         return comp * 4 + a_filter;
     } else {
-        return comp * 4 + N_SWITCHABLE_FILTERS;
+        return comp * 4 + DAV1D_N_SWITCHABLE_FILTERS;
     }
 }
 
@@ -719,18 +719,18 @@ static inline int get_br_ctx(const uint8_t *const levels,
     return mag + 14;
 }
 
-static inline mv get_gmv_2d(const WarpedMotionParams *const gmv,
+static inline mv get_gmv_2d(const Dav1dWarpedMotionParams *const gmv,
                             const int bx4, const int by4,
                             const int bw4, const int bh4,
-                            const Av1FrameHeader *const hdr)
+                            const Dav1dFrameHeader *const hdr)
 {
     switch (gmv->type) {
-    case WM_TYPE_ROT_ZOOM:
+    case DAV1D_WM_TYPE_ROT_ZOOM:
         assert(gmv->matrix[5] ==  gmv->matrix[2]);
         assert(gmv->matrix[4] == -gmv->matrix[3]);
         // fall-through
     default:
-    case WM_TYPE_AFFINE: {
+    case DAV1D_WM_TYPE_AFFINE: {
         const int x = bx4 * 4 + bw4 * 2 - 1;
         const int y = by4 * 4 + bh4 * 2 - 1;
         const int xc = (gmv->matrix[2] - (1 << 16)) * x +
@@ -744,12 +744,12 @@ static inline mv get_gmv_2d(const WarpedMotionParams *const gmv,
             .x = apply_sign(((abs(xc) + round) >> shift) << !hdr->hp, xc),
         };
     }
-    case WM_TYPE_TRANSLATION:
+    case DAV1D_WM_TYPE_TRANSLATION:
         return (mv) {
             .y = gmv->matrix[0] >> 13,
             .x = gmv->matrix[1] >> 13,
         };
-    case WM_TYPE_IDENTITY:
+    case DAV1D_WM_TYPE_IDENTITY:
         return (mv) { .x = 0, .y = 0 };
     }
 }

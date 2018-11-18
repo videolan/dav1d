@@ -78,9 +78,9 @@ struct Dav1dContext {
     int n_tile_data;
     int n_tiles;
     Dav1dRef *seq_hdr_ref;
-    Av1SequenceHeader *seq_hdr;
+    Dav1dSequenceHeader *seq_hdr;
     Dav1dRef *frame_hdr_ref;
-    Av1FrameHeader *frame_hdr;
+    Dav1dFrameHeader *frame_hdr;
 
     // decoded output picture queue
     Dav1dData in;
@@ -94,11 +94,11 @@ struct Dav1dContext {
     struct {
         Dav1dThreadPicture p;
         Dav1dRef *segmap;
-        Av1SegmentationDataSet seg_data;
+        Dav1dSegmentationDataSet seg_data;
         Dav1dRef *refmvs;
         unsigned refpoc[7];
-        WarpedMotionParams gmv[7];
-        Av1LoopfilterModeRefDeltas lf_mode_ref_deltas;
+        Dav1dWarpedMotionParams gmv[7];
+        Dav1dLoopfilterModeRefDeltas lf_mode_ref_deltas;
         Dav1dFilmGrainData film_grain;
         uint8_t qidx;
         unsigned coded_width;
@@ -125,9 +125,9 @@ struct Dav1dContext {
 
 struct Dav1dFrameContext {
     Dav1dRef *seq_hdr_ref;
-    Av1SequenceHeader *seq_hdr;
+    Dav1dSequenceHeader *seq_hdr;
     Dav1dRef *frame_hdr_ref;
-    Av1FrameHeader *frame_hdr;
+    Dav1dFrameHeader *frame_hdr;
     Dav1dThreadPicture refp[7];
     Dav1dPicture cur; // during block coding / reconstruction
     Dav1dThreadPicture sr_cur; // after super-resolution upscaling
@@ -172,7 +172,7 @@ struct Dav1dFrameContext {
     pixel *ipred_edge[3];
     ptrdiff_t b4_stride;
     int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step, sr_sb128w;
-    uint16_t dq[NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
+    uint16_t dq[DAV1D_NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint8_t *qm[2 /* is_1d */][N_RECT_TX_SIZES][3 /* plane */];
     BlockContext *a;
     int a_sz /* w*tile_rows */;
@@ -250,7 +250,7 @@ struct Dav1dTileState {
         coef *cf;
     } frame_thread;
 
-    uint16_t dqmem[NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
+    uint16_t dqmem[DAV1D_NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint16_t (*dq)[3][2];
     int last_qidx;
 
@@ -274,7 +274,7 @@ struct Dav1dTileContext {
     uint16_t pal[3 /* plane */][8 /* palette_idx */];
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
     uint8_t txtp_map[32 * 32]; // inter-only
-    WarpedMotionParams warpmv;
+    Dav1dWarpedMotionParams warpmv;
     union {
         void *mem;
         uint8_t *pal_idx;

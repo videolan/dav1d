@@ -418,35 +418,35 @@ const uint8_t /* enum TxClass */ dav1d_tx_type_class[N_TX_TYPES_PLUS_LL] = {
     [WHT_WHT]           = TX_CLASS_2D,
 };
 
-const uint8_t /* enum Filter2d */ dav1d_filter_2d[N_FILTERS][N_FILTERS] = {
-    [FILTER_8TAP_REGULAR] = {
-        [FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_REGULAR,
-        [FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_REGULAR_SHARP,
-        [FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_REGULAR_SMOOTH,
-    }, [FILTER_8TAP_SHARP] = {
-        [FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_SHARP_REGULAR,
-        [FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_SHARP,
-        [FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_SHARP_SMOOTH,
-    }, [FILTER_8TAP_SMOOTH] = {
-        [FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_SMOOTH_REGULAR,
-        [FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_SMOOTH_SHARP,
-        [FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_SMOOTH,
-    }, [FILTER_BILINEAR] = {
-        [FILTER_BILINEAR]     = FILTER_2D_BILINEAR,
+const uint8_t /* enum Filter2d */ dav1d_filter_2d[DAV1D_N_FILTERS][DAV1D_N_FILTERS] = {
+    [DAV1D_FILTER_8TAP_REGULAR] = {
+        [DAV1D_FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_REGULAR,
+        [DAV1D_FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_REGULAR_SHARP,
+        [DAV1D_FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_REGULAR_SMOOTH,
+    }, [DAV1D_FILTER_8TAP_SHARP] = {
+        [DAV1D_FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_SHARP_REGULAR,
+        [DAV1D_FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_SHARP,
+        [DAV1D_FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_SHARP_SMOOTH,
+    }, [DAV1D_FILTER_8TAP_SMOOTH] = {
+        [DAV1D_FILTER_8TAP_REGULAR] = FILTER_2D_8TAP_SMOOTH_REGULAR,
+        [DAV1D_FILTER_8TAP_SHARP]   = FILTER_2D_8TAP_SMOOTH_SHARP,
+        [DAV1D_FILTER_8TAP_SMOOTH]  = FILTER_2D_8TAP_SMOOTH,
+    }, [DAV1D_FILTER_BILINEAR] = {
+        [DAV1D_FILTER_BILINEAR]     = FILTER_2D_BILINEAR,
     }
 };
 
-const uint8_t /* enum FilterMode */ dav1d_filter_dir[N_2D_FILTERS][2] = {
-    [FILTER_2D_8TAP_REGULAR]        = { FILTER_8TAP_REGULAR, FILTER_8TAP_REGULAR },
-    [FILTER_2D_8TAP_REGULAR_SMOOTH] = { FILTER_8TAP_SMOOTH,  FILTER_8TAP_REGULAR },
-    [FILTER_2D_8TAP_REGULAR_SHARP]  = { FILTER_8TAP_SHARP,   FILTER_8TAP_REGULAR },
-    [FILTER_2D_8TAP_SHARP_REGULAR]  = { FILTER_8TAP_REGULAR, FILTER_8TAP_SHARP   },
-    [FILTER_2D_8TAP_SHARP_SMOOTH]   = { FILTER_8TAP_SMOOTH,  FILTER_8TAP_SHARP   },
-    [FILTER_2D_8TAP_SHARP]          = { FILTER_8TAP_SHARP,   FILTER_8TAP_SHARP   },
-    [FILTER_2D_8TAP_SMOOTH_REGULAR] = { FILTER_8TAP_REGULAR, FILTER_8TAP_SMOOTH  },
-    [FILTER_2D_8TAP_SMOOTH]         = { FILTER_8TAP_SMOOTH,  FILTER_8TAP_SMOOTH  },
-    [FILTER_2D_8TAP_SMOOTH_SHARP]   = { FILTER_8TAP_SHARP,   FILTER_8TAP_SMOOTH  },
-    [FILTER_2D_BILINEAR]            = { FILTER_BILINEAR,     FILTER_BILINEAR     },
+const uint8_t /* enum Dav1dFilterMode */ dav1d_filter_dir[N_2D_FILTERS][2] = {
+    [FILTER_2D_8TAP_REGULAR]        = { DAV1D_FILTER_8TAP_REGULAR, DAV1D_FILTER_8TAP_REGULAR },
+    [FILTER_2D_8TAP_REGULAR_SMOOTH] = { DAV1D_FILTER_8TAP_SMOOTH,  DAV1D_FILTER_8TAP_REGULAR },
+    [FILTER_2D_8TAP_REGULAR_SHARP]  = { DAV1D_FILTER_8TAP_SHARP,   DAV1D_FILTER_8TAP_REGULAR },
+    [FILTER_2D_8TAP_SHARP_REGULAR]  = { DAV1D_FILTER_8TAP_REGULAR, DAV1D_FILTER_8TAP_SHARP   },
+    [FILTER_2D_8TAP_SHARP_SMOOTH]   = { DAV1D_FILTER_8TAP_SMOOTH,  DAV1D_FILTER_8TAP_SHARP   },
+    [FILTER_2D_8TAP_SHARP]          = { DAV1D_FILTER_8TAP_SHARP,   DAV1D_FILTER_8TAP_SHARP   },
+    [FILTER_2D_8TAP_SMOOTH_REGULAR] = { DAV1D_FILTER_8TAP_REGULAR, DAV1D_FILTER_8TAP_SMOOTH  },
+    [FILTER_2D_8TAP_SMOOTH]         = { DAV1D_FILTER_8TAP_SMOOTH,  DAV1D_FILTER_8TAP_SMOOTH  },
+    [FILTER_2D_8TAP_SMOOTH_SHARP]   = { DAV1D_FILTER_8TAP_SHARP,   DAV1D_FILTER_8TAP_SMOOTH  },
+    [FILTER_2D_BILINEAR]            = { DAV1D_FILTER_BILINEAR,     DAV1D_FILTER_BILINEAR     },
 };
 
 const uint8_t dav1d_filter_mode_to_y_mode[5] = {
@@ -481,8 +481,8 @@ const uint8_t dav1d_wedge_ctx_lut[N_BS_SIZES] = {
     [BS_8x8]   = 0,
 };
 
-const WarpedMotionParams dav1d_default_wm_params = {
-    .type = WM_TYPE_IDENTITY,
+const Dav1dWarpedMotionParams dav1d_default_wm_params = {
+    .type = DAV1D_WM_TYPE_IDENTITY,
     .matrix = {
         0, 0, 1 << 16,
         0, 0, 1 << 16,
@@ -524,7 +524,7 @@ const int dav1d_sgr_x_by_xplus1[256] = {
 };
 
 const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
-    [FILTER_8TAP_REGULAR] = {
+    [DAV1D_FILTER_8TAP_REGULAR] = {
         {   0,   1,  -3,  63,   4,  -1,   0,   0 },
         {   0,   1,  -5,  61,   9,  -2,   0,   0 },
         {   0,   1,  -6,  58,  14,  -4,   1,   0 },
@@ -540,7 +540,7 @@ const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
         {   0,   1,  -4,  14,  58,  -6,   1,   0 },
         {   0,   0,  -2,   9,  61,  -5,   1,   0 },
         {   0,   0,  -1,   4,  63,  -3,   1,   0 }
-    }, [FILTER_8TAP_SMOOTH] = {
+    }, [DAV1D_FILTER_8TAP_SMOOTH] = {
         {   0,   1,  14,  31,  17,   1,   0,   0 },
         {   0,   0,  13,  31,  18,   2,   0,   0 },
         {   0,   0,  11,  31,  20,   2,   0,   0 },
@@ -556,7 +556,7 @@ const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
         {   0,   0,   2,  20,  31,  11,   0,   0 },
         {   0,   0,   2,  18,  31,  13,   0,   0 },
         {   0,   0,   1,  17,  31,  14,   1,   0 }
-    }, [FILTER_8TAP_SHARP] = {
+    }, [DAV1D_FILTER_8TAP_SHARP] = {
         {  -1,   1,  -3,  63,   4,  -1,   1,   0 },
         {  -1,   3,  -6,  62,   8,  -3,   2,  -1 },
         {  -1,   4,  -9,  60,  13,  -5,   3,  -1 },
@@ -573,7 +573,7 @@ const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
         {  -1,   2,  -3,   8,  62,  -6,   3,  -1 },
         {   0,   1,  -1,   4,  63,  -3,   1,  -1 }
     /* width <= 4 */
-    }, [3 + FILTER_8TAP_REGULAR] = {
+    }, [3 + DAV1D_FILTER_8TAP_REGULAR] = {
         {   0,   0,  -2,  63,   4,  -1,   0,   0 },
         {   0,   0,  -4,  61,   9,  -2,   0,   0 },
         {   0,   0,  -5,  58,  14,  -3,   0,   0 },
@@ -589,7 +589,7 @@ const int8_t ALIGN(dav1d_mc_subpel_filters[5][15][8], 8) = {
         {   0,   0,  -3,  14,  58,  -5,   0,   0 },
         {   0,   0,  -2,   9,  61,  -4,   0,   0 },
         {   0,   0,  -1,   4,  63,  -2,   0,   0 }
-    }, [3 + FILTER_8TAP_SMOOTH] = {
+    }, [3 + DAV1D_FILTER_8TAP_SMOOTH] = {
         {   0,   0,  15,  31,  17,   1,   0,   0 },
         {   0,   0,  13,  31,  18,   2,   0,   0 },
         {   0,   0,  11,  31,  20,   2,   0,   0 },

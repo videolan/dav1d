@@ -49,8 +49,8 @@
 #include "src/thread_task.h"
 #include "src/warpmv.h"
 
-static void init_quant_tables(const Av1SequenceHeader *const seq_hdr,
-                              const Av1FrameHeader *const frame_hdr,
+static void init_quant_tables(const Dav1dSequenceHeader *const seq_hdr,
+                              const Dav1dFrameHeader *const frame_hdr,
                               const int qidx, uint16_t (*dq)[3][2])
 {
     for (int i = 0; i < (frame_hdr->segmentation.enabled ? 8 : 1); i++) {
@@ -283,7 +283,7 @@ static void find_matching_ref(const Dav1dTileContext *const t,
 static void derive_warpmv(const Dav1dTileContext *const t,
                           const int bw4, const int bh4,
                           const uint64_t masks[2], const struct mv mv,
-                          WarpedMotionParams *const wmp)
+                          Dav1dWarpedMotionParams *const wmp)
 {
     int pts[8][2 /* in, out */][2 /* x, y */], np = 0;
     const Dav1dFrameContext *const f = t->f;
@@ -352,9 +352,9 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     if (!dav1d_find_affine_int(pts, ret, bw4, bh4, mv, wmp, t->bx, t->by) &&
         !dav1d_get_shear_params(wmp))
     {
-        wmp->type = WM_TYPE_AFFINE;
+        wmp->type = DAV1D_WM_TYPE_AFFINE;
     } else
-        wmp->type = WM_TYPE_IDENTITY;
+        wmp->type = DAV1D_WM_TYPE_IDENTITY;
 }
 
 static inline int findoddzero(const uint8_t *buf, int len) {
@@ -617,22 +617,22 @@ static void read_vartx_tree(Dav1dTileContext *const t,
         b->max_ytx == TX_4X4)
     {
         b->max_ytx = b->uvtx = TX_4X4;
-        if (f->frame_hdr->txfm_mode == TX_SWITCHABLE) {
+        if (f->frame_hdr->txfm_mode == DAV1D_TX_SWITCHABLE) {
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
             rep_macro(type, t->dir tx, off, TX_4X4)
             case_set(bh4, l., 1, by4);
             case_set(bw4, a->, 0, bx4);
 #undef set_ctx
         }
-    } else if (f->frame_hdr->txfm_mode != TX_SWITCHABLE || b->skip) {
-        if (f->frame_hdr->txfm_mode == TX_SWITCHABLE) {
+    } else if (f->frame_hdr->txfm_mode != DAV1D_TX_SWITCHABLE || b->skip) {
+        if (f->frame_hdr->txfm_mode == DAV1D_TX_SWITCHABLE) {
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
             rep_macro(type, t->dir tx, off, mul * b_dim[2 + diridx])
             case_set(bh4, l., 1, by4);
             case_set(bw4, a->, 0, bx4);
 #undef set_ctx
         } else {
-            assert(f->frame_hdr->txfm_mode == TX_LARGEST);
+            assert(f->frame_hdr->txfm_mode == DAV1D_TX_LARGEST);
         }
         b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.layout];
     } else {
@@ -664,7 +664,7 @@ static inline unsigned get_prev_frame_segid(const Dav1dFrameContext *const f,
 {
     unsigned seg_id = 8;
 
-    assert(f->frame_hdr->primary_ref_frame != PRIMARY_REF_NONE);
+    assert(f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
     if (dav1d_thread_picture_wait(&f->refp[f->frame_hdr->primary_ref_frame],
                                   (by + h4) * 4, PLANE_TYPE_BLOCK))
     {
@@ -763,7 +763,7 @@ static int decode_b(Dav1dTileContext *const t,
     b->bp = bp;
     b->bs = bs;
 
-    const Av1SegmentationData *seg = NULL;
+    const Dav1dSegmentationData *seg = NULL;
 
     // segment_id (if seg_feature for skip/ref/gmv is enabled)
     int seg_pred = 0;
@@ -803,13 +803,13 @@ static int decode_b(Dav1dTileContext *const t,
                                         &seg_ctx, f->cur_segmap, f->b4_stride);
                 const unsigned diff = msac_decode_symbol_adapt(&ts->msac,
                                                    ts->cdf.m.seg_id[seg_ctx],
-                                                   NUM_SEGMENTS);
+                                                   DAV1D_NUM_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr->segmentation.seg_data.last_active_segid;
                 b->seg_id = neg_deinterleave(diff, pred_seg_id,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
-                if (b->seg_id >= NUM_SEGMENTS) b->seg_id = 0; // error?
+                if (b->seg_id >= DAV1D_NUM_SEGMENTS) b->seg_id = 0; // error?
             }
 
             if (DEBUG_BLOCK_INFO)
@@ -875,14 +875,14 @@ static int decode_b(Dav1dTileContext *const t,
             } else {
                 const unsigned diff = msac_decode_symbol_adapt(&ts->msac,
                                                    ts->cdf.m.seg_id[seg_ctx],
-                                                   NUM_SEGMENTS);
+                                                   DAV1D_NUM_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr->segmentation.seg_data.last_active_segid;
                 b->seg_id = neg_deinterleave(diff, pred_seg_id,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
             }
-            if (b->seg_id >= NUM_SEGMENTS) b->seg_id = 0; // error?
+            if (b->seg_id >= DAV1D_NUM_SEGMENTS) b->seg_id = 0; // error?
         }
 
         seg = &f->frame_hdr->segmentation.seg_data.d[b->seg_id];
@@ -1140,7 +1140,7 @@ static int decode_b(Dav1dTileContext *const t,
             b->tx = dav1d_max_txfm_size_for_bs[bs][0];
             b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.layout];
             t_dim = &dav1d_txfm_dimensions[b->tx];
-            if (f->frame_hdr->txfm_mode == TX_SWITCHABLE && t_dim->max > TX_4X4) {
+            if (f->frame_hdr->txfm_mode == DAV1D_TX_SWITCHABLE && t_dim->max > TX_4X4) {
                 const int tctx = get_tx_ctx(t->a, &t->l, t_dim, by4, bx4);
                 uint16_t *const tx_cdf = ts->cdf.m.txsz[t_dim->max - 1][tctx];
                 int depth = msac_decode_symbol_adapt(&ts->msac, tx_cdf,
@@ -1187,8 +1187,8 @@ static int decode_b(Dav1dTileContext *const t,
             rep_macro(type, t->dir comp_type, off, mul * COMP_INTER_NONE); \
             rep_macro(type, t->dir ref[0], off, mul * ((uint8_t) -1)); \
             rep_macro(type, t->dir ref[1], off, mul * ((uint8_t) -1)); \
-            rep_macro(type, t->dir filter[0], off, mul * N_SWITCHABLE_FILTERS); \
-            rep_macro(type, t->dir filter[1], off, mul * N_SWITCHABLE_FILTERS); \
+            rep_macro(type, t->dir filter[0], off, mul * DAV1D_N_SWITCHABLE_FILTERS); \
+            rep_macro(type, t->dir filter[1], off, mul * DAV1D_N_SWITCHABLE_FILTERS); \
         }
         const enum IntraPredMode y_mode_nofilt =
             b->y_mode == FILTER_PRED ? DC_PRED : b->y_mode;
@@ -1506,7 +1506,7 @@ static int decode_b(Dav1dTileContext *const t,
                 break; \
             case GLOBALMV: \
                 has_subpel_filter |= \
-                    f->frame_hdr->gmv[b->ref[idx]].type == WM_TYPE_TRANSLATION; \
+                    f->frame_hdr->gmv[b->ref[idx]].type == DAV1D_WM_TYPE_TRANSLATION; \
                 b->mv[idx] = get_gmv_2d(&f->frame_hdr->gmv[b->ref[idx]], \
                                         t->bx, t->by, bw4, bh4, f->frame_hdr); \
                 fix_mv_precision(f->frame_hdr, &b->mv[idx]); \
@@ -1640,7 +1640,7 @@ static int decode_b(Dav1dTileContext *const t,
                                           t->bx, t->by, bw4, bh4, f->frame_hdr);
                     fix_mv_precision(f->frame_hdr, &b->mv[0]);
                     has_subpel_filter = imin(bw4, bh4) == 1 ||
-                        f->frame_hdr->gmv[b->ref[0]].type == WM_TYPE_TRANSLATION;
+                        f->frame_hdr->gmv[b->ref[0]].type == DAV1D_WM_TYPE_TRANSLATION;
                 } else {
                     has_subpel_filter = 1;
                     if (msac_decode_bool_adapt(&ts->msac,
@@ -1737,7 +1737,7 @@ static int decode_b(Dav1dTileContext *const t,
                 b->interintra_type == INTER_INTRA_NONE && imin(bw4, bh4) >= 2 &&
                 // is not warped global motion
                 !(!f->frame_hdr->force_integer_mv && b->inter_mode == GLOBALMV &&
-                  f->frame_hdr->gmv[b->ref[0]].type > WM_TYPE_TRANSLATION) &&
+                  f->frame_hdr->gmv[b->ref[0]].type > DAV1D_WM_TYPE_TRANSLATION) &&
                 // has overlappable neighbours
                 ((have_left && findoddzero(&t->l.intra[by4 + 1], h4 >> 1)) ||
                  (have_top && findoddzero(&t->a->intra[bx4 + 1], w4 >> 1))))
@@ -1784,14 +1784,14 @@ static int decode_b(Dav1dTileContext *const t,
         }
 
         // subpel filter
-        enum FilterMode filter[2];
-        if (f->frame_hdr->subpel_filter_mode == FILTER_SWITCHABLE) {
+        enum Dav1dFilterMode filter[2];
+        if (f->frame_hdr->subpel_filter_mode == DAV1D_FILTER_SWITCHABLE) {
             if (has_subpel_filter) {
                 const int comp = b->comp_type != COMP_INTER_NONE;
                 const int ctx1 = get_filter_ctx(t->a, &t->l, comp, 0, b->ref[0],
                                                 by4, bx4);
                 filter[0] = msac_decode_symbol_adapt(&ts->msac,
-                    ts->cdf.m.filter[0][ctx1], N_SWITCHABLE_FILTERS);
+                    ts->cdf.m.filter[0][ctx1], DAV1D_N_SWITCHABLE_FILTERS);
                 if (f->seq_hdr->dual_filter) {
                     const int ctx2 = get_filter_ctx(t->a, &t->l, comp, 1,
                                                     b->ref[0], by4, bx4);
@@ -1799,7 +1799,7 @@ static int decode_b(Dav1dTileContext *const t,
                         printf("Post-subpel_filter1[%d,ctx=%d]: r=%d\n",
                                filter[0], ctx1, ts->msac.rng);
                     filter[1] = msac_decode_symbol_adapt(&ts->msac,
-                        ts->cdf.m.filter[1][ctx2], N_SWITCHABLE_FILTERS);
+                        ts->cdf.m.filter[1][ctx2], DAV1D_N_SWITCHABLE_FILTERS);
                     if (DEBUG_BLOCK_INFO)
                         printf("Post-subpel_filter2[%d,ctx=%d]: r=%d\n",
                                filter[1], ctx2, ts->msac.rng);
@@ -1810,7 +1810,7 @@ static int decode_b(Dav1dTileContext *const t,
                                filter[0], ctx1, ts->msac.rng);
                 }
             } else {
-                filter[0] = filter[1] = FILTER_8TAP_REGULAR;
+                filter[0] = filter[1] = DAV1D_FILTER_8TAP_REGULAR;
             }
         } else {
             filter[0] = filter[1] = f->frame_hdr->subpel_filter_mode;
@@ -2194,7 +2194,7 @@ static void reset_context(BlockContext *const ctx, const int keyframe, const int
     }
     memset(ctx->lcoef, 0x40, sizeof(ctx->lcoef));
     memset(ctx->ccoef, 0x40, sizeof(ctx->ccoef));
-    memset(ctx->filter, N_SWITCHABLE_FILTERS, sizeof(ctx->filter));
+    memset(ctx->filter, DAV1D_N_SWITCHABLE_FILTERS, sizeof(ctx->filter));
     memset(ctx->seg_pred, 0, sizeof(ctx->seg_pred));
     memset(ctx->pal_sz, 0, sizeof(ctx->pal_sz));
 }
@@ -2239,7 +2239,7 @@ static void setup_tile(Dav1dTileState *const ts,
                    ((ts->tiling.col_start & 16) >> 4);
     }
     for (int p = 0; p < 3; p++) {
-        if (f->frame_hdr->restoration.type[p] == RESTORATION_NONE)
+        if (f->frame_hdr->restoration.type[p] == DAV1D_RESTORATION_NONE)
             continue;
 
         if (f->frame_hdr->super_res.enabled) {
@@ -2273,28 +2273,28 @@ static void setup_tile(Dav1dTileState *const ts,
 
 static void read_restoration_info(Dav1dTileContext *const t,
                                   Av1RestorationUnit *const lr, const int p,
-                                  const enum RestorationType frame_type)
+                                  const enum Dav1dRestorationType frame_type)
 {
     const Dav1dFrameContext *const f = t->f;
     Dav1dTileState *const ts = t->ts;
 
-    if (frame_type == RESTORATION_SWITCHABLE) {
+    if (frame_type == DAV1D_RESTORATION_SWITCHABLE) {
         const int filter =
             msac_decode_symbol_adapt(&ts->msac,
                                      ts->cdf.m.restore_switchable, 3);
-        lr->type = filter ? filter == 2 ? RESTORATION_SGRPROJ :
-                                          RESTORATION_WIENER :
-                            RESTORATION_NONE;
+        lr->type = filter ? filter == 2 ? DAV1D_RESTORATION_SGRPROJ :
+                                          DAV1D_RESTORATION_WIENER :
+                            DAV1D_RESTORATION_NONE;
     } else {
         const unsigned type =
             msac_decode_bool_adapt(&ts->msac,
-                                   frame_type == RESTORATION_WIENER ?
+                                   frame_type == DAV1D_RESTORATION_WIENER ?
                                        ts->cdf.m.restore_wiener :
                                        ts->cdf.m.restore_sgrproj);
-        lr->type = type ? frame_type : RESTORATION_NONE;
+        lr->type = type ? frame_type : DAV1D_RESTORATION_NONE;
     }
 
-    if (lr->type == RESTORATION_WIENER) {
+    if (lr->type == DAV1D_RESTORATION_WIENER) {
         lr->filter_v[0] =
             !p ? msac_decode_subexp(&ts->msac,
                                     ts->lr_ref[p]->filter_v[0] + 5, 16,
@@ -2329,7 +2329,7 @@ static void read_restoration_info(Dav1dTileContext *const t,
                    p, lr->filter_v[0], lr->filter_v[1],
                    lr->filter_v[2], lr->filter_h[0],
                    lr->filter_h[1], lr->filter_h[2], ts->msac.rng);
-    } else if (lr->type == RESTORATION_SGRPROJ) {
+    } else if (lr->type == DAV1D_RESTORATION_SGRPROJ) {
         const unsigned idx = msac_decode_bools(&ts->msac, 4);
         lr->sgr_idx = idx;
         lr->sgr_weights[0] = dav1d_sgr_params[idx][0] ?
@@ -2415,7 +2415,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
         }
         // Restoration filter
         for (int p = 0; p < 3; p++) {
-            if (f->frame_hdr->restoration.type[p] == RESTORATION_NONE)
+            if (f->frame_hdr->restoration.type[p] == DAV1D_RESTORATION_NONE)
                 continue;
 
             const int ss_ver = p && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
@@ -2432,7 +2432,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
             // restoration unit
             if (y && y + half_unit > h) continue;
 
-            const enum RestorationType frame_type = f->frame_hdr->restoration.type[p];
+            const enum Dav1dRestorationType frame_type = f->frame_hdr->restoration.type[p];
 
             if (f->frame_hdr->super_res.enabled) {
                 const int w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
@@ -3044,7 +3044,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 #undef assign_bitdepth_case
 
     if (f->frame_hdr->frame_type & 1) {
-        if (f->frame_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
+        if (f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE) {
             const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
             if (!c->refs[pri_ref].p.p.data[0]) {
                 res = -EINVAL;
@@ -3082,14 +3082,14 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             } else {
                 f->svc[i][0].scale = 0;
             }
-            f->gmv_warp_allowed[i] = f->frame_hdr->gmv[i].type > WM_TYPE_TRANSLATION &&
+            f->gmv_warp_allowed[i] = f->frame_hdr->gmv[i].type > DAV1D_WM_TYPE_TRANSLATION &&
                                      !f->frame_hdr->force_integer_mv &&
                                      !dav1d_get_shear_params(&f->frame_hdr->gmv[i]);
         }
     }
 
     // setup entropy
-    if (f->frame_hdr->primary_ref_frame == PRIMARY_REF_NONE) {
+    if (f->frame_hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
         dav1d_init_states(&f->in_cdf, f->frame_hdr->quant.yac);
     } else {
         const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
@@ -3207,7 +3207,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         // happens if there is either no update or a temporal update.
         if (f->frame_hdr->segmentation.temporal || !f->frame_hdr->segmentation.update_map) {
             const int pri_ref = f->frame_hdr->primary_ref_frame;
-            assert(pri_ref != PRIMARY_REF_NONE);
+            assert(pri_ref != DAV1D_PRIMARY_REF_NONE);
             const int ref_w = ((f->ref_coded_width[pri_ref] + 7) >> 3) << 1;
             const int ref_h = ((f->refp[pri_ref].p.p.h + 7) >> 3) << 1;
             if (ref_w == f->bw && ref_h == f->bh) {

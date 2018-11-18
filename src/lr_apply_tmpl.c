@@ -103,9 +103,9 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
 
     // TODO Also check block level restore type to reduce copying.
     const int restore_planes =
-        ((f->frame_hdr->restoration.type[0] != RESTORATION_NONE) << 0) +
-        ((f->frame_hdr->restoration.type[1] != RESTORATION_NONE) << 1) +
-        ((f->frame_hdr->restoration.type[2] != RESTORATION_NONE) << 2);
+        ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
+        ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +
+        ((f->frame_hdr->restoration.type[2] != DAV1D_RESTORATION_NONE) << 2);
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->bh << 2;
@@ -157,7 +157,7 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
 
     // FIXME [8] might be easier for SIMD
     int16_t filterh[7], filterv[7];
-    if (lr->type == RESTORATION_WIENER) {
+    if (lr->type == DAV1D_RESTORATION_WIENER) {
         filterh[0] = filterh[6] = lr->filter_h[0];
         filterh[1] = filterh[5] = lr->filter_h[1];
         filterh[2] = filterh[4] = lr->filter_h[2];
@@ -176,11 +176,11 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
         } else {
             edges |= LR_HAVE_BOTTOM;
         }
-        if (lr->type == RESTORATION_WIENER) {
+        if (lr->type == DAV1D_RESTORATION_WIENER) {
             dsp->lr.wiener(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                            filterh, filterv, edges);
         } else {
-            assert(lr->type == RESTORATION_SGRPROJ);
+            assert(lr->type == DAV1D_RESTORATION_SGRPROJ);
             dsp->lr.selfguided(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                                lr->sgr_idx, lr->sgr_weights, edges);
         }
@@ -257,7 +257,7 @@ static void lr_sbrow(const Dav1dFrameContext *const f, pixel *p, const int y,
         if (edges & LR_HAVE_RIGHT) {
             backup4xU(pre_lr_border[bit], p + unit_w - 4, p_stride, row_h - y);
         }
-        if (lr->type != RESTORATION_NONE) {
+        if (lr->type != DAV1D_RESTORATION_NONE) {
             lr_stripe(f, p, pre_lr_border[!bit], x, y, plane, unit_w, row_h, lr, edges);
         }
         p += unit_w;
@@ -271,9 +271,9 @@ void bytefn(dav1d_lr_sbrow)(Dav1dFrameContext *const f, pixel *const dst[3],
     const ptrdiff_t *const dst_stride = f->sr_cur.p.stride;
 
     const int restore_planes =
-        ((f->frame_hdr->restoration.type[0] != RESTORATION_NONE) << 0) +
-        ((f->frame_hdr->restoration.type[1] != RESTORATION_NONE) << 1) +
-        ((f->frame_hdr->restoration.type[2] != RESTORATION_NONE) << 2);
+        ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
+        ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +
+        ((f->frame_hdr->restoration.type[2] != DAV1D_RESTORATION_NONE) << 2);
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->sr_cur.p.p.h;

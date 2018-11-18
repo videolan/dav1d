@@ -44,7 +44,7 @@
 #include "src/thread_task.h"
 
 static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
-                         Av1SequenceHeader *const hdr)
+                         Dav1dSequenceHeader *const hdr)
 {
 #define DEBUG_SEQ_HDR 0
 
@@ -105,7 +105,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->display_model_info_present = dav1d_get_bits(gb, 1);
         hdr->num_operating_points = dav1d_get_bits(gb, 5) + 1;
         for (int i = 0; i < hdr->num_operating_points; i++) {
-            struct Av1SequenceHeaderOperatingPoint *const op =
+            struct Dav1dSequenceHeaderOperatingPoint *const op =
                 &hdr->operating_points[i];
             op->idc = dav1d_get_bits(gb, 12);
             op->major_level = 2 + dav1d_get_bits(gb, 3);
@@ -167,8 +167,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->jnt_comp = 0;
         hdr->ref_frame_mvs = 0;
         hdr->order_hint_n_bits = 0;
-        hdr->screen_content_tools = ADAPTIVE;
-        hdr->force_integer_mv = ADAPTIVE;
+        hdr->screen_content_tools = DAV1D_ADAPTIVE;
+        hdr->force_integer_mv = DAV1D_ADAPTIVE;
     } else {
         hdr->inter_intra = dav1d_get_bits(gb, 1);
         hdr->masked_compound = dav1d_get_bits(gb, 1);
@@ -183,13 +183,13 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             hdr->ref_frame_mvs = 0;
             hdr->order_hint_n_bits = 0;
         }
-        hdr->screen_content_tools = dav1d_get_bits(gb, 1) ? ADAPTIVE : dav1d_get_bits(gb, 1);
+        hdr->screen_content_tools = dav1d_get_bits(gb, 1) ? DAV1D_ADAPTIVE : dav1d_get_bits(gb, 1);
     #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-screentools: off=%ld\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
     #endif
         hdr->force_integer_mv = hdr->screen_content_tools ?
-                                dav1d_get_bits(gb, 1) ? ADAPTIVE : dav1d_get_bits(gb, 1) : 2;
+                                dav1d_get_bits(gb, 1) ? DAV1D_ADAPTIVE : dav1d_get_bits(gb, 1) : 2;
         if (hdr->order_hint)
             hdr->order_hint_n_bits = dav1d_get_bits(gb, 3) + 1;
     }
@@ -274,8 +274,8 @@ error:
 static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
                            const int use_ref)
 {
-    const Av1SequenceHeader *const seqhdr = c->seq_hdr;
-    Av1FrameHeader *const hdr = c->frame_hdr;
+    const Dav1dSequenceHeader *const seqhdr = c->seq_hdr;
+    Dav1dFrameHeader *const hdr = c->frame_hdr;
 
     if (use_ref) {
         for (int i = 0; i < 7; i++) {
@@ -333,7 +333,7 @@ static inline int tile_log2(int sz, int tgt) {
     return k;
 }
 
-static const Av1LoopfilterModeRefDeltas default_mode_ref_deltas = {
+static const Dav1dLoopfilterModeRefDeltas default_mode_ref_deltas = {
     .mode_delta = { 0, 0 },
     .ref_delta = { 1, 0, 0, 0, -1, 0, -1, -1 },
 };
@@ -344,8 +344,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 #if DEBUG_FRAME_HDR
     const uint8_t *const init_ptr = gb->ptr;
 #endif
-    const Av1SequenceHeader *const seqhdr = c->seq_hdr;
-    Av1FrameHeader *const hdr = c->frame_hdr;
+    const Dav1dSequenceHeader *const seqhdr = c->seq_hdr;
+    Dav1dFrameHeader *const hdr = c->frame_hdr;
     int res;
 
     hdr->show_existing_frame =
@@ -379,10 +379,10 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->disable_cdf_update = dav1d_get_bits(gb, 1);
-    hdr->allow_screen_content_tools = seqhdr->screen_content_tools == ADAPTIVE ?
+    hdr->allow_screen_content_tools = seqhdr->screen_content_tools == DAV1D_ADAPTIVE ?
                                  dav1d_get_bits(gb, 1) : seqhdr->screen_content_tools;
     if (hdr->allow_screen_content_tools)
-        hdr->force_integer_mv = seqhdr->force_integer_mv == ADAPTIVE ?
+        hdr->force_integer_mv = seqhdr->force_integer_mv == DAV1D_ADAPTIVE ?
                                 dav1d_get_bits(gb, 1) : seqhdr->force_integer_mv;
     else
         hdr->force_integer_mv = 0;
@@ -402,14 +402,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     hdr->frame_offset = seqhdr->order_hint ?
                         dav1d_get_bits(gb, seqhdr->order_hint_n_bits) : 0;
     hdr->primary_ref_frame = !hdr->error_resilient_mode && hdr->frame_type & 1 ?
-                             dav1d_get_bits(gb, 3) : PRIMARY_REF_NONE;
+                             dav1d_get_bits(gb, 3) : DAV1D_PRIMARY_REF_NONE;
 
     if (seqhdr->decoder_model_info_present) {
         hdr->buffer_removal_time_present = dav1d_get_bits(gb, 1);
         if (hdr->buffer_removal_time_present) {
             for (int i = 0; i < c->seq_hdr->num_operating_points; i++) {
-                const struct Av1SequenceHeaderOperatingPoint *const seqop = &seqhdr->operating_points[i];
-                struct Av1FrameHeaderOperatingPoint *const op = &hdr->operating_points[i];
+                const struct Dav1dSequenceHeaderOperatingPoint *const seqop = &seqhdr->operating_points[i];
+                struct Dav1dFrameHeaderOperatingPoint *const op = &hdr->operating_points[i];
                 if (seqop->decoder_model_param_present) {
                     int in_temporal_layer = (seqop->idc >> hdr->temporal_id) & 1;
                     int in_spatial_layer  = (seqop->idc >> (hdr->spatial_id + 8)) & 1;
@@ -537,7 +537,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                             hdr->frame_size_override;
         if ((res = read_frame_size(c, gb, use_ref)) < 0) goto error;
         hdr->hp = !hdr->force_integer_mv && dav1d_get_bits(gb, 1);
-        hdr->subpel_filter_mode = dav1d_get_bits(gb, 1) ? FILTER_SWITCHABLE :
+        hdr->subpel_filter_mode = dav1d_get_bits(gb, 1) ? DAV1D_FILTER_SWITCHABLE :
                                                           dav1d_get_bits(gb, 2);
         hdr->switchable_motion_mode = dav1d_get_bits(gb, 1);
         hdr->use_ref_frame_mvs = !hdr->error_resilient_mode &&
@@ -565,8 +565,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     int max_tile_width_sb = 4096 >> sbsz_log2;
     int max_tile_area_sb = 4096 * 2304 >> (2 * sbsz_log2);
     hdr->tiling.min_log2_cols = tile_log2(max_tile_width_sb, sbw);
-    hdr->tiling.max_log2_cols = tile_log2(1, imin(sbw, MAX_TILE_COLS));
-    hdr->tiling.max_log2_rows = tile_log2(1, imin(sbh, MAX_TILE_ROWS));
+    hdr->tiling.max_log2_cols = tile_log2(1, imin(sbw, DAV1D_MAX_TILE_COLS));
+    hdr->tiling.max_log2_rows = tile_log2(1, imin(sbh, DAV1D_MAX_TILE_ROWS));
     int min_log2_tiles = imax(tile_log2(max_tile_area_sb, sbw * sbh),
                               hdr->tiling.min_log2_cols);
     if (hdr->tiling.uniform) {
@@ -590,7 +590,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     } else {
         hdr->tiling.cols = 0;
         int widest_tile = 0, max_tile_area_sb = sbw * sbh;
-        for (int sbx = 0; sbx < sbw && hdr->tiling.cols < MAX_TILE_COLS; hdr->tiling.cols++) {
+        for (int sbx = 0; sbx < sbw && hdr->tiling.cols < DAV1D_MAX_TILE_COLS; hdr->tiling.cols++) {
             const int tile_width_sb = imin(sbw - sbx, max_tile_width_sb);
             const int tile_w = (tile_width_sb > 1) ?
                                    1 + dav1d_get_uniform(gb, tile_width_sb) :
@@ -604,7 +604,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         int max_tile_height_sb = imax(max_tile_area_sb / widest_tile, 1);
 
         hdr->tiling.rows = 0;
-        for (int sby = 0; sby < sbh && hdr->tiling.rows < MAX_TILE_ROWS; hdr->tiling.rows++) {
+        for (int sby = 0; sby < sbh && hdr->tiling.rows < DAV1D_MAX_TILE_ROWS; hdr->tiling.rows++) {
             const int tile_height_sb = imin(sbh - sby, max_tile_height_sb);
             const int tile_h = (tile_height_sb > 1) ?
                                    1 + dav1d_get_uniform(gb, tile_height_sb) :
@@ -668,7 +668,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     // segmentation data
     hdr->segmentation.enabled = dav1d_get_bits(gb, 1);
     if (hdr->segmentation.enabled) {
-        if (hdr->primary_ref_frame == PRIMARY_REF_NONE) {
+        if (hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
             hdr->segmentation.update_map = 1;
             hdr->segmentation.temporal = 0;
             hdr->segmentation.update_data = 1;
@@ -682,8 +682,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         if (hdr->segmentation.update_data) {
             hdr->segmentation.seg_data.preskip = 0;
             hdr->segmentation.seg_data.last_active_segid = -1;
-            for (int i = 0; i < NUM_SEGMENTS; i++) {
-                Av1SegmentationData *const seg =
+            for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++) {
+                Dav1dSegmentationData *const seg =
                     &hdr->segmentation.seg_data.d[i];
                 if (dav1d_get_bits(gb, 1)) {
                     seg->delta_q = dav1d_get_sbits(gb, 8);
@@ -734,13 +734,13 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         } else {
             // segmentation.update_data was false so we should copy
             // segmentation data from the reference frame.
-            assert(hdr->primary_ref_frame != PRIMARY_REF_NONE);
+            assert(hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
             const int pri_ref = hdr->refidx[hdr->primary_ref_frame];
             hdr->segmentation.seg_data = c->refs[pri_ref].seg_data;
         }
     } else {
-        memset(&hdr->segmentation.seg_data, 0, sizeof(Av1SegmentationDataSet));
-        for (int i = 0; i < NUM_SEGMENTS; i++)
+        memset(&hdr->segmentation.seg_data, 0, sizeof(Dav1dSegmentationDataSet));
+        for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++)
             hdr->segmentation.seg_data.d[i].ref = -1;
     }
 #if DEBUG_FRAME_HDR
@@ -764,7 +764,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     const int delta_lossless = !hdr->quant.ydc_delta && !hdr->quant.udc_delta &&
         !hdr->quant.uac_delta && !hdr->quant.vdc_delta && !hdr->quant.vac_delta;
     hdr->all_lossless = 1;
-    for (int i = 0; i < NUM_SEGMENTS; i++) {
+    for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++) {
         hdr->segmentation.qidx[i] = hdr->segmentation.enabled ?
             iclip_u8(hdr->quant.yac + hdr->segmentation.seg_data.d[i].delta_q) :
             hdr->quant.yac;
@@ -792,7 +792,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         }
         hdr->loopfilter.sharpness = dav1d_get_bits(gb, 3);
 
-        if (hdr->primary_ref_frame == PRIMARY_REF_NONE) {
+        if (hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
             hdr->loopfilter.mode_ref_deltas = default_mode_ref_deltas;
         } else {
             const int ref = hdr->refidx[hdr->primary_ref_frame];
@@ -847,7 +847,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->restoration.type[2] = dav1d_get_bits(gb, 2);
         } else {
             hdr->restoration.type[1] =
-            hdr->restoration.type[2] = RESTORATION_NONE;
+            hdr->restoration.type[2] = DAV1D_RESTORATION_NONE;
         }
 
         if (hdr->restoration.type[0] || hdr->restoration.type[1] ||
@@ -870,17 +870,17 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->restoration.unit_size[0] = 8;
         }
     } else {
-        hdr->restoration.type[0] = RESTORATION_NONE;
-        hdr->restoration.type[1] = RESTORATION_NONE;
-        hdr->restoration.type[2] = RESTORATION_NONE;
+        hdr->restoration.type[0] = DAV1D_RESTORATION_NONE;
+        hdr->restoration.type[1] = DAV1D_RESTORATION_NONE;
+        hdr->restoration.type[2] = DAV1D_RESTORATION_NONE;
     }
 #if DEBUG_FRAME_HDR
     printf("HDR: post-restoration: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
-    hdr->txfm_mode = hdr->all_lossless ? TX_4X4_ONLY :
-                     dav1d_get_bits(gb, 1) ? TX_SWITCHABLE : TX_LARGEST;
+    hdr->txfm_mode = hdr->all_lossless ? DAV1D_TX_4X4_ONLY :
+                     dav1d_get_bits(gb, 1) ? DAV1D_TX_SWITCHABLE : DAV1D_TX_LARGEST;
 #if DEBUG_FRAME_HDR
     printf("HDR: post-txfmmode: off=%ld\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
@@ -961,21 +961,21 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
     if (hdr->frame_type & 1) {
         for (int i = 0; i < 7; i++) {
-            hdr->gmv[i].type = !dav1d_get_bits(gb, 1) ? WM_TYPE_IDENTITY :
-                                dav1d_get_bits(gb, 1) ? WM_TYPE_ROT_ZOOM :
-                                dav1d_get_bits(gb, 1) ? WM_TYPE_TRANSLATION :
-                                                  WM_TYPE_AFFINE;
+            hdr->gmv[i].type = !dav1d_get_bits(gb, 1) ? DAV1D_WM_TYPE_IDENTITY :
+                                dav1d_get_bits(gb, 1) ? DAV1D_WM_TYPE_ROT_ZOOM :
+                                dav1d_get_bits(gb, 1) ? DAV1D_WM_TYPE_TRANSLATION :
+                                                  DAV1D_WM_TYPE_AFFINE;
 
-            if (hdr->gmv[i].type == WM_TYPE_IDENTITY) continue;
+            if (hdr->gmv[i].type == DAV1D_WM_TYPE_IDENTITY) continue;
 
-            const WarpedMotionParams *const ref_gmv =
-                hdr->primary_ref_frame == PRIMARY_REF_NONE ? &dav1d_default_wm_params :
+            const Dav1dWarpedMotionParams *const ref_gmv =
+                hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE ? &dav1d_default_wm_params :
                 &c->refs[hdr->refidx[hdr->primary_ref_frame]].gmv[i];
             int32_t *const mat = hdr->gmv[i].matrix;
             const int32_t *const ref_mat = ref_gmv->matrix;
             int bits, shift;
 
-            if (hdr->gmv[i].type >= WM_TYPE_ROT_ZOOM) {
+            if (hdr->gmv[i].type >= DAV1D_WM_TYPE_ROT_ZOOM) {
                 mat[2] = (1 << 16) + 2 *
                     dav1d_get_bits_subexp(gb, (ref_mat[2] - (1 << 16)) >> 1, 12);
                 mat[3] = 2 * dav1d_get_bits_subexp(gb, ref_mat[3] >> 1, 12);
@@ -987,7 +987,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 shift = 13 + !hdr->hp;
             }
 
-            if (hdr->gmv[i].type == WM_TYPE_AFFINE) {
+            if (hdr->gmv[i].type == DAV1D_WM_TYPE_AFFINE) {
                 mat[4] = 2 * dav1d_get_bits_subexp(gb, ref_mat[4] >> 1, 12);
                 mat[5] = (1 << 16) + 2 *
                     dav1d_get_bits_subexp(gb, (ref_mat[5] - (1 << 16)) >> 1, 12);
@@ -1203,9 +1203,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
     switch (type) {
     case OBU_SEQ_HDR: {
-        Dav1dRef *ref = dav1d_ref_create(sizeof(Av1SequenceHeader));
+        Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dSequenceHeader));
         if (!ref) return -ENOMEM;
-        Av1SequenceHeader *seq_hdr = ref->data;
+        Dav1dSequenceHeader *seq_hdr = ref->data;
         memset(seq_hdr, 0, sizeof(*seq_hdr));
         c->frame_hdr = NULL;
         if ((res = parse_seq_hdr(c, &gb, seq_hdr)) < 0) {
@@ -1241,7 +1241,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     case OBU_FRAME_HDR:
         if (!c->seq_hdr) goto error;
         if (!c->frame_hdr_ref) {
-            c->frame_hdr_ref = dav1d_ref_create(sizeof(Av1FrameHeader));
+            c->frame_hdr_ref = dav1d_ref_create(sizeof(Dav1dFrameHeader));
             if (!c->frame_hdr_ref) return -ENOMEM;
         }
         c->frame_hdr = c->frame_hdr_ref->data;
