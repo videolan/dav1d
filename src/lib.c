@@ -286,6 +286,10 @@ void dav1d_close(Dav1dContext **const c_out) {
 
         // clean-up threading stuff
         if (c->n_fc > 1) {
+            if (f->frame_hdr.refresh_context)
+                dav1d_cdf_thread_signal(&f->out_cdf);
+            dav1d_thread_picture_signal(&f->sr_cur, FRAME_ERROR,
+                                        PLANE_TYPE_ALL);
             pthread_mutex_lock(&f->frame_thread.td.lock);
             f->frame_thread.die = 1;
             pthread_cond_signal(&f->frame_thread.td.cond);
