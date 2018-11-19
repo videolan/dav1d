@@ -91,6 +91,22 @@ unsigned msac_decode_symbol(MsacContext *const s, const uint16_t *const cdf,
     return ret - 1;
 }
 
+unsigned msac_decode_bool_equi(MsacContext *const s) {
+    ec_win v, vw, dif = s->dif;
+    uint16_t r = s->rng;
+    unsigned ret;
+    assert((dif >> (EC_WIN_SIZE - 16)) < r);
+    // When the probability is 1/2, f = 16384 >> EC_PROB_SHIFT = 256 and we can
+    // replace the multiply with a simple shift.
+    v = ((r >> 8) << 7) + EC_MIN_PROB;
+    vw   = v << (EC_WIN_SIZE - 16);
+    ret  = dif >= vw;
+    dif -= ret*vw;
+    v   += ret*(r - 2*v);
+    ctx_norm(s, dif, v);
+    return !ret;
+}
+
 /* Decode a single binary value.
  * f: The probability that the bit is one
  * Return: The value decoded (0 or 1). */
@@ -111,7 +127,7 @@ unsigned msac_decode_bool(MsacContext *const s, const unsigned f) {
 unsigned msac_decode_bools(MsacContext *const c, const unsigned l) {
     int v = 0;
     for (int n = (int) l - 1; n >= 0; n--)
-        v = (v << 1) | msac_decode_bool(c, EC_BOOL_EPROB);
+        v = (v << 1) | msac_decode_bool_equi(c);
     return v;
 }
 
@@ -122,7 +138,7 @@ int msac_decode_subexp(MsacContext *const c, const int ref,
     int a = 0;
     int b = k;
     while ((2 << b) < n) {
-        if (!msac_decode_bool(c, EC_BOOL_EPROB)) break;
+        if (!msac_decode_bool_equi(c)) break;
         b = k + i++;
         a = (1 << b);
     }
@@ -137,7 +153,7 @@ int msac_decode_uniform(MsacContext *const c, const unsigned n) {
     assert(l > 1);
     const unsigned m = (1 << l) - n;
     const unsigned v = msac_decode_bools(c, l - 1);
-    return v < m ? v : (v << 1) - m + msac_decode_bool(c, EC_BOOL_EPROB);
+    return v < m ? v : (v << 1) - m + msac_decode_bool_equi(c);
 }
 
 static void update_cdf(uint16_t *const cdf, const unsigned val,

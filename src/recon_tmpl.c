@@ -50,8 +50,8 @@ static unsigned read_golomb(MsacContext *const msac) {
     int len = 0;
     unsigned val = 1;
 
-    while (!msac_decode_bool(msac, EC_BOOL_EPROB) && len < 32) len++;
-    while (len--) val = (val << 1) | msac_decode_bool(msac, EC_BOOL_EPROB);
+    while (!msac_decode_bool_equi(msac) && len < 32) len++;
+    while (len--) val = (val << 1) | msac_decode_bool_equi(msac);
 
     return val - 1;
 }
@@ -152,7 +152,7 @@ static int decode_coefs(Dav1dTileContext *const t,
         unsigned mask = eob >> 1;
         if (eob_hi_bit) eob |= mask;
         for (mask >>= 1; mask; mask >>= 1) {
-            const int eob_bit = msac_decode_bool(&ts->msac, EC_BOOL_EPROB);
+            const int eob_bit = msac_decode_bool_equi(&ts->msac);
             if (eob_bit) eob |= mask;
         }
         if (dbg)
@@ -231,7 +231,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             dc_sign = sign ? 0 : 2;
             dq = (dq_tbl[0] * qm_tbl[0] + 16) >> 5;
         } else {
-            sign = msac_decode_bool(&ts->msac, EC_BOOL_EPROB);
+            sign = msac_decode_bool_equi(&ts->msac);
             if (dbg)
             printf("Post-sign[%d=%d=%d]: r=%d\n", i, rc, sign, ts->msac.rng);
             dq = (dq_tbl[1] * qm_tbl[rc] + 16) >> 5;
