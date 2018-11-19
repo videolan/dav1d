@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include <dav1d/dav1d.h>
+#include "src/cpu.h"
 #include "dav1d_fuzzer.h"
 
 static unsigned r32le(const uint8_t *const p) {
@@ -61,6 +62,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     int err;
 
     dav1d_version();
+
+    // memory sanitizer is inherently incompatible with asm
+#if defined(__has_feature)
+  #if __has_feature(memory_sanitizer)
+    dav1d_set_cpu_flags_mask(0);
+  #endif
+#endif
 
     if (size < 32) goto end;
     ptr += 32; // skip ivf header
