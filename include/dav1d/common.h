@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#ifndef __DAV1D_COMMON_H__
+#define __DAV1D_COMMON_H__
 
 #ifndef DAV1D_API
     #if defined _WIN32
@@ -40,4 +40,4 @@
     #endif
 #endif
 
-#endif // __COMMON_H__
+#endif // __DAV1D_COMMON_H__
