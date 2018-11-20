@@ -234,21 +234,21 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
     const ptrdiff_t stride = out->stride[0];
     assert(stride % (BLOCK_SIZE * sizeof(pixel)) == 0);
     assert(stride == in->stride[0]);
-    void *const src_row =  in->data[0] + stride * row_num * BLOCK_SIZE;
-    void *const dst_row = out->data[0] + stride * row_num * BLOCK_SIZE;
+    pixel *const src_row = (pixel *)  in->data[0] + PXSTRIDE(stride) * row_num * BLOCK_SIZE;
+    pixel *const dst_row = (pixel *) out->data[0] + PXSTRIDE(stride) * row_num * BLOCK_SIZE;
 
     // edge extend source pixels
     const int row_len = (out->p.w + BLOCK_SIZE - 1) & ~(BLOCK_SIZE - 1);
     for (int x = out->p.w; x < row_len; x++) {
         for (int y = 0; y < BLOCK_SIZE; y++) {
-            pixel *src = src_row + y * stride + x * sizeof(pixel);
+            pixel *src = src_row + y * PXSTRIDE(stride) + x;
             *src = 0;
         }
     }
 
     const int row_h = (row_num + 1) * BLOCK_SIZE;
     for (int y = out->p.h; y < row_h; y++)
-        memset(in->data[0] + stride * y, 0, row_len * sizeof(pixel));
+        memset((pixel *) in->data[0] + PXSTRIDE(stride) * y, 0, row_len * sizeof(pixel));
 
     int offsets[2 /* col offset */][2 /* row offset */];
 
@@ -271,8 +271,8 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
         static const int w[2][2] = { { 27, 17 }, { 17, 27 } };
 
 #define add_noise_y(x, y, grain)                                                \
-            pixel *src = src_row + (y) * stride + (bx + (x)) * sizeof(pixel);   \
-            pixel *dst = dst_row + (y) * stride + (bx + (x)) * sizeof(pixel);   \
+            pixel *src = src_row + (y) * PXSTRIDE(stride) + (bx + (x));         \
+            pixel *dst = dst_row + (y) * PXSTRIDE(stride) + (bx + (x));         \
             int noise = round2(scaling[ *src ] * (grain), data->scaling_shift); \
             *dst = iclip(*src + noise, min_value, max_value);
 
@@ -362,23 +362,23 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
     assert(stride == in->stride[1]);
 
     const int by = row_num * (BLOCK_SIZE >> sy);
-    void *const dst_row = out->data[1 + uv] + stride * by;
-    void *const src_row =  in->data[1 + uv] + stride * by;
-    void *const luma_row = out->data[0] + out->stride[0] * row_num * BLOCK_SIZE;
+    pixel *const dst_row = (pixel *) out->data[1 + uv] + PXSTRIDE(stride) * by;
+    pixel *const src_row = (pixel *)  in->data[1 + uv] + PXSTRIDE(stride) * by;
+    pixel *const luma_row = (pixel *) out->data[0] + PXSTRIDE(out->stride[0]) * row_num * BLOCK_SIZE;
 
     // edge extend source pixels
     const int row_len = ((out->p.w >> sx) + (BLOCK_SIZE >> sx) - 1)
                         & ~((BLOCK_SIZE >> sx) - 1);
     for (int x = out->p.w >> sx; x < row_len; x++) {
         for (int y = 0; y < BLOCK_SIZE >> sy; y++) {
-            pixel *src = src_row + y * stride + x * sizeof(pixel);
+            pixel *src = src_row + y * PXSTRIDE(stride) + x;
             *src = 0;
         }
     }
 
     const int row_h = (row_num + 1) * (BLOCK_SIZE >> sy);
     for (int y = out->p.h >> sy; y < row_h; y++)
-        memset(in->data[1 + uv] + stride * y, 0, row_len * sizeof(pixel));
+        memset((pixel *) in->data[1 + uv] + PXSTRIDE(stride) * y, 0, row_len * sizeof(pixel));
 
     int offsets[2 /* col offset */][2 /* row offset */];
 
@@ -406,13 +406,13 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
 #define add_noise_uv(x, y, grain)                                               \
             const int lx = (bx + x) << sx;                                      \
             const int ly = y << sy;                                             \
-            pixel *luma = luma_row + ly * out->stride[0] + lx * sizeof(pixel);  \
+            pixel *luma = luma_row + ly * PXSTRIDE(out->stride[0]) + lx;        \
             pixel avg = luma[0];                                                \
             if (sx && lx + 1 < out->p.w)                                        \
                 avg = (avg + luma[1] + 1) >> 1;                                 \
                                                                                 \
-            pixel *src = src_row + (y) * stride + (bx + (x)) * sizeof(pixel);   \
-            pixel *dst = dst_row + (y) * stride + (bx + (x)) * sizeof(pixel);   \
+            pixel *src = src_row + (y) * PXSTRIDE(stride) + (bx + (x));         \
+            pixel *dst = dst_row + (y) * PXSTRIDE(stride) + (bx + (x));         \
             int val = avg;                                                      \
             if (!data->chroma_scaling_from_luma) {                              \
                 int combined = avg * data->uv_luma_mult[uv] +                   \
