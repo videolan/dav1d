@@ -418,7 +418,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
                 int combined = avg * data->uv_luma_mult[uv] +                   \
                                *src * data->uv_mult[uv];                        \
                 val = iclip_pixel( (combined >> 6) +                            \
-                                   (data->uv_offset[uv] << (BITDEPTH - 8)) );   \
+                                   (data->uv_offset[uv] * (1 << (BITDEPTH - 8))) );   \
             }                                                                   \
                                                                                 \
             int noise = round2(scaling[ val ] * (grain), data->scaling_shift);  \
