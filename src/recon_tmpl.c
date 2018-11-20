@@ -1573,7 +1573,6 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 }
 
 void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
-    const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int sbsz = f->sb_step, sbh = f->sbh;
 
     if (f->frame_hdr.loopfilter.level_y[0] ||
@@ -1592,6 +1591,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
     }
     if (f->seq_hdr.cdef) {
         if (sby) {
+            const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
             pixel *p_up[3] = {
                 f->lf.p[0] - 8 * PXSTRIDE(f->cur.stride[0]),
                 f->lf.p[1] - (8 * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
@@ -1607,12 +1607,13 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
     if (f->frame_hdr.super_res.enabled) {
         const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
         for (int pl = 0; pl < 1 + 2 * has_chroma; pl++) {
-            const int h_start = 8 * !!sby >> (ss_ver & !!pl);
+            const int ss_ver = pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+            const int h_start = 8 * !!sby >> ss_ver;
             const ptrdiff_t dst_stride = f->sr_cur.p.stride[!!pl];
             pixel *dst = f->lf.sr_p[pl] - h_start * PXSTRIDE(dst_stride);
             const ptrdiff_t src_stride = f->cur.stride[!!pl];
             const pixel *src = f->lf.p[pl] - h_start * PXSTRIDE(src_stride);
-            const int h_end = 4 * (sbsz - 2 * (sby + 1 < sbh)) >> (ss_ver & !!pl);
+            const int h_end = 4 * (sbsz - 2 * (sby + 1 < sbh)) >> ss_ver;
             const int ss_hor = pl && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
             const int dst_w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
             const int src_w = (4 * f->bw + ss_hor) >> ss_hor;
@@ -1627,6 +1628,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
         bytefn(dav1d_lr_sbrow)(f, f->lf.sr_p, sby);
     }
 
+    const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     f->lf.p[0] += sbsz * 4 * PXSTRIDE(f->cur.stride[0]);
     f->lf.p[1] += sbsz * 4 * PXSTRIDE(f->cur.stride[1]) >> ss_ver;
     f->lf.p[2] += sbsz * 4 * PXSTRIDE(f->cur.stride[1]) >> ss_ver;
