@@ -2250,7 +2250,9 @@ static void setup_tile(Dav1dTileState *const ts,
             const int x = ((4 * ts->tiling.col_start * d >> ss_hor) + rnd) >> shift;
             const int px_x = x << (unit_size_log2 + ss_hor);
             const int u_idx = unit_idx + ((px_x & 64) >> 6);
-            ts->lr_ref[p] = &f->lf.lr_mask[sb_idx + (px_x >> 7)].lr[p][u_idx];
+            const int sb128x = px_x >> 7;
+            if (sb128x >= f->sr_sb128w) continue;
+            ts->lr_ref[p] = &f->lf.lr_mask[sb_idx + sb128x].lr[p][u_idx];
         } else {
             ts->lr_ref[p] = &f->lf.lr_mask[sb_idx].lr[p][unit_idx];
         }
