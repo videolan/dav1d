@@ -9,7 +9,7 @@ build-debian:
         - debian
         - amd64
     script:
-        - env CFLAGS='-Werror' meson build --buildtype release
+        - meson build --buildtype release --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -20,7 +20,7 @@ build-debian-static:
         - debian
         - amd64
     script:
-        - env CFLAGS='-Werror' meson build --buildtype release --default-library static
+        - meson build --buildtype release --default-library static --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -30,12 +30,12 @@ build-win32:
     tags:
         - win32
     script:
-        - env CFLAGS='-Werror'
-            meson build --buildtype release
-                        --libdir lib
-                        --prefix "$(pwd)/build/dav1d_install"
-                        --cross-file /opt/crossfiles/i686-w64-mingw32.meson
-                        -Ddefault_library=both
+        - meson build --buildtype release
+                      --werror
+                      --libdir lib
+                      --prefix "$(pwd)/build/dav1d_install"
+                      --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+                      -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
     artifacts:
@@ -50,12 +50,12 @@ build-win64:
     tags:
         - win64
     script:
-        - env CFLAGS='-Werror'
-            meson build --buildtype release
-                        --libdir lib
-                        --prefix "$(pwd)/build/dav1d_install"
-                        --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
-                        -Ddefault_library=both
+        - meson build --buildtype release
+                      --werror
+                      --libdir lib
+                      --prefix "$(pwd)/build/dav1d_install"
+                      --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
+                      -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
     artifacts:
@@ -70,7 +70,7 @@ build-debian-aarch64:
         - aarch64
         - debian
     script:
-        - env CFLAGS='-Werror' meson build --buildtype release
+        - meson build --buildtype release --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -90,7 +90,7 @@ build-macos:
     tags:
         - macos
     script:
-        - env CFLAGS='-Werror' meson build --buildtype release -Ddefault_library=both
+        - meson build --buildtype release -Ddefault_library=both --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -101,7 +101,7 @@ build-debian-werror:
         - aarch64
         - debian
     script:
-        - env CC='clang-7' CFLAGS='-Werror' meson build --buildtype debug
+        - env CC='clang-7' meson build --buildtype debug --werror
         - ninja -C build
 
 test-debian:
