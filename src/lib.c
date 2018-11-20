@@ -187,7 +187,7 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     }
 
     // Apply film grain to a new copy of the image to avoid corrupting refs
-    int res = dav1d_picture_alloc_copy(out, in);
+    int res = dav1d_picture_alloc_copy(out, in->p.w, in);
     if (res < 0)
         return res;
 
@@ -233,14 +233,11 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
             if (++c->frame_thread.next == c->n_fc)
                 c->frame_thread.next = 0;
             if (out_delayed->p.data[0]) {
-                if (out_delayed->visible && !out_delayed->flushed) {
-                    dav1d_picture_ref(out, &out_delayed->p);
-                }
+                if (out_delayed->visible && !out_delayed->flushed)
+                    dav1d_picture_ref(&c->out, &out_delayed->p);
                 dav1d_thread_picture_unref(out_delayed);
-                if (out->data[0]) {
-                    return 0;
-                }
-                // else continue
+                if (c->out.data[0])
+                    return output_image(c, out, &c->out);
             }
         } while (++flush_count < c->n_fc);
         return -EAGAIN;

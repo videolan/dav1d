@@ -150,13 +150,6 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     return 0;
 }
 
-int dav1d_picture_alloc(Dav1dPicture *const p, const int w, const int h,
-                        const enum Dav1dPixelLayout layout, const int bpc,
-                        Dav1dPicAllocator *const p_allocator)
-{
-    return picture_alloc_with_edges(p, w, h, layout, bpc, p_allocator, 0, NULL);
-}
-
 int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
                                const int w, const int h,
                                const enum Dav1dPixelLayout layout, const int bpc,
@@ -180,12 +173,13 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
     return res;
 }
 
-int dav1d_picture_alloc_copy(Dav1dPicture *const dst,
+int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
                              const Dav1dPicture *const src)
 {
     struct pic_ctx_context *const pic_ctx = src->ref->user_data;
-    int res = dav1d_picture_alloc(dst, src->p.w, src->p.h, src->p.layout,
-                                  src->p.bpc, &pic_ctx->allocator);
+    const int res = picture_alloc_with_edges(dst, w, src->p.h, src->p.layout,
+                                             src->p.bpc, &pic_ctx->allocator,
+                                             0, NULL);
 
     if (!res) {
         dst->poc = src->poc;

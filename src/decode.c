@@ -3112,11 +3112,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->sr_cur.p.p.fullrange = f->seq_hdr.color_range;
 
     if (f->frame_hdr.super_res.enabled) {
-        res = dav1d_picture_alloc(&f->cur, f->frame_hdr.width[0],
-                                  f->frame_hdr.height, f->seq_hdr.layout,
-                                  f->seq_hdr.bpc, &c->allocator);
+        res = dav1d_picture_alloc_copy(&f->cur, f->frame_hdr.width[0], &f->sr_cur.p);
         if (res < 0) goto error;
-        f->cur.poc = f->frame_hdr.frame_offset;
     } else {
         dav1d_picture_ref(&f->cur, &f->sr_cur.p);
     }
