@@ -59,7 +59,7 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
     static const char *const chr_names_8bpc_i420[] = {
         [DAV1D_CHR_UNKNOWN] = "420jpeg",
         [DAV1D_CHR_VERTICAL] = "420mpeg2",
-        [DAV1D_CHR_COLOCATED] = "420paldv"
+        [DAV1D_CHR_COLOCATED] = "420"
     };
 
     const char *const ss_name = p->layout == DAV1D_PIXEL_LAYOUT_I420 && p->bpc == 8 ?
