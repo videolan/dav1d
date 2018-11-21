@@ -3205,13 +3205,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                     f->prev_segmap = f->prev_segmap_ref->data;
                 }
             }
-            // It is an error to signal a temporal update if the
-            // previous frame was the wrong size or had no
-            // segmentation data.
-            if (f->frame_hdr.segmentation.temporal && !f->prev_segmap_ref) {
-                res = -EINVAL;
-                goto error;
-            }
         }
 
         if (f->frame_hdr.segmentation.update_map) {
