@@ -192,12 +192,16 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
         return res;
 
     switch (out->p.bpc) {
+#if CONFIG_8BPC
     case 8:
         dav1d_apply_grain_8bpc(out, in);
         break;
+#endif
+#if CONFIG_10BPC
     case 10:
         dav1d_apply_grain_10bpc(out, in);
         break;
+#endif
     default:
         assert(!"apply_grain: missing bit depth");
     }
