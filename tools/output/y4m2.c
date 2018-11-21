@@ -66,8 +66,8 @@ static int y4m2_open(Y4m2OutputContext *const c, const char *const file,
         chr_names_8bpc_i420[p->chr > 2 ? DAV1D_CHR_UNKNOWN : p->chr] :
         ss_names[p->layout][p->bpc > 8];
 
-    fprintf(c->f, "YUV4MPEG2 W%d H%d C%s Ip F%d:%d\n",
-            p->w, p->h, ss_name, fps[0], fps[1]);
+    fprintf(c->f, "YUV4MPEG2 W%d H%d F%d:%d Ip C%s\n",
+            p->w, p->h, fps[0], fps[1], ss_name);
 
     return 0;
 }
