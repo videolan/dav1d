@@ -521,12 +521,14 @@ void bitfn(dav1d_apply_grain)(Dav1dPicture *const out,
         memcpy(out->data[0], in->data[0], out->p.h * out->stride[0]);
     }
 
-    for (int i = 0; i < 2; i++) {
-        if (!data->num_uv_points[i] && !data->chroma_scaling_from_luma) {
-            const int suby = in->p.layout == DAV1D_PIXEL_LAYOUT_I420;
-            assert(out->stride[1] == in->stride[1]);
-            memcpy(out->data[1+i], in->data[1+i],
-                   (out->p.h >> suby) * out->stride[1]);
+    if (in->p.layout != DAV1D_PIXEL_LAYOUT_I400) {
+        for (int i = 0; i < 2; i++) {
+            if (!data->num_uv_points[i] && !data->chroma_scaling_from_luma) {
+                const int suby = in->p.layout == DAV1D_PIXEL_LAYOUT_I420;
+                assert(out->stride[1] == in->stride[1]);
+                memcpy(out->data[1+i], in->data[1+i],
+                       (out->p.h >> suby) * out->stride[1]);
+            }
         }
     }
 }
