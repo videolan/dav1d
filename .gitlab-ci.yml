@@ -146,11 +146,11 @@ test-debian-asan:
         - cd build && time meson test -v
 
 test-debian-msan:
-    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20181114201132
     stage: test
     tags:
         - debian
-        - aarch64
+        - amd64
     cache:
         key: testdata.git
         paths:
@@ -160,7 +160,7 @@ test-debian-msan:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
-        - env CC='clang-7' meson build --buildtype debugoptimized -Dtestdata_tests=true -Db_sanitize=memory -Db_lundef=false -Dbuild_asm=false
+        - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Db_sanitize=memory -Db_lundef=false -Dbuild_asm=false
         - ninja -C build
         - cd build && time meson test -v
 
