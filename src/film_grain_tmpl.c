@@ -367,9 +367,9 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
     pixel *const luma_row = (pixel *) out->data[0] + PXSTRIDE(out->stride[0]) * row_num * BLOCK_SIZE;
 
     // edge extend source pixels
-    const int row_len = ((out->p.w >> sx) + (BLOCK_SIZE >> sx) - 1)
+    const int row_len = (((out->p.w + sx) >> sx) + (BLOCK_SIZE >> sx) - 1)
                         & ~((BLOCK_SIZE >> sx) - 1);
-    for (int x = out->p.w >> sx; x < row_len; x++) {
+    for (int x = (out->p.w + sx) >> sx; x < row_len; x++) {
         for (int y = 0; y < BLOCK_SIZE >> sy; y++) {
             pixel *src = src_row + y * PXSTRIDE(stride) + x;
             *src = 0;
@@ -377,7 +377,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
     }
 
     const int row_h = (row_num + 1) * (BLOCK_SIZE >> sy);
-    for (int y = out->p.h >> sy; y < row_h; y++)
+    for (int y = (out->p.h + sy) >> sy; y < row_h; y++)
         memset((pixel *) in->data[1 + uv] + PXSTRIDE(stride) * y, 0, row_len * sizeof(pixel));
 
     int offsets[2 /* col offset */][2 /* row offset */];
