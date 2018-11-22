@@ -66,6 +66,7 @@ build-win64:
 
 build-debian-aarch64:
     stage: build
+    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
     tags:
         - aarch64
         - debian
@@ -76,9 +77,9 @@ build-debian-aarch64:
 
 build-debian-aarch64-clang-5:
     stage: build
+    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
     tags:
         - aarch64
-        - clang5
         - debian
     script:
         - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
@@ -95,7 +96,7 @@ build-macos:
         - cd build && meson test -v
 
 build-debian-werror:
-    image: dav1d-debian-aarch64:201810240631
+    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
     stage: build
     tags:
         - aarch64
@@ -145,7 +146,7 @@ test-debian-asan:
         - cd build && time meson test -v
 
 test-debian-msan:
-    image: dav1d-debian-aarch64:201810300753
+    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
     stage: test
     tags:
         - debian
