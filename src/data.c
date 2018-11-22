@@ -44,7 +44,8 @@ uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
     buf->ref = dav1d_ref_create(sz);
     if (!buf->ref) return NULL;
     buf->data = buf->ref->const_data;
-    buf->sz = sz;
+    buf->sz = buf->m.size = sz;
+    buf->m.timestamp = buf->m.duration = buf->m.offset = ~0ULL;
 
     return buf->ref->data;
 }
@@ -60,7 +61,8 @@ int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t
     buf->ref = dav1d_ref_wrap(ptr, free_callback, user_data);
     if (!buf->ref) return -ENOMEM;
     buf->data = ptr;
-    buf->sz = sz;
+    buf->sz = buf->m.size = sz;
+    buf->m.timestamp = buf->m.duration = buf->m.offset = ~0ULL;
 
     return 0;
 }

@@ -165,6 +165,7 @@ typedef struct Dav1dPicture {
     ptrdiff_t stride[2];
 
     Dav1dPictureParameters p;
+    Dav1dDataProps m;
 
     void *allocator_data; ///< pointer managed by the allocator
 } Dav1dPicture;

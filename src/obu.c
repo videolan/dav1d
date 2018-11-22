@@ -1260,6 +1260,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         assert(pkt_bytelen >= (bit_pos >> 3));
         dav1d_ref_inc(in->ref);
         c->tile[c->n_tile_data].data.ref = in->ref;
+        c->tile[c->n_tile_data].data.m = in->m;
         c->tile[c->n_tile_data].data.data = in->data + (bit_pos >> 3);
         c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);
         // ensure tile groups are in order and sane, see 6.10.1
@@ -1303,6 +1304,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         if (c->n_fc == 1) {
             dav1d_picture_ref(&c->out,
                               &c->refs[c->frame_hdr.existing_frame_idx].p.p);
+            c->out.m = in->m;
         } else {
             // need to append this to the frame output queue
             const unsigned next = c->frame_thread.next++;
@@ -1330,6 +1332,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                                      &c->refs[c->frame_hdr.existing_frame_idx].p);
             out_delayed->visible = 1;
             out_delayed->flushed = 0;
+            out_delayed->p.m = in->m;
             pthread_mutex_unlock(&f->frame_thread.td.lock);
         }
         c->have_frame_hdr = 0;

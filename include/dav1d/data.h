@@ -37,6 +37,7 @@ typedef struct Dav1dData {
     const uint8_t *data; ///< data pointer
     size_t sz; ///< data size
     struct Dav1dRef *ref; ///< allocation origin
+    Dav1dDataProps m;
 } Dav1dData;
 
 /**
