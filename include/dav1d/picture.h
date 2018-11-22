@@ -174,7 +174,7 @@ typedef struct Dav1dPicAllocator {
     /**
      * Allocate the picture buffer based on the Dav1dPictureParameters.
      *
-     * The data[0], data[1] and data[2] must be 32 bits aligned and with a
+     * The data[0], data[1] and data[2] must be 32 byte aligned and with a
      * pixel width/height multiple of 128 pixels.
      * data[1] and data[2] must share the same stride[1].
      *

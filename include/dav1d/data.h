@@ -45,7 +45,7 @@ typedef struct Dav1dData {
  * @param data Input context.
  * @param   sz Size of the data that should be allocated.
  *
- * @return Pointer to the allocated bufferon success. NULL on error.
+ * @return Pointer to the allocated buffer on success. NULL on error.
  */
 DAV1D_API uint8_t * dav1d_data_create(Dav1dData *data, size_t sz);
 
