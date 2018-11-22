@@ -2873,7 +2873,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                         }
                         if (progress == TILE_ERROR) {
                             dav1d_thread_picture_signal(&f->sr_cur, FRAME_ERROR,
-                                                        progress_plane_type);
+                                                        PLANE_TYPE_ALL);
                             const uint64_t all_mask = ~0ULL >> (64 - f->n_tc);
                             pthread_mutex_lock(&f->tile_thread.lock);
                             while (f->tile_thread.available != all_mask)

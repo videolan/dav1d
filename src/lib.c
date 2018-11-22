@@ -237,8 +237,13 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
             if (++c->frame_thread.next == c->n_fc)
                 c->frame_thread.next = 0;
             if (out_delayed->p.data[0]) {
-                if (out_delayed->visible && !out_delayed->flushed)
+                const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
+                                                               memory_order_relaxed);
+                if (out_delayed->visible && !out_delayed->flushed &&
+                    progress != FRAME_ERROR)
+                {
                     dav1d_picture_ref(&c->out, &out_delayed->p);
+                }
                 dav1d_thread_picture_unref(out_delayed);
                 if (c->out.data[0])
                     return output_image(c, out, &c->out);

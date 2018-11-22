@@ -41,6 +41,7 @@
 #include "src/levels.h"
 #include "src/obu.h"
 #include "src/ref.h"
+#include "src/thread_task.h"
 
 static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                          Av1SequenceHeader *const hdr)
@@ -1316,8 +1317,13 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             Dav1dThreadPicture *const out_delayed =
                 &c->frame_thread.out_delayed[next];
             if (out_delayed->p.data[0]) {
-                if (out_delayed->visible && !out_delayed->flushed)
+                const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
+                                                               memory_order_relaxed);
+                if (out_delayed->visible && !out_delayed->flushed &&
+                    progress != FRAME_ERROR)
+                {
                     dav1d_picture_ref(&c->out, &out_delayed->p);
+                }
                 dav1d_thread_picture_unref(out_delayed);
             }
             dav1d_thread_picture_ref(out_delayed,
