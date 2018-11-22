@@ -74,28 +74,24 @@ int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
     return 0;
 }
 
-void default_picture_release(uint8_t *const data, void *const allocator_data,
-                             void *cookie)
-{
+void default_picture_release(Dav1dPicture *const p, void *cookie) {
     assert(cookie == NULL);
 #ifndef NDEBUG /* safety check */
-    assert(allocator_data == data);
+    assert(p->allocator_data == p->data[0]);
 #endif
-    dav1d_free_aligned(data);
+    dav1d_free_aligned(p->data[0]);
 }
 
 struct pic_ctx_context {
     Dav1dPicAllocator allocator;
-    void *allocator_data;
-    uint8_t *data;
+    Dav1dPicture pic;
     void *extra_ptr; /* MUST BE AT THE END */
 };
 
 static void free_buffer(const uint8_t *const data, void *const user_data) {
     struct pic_ctx_context *pic_ctx = user_data;
 
-    pic_ctx->allocator.release_picture_callback(pic_ctx->data,
-                                                pic_ctx->allocator_data,
+    pic_ctx->allocator.release_picture_callback(&pic_ctx->pic,
                                                 pic_ctx->allocator.cookie);
     free(pic_ctx);
 }
@@ -134,12 +130,10 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     }
 
     pic_ctx->allocator = *p_allocator;
-    pic_ctx->allocator_data = p->allocator_data;
-    pic_ctx->data = p->data[0];
+    pic_ctx->pic = *p;
 
     if (!(p->ref = dav1d_ref_wrap(p->data[0], free_buffer, pic_ctx))) {
-        p_allocator->release_picture_callback(p->data[0], p->allocator_data,
-                                              p_allocator->cookie);
+        p_allocator->release_picture_callback(p, p_allocator->cookie);
         fprintf(stderr, "Failed to wrap picture: %s\n", strerror(errno));
         return -ENOMEM;
     }

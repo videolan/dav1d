@@ -192,14 +192,10 @@ typedef struct Dav1dPicAllocator {
     /**
      * Release the picture buffer.
      *
-     * @param buf           The buffer that was returned by 
-     *                                   alloc_picture_callback().
-     * @param allocator_tag The Dav1dPicture.allocator_data that was filled by
-     *                      alloc_picture_callback()
-     * @param cookie        Custom pointer passed to all calls.
+     * @param pic    The picture that was filled by alloc_picture_callback().
+     * @param cookie Custom pointer passed to all calls.
      */
-    void (*release_picture_callback)(uint8_t *buf, void *allocator_data,
-                                     void *cookie);
+    void (*release_picture_callback)(Dav1dPicture *pic, void *cookie);
 } Dav1dPicAllocator;
 
 /**

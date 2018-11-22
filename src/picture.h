@@ -108,6 +108,6 @@ void dav1d_thread_picture_signal(const Dav1dThreadPicture *p, int y,
                                  enum PlaneType plane_type);
 
 int default_picture_allocator(Dav1dPicture *, void *cookie);
-void default_picture_release(uint8_t *, void *allocator_data, void *cookie);
+void default_picture_release(Dav1dPicture *, void *cookie);
 
 #endif /* __DAV1D_SRC_PICTURE_H__ */
