@@ -184,6 +184,7 @@ int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
     if (!res) {
         dst->poc = src->poc;
         dst->p = src->p;
+        dst->p.w = w;
     }
 
     return res;
