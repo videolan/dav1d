@@ -1219,7 +1219,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         if (!c->have_seq_hdr) goto error;
         if ((res = parse_frame_hdr(c, &gb)) < 0)
             return res;
-        c->have_frame_hdr = 1;
         for (int n = 0; n < c->n_tile_data; n++)
             dav1d_data_unref(&c->tile[n].data);
         c->n_tile_data = 0;
@@ -1231,10 +1230,13 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             if (check_for_overrun(&gb, init_bit_pos, len))
                 return -EINVAL;
 
+            c->have_frame_hdr = 1;
             break;
         }
         // OBU_FRAMEs shouldn't be signalled with show_existing_frame
         if (c->frame_hdr.show_existing_frame) goto error;
+
+        c->have_frame_hdr = 1;
 
         // This is the frame header at the start of a frame OBU.
         // There's no trailing bit at the end to skip, but we do need
