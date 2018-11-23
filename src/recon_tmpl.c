@@ -1320,7 +1320,8 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 
                 for (int pl = 0; pl < 2; pl++) {
                     pixel *const tmp = t->scratch.interintra;
-                    pixel tl_edge_px[65], *const tl_edge = &tl_edge_px[32];
+                    ALIGN_STK_32(pixel, tl_edge_px, 65,);
+                    pixel *const tl_edge = &tl_edge_px[32];
                     enum IntraPredMode m =
                         b->interintra_mode == II_SMOOTH_PRED ?
                         SMOOTH_PRED : b->interintra_mode;
