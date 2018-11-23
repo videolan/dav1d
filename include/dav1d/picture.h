@@ -144,6 +144,7 @@ typedef struct Dav1dPictureParameters {
     int fullrange;
 
     Dav1dFilmGrainData film_grain; ///< film grain parameters
+    int spatial_id; ///< spatial id of the frame for scalable AV1
 } Dav1dPictureParameters;
 
 typedef struct Dav1dPicture {

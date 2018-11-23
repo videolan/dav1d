@@ -487,6 +487,7 @@ typedef struct Av1FrameHeader {
         int present, update;
         Dav1dFilmGrainData data;
     } film_grain;
+    int temporal_id, spatial_id;
 } Av1FrameHeader;
 
 #define QINDEX_RANGE 256

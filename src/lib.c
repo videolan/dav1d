@@ -186,6 +186,15 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     int has_grain = fgdata->num_y_points || fgdata->num_uv_points[0] ||
                     fgdata->num_uv_points[1];
 
+    // skip lower spatial layers
+    if (c->operating_point_idc && !c->all_layers) {
+        const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
+        if (max_spatial_id > in->p.spatial_id) {
+            dav1d_picture_unref(in);
+            return 0;
+        }
+    }
+
     // If there is nothing to be done, skip the allocation/copy
     if (!c->apply_grain || !has_grain) {
         dav1d_picture_move_ref(out, in);

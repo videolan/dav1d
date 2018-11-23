@@ -1150,7 +1150,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     const int has_length_field = dav1d_get_bits(&gb, 1);
     dav1d_get_bits(&gb, 1); // reserved
 
-    int temporal_id, spatial_id;
+    int temporal_id = 0, spatial_id = 0;
     if (has_extension) {
         temporal_id = dav1d_get_bits(&gb, 3);
         spatial_id = dav1d_get_bits(&gb, 2);
@@ -1234,6 +1234,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     case OBU_FRAME_HDR:
         c->have_frame_hdr = 0;
         if (!c->have_seq_hdr) goto error;
+        c->frame_hdr.temporal_id = temporal_id;
+        c->frame_hdr.spatial_id = spatial_id;
         if ((res = parse_frame_hdr(c, &gb)) < 0)
             return res;
         for (int n = 0; n < c->n_tile_data; n++)
