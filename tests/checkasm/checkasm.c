@@ -448,6 +448,12 @@ int main(int argc, char *argv[]) {
                 state.bench_pattern = "";
         } else if (!strncmp(argv[1], "--test=", 7)) {
             state.test_name = argv[1] + 7;
+        } else if (!strcmp(argv[1], "--list")) {
+            fprintf(stderr, "checkasm: available tests [");
+            for (int i = 0; tests[i].func; i++)
+                fprintf(stderr, "%s%s", i ? ", ": "", tests[i].name);
+            fprintf(stderr, "]\n");
+            return 0;
         } else {
             state.seed = strtoul(argv[1], NULL, 10);
         }
