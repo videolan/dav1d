@@ -63,6 +63,7 @@ void dav1d_default_settings(Dav1dSettings *const s) {
     s->allocator.alloc_picture_callback = default_picture_allocator;
     s->allocator.release_picture_callback = default_picture_release;
     s->operating_point = 0;
+    s->all_layers = 1; // just until the tests are adjusted
 }
 
 int dav1d_open(Dav1dContext **const c_out,
@@ -91,6 +92,7 @@ int dav1d_open(Dav1dContext **const c_out,
     c->allocator = s->allocator;
     c->apply_grain = s->apply_grain;
     c->operating_point = s->operating_point;
+    c->all_layers = s->all_layers;
     c->n_fc = s->n_frame_threads;
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * s->n_frame_threads, 32);
     if (!c->fc) goto error;

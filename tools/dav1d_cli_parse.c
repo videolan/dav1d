@@ -50,6 +50,7 @@ enum {
     ARG_VERIFY,
     ARG_FILM_GRAIN,
     ARG_OPPOINT,
+    ARG_ALL_LAYERS,
 };
 
 static const struct option long_opts[] = {
@@ -66,6 +67,7 @@ static const struct option long_opts[] = {
     { "verify",         1, NULL, ARG_VERIFY },
     { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
     { "oppoint",        1, NULL, ARG_OPPOINT },
+    { "alllayers",      1, NULL, ARG_ALL_LAYERS },
     { NULL,             0, NULL, 0 },
 };
 
@@ -91,7 +93,8 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --framethreads $num: number of frame threads (default: 1)\n"
             " --tilethreads $num:  number of tile threads (default: 1)\n"
             " --filmgrain          enable film grain application (default: 1, except if muxer is md5)\n"
-            " --oppoint $num:      select an operating point for scalable AV1 (0 - 32)\n"
+            " --oppoint $num:      select an operating point of a scalable AV1 bitstream (0 - 32)\n"
+            " --alllayers $num:    output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --verify $md5:       verify decoded md5. implies --muxer md5, no output\n");
     exit(1);
 }
@@ -174,6 +177,10 @@ void parse(const int argc, char *const *const argv,
         case ARG_OPPOINT:
             lib_settings->operating_point =
                 parse_unsigned(optarg, ARG_OPPOINT, argv[0]);
+            break;
+        case ARG_ALL_LAYERS:
+            lib_settings->all_layers =
+                !!parse_unsigned(optarg, ARG_ALL_LAYERS, argv[0]);
             break;
         case 'v':
             fprintf(stderr, "%s\n", dav1d_version());

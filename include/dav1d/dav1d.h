@@ -47,6 +47,7 @@ typedef struct Dav1dSettings {
     Dav1dPicAllocator allocator;
     int apply_grain;
     int operating_point; ///< select an operating point for scalable AV1 bitstreams (0 - 31)
+    int all_layers; ///< output all spatial layers of a scalable AV1 biststream
 } Dav1dSettings;
 
 /**

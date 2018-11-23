@@ -118,6 +118,7 @@ struct Dav1dContext {
     int apply_grain;
     int operating_point;
     unsigned operating_point_idc;
+    int all_layers;
 };
 
 struct Dav1dFrameContext {
