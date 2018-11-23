@@ -116,6 +116,8 @@ struct Dav1dContext {
 
     Dav1dPicAllocator allocator;
     int apply_grain;
+    int operating_point;
+    unsigned operating_point_idc;
 };
 
 struct Dav1dFrameContext {

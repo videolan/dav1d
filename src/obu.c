@@ -126,6 +126,10 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                 op->initial_display_delay = dav1d_get_bits(gb, 4) + 1;
             }
         }
+        if (c->operating_point < hdr->num_operating_points)
+            c->operating_point_idc = hdr->operating_points[c->operating_point].idc;
+        else
+            c->operating_point_idc = hdr->operating_points[0].idc;
 #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-operating-points: off=%ld\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
@@ -1145,9 +1149,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     const int has_extension = dav1d_get_bits(&gb, 1);
     const int has_length_field = dav1d_get_bits(&gb, 1);
     dav1d_get_bits(&gb, 1); // reserved
+
+    int temporal_id, spatial_id;
     if (has_extension) {
-        dav1d_get_bits(&gb, 3); // temporal_layer_id
-        dav1d_get_bits(&gb, 2); // enhancement_layer_id
+        temporal_id = dav1d_get_bits(&gb, 3);
+        spatial_id = dav1d_get_bits(&gb, 2);
         dav1d_get_bits(&gb, 3); // reserved
     }
 
@@ -1184,6 +1190,16 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
     // Make sure that there are enough bits left in the buffer for the
     // rest of the OBU.
     if (len > in->sz - init_byte_pos) goto error;
+
+    // skip obu not belonging to the selected temporal/spatial layer
+    if (type != OBU_SEQ_HDR && type != OBU_TD &&
+        has_extension && c->operating_point_idc != 0)
+    {
+        const int in_temporal_layer = (c->operating_point_idc >> temporal_id) & 1;
+        const int in_spatial_layer = (c->operating_point_idc >> (spatial_id + 8)) & 1;
+        if (!in_temporal_layer || !in_spatial_layer)
+            return len + init_byte_pos;
+    }
 
     switch (type) {
     case OBU_SEQ_HDR: {

@@ -46,6 +46,7 @@ typedef struct Dav1dSettings {
     int n_tile_threads;
     Dav1dPicAllocator allocator;
     int apply_grain;
+    int operating_point; ///< select an operating point for scalable AV1 bitstreams (0 - 31)
 } Dav1dSettings;
 
 /**
