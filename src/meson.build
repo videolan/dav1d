@@ -121,6 +121,7 @@ if is_asm_enabled
             'x86/loopfilter.asm',
             'x86/looprestoration.asm',
             'x86/mc.asm',
+            'x86/mc_ssse3.asm',
         )
 
         # Compile the ASM sources with NASM
