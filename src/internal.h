@@ -165,7 +165,7 @@ struct Dav1dFrameContext {
     pixel *ipred_edge[3];
     ptrdiff_t b4_stride;
     int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step, sr_sb128w;
-    uint16_t dq[DAV1D_NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
+    uint16_t dq[DAV1D_MAX_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint8_t *qm[2 /* is_1d */][N_RECT_TX_SIZES][3 /* plane */];
     BlockContext *a;
     int a_sz /* w*tile_rows */;
@@ -243,7 +243,7 @@ struct Dav1dTileState {
         coef *cf;
     } frame_thread;
 
-    uint16_t dqmem[DAV1D_NUM_SEGMENTS][3 /* plane */][2 /* dc/ac */];
+    uint16_t dqmem[DAV1D_MAX_SEGMENTS][3 /* plane */][2 /* dc/ac */];
     const uint16_t (*dq)[3][2];
     int last_qidx;
 

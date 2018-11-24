@@ -803,13 +803,13 @@ static int decode_b(Dav1dTileContext *const t,
                                         &seg_ctx, f->cur_segmap, f->b4_stride);
                 const unsigned diff = msac_decode_symbol_adapt(&ts->msac,
                                                    ts->cdf.m.seg_id[seg_ctx],
-                                                   DAV1D_NUM_SEGMENTS);
+                                                   DAV1D_MAX_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr->segmentation.seg_data.last_active_segid;
                 b->seg_id = neg_deinterleave(diff, pred_seg_id,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
-                if (b->seg_id >= DAV1D_NUM_SEGMENTS) b->seg_id = 0; // error?
+                if (b->seg_id >= DAV1D_MAX_SEGMENTS) b->seg_id = 0; // error?
             }
 
             if (DEBUG_BLOCK_INFO)
@@ -875,14 +875,14 @@ static int decode_b(Dav1dTileContext *const t,
             } else {
                 const unsigned diff = msac_decode_symbol_adapt(&ts->msac,
                                                    ts->cdf.m.seg_id[seg_ctx],
-                                                   DAV1D_NUM_SEGMENTS);
+                                                   DAV1D_MAX_SEGMENTS);
                 const unsigned last_active_seg_id =
                     f->frame_hdr->segmentation.seg_data.last_active_segid;
                 b->seg_id = neg_deinterleave(diff, pred_seg_id,
                                              last_active_seg_id + 1);
                 if (b->seg_id > last_active_seg_id) b->seg_id = 0; // error?
             }
-            if (b->seg_id >= DAV1D_NUM_SEGMENTS) b->seg_id = 0; // error?
+            if (b->seg_id >= DAV1D_MAX_SEGMENTS) b->seg_id = 0; // error?
         }
 
         seg = &f->frame_hdr->segmentation.seg_data.d[b->seg_id];

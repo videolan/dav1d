@@ -68,7 +68,7 @@ typedef struct CdfModeContext {
     uint16_t skip_mode[3][2];
     uint16_t partition[N_BL_LEVELS][4][N_PARTITIONS + 1];
     uint16_t seg_pred[3][2];
-    uint16_t seg_id[3][DAV1D_NUM_SEGMENTS + 1];
+    uint16_t seg_id[3][DAV1D_MAX_SEGMENTS + 1];
     uint16_t cfl_sign[8 + 1];
     uint16_t cfl_alpha[6][16 + 1];
     uint16_t restore_wiener[2];

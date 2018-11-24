@@ -29,8 +29,15 @@
 #define __DAV1D_HEADERS_H__
 
 // Constants from Section 3. "Symbols and abbreviated terms"
+#define DAV1D_MAX_CDEF_STRENGTHS 8
+#define DAV1D_MAX_OPERATING_POINTS 32
 #define DAV1D_MAX_TILE_COLS 64
 #define DAV1D_MAX_TILE_ROWS 64
+#define DAV1D_MAX_SEGMENTS 8
+#define DAV1D_NUM_REF_FRAMES 8
+#define DAV1D_PRIMARY_REF_NONE 7
+#define DAV1D_REFS_PER_FRAME 7
+#define DAV1D_TOTAL_REFS_PER_FRAME (DAV1D_REFS_PER_FRAME + 1)
 
 enum Dav1dTxfmMode {
     DAV1D_TX_4X4_ONLY,
@@ -179,7 +186,7 @@ typedef struct Dav1dSequenceHeader {
         int low_delay_mode;
         int display_model_param_present;
         int initial_display_delay;
-    } operating_points[32];
+    } operating_points[DAV1D_MAX_OPERATING_POINTS];
     int max_width, max_height, width_n_bits, height_n_bits;
     int frame_id_numbers_present;
     int delta_frame_id_n_bits;
@@ -213,8 +220,6 @@ typedef struct Dav1dSequenceHeader {
     int film_grain_present;
 } Dav1dSequenceHeader;
 
-#define DAV1D_NUM_SEGMENTS 8
-
 typedef struct Dav1dSegmentationData {
     int delta_q;
     int delta_lf_y_v, delta_lf_y_h, delta_lf_u, delta_lf_v;
@@ -224,14 +229,14 @@ typedef struct Dav1dSegmentationData {
 } Dav1dSegmentationData;
 
 typedef struct Dav1dSegmentationDataSet {
-    Dav1dSegmentationData d[DAV1D_NUM_SEGMENTS];
+    Dav1dSegmentationData d[DAV1D_MAX_SEGMENTS];
     int preskip;
     int last_active_segid;
 } Dav1dSegmentationDataSet;
 
 typedef struct Dav1dLoopfilterModeRefDeltas {
-    int mode_delta[2];
-    int ref_delta[8];
+    int mode_delta[2 /* is_zeromv */];
+    int ref_delta[DAV1D_TOTAL_REFS_PER_FRAME];
 } Dav1dLoopfilterModeRefDeltas;
 
 typedef struct Dav1dFilmGrainData {
@@ -267,12 +272,11 @@ typedef struct Dav1dFrameHeader {
     int allow_screen_content_tools;
     int force_integer_mv;
     int frame_size_override;
-#define DAV1D_PRIMARY_REF_NONE 7
     int primary_ref_frame;
     int buffer_removal_time_present;
     struct Dav1dFrameHeaderOperatingPoint {
         int buffer_removal_time;
-    } operating_points[32];
+    } operating_points[DAV1D_MAX_OPERATING_POINTS];
     int frame_offset;
     int refresh_frame_flags;
     int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
@@ -284,7 +288,7 @@ typedef struct Dav1dFrameHeader {
     int have_render_size;
     int allow_intrabc;
     int frame_ref_short_signaling;
-    int refidx[7];
+    int refidx[DAV1D_REFS_PER_FRAME];
     int hp;
     enum Dav1dFilterMode subpel_filter_mode;
     int switchable_motion_mode;
@@ -308,7 +312,7 @@ typedef struct Dav1dFrameHeader {
     struct {
         int enabled, update_map, temporal, update_data;
         Dav1dSegmentationDataSet seg_data;
-        int lossless[DAV1D_NUM_SEGMENTS], qidx[DAV1D_NUM_SEGMENTS];
+        int lossless[DAV1D_MAX_SEGMENTS], qidx[DAV1D_MAX_SEGMENTS];
     } segmentation;
     struct {
         struct {
@@ -323,7 +327,7 @@ typedef struct Dav1dFrameHeader {
     } delta;
     int all_lossless;
     struct {
-        int level_y[2];
+        int level_y[2 /* dir */];
         int level_u, level_v;
         int mode_ref_delta_enabled;
         int mode_ref_delta_update;
@@ -333,19 +337,19 @@ typedef struct Dav1dFrameHeader {
     struct {
         int damping;
         int n_bits;
-        int y_strength[8];
-        int uv_strength[8];
+        int y_strength[DAV1D_MAX_CDEF_STRENGTHS];
+        int uv_strength[DAV1D_MAX_CDEF_STRENGTHS];
     } cdef;
     struct {
-        enum Dav1dRestorationType type[3];
-        int unit_size[2];
+        enum Dav1dRestorationType type[3 /* plane */];
+        int unit_size[2 /* y, uv */];
     } restoration;
     enum Dav1dTxfmMode txfm_mode;
     int switchable_comp_refs;
     int skip_mode_allowed, skip_mode_enabled, skip_mode_refs[2];
     int warp_motion;
     int reduced_txtp_set;
-    Dav1dWarpedMotionParams gmv[7];
+    Dav1dWarpedMotionParams gmv[DAV1D_REFS_PER_FRAME];
     struct {
         int present, update;
         Dav1dFilmGrainData data;

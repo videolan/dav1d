@@ -4138,7 +4138,7 @@ void dav1d_update_tile_cdf(const Dav1dFrameHeader *const hdr,
     update_cdf_4d(N_TX_SIZES, 2, 41 /*42*/, 4, coef.base_tok);
     update_bit_2d(2, 3, coef.dc_sign);
     update_cdf_4d(4, 2, 21, 4, coef.br_tok);
-    update_cdf_2d(3, DAV1D_NUM_SEGMENTS, m.seg_id);
+    update_cdf_2d(3, DAV1D_MAX_SEGMENTS, m.seg_id);
     update_cdf_1d(8, m.cfl_sign);
     update_cdf_2d(6, 16, m.cfl_alpha);
     update_bit_0d(m.restore_wiener);

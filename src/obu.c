@@ -682,7 +682,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         if (hdr->segmentation.update_data) {
             hdr->segmentation.seg_data.preskip = 0;
             hdr->segmentation.seg_data.last_active_segid = -1;
-            for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++) {
+            for (int i = 0; i < DAV1D_MAX_SEGMENTS; i++) {
                 Dav1dSegmentationData *const seg =
                     &hdr->segmentation.seg_data.d[i];
                 if (dav1d_get_bits(gb, 1)) {
@@ -742,7 +742,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         }
     } else {
         memset(&hdr->segmentation.seg_data, 0, sizeof(Dav1dSegmentationDataSet));
-        for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++)
+        for (int i = 0; i < DAV1D_MAX_SEGMENTS; i++)
             hdr->segmentation.seg_data.d[i].ref = -1;
     }
 #if DEBUG_FRAME_HDR
@@ -766,7 +766,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     const int delta_lossless = !hdr->quant.ydc_delta && !hdr->quant.udc_delta &&
         !hdr->quant.uac_delta && !hdr->quant.vdc_delta && !hdr->quant.vac_delta;
     hdr->all_lossless = 1;
-    for (int i = 0; i < DAV1D_NUM_SEGMENTS; i++) {
+    for (int i = 0; i < DAV1D_MAX_SEGMENTS; i++) {
         hdr->segmentation.qidx[i] = hdr->segmentation.enabled ?
             iclip_u8(hdr->quant.yac + hdr->segmentation.seg_data.d[i].delta_q) :
             hdr->quant.yac;
