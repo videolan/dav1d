@@ -110,7 +110,7 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->bh << 2;
         const int w = f->bw << 2;
-        const int row_h = imin((sby + 1) << (6 + f->seq_hdr.sb128), h);
+        const int row_h = imin((sby + 1) << (6 + f->seq_hdr.sb128), h - 4);
         const int y_stripe = (sby << (6 + f->seq_hdr.sb128)) - offset;
         backup_lpf(f, f->lf.lr_lpf_line_ptr[0], lr_stride,
                    src[0] - offset * PXSTRIDE(src_stride[0]), src_stride[0],
@@ -121,7 +121,7 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
         const int ss_hor = f->sr_cur.p.p.layout != DAV1D_PIXEL_LAYOUT_I444;
         const int h = f->bh << (2 - ss_ver);
         const int w = f->bw << (2 - ss_hor);
-        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr.sb128), h);
+        const int row_h = imin((sby + 1) << ((6 - ss_ver) + f->seq_hdr.sb128), h - 4);
         const ptrdiff_t offset_uv = offset >> ss_ver;
         const int y_stripe =
             (sby << ((6 - ss_ver) + f->seq_hdr.sb128)) - offset_uv;
