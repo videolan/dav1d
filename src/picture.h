@@ -44,7 +44,7 @@ enum PlaneType {
 
 typedef struct Dav1dThreadPicture {
     Dav1dPicture p;
-    int visible, flushed;
+    int visible;
     struct thread_data *t;
     // [0] block data (including segmentation map and motion vectors)
     // [1] pixel data

@@ -134,6 +134,7 @@ int dav1d_open(Dav1dContext **const c_out,
                 t->tile_thread.fttd = &f->tile_thread;
                 pthread_create(&t->tile_thread.td.thread, NULL, dav1d_tile_task, t);
             }
+            atomic_init(&t->tile_thread.flush, 0);
         }
         f->libaom_cm = av1_alloc_ref_mv_common();
         if (!f->libaom_cm) goto error;
@@ -254,11 +255,8 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
             if (out_delayed->p.data[0]) {
                 const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
                                                                memory_order_relaxed);
-                if (out_delayed->visible && !out_delayed->flushed &&
-                    progress != FRAME_ERROR)
-                {
+                if (out_delayed->visible && progress != FRAME_ERROR)
                     dav1d_picture_ref(&c->out, &out_delayed->p);
-                }
                 dav1d_thread_picture_unref(out_delayed);
                 if (c->out.data[0])
                     return output_image(c, out, &c->out);
@@ -292,8 +290,32 @@ void dav1d_flush(Dav1dContext *const c) {
 
     if (c->n_fc == 1) return;
 
-    for (unsigned n = 0; n < c->n_fc; n++)
-        c->frame_thread.out_delayed[n].flushed = 1;
+    // mark each currently-running frame as flushing, so that we
+    // exit out as quickly as the running thread checks this flag
+    for (unsigned n = 0; n < c->n_fc; n++) {
+        Dav1dFrameContext *const f = &c->fc[n];
+        for (int m = 0; m < f->n_tc; m++)
+            atomic_store(&f->tc[m].tile_thread.flush, 1);
+    }
+    for (unsigned n = 0, next = c->frame_thread.next; n < c->n_fc; n++, next++) {
+        if (next == c->n_fc) next = 0;
+        Dav1dFrameContext *const f = &c->fc[next];
+        pthread_mutex_lock(&f->frame_thread.td.lock);
+        if (f->n_tile_data > 0) {
+            while (f->n_tile_data > 0)
+                pthread_cond_wait(&f->frame_thread.td.cond,
+                                  &f->frame_thread.td.lock);
+            assert(!f->cur.data[0]);
+        }
+        pthread_mutex_unlock(&f->frame_thread.td.lock);
+        for (int m = 0; m < f->n_tc; m++)
+            atomic_store(&f->tc[m].tile_thread.flush, 0);
+        Dav1dThreadPicture *const out_delayed = &c->frame_thread.out_delayed[next];
+        if (out_delayed->p.data[0])
+            dav1d_thread_picture_unref(out_delayed);
+    }
+
+    c->frame_thread.next = 0;
 }
 
 void dav1d_close(Dav1dContext **const c_out) {
@@ -302,37 +324,17 @@ void dav1d_close(Dav1dContext **const c_out) {
     Dav1dContext *const c = *c_out;
     if (!c) return;
 
+    dav1d_flush(c);
     for (unsigned n = 0; n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
 
         // clean-up threading stuff
         if (c->n_fc > 1) {
-            if (f->frame_hdr.refresh_context)
-                dav1d_cdf_thread_signal(&f->out_cdf);
-            dav1d_thread_picture_signal(&f->sr_cur, FRAME_ERROR,
-                                        PLANE_TYPE_ALL);
             pthread_mutex_lock(&f->frame_thread.td.lock);
             f->frame_thread.die = 1;
             pthread_cond_signal(&f->frame_thread.td.cond);
             pthread_mutex_unlock(&f->frame_thread.td.lock);
             pthread_join(f->frame_thread.td.thread, NULL);
-            // free references from dav1d_submit_frame() usually freed by
-            // dav1d_decode_frame
-            for (int i = 0; i < 7; i++) {
-                if (f->refp[i].p.data[0])
-                    dav1d_thread_picture_unref(&f->refp[i]);
-                dav1d_ref_dec(&f->ref_mvs_ref[i]);
-            }
-            dav1d_picture_unref(&f->cur);
-            dav1d_thread_picture_unref(&f->sr_cur);
-            dav1d_cdf_thread_unref(&f->in_cdf);
-            if (f->frame_hdr.refresh_context)
-                dav1d_cdf_thread_unref(&f->out_cdf);
-            dav1d_ref_dec(&f->cur_segmap_ref);
-            dav1d_ref_dec(&f->prev_segmap_ref);
-            dav1d_ref_dec(&f->mvs_ref);
-            for (int i = 0; i < f->n_tile_data; i++)
-                dav1d_data_unref(&f->tile[i].data);
             freep(&f->frame_thread.b);
             dav1d_freep_aligned(&f->frame_thread.pal_idx);
             dav1d_freep_aligned(&f->frame_thread.cf);

@@ -291,6 +291,7 @@ struct Dav1dTileContext {
         struct thread_data td;
         struct FrameTileThreadData *fttd;
         int die;
+        atomic_int flush;
     } tile_thread;
 };
 

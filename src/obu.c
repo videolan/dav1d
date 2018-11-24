@@ -1339,17 +1339,13 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             if (out_delayed->p.data[0]) {
                 const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
                                                                memory_order_relaxed);
-                if (out_delayed->visible && !out_delayed->flushed &&
-                    progress != FRAME_ERROR)
-                {
+                if (out_delayed->visible && progress != FRAME_ERROR)
                     dav1d_picture_ref(&c->out, &out_delayed->p);
-                }
                 dav1d_thread_picture_unref(out_delayed);
             }
             dav1d_thread_picture_ref(out_delayed,
                                      &c->refs[c->frame_hdr.existing_frame_idx].p);
             out_delayed->visible = 1;
-            out_delayed->flushed = 0;
             out_delayed->p.m = in->m;
             pthread_mutex_unlock(&f->frame_thread.td.lock);
         }

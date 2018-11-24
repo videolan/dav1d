@@ -160,7 +160,6 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
     if (res) return res;
 
     p->visible = visible;
-    p->flushed = 0;
     if (t) {
         atomic_init(&p->progress[0], 0);
         atomic_init(&p->progress[1], 0);
@@ -217,7 +216,6 @@ void dav1d_thread_picture_ref(Dav1dThreadPicture *dst,
     dst->t = src->t;
     dst->visible = src->visible;
     dst->progress = src->progress;
-    dst->flushed = src->flushed;
 }
 
 void dav1d_picture_unref(Dav1dPicture *const p) {
@@ -273,8 +271,10 @@ void dav1d_thread_picture_signal(const Dav1dThreadPicture *const p,
         return;
 
     pthread_mutex_lock(&p->t->lock);
-    if (plane_type != PLANE_TYPE_Y) atomic_store(&p->progress[0], y);
-    if (plane_type != PLANE_TYPE_BLOCK) atomic_store(&p->progress[1], y);
+    if (plane_type != PLANE_TYPE_Y)
+        atomic_store(&p->progress[0], y);
+    if (plane_type != PLANE_TYPE_BLOCK)
+        atomic_store(&p->progress[1], y);
     pthread_cond_broadcast(&p->t->cond);
     pthread_mutex_unlock(&p->t->lock);
 }
