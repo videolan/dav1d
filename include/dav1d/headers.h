@@ -173,8 +173,6 @@ typedef struct Dav1dSequenceHeader {
      * a normative requirement.
      */
     int max_width, max_height;
-    int bpc; ///< bits per pixel component (8 or 10)
-    enum Dav1dPixelLayout layout; ///< format of the picture
     enum Dav1dColorPrimaries pri; ///< color primaries (av1)
     enum Dav1dTransferCharacteristics trc; ///< transfer characteristics (av1)
     enum Dav1dMatrixCoefficients mtrx; ///< matrix coefficients (av1)
@@ -231,7 +229,15 @@ typedef struct Dav1dSequenceHeader {
     int super_res;
     int cdef;
     int restoration;
+    /**
+     * 0, 1 and 2 mean 8, 10 or 12 bits/component, respectively. This is not
+     * exactly the same as 'hbd' from the spec; the spec's hbd distinguishes
+     * between 8 (0) and 10-12 (1) bits/component, and another element
+     * (twelve_bit) to distinguish between 10 and 12 bits/component. To get
+     * the spec's hbd, use !!our_hbd, and to get twelve_bit, use hbd == 2.
+     */
     int hbd;
+    int ss_hor, ss_ver, monochrome;
     int color_description_present;
     int separate_uv_delta_q;
     int film_grain_present;

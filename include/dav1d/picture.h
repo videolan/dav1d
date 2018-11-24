@@ -42,7 +42,6 @@ typedef struct Dav1dPictureParameters {
 } Dav1dPictureParameters;
 
 typedef struct Dav1dPicture {
-    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref;
     Dav1dSequenceHeader *seq_hdr;
     Dav1dFrameHeader *frame_hdr;
 
@@ -54,7 +53,6 @@ typedef struct Dav1dPicture {
      * zero'ed out.
      */
     void *data[3];
-    struct Dav1dRef *ref; ///< allocation origin
 
     /**
      * Number of bytes between 2 lines in data[] for luma [0] or chroma [1].
@@ -63,6 +61,7 @@ typedef struct Dav1dPicture {
 
     Dav1dPictureParameters p;
     Dav1dDataProps m;
+    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref, *ref; ///< allocation origins
 
     void *allocator_data; ///< pointer managed by the allocator
 } Dav1dPicture;

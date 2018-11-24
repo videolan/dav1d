@@ -201,10 +201,9 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
-    const int hbd = dav1d_get_bits(gb, 1);
-    hdr->bpc = hdr->profile == 2 && hbd ? 10U + 2 * dav1d_get_bits(gb, 1) : 8U + 2 * hbd;
-    hdr->hbd = hdr->bpc > 8;
-    const int monochrome = hdr->profile != 1 ? dav1d_get_bits(gb, 1) : 0;
+    hdr->hbd = dav1d_get_bits(gb, 1);
+    if (hdr->profile == 2 && hdr->hbd) hdr->hbd += dav1d_get_bits(gb, 1);
+    hdr->monochrome = hdr->profile != 1 ? dav1d_get_bits(gb, 1) : 0;
     hdr->color_description_present = dav1d_get_bits(gb, 1);
     if (hdr->color_description_present) {
         hdr->pri = dav1d_get_bits(gb, 8);
@@ -215,36 +214,36 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->trc = DAV1D_TRC_UNKNOWN;
         hdr->mtrx = DAV1D_MC_UNKNOWN;
     }
-    if (monochrome) {
+    if (hdr->monochrome) {
         hdr->color_range = dav1d_get_bits(gb, 1);
-        hdr->layout = DAV1D_PIXEL_LAYOUT_I400;
+        hdr->ss_hor = hdr->ss_ver = 0;
         hdr->chr = DAV1D_CHR_UNKNOWN;
         hdr->separate_uv_delta_q = 0;
     } else if (hdr->pri == DAV1D_COLOR_PRI_BT709 &&
                hdr->trc == DAV1D_TRC_SRGB &&
                hdr->mtrx == DAV1D_MC_IDENTITY)
     {
-        hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
+        hdr->ss_hor = hdr->ss_ver = 1;
         hdr->color_range = 1;
-        if (hdr->profile != 1 && !(hdr->profile == 2 && hdr->bpc == 12))
+        if (hdr->profile != 1 && !(hdr->profile == 2 && hdr->hbd == 2))
             goto error;
     } else {
         hdr->color_range = dav1d_get_bits(gb, 1);
         switch (hdr->profile) {
-        case 0: hdr->layout = DAV1D_PIXEL_LAYOUT_I420; break;
-        case 1: hdr->layout = DAV1D_PIXEL_LAYOUT_I444; break;
+        case 0: hdr->ss_hor = hdr->ss_ver = 1; break;
+        case 1: hdr->ss_hor = hdr->ss_ver = 0; break;
         case 2:
-            if (hdr->bpc == 12) {
-                hdr->layout = dav1d_get_bits(gb, 1) ?
-                              dav1d_get_bits(gb, 1) ? DAV1D_PIXEL_LAYOUT_I420 :
-                                                      DAV1D_PIXEL_LAYOUT_I422 :
-                                                      DAV1D_PIXEL_LAYOUT_I444;
-            } else
-                hdr->layout = DAV1D_PIXEL_LAYOUT_I422;
+            if (hdr->hbd == 2) {
+                hdr->ss_hor = dav1d_get_bits(gb, 1);
+                hdr->ss_ver = hdr->ss_hor && dav1d_get_bits(gb, 1);
+            } else {
+                hdr->ss_hor = 1;
+                hdr->ss_ver = 0;
+            }
             break;
         }
-        if (hdr->layout == DAV1D_PIXEL_LAYOUT_I420)
-            hdr->chr = dav1d_get_bits(gb, 2);
+        hdr->chr = hdr->ss_hor == 1 && hdr->ss_ver == 1 ?
+                   dav1d_get_bits(gb, 2) : DAV1D_CHR_UNKNOWN;
         hdr->separate_uv_delta_q = dav1d_get_bits(gb, 1);
     }
 #if DEBUG_SEQ_HDR
@@ -635,7 +634,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     // quant data
     hdr->quant.yac = dav1d_get_bits(gb, 8);
     hdr->quant.ydc_delta = dav1d_get_bits(gb, 1) ? dav1d_get_sbits(gb, 6) : 0;
-    if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400) {
+    if (!seqhdr->monochrome) {
         // If the sequence header says that delta_q might be different
         // for U, V, we must check whether it actually is for this
         // frame.
@@ -788,7 +787,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     } else {
         hdr->loopfilter.level_y[0] = dav1d_get_bits(gb, 6);
         hdr->loopfilter.level_y[1] = dav1d_get_bits(gb, 6);
-        if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
+        if (!seqhdr->monochrome &&
             (hdr->loopfilter.level_y[0] || hdr->loopfilter.level_y[1]))
         {
             hdr->loopfilter.level_u = dav1d_get_bits(gb, 6);
@@ -830,7 +829,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->cdef.n_bits = dav1d_get_bits(gb, 2);
         for (int i = 0; i < (1 << hdr->cdef.n_bits); i++) {
             hdr->cdef.y_strength[i] = dav1d_get_bits(gb, 6);
-            if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400)
+            if (!seqhdr->monochrome)
                 hdr->cdef.uv_strength[i] = dav1d_get_bits(gb, 6);
         }
     } else {
@@ -848,7 +847,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         seqhdr->restoration && !hdr->allow_intrabc)
     {
         hdr->restoration.type[0] = dav1d_get_bits(gb, 2);
-        if (seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400) {
+        if (!seqhdr->monochrome) {
             hdr->restoration.type[1] = dav1d_get_bits(gb, 2);
             hdr->restoration.type[2] = dav1d_get_bits(gb, 2);
         } else {
@@ -868,7 +867,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             }
             hdr->restoration.unit_size[1] = hdr->restoration.unit_size[0];
             if ((hdr->restoration.type[1] || hdr->restoration.type[2]) &&
-                seqhdr->layout == DAV1D_PIXEL_LAYOUT_I420)
+                seqhdr->ss_hor == 1 && seqhdr->ss_ver == 1)
             {
                 hdr->restoration.unit_size[1] -= dav1d_get_bits(gb, 1);
             }
@@ -1046,10 +1045,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             }
 
             fgd->chroma_scaling_from_luma =
-                seqhdr->layout != DAV1D_PIXEL_LAYOUT_I400 && dav1d_get_bits(gb, 1);
-            if (seqhdr->layout == DAV1D_PIXEL_LAYOUT_I400 ||
-                fgd->chroma_scaling_from_luma ||
-                (seqhdr->layout == DAV1D_PIXEL_LAYOUT_I420 && !fgd->num_y_points))
+                !seqhdr->monochrome && dav1d_get_bits(gb, 1);
+            if (seqhdr->monochrome || fgd->chroma_scaling_from_luma ||
+                (seqhdr->ss_ver == 1 && seqhdr->ss_hor == 1 && !fgd->num_y_points))
             {
                 fgd->num_uv_points[0] = fgd->num_uv_points[1] = 0;
             } else for (int pl = 0; pl < 2; pl++) {
@@ -1063,7 +1061,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 }
             }
 
-            if (seqhdr->layout == DAV1D_PIXEL_LAYOUT_I420 &&
+            if (seqhdr->ss_hor == 1 && seqhdr->ss_ver == 1 &&
                 !!fgd->num_uv_points[0] != !!fgd->num_uv_points[1])
             {
                 goto error;

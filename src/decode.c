@@ -62,12 +62,12 @@ static void init_quant_tables(const Dav1dSequenceHeader *const seq_hdr,
         const int vac = iclip_u8(yac + frame_hdr->quant.vac_delta);
         const int vdc = iclip_u8(yac + frame_hdr->quant.vdc_delta);
 
-        dq[i][0][0] = dav1d_dq_tbl[seq_hdr->bpc > 8][ydc][0];
-        dq[i][0][1] = dav1d_dq_tbl[seq_hdr->bpc > 8][yac][1];
-        dq[i][1][0] = dav1d_dq_tbl[seq_hdr->bpc > 8][udc][0];
-        dq[i][1][1] = dav1d_dq_tbl[seq_hdr->bpc > 8][uac][1];
-        dq[i][2][0] = dav1d_dq_tbl[seq_hdr->bpc > 8][vdc][0];
-        dq[i][2][1] = dav1d_dq_tbl[seq_hdr->bpc > 8][vac][1];
+        dq[i][0][0] = dav1d_dq_tbl[seq_hdr->hbd][ydc][0];
+        dq[i][0][1] = dav1d_dq_tbl[seq_hdr->hbd][yac][1];
+        dq[i][1][0] = dav1d_dq_tbl[seq_hdr->hbd][udc][0];
+        dq[i][1][1] = dav1d_dq_tbl[seq_hdr->hbd][uac][1];
+        dq[i][2][0] = dav1d_dq_tbl[seq_hdr->hbd][vdc][0];
+        dq[i][2][1] = dav1d_dq_tbl[seq_hdr->hbd][vac][1];
     }
 }
 
@@ -702,7 +702,7 @@ static int decode_b(Dav1dTileContext *const t,
     const int cbw4 = (bw4 + ss_hor) >> ss_hor, cbh4 = (bh4 + ss_ver) >> ss_ver;
     const int have_left = t->bx > ts->tiling.col_start;
     const int have_top = t->by > ts->tiling.row_start;
-    const int has_chroma = f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
+    const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400 &&
                            (bw4 > ss_hor || t->bx & 1) &&
                            (bh4 > ss_ver || t->by & 1);
 
@@ -937,7 +937,7 @@ static int decode_b(Dav1dTileContext *const t,
 
             if (f->frame_hdr->delta.lf.present) {
                 const int n_lfs = f->frame_hdr->delta.lf.multi ?
-                    f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 ? 4 : 2 : 1;
+                    f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400 ? 4 : 2 : 1;
 
                 for (int i = 0; i < n_lfs; i++) {
                     int delta_lf =
@@ -3000,13 +3000,18 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->frame_hdr_ref = c->frame_hdr_ref;
     c->frame_hdr = NULL;
     c->frame_hdr_ref = NULL;
-    const int bd_idx = (f->seq_hdr->bpc - 8) >> 1;
-    f->dsp = &c->dsp[bd_idx];
+    f->dsp = &c->dsp[f->seq_hdr->hbd];
+
+    const int bpc = 8 + 2 * f->seq_hdr->hbd;
+    const enum Dav1dPixelLayout layout =
+        f->seq_hdr->monochrome ? DAV1D_PIXEL_LAYOUT_I400 :
+        !f->seq_hdr->ss_hor ? DAV1D_PIXEL_LAYOUT_I444 :
+        f->seq_hdr->ss_ver ? DAV1D_PIXEL_LAYOUT_I420 : DAV1D_PIXEL_LAYOUT_I422;
 
     if (!f->dsp->ipred.intra_pred[DC_PRED]) {
-        Dav1dDSPContext *const dsp = &c->dsp[bd_idx];
+        Dav1dDSPContext *const dsp = &c->dsp[f->seq_hdr->hbd];
 
-        switch (f->seq_hdr->bpc) {
+        switch (bpc) {
 #define assign_bitdepth_case(bd) \
         case bd: \
             dav1d_cdef_dsp_init_##bd##bpc(&dsp->cdef); \
@@ -3025,7 +3030,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 #undef assign_bitdepth_case
         default:
             fprintf(stderr, "Compiled without support for %d-bit decoding\n",
-                    f->seq_hdr->bpc);
+                    8 + 2 * f->seq_hdr->hbd);
             res = -ENOPROTOOPT;
             goto error;
         }
@@ -3037,7 +3042,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f->bd_fn.filter_sbrow = dav1d_filter_sbrow_##bd##bpc; \
         f->bd_fn.backup_ipred_edge = dav1d_backup_ipred_edge_##bd##bpc; \
         f->bd_fn.read_coef_blocks = dav1d_read_coef_blocks_##bd##bpc
-    if (f->seq_hdr->bpc <= 8) {
+    if (!f->seq_hdr->hbd) {
 #if CONFIG_8BPC
         assign_bitdepth_case(8);
 #endif
@@ -3064,8 +3069,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 f->frame_hdr->height * 2 < c->refs[refidx].p.p.p.h ||
                 f->frame_hdr->width[0] > c->refs[refidx].p.p.p.w * 16 ||
                 f->frame_hdr->height > c->refs[refidx].p.p.p.h * 16 ||
-                f->seq_hdr->layout != c->refs[refidx].p.p.p.layout ||
-                f->seq_hdr->bpc != c->refs[refidx].p.p.p.bpc)
+                layout != c->refs[refidx].p.p.p.layout ||
+                bpc != c->refs[refidx].p.p.p.bpc)
             {
                 for (int j = 0; j < i; j++)
                     dav1d_thread_picture_unref(&f->refp[j]);
@@ -3113,8 +3118,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // allocate frame
     res = dav1d_thread_picture_alloc(&f->sr_cur, f->frame_hdr->width[1],
-                                     f->frame_hdr->height,
-                                     f->seq_hdr->layout, f->seq_hdr->bpc,
+                                     f->frame_hdr->height, layout, bpc,
                                      c->n_fc > 1 ? &f->frame_thread.td : NULL,
                                      f->frame_hdr->show_frame, &c->allocator);
     if (res < 0) goto error;
