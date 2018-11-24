@@ -183,14 +183,14 @@ int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
                         Dav1dPicture *const in)
 {
-    const Dav1dFilmGrainData *fgdata = &in->p.film_grain;
+    const Dav1dFilmGrainData *fgdata = &in->frame_hdr->film_grain.data;
     int has_grain = fgdata->num_y_points || fgdata->num_uv_points[0] ||
                     fgdata->num_uv_points[1];
 
     // skip lower spatial layers
     if (c->operating_point_idc && !c->all_layers) {
         const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
-        if (max_spatial_id > in->p.spatial_id) {
+        if (max_spatial_id > in->frame_hdr->spatial_id) {
             dav1d_picture_unref(in);
             return 0;
         }

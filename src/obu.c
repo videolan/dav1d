@@ -450,8 +450,10 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             int shifted_frame_offset[8];
             const int current_frame_offset = 1 << (seqhdr->order_hint_n_bits - 1);
             for (int i = 0; i < 8; i++)
-                shifted_frame_offset[i] =
-                    current_frame_offset + get_poc_diff(seqhdr->order_hint_n_bits, c->refs[i].p.p.poc, hdr->frame_offset);
+                shifted_frame_offset[i] = current_frame_offset +
+                    get_poc_diff(seqhdr->order_hint_n_bits,
+                                 c->refs[i].p.p.frame_hdr->frame_offset,
+                                 hdr->frame_offset);
 
             int used_frame[8] = { 0 };
             used_frame[hdr->refidx[0]] = 1;
@@ -902,7 +904,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         int off_before_idx[2], off_after_idx;
         for (int i = 0; i < 7; i++) {
             if (!c->refs[hdr->refidx[i]].p.p.data[0]) return -EINVAL;
-            const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.poc;
+            const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.frame_hdr->frame_offset;
 
             const int diff = get_poc_diff(seqhdr->order_hint_n_bits, refpoc, poc);
             if (diff > 0) {
@@ -1364,7 +1366,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 out_delayed->p.m = in->m;
                 pthread_mutex_unlock(&f->frame_thread.td.lock);
             }
-            if (c->refs[c->frame_hdr->existing_frame_idx].p.p.p.type == DAV1D_FRAME_TYPE_KEY) {
+            if (c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
                 const int r = c->frame_hdr->existing_frame_idx;
                 for (int i = 0; i < 8; i++) {
                     if (i == c->frame_hdr->existing_frame_idx) continue;

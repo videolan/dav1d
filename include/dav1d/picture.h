@@ -38,25 +38,13 @@ typedef struct Dav1dPictureParameters {
     int w; ///< width (in pixels)
     int h; ///< height (in pixels)
     enum Dav1dPixelLayout layout; ///< format of the picture
-    enum Dav1dFrameType type; ///< type of the picture
     int bpc; ///< bits per pixel component (8 or 10)
-
-    enum Dav1dColorPrimaries pri; ///< color primaries (av1)
-    enum Dav1dTransferCharacteristics trc; ///< transfer characteristics (av1)
-    enum Dav1dMatrixCoefficients mtrx; ///< matrix coefficients (av1)
-    enum Dav1dChromaSamplePosition chr; ///< chroma sample position (av1)
-    /**
-     * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
-     * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
-     */
-    int fullrange;
-
-    Dav1dFilmGrainData film_grain; ///< film grain parameters
-    int spatial_id; ///< spatial id of the frame for scalable AV1
 } Dav1dPictureParameters;
 
 typedef struct Dav1dPicture {
-    int poc; ///< frame number
+    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref;
+    Dav1dSequenceHeader *seq_hdr;
+    Dav1dFrameHeader *frame_hdr;
 
     /**
      * Pointers to planar image data (Y is [0], U is [1], V is [2]). The data
@@ -67,9 +55,6 @@ typedef struct Dav1dPicture {
      */
     void *data[3];
     struct Dav1dRef *ref; ///< allocation origin
-    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref;
-    Dav1dSequenceHeader *seq_hdr;
-    Dav1dFrameHeader *frame_hdr;
 
     /**
      * Number of bytes between 2 lines in data[] for luma [0] or chroma [1].

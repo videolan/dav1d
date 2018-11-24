@@ -1543,9 +1543,10 @@ static int decode_b(Dav1dTileContext *const t,
                 if (f->seq_hdr->jnt_comp) {
                     const int jnt_ctx =
                         get_jnt_comp_ctx(f->seq_hdr->order_hint_n_bits,
-                                         f->cur.poc, f->refp[b->ref[0]].p.poc,
-                                         f->refp[b->ref[1]].p.poc, t->a, &t->l,
-                                         by4, bx4);
+                                         f->cur.frame_hdr->frame_offset,
+                                         f->refp[b->ref[0]].p.frame_hdr->frame_offset,
+                                         f->refp[b->ref[1]].p.frame_hdr->frame_offset,
+                                         t->a, &t->l, by4, bx4);
                     b->comp_type = COMP_INTER_WEIGHTED_AVG +
                         msac_decode_bool_adapt(&ts->msac,
                                                ts->cdf.m.jnt_comp[jnt_ctx]);
@@ -2683,7 +2684,9 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         const int order_hint_n_bits = f->seq_hdr->order_hint * f->seq_hdr->order_hint_n_bits;
         const int ret = av1_init_ref_mv_common(f->libaom_cm, f->bw >> 1, f->bh >> 1,
                                                f->b4_stride, f->seq_hdr->sb128,
-                                               f->mvs, f->ref_mvs, f->cur.poc, f->refpoc,
+                                               f->mvs, f->ref_mvs,
+                                               f->cur.frame_hdr->frame_offset,
+                                               f->refpoc,
                                                f->refrefpoc, f->frame_hdr->gmv,
                                                f->frame_hdr->hp, f->frame_hdr->force_integer_mv,
                                                f->frame_hdr->use_ref_frame_mvs,
@@ -2709,15 +2712,17 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     // setup jnt_comp weights
     if (f->frame_hdr->switchable_comp_refs) {
         for (int i = 0; i < 7; i++) {
-            const unsigned ref0poc = f->refp[i].p.poc;
+            const unsigned ref0poc = f->refp[i].p.frame_hdr->frame_offset;
 
             for (int j = i + 1; j < 7; j++) {
-                const unsigned ref1poc = f->refp[j].p.poc;
+                const unsigned ref1poc = f->refp[j].p.frame_hdr->frame_offset;
 
-                const unsigned d1 = imin(abs(get_poc_diff(f->seq_hdr->order_hint_n_bits,
-                                                          ref0poc, f->cur.poc)), 31);
-                const unsigned d0 = imin(abs(get_poc_diff(f->seq_hdr->order_hint_n_bits,
-                                                          ref1poc, f->cur.poc)), 31);
+                const unsigned d1 =
+                    imin(abs(get_poc_diff(f->seq_hdr->order_hint_n_bits, ref0poc,
+                                          f->cur.frame_hdr->frame_offset)), 31);
+                const unsigned d0 =
+                    imin(abs(get_poc_diff(f->seq_hdr->order_hint_n_bits, ref1poc,
+                                          f->cur.frame_hdr->frame_offset)), 31);
                 const int order = d0 <= d1;
 
                 static const uint8_t quant_dist_weight[3][2] = {
@@ -3114,16 +3119,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                                      f->frame_hdr->show_frame, &c->allocator);
     if (res < 0) goto error;
 
-    f->sr_cur.p.poc = f->frame_hdr->frame_offset;
-    f->sr_cur.p.p.type = f->frame_hdr->frame_type;
-    f->sr_cur.p.p.film_grain = f->frame_hdr->film_grain.data;
-    f->sr_cur.p.p.pri = f->seq_hdr->pri;
-    f->sr_cur.p.p.trc = f->seq_hdr->trc;
-    f->sr_cur.p.p.mtrx = f->seq_hdr->mtrx;
-    f->sr_cur.p.p.chr = f->seq_hdr->chr;
-    f->sr_cur.p.p.fullrange = f->seq_hdr->color_range;
     f->sr_cur.p.m = f->tile[0].data.m;
-    f->sr_cur.p.p.spatial_id = f->frame_hdr->spatial_id;
     f->sr_cur.p.frame_hdr = f->frame_hdr;
     f->sr_cur.p.frame_hdr_ref = f->frame_hdr_ref;
     dav1d_ref_inc(f->frame_hdr_ref);
@@ -3175,7 +3171,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f->mvs = f->mvs_ref->data;
         if (!f->frame_hdr->allow_intrabc) {
             for (int i = 0; i < 7; i++)
-                f->refpoc[i] = f->refp[i].p.poc;
+                f->refpoc[i] = f->refp[i].p.frame_hdr->frame_offset;
         } else {
             memset(f->refpoc, 0, sizeof(f->refpoc));
         }

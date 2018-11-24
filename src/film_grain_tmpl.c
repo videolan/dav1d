@@ -75,7 +75,7 @@ enum {
 static void generate_grain_y(const Dav1dPicture *const in,
                              entry buf[GRAIN_HEIGHT][GRAIN_WIDTH])
 {
-    const Dav1dFilmGrainData *data = &in->p.film_grain;
+    const Dav1dFilmGrainData *data = &in->frame_hdr->film_grain.data;
     unsigned seed = data->seed;
     const int shift = 12 - BITDEPTH + data->grain_scale_shift;
 
@@ -111,7 +111,7 @@ static void generate_grain_uv(const Dav1dPicture *const in, int uv,
                               entry buf[GRAIN_HEIGHT][GRAIN_WIDTH],
                               entry buf_y[GRAIN_HEIGHT][GRAIN_WIDTH])
 {
-    const Dav1dFilmGrainData *data = &in->p.film_grain;
+    const Dav1dFilmGrainData *data = &in->frame_hdr->film_grain.data;
     unsigned seed = data->seed ^ (uv ? 0x49d8 : 0xb524);
     const int shift = 12 - BITDEPTH + data->grain_scale_shift;
 
@@ -211,7 +211,7 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
                            entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH],
                            uint8_t scaling[SCALING_SIZE], int row_num)
 {
-    const Dav1dFilmGrainData *const data = &out->p.film_grain;
+    const Dav1dFilmGrainData *const data = &out->frame_hdr->film_grain.data;
     const int rows = 1 + (data->overlap_flag && row_num > 0);
 
     int min_value, max_value;
@@ -330,13 +330,13 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
                             entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH],
                             uint8_t scaling[SCALING_SIZE], int uv, int row_num)
 {
-    const Dav1dFilmGrainData *const data = &out->p.film_grain;
+    const Dav1dFilmGrainData *const data = &out->frame_hdr->film_grain.data;
     const int rows = 1 + (data->overlap_flag && row_num > 0);
 
     int min_value, max_value;
     if (data->clip_to_restricted_range) {
         min_value = 16 << (BITDEPTH - 8);
-        if (out->p.mtrx == DAV1D_MC_IDENTITY) {
+        if (out->seq_hdr->mtrx == DAV1D_MC_IDENTITY) {
             max_value = 235 << (BITDEPTH - 8);
         } else {
             max_value = 240 << (BITDEPTH - 8);
@@ -477,7 +477,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
 void bitfn(dav1d_apply_grain)(Dav1dPicture *const out,
                               const Dav1dPicture *const in)
 {
-    const Dav1dFilmGrainData *const data = &out->p.film_grain;
+    const Dav1dFilmGrainData *const data = &out->frame_hdr->film_grain.data;
 
     entry grain_lut[3][GRAIN_HEIGHT][GRAIN_WIDTH];
     uint8_t scaling[3][SCALING_SIZE];

@@ -161,7 +161,43 @@ enum Dav1dChromaSamplePosition {
 };
 
 typedef struct Dav1dSequenceHeader {
+    /**
+     * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;
+     * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
+     * or 12 bits/component at any chroma subsampling.
+     */
     int profile;
+    /**
+     * Maximum dimensions for this stream. In non-scalable streams, these
+     * are often the actual dimensions of the stream, although that is not
+     * a normative requirement.
+     */
+    int max_width, max_height;
+    int bpc; ///< bits per pixel component (8 or 10)
+    enum Dav1dPixelLayout layout; ///< format of the picture
+    enum Dav1dColorPrimaries pri; ///< color primaries (av1)
+    enum Dav1dTransferCharacteristics trc; ///< transfer characteristics (av1)
+    enum Dav1dMatrixCoefficients mtrx; ///< matrix coefficients (av1)
+    enum Dav1dChromaSamplePosition chr; ///< chroma sample position (av1)
+    /**
+     * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
+     * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
+     */
+    int color_range;
+
+    int num_operating_points;
+    struct Dav1dSequenceHeaderOperatingPoint {
+        int major_level, minor_level;
+        int initial_display_delay;
+        int idc;
+        int tier;
+        int decoder_model_param_present;
+        int decoder_buffer_delay;
+        int encoder_buffer_delay;
+        int low_delay_mode;
+        int display_model_param_present;
+    } operating_points[DAV1D_MAX_OPERATING_POINTS];
+
     int still_picture;
     int reduced_still_picture_header;
     int timing_info_present;
@@ -175,19 +211,7 @@ typedef struct Dav1dSequenceHeader {
     int buffer_removal_delay_length;
     int frame_presentation_delay_length;
     int display_model_info_present;
-    int num_operating_points;
-    struct Dav1dSequenceHeaderOperatingPoint {
-        int idc;
-        int major_level, minor_level;
-        int tier;
-        int decoder_model_param_present;
-        int decoder_buffer_delay;
-        int encoder_buffer_delay;
-        int low_delay_mode;
-        int display_model_param_present;
-        int initial_display_delay;
-    } operating_points[DAV1D_MAX_OPERATING_POINTS];
-    int max_width, max_height, width_n_bits, height_n_bits;
+    int width_n_bits, height_n_bits;
     int frame_id_numbers_present;
     int delta_frame_id_n_bits;
     int frame_id_n_bits;
@@ -207,15 +231,8 @@ typedef struct Dav1dSequenceHeader {
     int super_res;
     int cdef;
     int restoration;
-    int bpc;
     int hbd;
     int color_description_present;
-    enum Dav1dPixelLayout layout;
-    enum Dav1dColorPrimaries pri;
-    enum Dav1dTransferCharacteristics trc;
-    enum Dav1dMatrixCoefficients mtrx;
-    enum Dav1dChromaSamplePosition chr;
-    int color_range;
     int separate_uv_delta_q;
     int film_grain_present;
 } Dav1dSequenceHeader;
@@ -260,11 +277,19 @@ typedef struct Dav1dFilmGrainData {
 } Dav1dFilmGrainData;
 
 typedef struct Dav1dFrameHeader {
+    enum Dav1dFrameType frame_type; ///< type of the picture
+    int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
+    int frame_offset; ///< frame number
+    struct {
+        int present, update;
+        Dav1dFilmGrainData data;
+    } film_grain; ///< film grain parameters
+    int temporal_id, spatial_id; ///< spatial and temporal id of the frame for SVC
+
     int show_existing_frame;
     int existing_frame_idx;
     int frame_id;
     int frame_presentation_delay;
-    enum Dav1dFrameType frame_type;
     int show_frame;
     int showable_frame;
     int error_resilient_mode;
@@ -277,9 +302,7 @@ typedef struct Dav1dFrameHeader {
     struct Dav1dFrameHeaderOperatingPoint {
         int buffer_removal_time;
     } operating_points[DAV1D_MAX_OPERATING_POINTS];
-    int frame_offset;
     int refresh_frame_flags;
-    int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
     int render_width, render_height;
     struct {
         int width_scale_denominator;
@@ -350,11 +373,6 @@ typedef struct Dav1dFrameHeader {
     int warp_motion;
     int reduced_txtp_set;
     Dav1dWarpedMotionParams gmv[DAV1D_REFS_PER_FRAME];
-    struct {
-        int present, update;
-        Dav1dFilmGrainData data;
-    } film_grain;
-    int temporal_id, spatial_id;
 } Dav1dFrameHeader;
 
 #endif /* __DAV1D_HEADERS_H__ */

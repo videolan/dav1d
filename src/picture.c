@@ -116,14 +116,9 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
 
     p->p.w = w;
     p->p.h = h;
-    p->p.pri = DAV1D_COLOR_PRI_UNKNOWN;
-    p->p.trc = DAV1D_TRC_UNKNOWN;
-    p->p.mtrx = DAV1D_MC_UNKNOWN;
-    p->p.chr = DAV1D_CHR_UNKNOWN;
     p->m.timestamp = p->m.duration = p->m.offset = ~0ULL;
     p->p.layout = layout;
     p->p.bpc = bpc;
-    p->p.film_grain = (Dav1dFilmGrainData) { 0 };
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
     if (res < 0) {
         free(pic_ctx);
@@ -176,7 +171,6 @@ int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
                                              0, NULL);
 
     if (!res) {
-        dst->poc = src->poc;
         dst->p = src->p;
         dst->m = src->m;
         dst->p.w = w;
