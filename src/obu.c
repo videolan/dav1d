@@ -411,9 +411,9 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 const struct Av1SequenceHeaderOperatingPoint *const seqop = &seqhdr->operating_points[i];
                 struct Av1FrameHeaderOperatingPoint *const op = &hdr->operating_points[i];
                 if (seqop->decoder_model_param_present) {
-                    int in_temporal_layer = (seqop->idc >>  0 /* FIXME: temporal_id */ ) & 1;
-                    int in_spatial_layer  = (seqop->idc >> (0 /* FIXME: spatial_id */ + 8)) & 1;
-                    if (!seqop->idc || in_temporal_layer || in_spatial_layer)
+                    int in_temporal_layer = (seqop->idc >> hdr->temporal_id) & 1;
+                    int in_spatial_layer  = (seqop->idc >> (hdr->spatial_id + 8)) & 1;
+                    if (!seqop->idc || (in_temporal_layer && in_spatial_layer))
                         op->buffer_removal_time = dav1d_get_bits(gb, seqhdr->buffer_removal_delay_length);
                 }
             }
