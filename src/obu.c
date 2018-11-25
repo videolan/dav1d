@@ -216,6 +216,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     }
     if (hdr->monochrome) {
         hdr->color_range = dav1d_get_bits(gb, 1);
+        hdr->layout = DAV1D_PIXEL_LAYOUT_I400;
         hdr->ss_hor = hdr->ss_ver = 0;
         hdr->chr = DAV1D_CHR_UNKNOWN;
         hdr->separate_uv_delta_q = 0;
@@ -223,6 +224,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                hdr->trc == DAV1D_TRC_SRGB &&
                hdr->mtrx == DAV1D_MC_IDENTITY)
     {
+        hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
         hdr->ss_hor = hdr->ss_ver = 1;
         hdr->color_range = 1;
         if (hdr->profile != 1 && !(hdr->profile == 2 && hdr->hbd == 2))
@@ -230,8 +232,12 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     } else {
         hdr->color_range = dav1d_get_bits(gb, 1);
         switch (hdr->profile) {
-        case 0: hdr->ss_hor = hdr->ss_ver = 1; break;
-        case 1: hdr->ss_hor = hdr->ss_ver = 0; break;
+        case 0: hdr->layout = DAV1D_PIXEL_LAYOUT_I420;
+                hdr->ss_hor = hdr->ss_ver = 1;
+                break;
+        case 1: hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
+                hdr->ss_hor = hdr->ss_ver = 0;
+                break;
         case 2:
             if (hdr->hbd == 2) {
                 hdr->ss_hor = dav1d_get_bits(gb, 1);
@@ -240,6 +246,10 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                 hdr->ss_hor = 1;
                 hdr->ss_ver = 0;
             }
+            hdr->layout = hdr->ss_hor ?
+                          hdr->ss_ver ? DAV1D_PIXEL_LAYOUT_I420 :
+                                        DAV1D_PIXEL_LAYOUT_I422 :
+                                        DAV1D_PIXEL_LAYOUT_I444;
             break;
         }
         hdr->chr = hdr->ss_hor == 1 && hdr->ss_ver == 1 ?

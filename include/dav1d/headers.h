@@ -173,6 +173,7 @@ typedef struct Dav1dSequenceHeader {
      * a normative requirement.
      */
     int max_width, max_height;
+    enum Dav1dPixelLayout layout; ///< format of the picture
     enum Dav1dColorPrimaries pri; ///< color primaries (av1)
     enum Dav1dTransferCharacteristics trc; ///< transfer characteristics (av1)
     enum Dav1dMatrixCoefficients mtrx; ///< matrix coefficients (av1)

@@ -3003,10 +3003,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->dsp = &c->dsp[f->seq_hdr->hbd];
 
     const int bpc = 8 + 2 * f->seq_hdr->hbd;
-    const enum Dav1dPixelLayout layout =
-        f->seq_hdr->monochrome ? DAV1D_PIXEL_LAYOUT_I400 :
-        !f->seq_hdr->ss_hor ? DAV1D_PIXEL_LAYOUT_I444 :
-        f->seq_hdr->ss_ver ? DAV1D_PIXEL_LAYOUT_I420 : DAV1D_PIXEL_LAYOUT_I422;
 
     if (!f->dsp->ipred.intra_pred[DC_PRED]) {
         Dav1dDSPContext *const dsp = &c->dsp[f->seq_hdr->hbd];
@@ -3069,7 +3065,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 f->frame_hdr->height * 2 < c->refs[refidx].p.p.p.h ||
                 f->frame_hdr->width[0] > c->refs[refidx].p.p.p.w * 16 ||
                 f->frame_hdr->height > c->refs[refidx].p.p.p.h * 16 ||
-                layout != c->refs[refidx].p.p.p.layout ||
+                f->seq_hdr->layout != c->refs[refidx].p.p.p.layout ||
                 bpc != c->refs[refidx].p.p.p.bpc)
             {
                 for (int j = 0; j < i; j++)
@@ -3118,7 +3114,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // allocate frame
     res = dav1d_thread_picture_alloc(&f->sr_cur, f->frame_hdr->width[1],
-                                     f->frame_hdr->height, layout, bpc,
+                                     f->frame_hdr->height,
+                                     f->seq_hdr->layout, bpc,
                                      c->n_fc > 1 ? &f->frame_thread.td : NULL,
                                      f->frame_hdr->show_frame, &c->allocator);
     if (res < 0) goto error;
