@@ -1157,7 +1157,7 @@ check_for_overrun(GetBits *const gb, unsigned init_bit_pos, unsigned obu_len)
     return 0;
 }
 
-int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
+int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
     GetBits gb;
     int res;
 
@@ -1259,6 +1259,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         // fall-through
     case OBU_FRAME:
     case OBU_FRAME_HDR:
+        if (global) break;
         if (!c->seq_hdr) goto error;
         if (!c->frame_hdr_ref) {
             c->frame_hdr_ref = dav1d_ref_create(sizeof(Dav1dFrameHeader));
@@ -1298,6 +1299,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
         dav1d_bytealign_get_bits(&gb);
         // fall-through
     case OBU_TILE_GRP: {
+        if (global) break;
         if (!c->frame_hdr) goto error;
         if (c->n_tile_data >= 256) goto error;
         parse_tile_hdr(c, &gb);

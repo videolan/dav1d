@@ -167,6 +167,54 @@ error:
     return -ENOMEM;
 }
 
+static void dummy_free(const uint8_t *const data, void *const user_data) {
+    assert(data && !user_data);
+}
+
+int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
+                                const uint8_t *const ptr, const size_t sz)
+{
+    Dav1dData buf = { 0 };
+    int res;
+
+    validate_input_or_ret(out != NULL, -EINVAL);
+
+    Dav1dSettings s;
+    dav1d_default_settings(&s);
+
+    Dav1dContext *c;
+    res	= dav1d_open(&c, &s);
+    if (res < 0) return res;
+
+    if (ptr) {
+        res = dav1d_data_wrap(&buf, ptr, sz, dummy_free, NULL);
+        if (res < 0) goto error;
+    }
+
+    while (buf.sz > 0) {
+        res = dav1d_parse_obus(c, &buf, 1);
+        if (res < 0) goto error;
+
+        assert((size_t)res <= buf.sz);
+        buf.sz -= res;
+        buf.data += res;
+    }
+
+    if (!c->seq_hdr) {
+        res = -EINVAL;
+        goto error;
+    }
+
+    memcpy(out, c->seq_hdr, sizeof(*out));
+
+    res = 0;
+error:
+    dav1d_data_unref(&buf);
+    dav1d_close(&c);
+
+    return res;
+}
+
 int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
 {
     validate_input_or_ret(c != NULL, -EINVAL);
@@ -266,7 +314,7 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     }
 
     while (in->sz > 0) {
-        if ((res = dav1d_parse_obus(c, in)) < 0) {
+        if ((res = dav1d_parse_obus(c, in, 0)) < 0) {
             dav1d_data_unref(in);
             return res;
         }

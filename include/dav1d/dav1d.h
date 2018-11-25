@@ -77,6 +77,22 @@ DAV1D_API void dav1d_default_settings(Dav1dSettings *s);
 DAV1D_API int dav1d_open(Dav1dContext **c_out, const Dav1dSettings *s);
 
 /**
+ * Parse a Sequence Header OBU from bitstream data.
+ *
+ * @param out Output Sequence Header.
+ * @param buf The data to be parser.
+ * @param sz  Size of the data.
+ *
+ * @return 0 on success, or < 0 (a negative errno code) on error.
+ *
+ * @note It is safe to feed this function data containing other OBUs than a
+ *       Sequence Header, as they will simply be ignored. If there is more than
+ *       one Sequence Header OBU present, only the last will be returned.
+ */
+DAV1D_API int dav1d_parse_sequence_header(Dav1dSequenceHeader *out,
+                                          const uint8_t *buf, const size_t sz);
+
+/**
  * Feed bitstream data to the decoder.
  *
  * @param   c Input decoder instance.
