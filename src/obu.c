@@ -1248,8 +1248,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
                 if (c->cdf[i].cdf)
                     dav1d_cdf_thread_unref(&c->cdf[i]);
             }
-            dav1d_ref_dec(&c->seq_hdr_ref);
         }
+        dav1d_ref_dec(&c->seq_hdr_ref);
         c->seq_hdr_ref = ref;
         c->seq_hdr = seq_hdr;
         break;

@@ -457,5 +457,8 @@ void dav1d_close(Dav1dContext **const c_out) {
         dav1d_ref_dec(&c->refs[n].refmvs);
         dav1d_ref_dec(&c->refs[n].segmap);
     }
+    dav1d_ref_dec(&c->seq_hdr_ref);
+    dav1d_ref_dec(&c->frame_hdr_ref);
+
     dav1d_freep_aligned(c_out);
 }
