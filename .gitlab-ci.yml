@@ -143,7 +143,7 @@ test-debian-asan:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
         - meson build --buildtype debugoptimized -Dtestdata_tests=true -Db_sanitize=address -Dbuild_asm=false
         - ninja -C build
-        - cd build && time meson test -v
+        - cd build && time meson test -v --setup=sanitizer
 
 test-debian-msan:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20181114201132
@@ -164,7 +164,7 @@ test-debian-msan:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
         - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Db_sanitize=memory -Db_lundef=false -Dbuild_asm=false
         - ninja -C build
-        - cd build && time meson test -v
+        - cd build && time meson test -v --setup=sanitizer
 
 test-debian-ubsan:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20181114201132
@@ -185,4 +185,4 @@ test-debian-ubsan:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
         - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Db_sanitize=undefined -Db_lundef=false -Dbuild_asm=false
         - ninja -C build
-        - cd build && time meson test -v
+        - cd build && time meson test -v --setup=sanitizer
