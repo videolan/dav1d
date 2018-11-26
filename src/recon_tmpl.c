@@ -567,7 +567,7 @@ static int mc(Dav1dTileContext *const t,
         const int bottom =
             ((pos_y + (bh4 * v_mul - 1) * f->svc[refidx][1].step) >> 10) + 1;
 
-        if (dav1d_thread_picture_wait(refp, bottom, PLANE_TYPE_Y + !!pl))
+        if (dav1d_thread_picture_wait(refp, bottom + 4, PLANE_TYPE_Y + !!pl))
             return -1;
         if (DEBUG_BLOCK_INFO)
             printf("Off %dx%d [%d,%d,%d], size %dx%d [%d,%d]\n",
