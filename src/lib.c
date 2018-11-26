@@ -75,9 +75,9 @@ int dav1d_open(Dav1dContext **const c_out,
     validate_input_or_ret(c_out != NULL, -EINVAL);
     validate_input_or_ret(s != NULL, -EINVAL);
     validate_input_or_ret(s->n_tile_threads >= 1 &&
-                          s->n_tile_threads <= 64, -EINVAL);
+                          s->n_tile_threads <= DAV1D_MAX_TILE_THREADS, -EINVAL);
     validate_input_or_ret(s->n_frame_threads >= 1 &&
-                          s->n_frame_threads <= 256, -EINVAL);
+                          s->n_frame_threads <= DAV1D_MAX_FRAME_THREADS, -EINVAL);
     validate_input_or_ret(s->allocator.alloc_picture_callback != NULL,
                           -EINVAL);
     validate_input_or_ret(s->allocator.release_picture_callback != NULL,

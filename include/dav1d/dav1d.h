@@ -41,6 +41,9 @@ extern "C" {
 typedef struct Dav1dContext Dav1dContext;
 typedef struct Dav1dRef Dav1dRef;
 
+#define DAV1D_MAX_FRAME_THREADS 256
+#define DAV1D_MAX_TILE_THREADS 64
+
 typedef struct Dav1dSettings {
     int n_frame_threads;
     int n_tile_threads;
