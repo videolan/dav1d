@@ -61,6 +61,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     Dav1dContext * ctx = NULL;
     Dav1dPicture pic;
     const uint8_t *ptr = data;
+    int have_seq_hdr = 0;
     int err;
 
     dav1d_version();
@@ -101,6 +102,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             break;
 
         if (!frame_size) continue;
+
+        if (!have_seq_hdr) {
+            Dav1dSequenceHeader seq = { 0 };
+            int err = dav1d_parse_sequence_header(&seq, ptr, frame_size);
+            // skip frames until we see a sequence header
+            if  (err != 0) {
+                ptr += frame_size;
+                continue;
+            }
+            have_seq_hdr = 1;
+        }
 
         // copy frame data to a new buffer to catch reads past the end of input
         p = dav1d_data_create(&buf, frame_size);
