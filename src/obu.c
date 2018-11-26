@@ -458,11 +458,13 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
             int shifted_frame_offset[8];
             const int current_frame_offset = 1 << (seqhdr->order_hint_n_bits - 1);
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++) {
+                if (!c->refs[i].p.p.frame_hdr) goto error;
                 shifted_frame_offset[i] = current_frame_offset +
                     get_poc_diff(seqhdr->order_hint_n_bits,
                                  c->refs[i].p.p.frame_hdr->frame_offset,
                                  hdr->frame_offset);
+            }
 
             int used_frame[8] = { 0 };
             used_frame[hdr->refidx[0]] = 1;
