@@ -1266,6 +1266,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             if (!c->frame_hdr_ref) return -ENOMEM;
         }
         c->frame_hdr = c->frame_hdr_ref->data;
+        memset(c->frame_hdr, 0, sizeof(*c->frame_hdr));
         c->frame_hdr->temporal_id = temporal_id;
         c->frame_hdr->spatial_id = spatial_id;
         if ((res = parse_frame_hdr(c, &gb)) < 0) {
