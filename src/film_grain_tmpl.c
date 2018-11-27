@@ -476,7 +476,7 @@ void bitfn(dav1d_apply_grain)(Dav1dPicture *const out,
         generate_scaling(data->uv_points[1], data->num_uv_points[1], scaling[2]);
 
     // Synthesize grain for the affected planes
-    int rows = (out->p.h + 16) >> 5;
+    int rows = (out->p.h + 31) >> 5;
     for (int row = 0; row < rows; row++) {
         if (data->num_y_points)
             apply_to_row_y(out, in, grain_lut[0], scaling[0], row);
