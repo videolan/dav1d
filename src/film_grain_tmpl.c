@@ -237,23 +237,13 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
     pixel *const src_row = (pixel *)  in->data[0] + PXSTRIDE(stride) * row_num * BLOCK_SIZE;
     pixel *const dst_row = (pixel *) out->data[0] + PXSTRIDE(stride) * row_num * BLOCK_SIZE;
 
-    // edge extend source pixels
-    const int row_len = (out->p.w + BLOCK_SIZE - 1) & ~(BLOCK_SIZE - 1);
-    for (int x = out->p.w; x < row_len; x++) {
-        for (int y = 0; y < BLOCK_SIZE; y++) {
-            pixel *src = src_row + y * PXSTRIDE(stride) + x;
-            *src = 0;
-        }
-    }
-
-    const int row_h = (row_num + 1) * BLOCK_SIZE;
-    for (int y = out->p.h; y < row_h; y++)
-        memset((pixel *) in->data[0] + PXSTRIDE(stride) * y, 0, row_len * sizeof(pixel));
-
     int offsets[2 /* col offset */][2 /* row offset */];
 
     // process this row in BLOCK_SIZE^2 blocks
+    const int bh = imin(out->p.h - row_num * BLOCK_SIZE, BLOCK_SIZE);
     for (int bx = 0; bx < out->p.w; bx += BLOCK_SIZE) {
+        const int bw = imin(BLOCK_SIZE, out->p.w - bx);
+
         if (data->overlap_flag && bx) {
             // shift previous offsets left
             for (int i = 0; i < rows; i++)
@@ -276,9 +266,9 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
             int noise = round2(scaling[ *src ] * (grain), data->scaling_shift); \
             *dst = iclip(*src + noise, min_value, max_value);
 
-        for (int y = ystart; y < BLOCK_SIZE; y++) {
+        for (int y = ystart; y < bh; y++) {
             // Non-overlapped image region (straightforward)
-            for (int x = xstart; x < BLOCK_SIZE; x++) {
+            for (int x = xstart; x < bw; x++) {
                 int grain = sample_lut(grain_lut, offsets, 0, 0, 0, 0, x, y);
                 add_noise_y(x, y, grain);
             }
@@ -295,7 +285,7 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
 
         for (int y = 0; y < ystart; y++) {
             // Special case for overlapped row (sans corner)
-            for (int x = xstart; x < BLOCK_SIZE; x++) {
+            for (int x = xstart; x < bw; x++) {
                 int grain = sample_lut(grain_lut, offsets, 0, 0, 0, 0, x, y);
                 int old   = sample_lut(grain_lut, offsets, 0, 0, 0, 1, x, y);
                 grain = round2(old * w[y][0] + grain * w[y][1], 5);
@@ -366,24 +356,12 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
     pixel *const src_row = (pixel *)  in->data[1 + uv] + PXSTRIDE(stride) * by;
     pixel *const luma_row = (pixel *) out->data[0] + PXSTRIDE(out->stride[0]) * row_num * BLOCK_SIZE;
 
-    // edge extend source pixels
-    const int row_len = (((out->p.w + sx) >> sx) + (BLOCK_SIZE >> sx) - 1)
-                        & ~((BLOCK_SIZE >> sx) - 1);
-    for (int x = (out->p.w + sx) >> sx; x < row_len; x++) {
-        for (int y = 0; y < BLOCK_SIZE >> sy; y++) {
-            pixel *src = src_row + y * PXSTRIDE(stride) + x;
-            *src = 0;
-        }
-    }
-
-    const int row_h = (row_num + 1) * (BLOCK_SIZE >> sy);
-    for (int y = (out->p.h + sy) >> sy; y < row_h; y++)
-        memset((pixel *) in->data[1 + uv] + PXSTRIDE(stride) * y, 0, row_len * sizeof(pixel));
-
     int offsets[2 /* col offset */][2 /* row offset */];
 
     // process this row in BLOCK_SIZE^2 blocks (subsampled)
+    const int bh = (imin(out->p.h - row_num * BLOCK_SIZE, BLOCK_SIZE) + sy) >> sy;
     for (int bx = 0; bx < (out->p.w + sx) >> sx; bx += BLOCK_SIZE >> sx) {
+        const int bw = (imin(BLOCK_SIZE, out->p.w - (bx << sx)) + sx) >> sx;
         if (data->overlap_flag && bx) {
             // shift previous offsets left
             for (int i = 0; i < rows; i++)
@@ -424,9 +402,9 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
             int noise = round2(scaling[ val ] * (grain), data->scaling_shift);  \
             *dst = iclip(*src + noise, min_value, max_value);
 
-        for (int y = ystart; y < BLOCK_SIZE >> sy; y++) {
+        for (int y = ystart; y < bh; y++) {
             // Non-overlapped image region (straightforward)
-            for (int x = xstart; x < BLOCK_SIZE >> sx; x++) {
+            for (int x = xstart; x < bw; x++) {
                 int grain = sample_lut(grain_lut, offsets, sx, sy, 0, 0, x, y);
                 add_noise_uv(x, y, grain);
             }
@@ -443,7 +421,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
 
         for (int y = 0; y < ystart; y++) {
             // Special case for overlapped row (sans corner)
-            for (int x = xstart; x < BLOCK_SIZE >> sx; x++) {
+            for (int x = xstart; x < bw; x++) {
                 int grain = sample_lut(grain_lut, offsets, sx, sy, 0, 0, x, y);
                 int old   = sample_lut(grain_lut, offsets, sx, sy, 0, 1, x, y);
                 grain = (old * w[sy][y][0] + grain * w[sy][y][1] + 16) >> 5;
