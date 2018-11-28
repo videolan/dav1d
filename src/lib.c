@@ -359,6 +359,18 @@ void dav1d_flush(Dav1dContext *const c) {
     }
     atomic_store(c->frame_thread.flush, 0);
 
+    for (int i = 0; i < 8; i++) {
+        if (c->refs[i].p.p.data[0])
+            dav1d_thread_picture_unref(&c->refs[i].p);
+        dav1d_ref_dec(&c->refs[i].segmap);
+        dav1d_ref_dec(&c->refs[i].refmvs);
+        if (c->cdf[i].cdf)
+            dav1d_cdf_thread_unref(&c->cdf[i]);
+    }
+    c->frame_hdr = NULL;
+    c->seq_hdr = NULL;
+    dav1d_ref_dec(&c->seq_hdr_ref);
+
     c->frame_thread.next = 0;
 }
 
