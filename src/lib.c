@@ -268,7 +268,7 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
         break;
 #endif
     default:
-        assert(!"apply_grain: missing bit depth");
+        assert(0);
     }
 
     dav1d_picture_unref(in);
