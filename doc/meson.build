@@ -26,8 +26,8 @@ doxygen = find_program('doxygen', required: false)
 
 if doxygen.found()
     conf_data = configuration_data()
-    conf_data.set('DOXYGEN_INPUT', meson.source_root() + '/include/dav1d')
-    conf_data.set('DOXYGEN_STRIP', meson.source_root() + '/include/')
+    conf_data.set('DOXYGEN_INPUT', join_paths(meson.source_root(), 'include/dav1d'))
+    conf_data.set('DOXYGEN_STRIP', join_paths(meson.source_root(), 'include'))
     conf_data.set('DOXYGEN_OUTPUT', meson.current_build_dir())
     doxyfile = configure_file(input: 'Doxyfile.in',
                               output: 'Doxyfile',
