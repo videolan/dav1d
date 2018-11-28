@@ -1040,7 +1040,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             for (i = 0; i < 7; i++)
                 if (hdr->refidx[i] == refidx)
                     break;
-            if (i == 7) goto error;
+            if (i == 7 || !c->refs[refidx].p.p.frame_hdr)  goto error;
             hdr->film_grain.data = c->refs[refidx].p.p.frame_hdr->film_grain.data;
             hdr->film_grain.data.seed = seed;
         } else {
