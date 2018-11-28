@@ -2505,7 +2505,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->tile_thread.titsati_sz = f->frame_hdr->tiling.cols * f->sbh;
         }
         if (f->tile_thread.titsati_init[0] != f->frame_hdr->tiling.cols ||
-            f->tile_thread.titsati_init[1] != f->sbh)
+            f->tile_thread.titsati_init[1] != f->sbh ||
+            f->tile_thread.titsati_init[2] != f->frame_hdr->tiling.rows)
         {
             for (int tile_row = 0, tile_idx = 0;
                  tile_row < f->frame_hdr->tiling.rows; tile_row++)
@@ -2524,6 +2525,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             }
             f->tile_thread.titsati_init[0] = f->frame_hdr->tiling.cols;
             f->tile_thread.titsati_init[1] = f->sbh;
+            f->tile_thread.titsati_init[2] = f->frame_hdr->tiling.rows;
         }
     }
 
