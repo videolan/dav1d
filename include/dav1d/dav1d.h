@@ -172,9 +172,14 @@ DAV1D_API int dav1d_get_picture(Dav1dContext *c, Dav1dPicture *out);
 DAV1D_API void dav1d_close(Dav1dContext **c_out);
 
 /**
- * Flush all delayed frames in decoder, to be used when seeking.
+ * Flush all delayed frames in decoder and clear internal decoder state,
+ * to be used when seeking.
  *
  * @param c Input decoder instance.
+ *
+ * @note Decoding will start only after a valid sequence header OBU is
+ *       delivered to dav1d_send_data().
+ *
  */
 DAV1D_API void dav1d_flush(Dav1dContext *c);
 
