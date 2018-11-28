@@ -41,7 +41,10 @@ void *dav1d_frame_task(void *const data) {
         if (f->frame_thread.die) break;
         pthread_mutex_unlock(&f->frame_thread.td.lock);
 
-        dav1d_decode_frame(f);
+        const int res = dav1d_decode_frame(f);
+        if (res)
+            memset(f->frame_thread.cf, 0,
+                   sizeof(int32_t) * 3 * f->lf.mask_sz * 128 * 128);
 
         pthread_mutex_lock(&f->frame_thread.td.lock);
         f->n_tile_data = 0;
