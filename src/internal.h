@@ -88,6 +88,10 @@ struct Dav1dContext {
     struct {
         Dav1dThreadPicture *out_delayed;
         unsigned next;
+        // dummy is a pointer to prevent compiler errors about atomic_load()
+        // not taking const arguments; the const attribute is not taken
+        // from pointers
+        atomic_int flush_mem, *flush;
     } frame_thread;
 
     // reference/entropy state
@@ -288,7 +292,6 @@ struct Dav1dTileContext {
         struct thread_data td;
         struct FrameTileThreadData *fttd;
         int die;
-        atomic_int flush;
     } tile_thread;
 };
 

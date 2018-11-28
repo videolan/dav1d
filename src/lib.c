@@ -93,6 +93,8 @@ int dav1d_open(Dav1dContext **const c_out,
     c->apply_grain = s->apply_grain;
     c->operating_point = s->operating_point;
     c->all_layers = s->all_layers;
+    c->frame_thread.flush = &c->frame_thread.flush_mem;
+    atomic_init(c->frame_thread.flush, 0);
     c->n_fc = s->n_frame_threads;
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * s->n_frame_threads, 32);
     if (!c->fc) goto error;
@@ -134,7 +136,6 @@ int dav1d_open(Dav1dContext **const c_out,
                 t->tile_thread.fttd = &f->tile_thread;
                 pthread_create(&t->tile_thread.td.thread, NULL, dav1d_tile_task, t);
             }
-            atomic_init(&t->tile_thread.flush, 0);
         }
         f->libaom_cm = av1_alloc_ref_mv_common();
         if (!f->libaom_cm) goto error;
@@ -340,11 +341,7 @@ void dav1d_flush(Dav1dContext *const c) {
 
     // mark each currently-running frame as flushing, so that we
     // exit out as quickly as the running thread checks this flag
-    for (unsigned n = 0; n < c->n_fc; n++) {
-        Dav1dFrameContext *const f = &c->fc[n];
-        for (int m = 0; m < f->n_tc; m++)
-            atomic_store(&f->tc[m].tile_thread.flush, 1);
-    }
+    atomic_store(c->frame_thread.flush, 1);
     for (unsigned n = 0, next = c->frame_thread.next; n < c->n_fc; n++, next++) {
         if (next == c->n_fc) next = 0;
         Dav1dFrameContext *const f = &c->fc[next];
@@ -356,12 +353,11 @@ void dav1d_flush(Dav1dContext *const c) {
             assert(!f->cur.data[0]);
         }
         pthread_mutex_unlock(&f->frame_thread.td.lock);
-        for (int m = 0; m < f->n_tc; m++)
-            atomic_store(&f->tc[m].tile_thread.flush, 0);
         Dav1dThreadPicture *const out_delayed = &c->frame_thread.out_delayed[next];
         if (out_delayed->p.data[0])
             dav1d_thread_picture_unref(out_delayed);
     }
+    atomic_store(c->frame_thread.flush, 0);
 
     c->frame_thread.next = 0;
 }
