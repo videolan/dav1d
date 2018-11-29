@@ -95,7 +95,7 @@ static int ivf_read(IvfInputContext *const c, Dav1dData *const buf) {
     uint8_t *ptr;
     int res;
 
-    const off_t off = ftello(c->f);
+    const int64_t off = ftello(c->f);
     if ((res = fread(data, 4, 1, c->f)) != 1)
         return -1; // EOF
     const ptrdiff_t sz = rl32(data);
