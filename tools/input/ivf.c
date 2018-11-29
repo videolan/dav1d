@@ -36,6 +36,10 @@
 
 #include "input/demuxer.h"
 
+#ifdef _MSC_VER
+#define ftello _ftelli64
+#endif
+
 typedef struct DemuxerPriv {
     FILE *f;
 } IvfInputContext;
