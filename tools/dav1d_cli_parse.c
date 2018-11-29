@@ -135,7 +135,7 @@ void parse(const int argc, char *const *const argv,
     dav1d_default_settings(lib_settings);
     int grain_specified = 0;
 
-    while ((o = getopt_long(argc, argv, short_opts, long_opts, NULL)) >= 0) {
+    while ((o = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
         switch (o) {
         case 'o':
             cli_settings->outputfile = optarg;
@@ -186,10 +186,12 @@ void parse(const int argc, char *const *const argv,
             fprintf(stderr, "%s\n", dav1d_version());
             exit(0);
         default:
-            break;
+            usage(argv[0], NULL);
         }
     }
 
+    if (optind < argc)
+        usage(argv[0], "Extra/unused arguments found, e.g. '%s'\n", argv[optind]);
     if (cli_settings->verify) {
         if (cli_settings->outputfile)
             usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not set");
