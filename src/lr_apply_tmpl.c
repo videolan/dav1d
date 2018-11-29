@@ -73,21 +73,23 @@ static void backup_lpf(const Dav1dFrameContext *const f,
     src += (stripe_h - 2) * PXSTRIDE(src_stride);
 
     if (f->frame_hdr->super_res.enabled) {
-        for (; row + stripe_h <= row_h; row += stripe_h) {
+        while (row + stripe_h <= row_h) {
             f->dsp->mc.resize(dst, dst_stride, src, src_stride,
                               dst_w, src_w, 4, f->resize_step[ss_hor],
                               f->resize_start[ss_hor]);
+            row += stripe_h; // unmodified stripe_h for the 1st stripe
             stripe_h = 64 >> ss_ver;
             src += stripe_h * PXSTRIDE(src_stride);
             dst += 4 * PXSTRIDE(dst_stride);
         }
     } else {
-        for (; row + stripe_h <= row_h; row += stripe_h) {
+        while (row + stripe_h <= row_h) {
             for (int i = 0; i < 4; i++) {
                 pixel_copy(dst, src, src_w);
                 dst += PXSTRIDE(dst_stride);
                 src += PXSTRIDE(src_stride);
             }
+            row += stripe_h; // unmodified stripe_h for the 1st stripe
             stripe_h = 64 >> ss_ver;
             src += (stripe_h - 4) * PXSTRIDE(src_stride);
         }
