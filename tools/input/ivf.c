@@ -48,7 +48,7 @@ static unsigned rl32(const uint8_t *const p) {
     return ((uint32_t)p[3] << 24U) | (p[2] << 16U) | (p[1] << 8U) | p[0];
 }
 
-static uint64_t rl64(const uint8_t *const p) {
+static int64_t rl64(const uint8_t *const p) {
     return (((uint64_t) rl32(&p[4])) << 32) | rl32(p);
 }
 

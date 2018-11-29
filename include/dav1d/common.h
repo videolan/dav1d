@@ -52,9 +52,9 @@
  * used internally.
  */
 typedef struct Dav1dDataProps {
-    uint64_t timestamp; ///< container timestamp of input data, default -1
+    int64_t timestamp; ///< container timestamp of input data, default INT64_MIN
     uint64_t duration; ///< container duration of input data, default -1
-    uint64_t offset; ///< stream offset of input data, default -1
+    int64_t offset; ///< stream offset of input data, default INT64_MIN
     size_t size; ///< packet size, default Dav1dData.sz
 } Dav1dDataProps;
 

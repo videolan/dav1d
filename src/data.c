@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,7 +46,8 @@ uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
     if (!buf->ref) return NULL;
     buf->data = buf->ref->const_data;
     buf->sz = buf->m.size = sz;
-    buf->m.timestamp = buf->m.duration = buf->m.offset = ~0ULL;
+    buf->m.timestamp = buf->m.offset = INT64_MIN;
+    buf->m.duration = ~0ULL;
 
     return buf->ref->data;
 }
@@ -62,7 +64,8 @@ int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t
     if (!buf->ref) return -ENOMEM;
     buf->data = ptr;
     buf->sz = buf->m.size = sz;
-    buf->m.timestamp = buf->m.duration = buf->m.offset = ~0ULL;
+    buf->m.timestamp = buf->m.offset = INT64_MIN;
+    buf->m.duration = ~0ULL;
 
     return 0;
 }

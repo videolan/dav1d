@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,7 +117,8 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
 
     p->p.w = w;
     p->p.h = h;
-    p->m.timestamp = p->m.duration = p->m.offset = ~0ULL;
+    p->m.timestamp = p->m.offset = INT64_MIN;
+    p->m.duration = ~0ULL;
     p->p.layout = layout;
     p->p.bpc = bpc;
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
