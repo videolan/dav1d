@@ -124,7 +124,7 @@ int dav1d_open(Dav1dContext **const c_out,
             t->f = f;
             t->cf = dav1d_alloc_aligned(32 * 32 * sizeof(int32_t), 32);
             if (!t->cf) goto error;
-            t->scratch.mem = dav1d_alloc_aligned(128 * 128 * 8, 32);
+            t->scratch.mem = dav1d_alloc_aligned(128 * 128 * 4, 32);
             if (!t->scratch.mem) goto error;
             memset(t->cf, 0, 32 * 32 * sizeof(int32_t));
             t->emu_edge =

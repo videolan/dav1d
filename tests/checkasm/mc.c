@@ -80,14 +80,14 @@ static void check_mc(Dav1dMCDSPContext *const c) {
 
 static void check_mct(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 135 * 135,);
-    ALIGN_STK_32(coef,  c_tmp,   128 * 128,);
-    ALIGN_STK_32(coef,  a_tmp,   128 * 128,);
+    ALIGN_STK_32(int16_t, c_tmp,   128 * 128,);
+    ALIGN_STK_32(int16_t, a_tmp,   128 * 128,);
     const pixel *src = src_buf + 135 * 3 + 3;
 
     for (int i = 0; i < 135 * 135; i++)
         src_buf[i] = rand();
 
-    declare_func(void, coef *tmp, const pixel *src, ptrdiff_t src_stride,
+    declare_func(void, int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
                  int w, int h, int mx, int my);
 
     for (int filter = 0; filter < N_2D_FILTERS; filter++)
@@ -113,7 +113,7 @@ static void check_mct(Dav1dMCDSPContext *const c) {
 }
 
 static void init_tmp(Dav1dMCDSPContext *const c, pixel *const buf,
-                     coef (*const tmp)[128 * 128])
+                     int16_t (*const tmp)[128 * 128])
 {
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 135 * 135; j++)
@@ -125,14 +125,14 @@ static void init_tmp(Dav1dMCDSPContext *const c, pixel *const buf,
 }
 
 static void check_avg(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(coef, tmp, 2, [128 * 128]);
+    ALIGN_STK_32(int16_t, tmp, 2, [128 * 128]);
     ALIGN_STK_32(pixel, c_dst, 135 * 135,);
     ALIGN_STK_32(pixel, a_dst, 128 * 128,);
 
     init_tmp(c, c_dst, tmp);
 
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const coef *tmp1,
-                 const coef *tmp2, int w, int h);
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const int16_t *tmp1,
+                 const int16_t *tmp2, int w, int h);
 
     for (int w = 4; w <= 128; w <<= 1)
         if (check_func(c->avg, "avg_w%d_%dbpc", w, BITDEPTH))
@@ -149,14 +149,14 @@ static void check_avg(Dav1dMCDSPContext *const c) {
 }
 
 static void check_w_avg(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(coef, tmp, 2, [128 * 128]);
+    ALIGN_STK_32(int16_t, tmp, 2, [128 * 128]);
     ALIGN_STK_32(pixel, c_dst, 135 * 135,);
     ALIGN_STK_32(pixel, a_dst, 128 * 128,);
 
     init_tmp(c, c_dst, tmp);
 
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const coef *tmp1,
-                 const coef *tmp2, int w, int h, int weight);
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const int16_t *tmp1,
+                 const int16_t *tmp2, int w, int h, int weight);
 
     for (int w = 4; w <= 128; w <<= 1)
         if (check_func(c->w_avg, "w_avg_w%d_%dbpc", w, BITDEPTH))
@@ -175,7 +175,7 @@ static void check_w_avg(Dav1dMCDSPContext *const c) {
 }
 
 static void check_mask(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(coef, tmp, 2, [128 * 128]);
+    ALIGN_STK_32(int16_t, tmp, 2, [128 * 128]);
     ALIGN_STK_32(pixel,   c_dst, 135 * 135,);
     ALIGN_STK_32(pixel,   a_dst, 128 * 128,);
     ALIGN_STK_32(uint8_t, mask,  128 * 128,);
@@ -184,8 +184,8 @@ static void check_mask(Dav1dMCDSPContext *const c) {
     for (int i = 0; i < 128 * 128; i++)
         mask[i] = rand() % 65;
 
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const coef *tmp1,
-                 const coef *tmp2, int w, int h, const uint8_t *mask);
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const int16_t *tmp1,
+                 const int16_t *tmp2, int w, int h, const uint8_t *mask);
 
     for (int w = 4; w <= 128; w <<= 1)
         if (check_func(c->mask, "mask_w%d_%dbpc", w, BITDEPTH))
@@ -202,7 +202,7 @@ static void check_mask(Dav1dMCDSPContext *const c) {
 }
 
 static void check_w_mask(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_32(coef, tmp, 2, [128 * 128]);
+    ALIGN_STK_32(int16_t, tmp, 2, [128 * 128]);
     ALIGN_STK_32(pixel,   c_dst,  135 * 135,);
     ALIGN_STK_32(pixel,   a_dst,  128 * 128,);
     ALIGN_STK_32(uint8_t, c_mask, 128 * 128,);
@@ -210,8 +210,8 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
 
     init_tmp(c, c_dst, tmp);
 
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const coef *tmp1,
-                 const coef *tmp2, int w, int h, uint8_t *mask, int sign);
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const int16_t *tmp1,
+                 const int16_t *tmp2, int w, int h, uint8_t *mask, int sign);
 
     static const uint16_t ss[] = { 444, 422, 420 };
 
@@ -360,13 +360,13 @@ static void check_warp8x8(Dav1dMCDSPContext *const c) {
 
 static void check_warp8x8t(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 15 * 15,);
-    ALIGN_STK_32(coef,  c_tmp,    8 *  8,);
-    ALIGN_STK_32(coef,  a_tmp,    8 *  8,);
+    ALIGN_STK_32(int16_t, c_tmp,    8 *  8,);
+    ALIGN_STK_32(int16_t, a_tmp,    8 *  8,);
     int16_t abcd[4];
     const pixel *src = src_buf + 15 * 3 + 3;
     const ptrdiff_t src_stride = 15 * sizeof(pixel);
 
-    declare_func(void, coef *tmp, ptrdiff_t tmp_stride, const pixel *src,
+    declare_func(void, int16_t *tmp, ptrdiff_t tmp_stride, const pixel *src,
                  ptrdiff_t src_stride, const int16_t *abcd, int mx, int my);
 
     if (check_func(c->warp8x8t, "warp_8x8t_%dbpc", BITDEPTH)) {

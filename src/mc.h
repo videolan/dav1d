@@ -54,40 +54,40 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
 typedef decl_warp8x8_fn(*warp8x8_fn);
 
 #define decl_mct_fn(name) \
-void (name)(coef *tmp, const pixel *src, ptrdiff_t src_stride, \
+void (name)(int16_t *tmp, const pixel *src, ptrdiff_t src_stride, \
             int w, int h, int mx, int my)
 typedef decl_mct_fn(*mct_fn);
 
 #define decl_mct_scaled_fn(name) \
-void (name)(coef *tmp, const pixel *src, ptrdiff_t src_stride, \
+void (name)(int16_t *tmp, const pixel *src, ptrdiff_t src_stride, \
             int w, int h, int mx, int my, int dx, int dy)
 typedef decl_mct_scaled_fn(*mct_scaled_fn);
 
 #define decl_warp8x8t_fn(name) \
-void (name)(coef *tmp, const ptrdiff_t tmp_stride, \
+void (name)(int16_t *tmp, const ptrdiff_t tmp_stride, \
             const pixel *src, ptrdiff_t src_stride, \
             const int16_t *abcd, int mx, int my)
 typedef decl_warp8x8t_fn(*warp8x8t_fn);
 
 #define decl_avg_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const coef *tmp1, const coef *tmp2, int w, int h)
+            const int16_t *tmp1, const int16_t *tmp2, int w, int h)
 typedef decl_avg_fn(*avg_fn);
 
 #define decl_w_avg_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const coef *tmp1, const coef *tmp2, int w, int h, int weight)
+            const int16_t *tmp1, const int16_t *tmp2, int w, int h, int weight)
 typedef decl_w_avg_fn(*w_avg_fn);
 
 #define decl_mask_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const coef *tmp1, const coef *tmp2, int w, int h, \
+            const int16_t *tmp1, const int16_t *tmp2, int w, int h, \
             const uint8_t *mask)
 typedef decl_mask_fn(*mask_fn);
 
 #define decl_w_mask_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
-            const coef *tmp1, const coef *tmp2, int w, int h, \
+            const int16_t *tmp1, const int16_t *tmp2, int w, int h, \
             uint8_t *mask, int sign)
 typedef decl_w_mask_fn(*w_mask_fn);
 

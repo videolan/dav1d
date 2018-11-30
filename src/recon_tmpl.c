@@ -493,7 +493,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
 }
 
 static int mc(Dav1dTileContext *const t,
-              pixel *const dst8, coef *const dst16, const ptrdiff_t dst_stride,
+              pixel *const dst8, int16_t *const dst16, const ptrdiff_t dst_stride,
               const int bw4, const int bh4,
               const int bx, const int by, const int pl,
               const mv mv, const Dav1dThreadPicture *const refp, const int refidx,
@@ -671,7 +671,7 @@ static int obmc(Dav1dTileContext *const t,
 }
 
 static int warp_affine(Dav1dTileContext *const t,
-                       pixel *dst8, coef *dst16, const ptrdiff_t dstride,
+                       pixel *dst8, int16_t *dst16, const ptrdiff_t dstride,
                        const uint8_t *const b_dim, const int pl,
                        const Dav1dThreadPicture *const refp,
                        const Dav1dWarpedMotionParams *const wmp)
@@ -1357,7 +1357,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
     } else {
         const enum Filter2d filter_2d = b->filter2d;
         // Maximum super block size is 128x128
-        coef (*tmp)[128 * 128] = (coef (*)[128 * 128]) t->scratch.compinter;
+        int16_t (*tmp)[128 * 128] = (int16_t (*)[128 * 128]) t->scratch.compinter;
         int jnt_weight;
         uint8_t *const seg_mask = t->scratch_seg_mask;
         const uint8_t *mask;
@@ -1372,8 +1372,6 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
             } else {
                 res = mc(t, NULL, tmp[i], 0, bw4, bh4, t->bx, t->by, 0,
                          b->mv[i], refp, b->ref[i], filter_2d);
-                if (DEBUG_BLOCK_INFO)
-                    coef_dump(tmp[i], bw4*4, bh4*4, 3, "med");
                 if (res) return res;
             }
         }

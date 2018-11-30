@@ -278,7 +278,7 @@ struct Dav1dTileContext {
         uint8_t *pal_idx;
         int16_t *ac;
         pixel *interintra, *lap;
-        coef *compinter;
+        int16_t *compinter;
     } scratch;
     ALIGN(uint8_t scratch_seg_mask[128 * 128], 32);
 
