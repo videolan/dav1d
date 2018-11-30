@@ -118,7 +118,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     p->p.w = w;
     p->p.h = h;
     p->m.timestamp = p->m.offset = INT64_MIN;
-    p->m.duration = ~0ULL;
+    p->m.duration = -1;
     p->p.layout = layout;
     p->p.bpc = bpc;
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
