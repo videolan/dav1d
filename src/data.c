@@ -64,8 +64,8 @@ int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t
     if (!buf->ref) return -ENOMEM;
     buf->data = ptr;
     buf->sz = buf->m.size = sz;
-    buf->m.timestamp = buf->m.offset = INT64_MIN;
-    buf->m.duration = -1;
+    buf->m.timestamp = INT64_MIN;
+    buf->m.duration = buf->m.offset = -1;
 
     return 0;
 }
