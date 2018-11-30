@@ -46,8 +46,9 @@ uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
     if (!buf->ref) return NULL;
     buf->data = buf->ref->const_data;
     buf->sz = buf->m.size = sz;
-    buf->m.timestamp = buf->m.offset = INT64_MIN;
-    buf->m.duration = ~0ULL;
+    buf->m.timestamp = INT64_MIN;
+    buf->m.duration = 0;
+    buf->m.offset = -1;
 
     return buf->ref->data;
 }
