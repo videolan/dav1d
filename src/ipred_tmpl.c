@@ -391,7 +391,7 @@ static void ipred_z1_c(pixel *dst, const ptrdiff_t stride,
     const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle < 90);
-    const int dx = dav1d_dr_intra_derivative[angle];
+    int dx = dav1d_dr_intra_derivative[angle];
     pixel top_out[(64 + 64) * 2];
     const pixel *top;
     int max_base_x;
@@ -402,6 +402,7 @@ static void ipred_z1_c(pixel *dst, const ptrdiff_t stride,
                       &topleft_in[1], -1, width + imin(width, height));
         top = top_out;
         max_base_x = 2 * (width + height) - 2;
+        dx <<= 1;
     } else {
         const int filter_strength = enable_intra_edge_filter ?
             get_filter_strength(width + height, 90 - angle, is_sm) : 0;
@@ -416,15 +417,13 @@ static void ipred_z1_c(pixel *dst, const ptrdiff_t stride,
             max_base_x = width + imin(width, height) - 1;
         }
     }
-    const int frac_bits = 6 - upsample_above;
-    const int base_inc = 1 << upsample_above;
+    const int base_inc = 1 + upsample_above;
     for (int y = 0, xpos = dx; y < height;
          y++, dst += PXSTRIDE(stride), xpos += dx)
     {
-        int base = xpos >> frac_bits;
-        const int frac = ((xpos << upsample_above) & 0x3F) >> 1;
+        const int frac = (xpos >> 1) & 0x1F;
 
-        for (int x = 0; x < width; x++, base += base_inc) {
+        for (int x = 0, base = xpos >> 6; x < width; x++, base += base_inc) {
             if (base < max_base_x) {
                 const int v = top[base] * (32 - frac) + top[base + 1] * frac;
                 dst[x] = iclip_pixel((v + 16) >> 5);
@@ -445,8 +444,8 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
     const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle > 90 && angle < 180);
-    const int dy = dav1d_dr_intra_derivative[angle - 90];
-    const int dx = dav1d_dr_intra_derivative[180 - angle];
+    int dy = dav1d_dr_intra_derivative[angle - 90];
+    int dx = dav1d_dr_intra_derivative[180 - angle];
     const int upsample_left = enable_intra_edge_filter ?
         get_upsample(width + height, 180 - angle, is_sm) : 0;
     const int upsample_above = enable_intra_edge_filter ?
@@ -456,6 +455,7 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
 
     if (upsample_above) {
         upsample_edge(topleft, width + 1, topleft_in, 0, width + 1);
+        dx <<= 1;
     } else {
         const int filter_strength = enable_intra_edge_filter ?
             get_filter_strength(width + height, angle - 90, is_sm) : 0;
@@ -470,6 +470,7 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
     }
     if (upsample_left) {
         upsample_edge(edge, height + 1, &topleft_in[-height], 0, height + 1);
+        dy <<= 1;
     } else {
         const int filter_strength = enable_intra_edge_filter ?
             get_filter_strength(width + height, 180 - angle, is_sm) : 0;
@@ -484,18 +485,17 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
     }
     *topleft = *topleft_in;
 
-    const int min_base_x = -(1 << upsample_above);
-    const int frac_bits_y = 6 - upsample_left, frac_bits_x = 6 - upsample_above;
-    const int base_inc_x = 1 << upsample_above;
-    const pixel *const left = &topleft[-(1 << upsample_left)];
-    const pixel *const top = &topleft[1 << upsample_above];
+    const int min_base_x = -(1 + upsample_above);
+    const int base_inc_x = 1 + upsample_above;
+    const pixel *const left = &topleft[-(1 + upsample_left)];
+    const pixel *const top = &topleft[1 + upsample_above];
     for (int y = 0, xpos = -dx; y < height;
          y++, xpos -= dx, dst += PXSTRIDE(stride))
     {
-        int base_x = xpos >> frac_bits_x;
-        const int frac_x = ((xpos * (1 << upsample_above)) & 0x3F) >> 1;
+        int base_x = xpos >> 6;
+        const int frac_x = (xpos >> 1) & 0x1F;
 
-        for (int x = 0, ypos = (y << 6) - dy; x < width;
+        for (int x = 0, ypos = (y << (6 + upsample_left)) - dy; x < width;
              x++, base_x += base_inc_x, ypos -= dy)
         {
             int v;
@@ -503,9 +503,9 @@ static void ipred_z2_c(pixel *dst, const ptrdiff_t stride,
             if (base_x >= min_base_x) {
                 v = top[base_x] * (32 - frac_x) + top[base_x + 1] * frac_x;
             } else {
-                const int base_y = ypos >> frac_bits_y;
-                assert(base_y >= -(1 << upsample_left));
-                const int frac_y = ((ypos * (1 << upsample_left)) & 0x3F) >> 1;
+                const int base_y = ypos >> 6;
+                assert(base_y >= -(1 + upsample_left));
+                const int frac_y = (ypos >> 1) & 0x1F;
                 v = left[-base_y] * (32 - frac_y) + left[-(base_y + 1)] * frac_y;
             }
             dst[x] = iclip_pixel((v + 16) >> 5);
@@ -522,7 +522,7 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
     const int enable_intra_edge_filter = angle >> 10;
     angle &= 511;
     assert(angle > 180);
-    const int dy = dav1d_dr_intra_derivative[270 - angle];
+    int dy = dav1d_dr_intra_derivative[270 - angle];
     pixel left_out[(64 + 64) * 2];
     const pixel *left;
     int max_base_y;
@@ -534,6 +534,7 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
                       imax(width - height, 0), width + height + 1);
         left = &left_out[2 * (width + height) - 2];
         max_base_y = 2 * (width + height) - 2;
+        dy <<= 1;
     } else {
         const int filter_strength = enable_intra_edge_filter ?
             get_filter_strength(width + height, angle - 180, is_sm) : 0;
@@ -550,13 +551,11 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
             max_base_y = height + imin(width, height) - 1;
         }
     }
-    const int frac_bits = 6 - upsample_left;
-    const int base_inc = 1 << upsample_left;
+    const int base_inc = 1 + upsample_left;
     for (int x = 0, ypos = dy; x < width; x++, ypos += dy) {
-        int base = ypos >> frac_bits;
-        const int frac = ((ypos << upsample_left) & 0x3F) >> 1;
+        const int frac = (ypos >> 1) & 0x1F;
 
-        for (int y = 0; y < height; y++, base += base_inc) {
+        for (int y = 0, base = ypos >> 6; y < height; y++, base += base_inc) {
             if (base < max_base_y) {
                 const int v = left[-base] * (32 - frac) +
                               left[-(base + 1)] * frac;
