@@ -120,17 +120,18 @@ static void check_cfl_ac(Dav1dIntraPredDSPContext *const c) {
             {
                 for (int h = imax(w / 4, 4); h <= imin(w * 4, (32 >> ss_ver)); h <<= 1) {
                     const ptrdiff_t stride = 32 * sizeof(pixel);
-                    const int w_pad = rand() & ((w >> 2) - 1);
-                    const int h_pad = rand() & ((h >> 2) - 1);
+                    for (int w_pad = (w >> 2) - 1; w_pad >= 0; w_pad--) {
+                        for (int h_pad = (h >> 2) - 1; h_pad >= 0; h_pad--) {
+                            for (int y = 0; y < (h << ss_ver); y++)
+                                for (int x = 0; x < (w << ss_hor); x++)
+                                    luma[y * 32 + x] = rand() & ((1 << BITDEPTH) - 1);
 
-                    for (int y = 0; y < (h << ss_ver); y++)
-                        for (int x = 0; x < (w << ss_hor); x++)
-                            luma[y * 32 + x] = rand() & ((1 << BITDEPTH) - 1);
-
-                    call_ref(c_dst, luma, stride, w_pad, h_pad, w, h);
-                    call_new(a_dst, luma, stride, w_pad, h_pad, w, h);
-                    if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
-                        fail();
+                            call_ref(c_dst, luma, stride, w_pad, h_pad, w, h);
+                            call_new(a_dst, luma, stride, w_pad, h_pad, w, h);
+                            if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
+                                fail();
+                        }
+                    }
 
                     bench_new(a_dst, luma, stride, 0, 0, w, h);
                 }
