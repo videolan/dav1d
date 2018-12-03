@@ -475,23 +475,6 @@ void bitfn(dav1d_apply_grain)(Dav1dPicture *const out,
     if (data->num_uv_points[1])
         generate_scaling(data->uv_points[1], data->num_uv_points[1], scaling[2]);
 
-    // Synthesize grain for the affected planes
-    int rows = (out->p.h + 31) >> 5;
-    for (int row = 0; row < rows; row++) {
-        if (data->num_y_points)
-            apply_to_row_y(out, in, grain_lut[0], scaling[0], row);
-
-        if (data->chroma_scaling_from_luma) {
-            apply_to_row_uv(out, in, grain_lut[1], scaling[0], 0, row);
-            apply_to_row_uv(out, in, grain_lut[2], scaling[0], 1, row);
-        } else {
-            if (data->num_uv_points[0])
-                apply_to_row_uv(out, in, grain_lut[1], scaling[1], 0, row);
-            if (data->num_uv_points[1])
-                apply_to_row_uv(out, in, grain_lut[2], scaling[2], 1, row);
-        }
-    }
-
     // Copy over the non-modified planes
     // TODO: eliminate in favor of per-plane refs
     if (!data->num_y_points) {
@@ -507,6 +490,23 @@ void bitfn(dav1d_apply_grain)(Dav1dPicture *const out,
                 memcpy(out->data[1+i], in->data[1+i],
                        (out->p.h >> suby) * out->stride[1]);
             }
+        }
+    }
+
+    // Synthesize grain for the affected planes
+    int rows = (out->p.h + 31) >> 5;
+    for (int row = 0; row < rows; row++) {
+        if (data->num_y_points)
+            apply_to_row_y(out, in, grain_lut[0], scaling[0], row);
+
+        if (data->chroma_scaling_from_luma) {
+            apply_to_row_uv(out, in, grain_lut[1], scaling[0], 0, row);
+            apply_to_row_uv(out, in, grain_lut[2], scaling[0], 1, row);
+        } else {
+            if (data->num_uv_points[0])
+                apply_to_row_uv(out, in, grain_lut[1], scaling[1], 0, row);
+            if (data->num_uv_points[1])
+                apply_to_row_uv(out, in, grain_lut[2], scaling[2], 1, row);
         }
     }
 }
