@@ -84,7 +84,8 @@ static void check_intra_pred(Dav1dIntraPredDSPContext *const c) {
 
                     int a = 0;
                     if (mode >= Z1_PRED && mode <= Z3_PRED) /* angle */
-                        a = 90 * (mode - Z1_PRED) + z_angles[rand() % 27];
+                        a = (90 * (mode - Z1_PRED) + z_angles[rand() % 27]) |
+                            (rand() & 0x600);
                     else if (mode == FILTER_PRED) /* filter_idx */
                         a = (rand() % 5) | (rand() & ~511);
 
