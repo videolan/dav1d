@@ -255,8 +255,8 @@ static void apply_to_row_y(Dav1dPicture *const out, const Dav1dPicture *const in
             offsets[0][i] = get_random_number(8, &seed[i]);
 
         // x/y block offsets to compensate for overlapped regions
-        const int ystart = data->overlap_flag && row_num ? 2 : 0;
-        const int xstart = data->overlap_flag && bx      ? 2 : 0;
+        const int ystart = data->overlap_flag && row_num ? imin(2, bh) : 0;
+        const int xstart = data->overlap_flag && bx      ? imin(2, bw) : 0;
 
         static const int w[2][2] = { { 27, 17 }, { 17, 27 } };
 
@@ -373,8 +373,8 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
             offsets[0][i] = get_random_number(8, &seed[i]);
 
         // x/y block offsets to compensate for overlapped regions
-        const int ystart = data->overlap_flag && row_num ? (2 >> sy) : 0;
-        const int xstart = data->overlap_flag && bx      ? (2 >> sx) : 0;
+        const int ystart = data->overlap_flag && row_num ? imin(2 >> sy, bh) : 0;
+        const int xstart = data->overlap_flag && bx      ? imin(2 >> sx, bw) : 0;
 
         static const int w[2 /* sub */][2 /* off */][2] = {
             { { 27, 17 }, { 17, 27 } },
