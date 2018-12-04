@@ -315,17 +315,19 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     }
 
     while (in->sz > 0) {
-        if ((res = dav1d_parse_obus(c, in, 0)) < 0) {
+        res = dav1d_parse_obus(c, in, 0);
+        if (res < 0) {
             dav1d_data_unref(in);
-            return res;
+        } else {
+            assert((size_t)res <= in->sz);
+            in->sz -= res;
+            in->data += res;
+            if (!in->sz) dav1d_data_unref(in);
         }
-
-        assert((size_t)res <= in->sz);
-        in->sz -= res;
-        in->data += res;
-        if (!in->sz) dav1d_data_unref(in);
         if (c->out.data[0])
             break;
+        if (res < 0)
+            return res;
     }
 
     if (c->out.data[0])
