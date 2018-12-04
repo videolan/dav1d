@@ -119,6 +119,7 @@ struct Dav1dContext {
     int operating_point;
     unsigned operating_point_idc;
     int all_layers;
+    int drain;
 };
 
 struct Dav1dFrameContext {

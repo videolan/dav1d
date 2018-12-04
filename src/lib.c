@@ -222,6 +222,8 @@ int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
     validate_input_or_ret(in != NULL, -EINVAL);
     validate_input_or_ret(in->data == NULL || in->sz, -EINVAL);
 
+    c->drain = 0;
+
     if (c->in.data)
         return -EAGAIN;
     dav1d_data_move_ref(&c->in, in);
@@ -275,6 +277,35 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     return 0;
 }
 
+static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
+    unsigned drain_count = 0;
+    do {
+        const unsigned next = c->frame_thread.next;
+        Dav1dFrameContext *const f = &c->fc[next];
+        pthread_mutex_lock(&f->frame_thread.td.lock);
+        while (f->n_tile_data > 0)
+            pthread_cond_wait(&f->frame_thread.td.cond,
+                              &f->frame_thread.td.lock);
+        pthread_mutex_unlock(&f->frame_thread.td.lock);
+        Dav1dThreadPicture *const out_delayed =
+            &c->frame_thread.out_delayed[next];
+        if (++c->frame_thread.next == c->n_fc)
+            c->frame_thread.next = 0;
+        if (out_delayed->p.data[0]) {
+            const unsigned progress =
+                atomic_load_explicit(&out_delayed->progress[1],
+                                     memory_order_relaxed);
+            if (out_delayed->visible && progress != FRAME_ERROR)
+                dav1d_picture_ref(&c->out, &out_delayed->p);
+            dav1d_thread_picture_unref(out_delayed);
+            if (c->out.data[0])
+                return output_image(c, out, &c->out);
+        }
+    } while (++drain_count < c->n_fc);
+
+    return -EAGAIN;
+}
+
 int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res;
@@ -282,36 +313,13 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     validate_input_or_ret(c != NULL, -EINVAL);
     validate_input_or_ret(out != NULL, -EINVAL);
 
+    const int drain = c->drain;
+    c->drain = 1;
+
     Dav1dData *const in = &c->in;
     if (!in->data) {
         if (c->n_fc == 1) return -EAGAIN;
-
-        // flush
-        unsigned flush_count = 0;
-        do {
-            const unsigned next = c->frame_thread.next;
-            Dav1dFrameContext *const f = &c->fc[next];
-
-            pthread_mutex_lock(&f->frame_thread.td.lock);
-            while (f->n_tile_data > 0)
-                pthread_cond_wait(&f->frame_thread.td.cond,
-                                  &f->frame_thread.td.lock);
-            pthread_mutex_unlock(&f->frame_thread.td.lock);
-            Dav1dThreadPicture *const out_delayed =
-                &c->frame_thread.out_delayed[next];
-            if (++c->frame_thread.next == c->n_fc)
-                c->frame_thread.next = 0;
-            if (out_delayed->p.data[0]) {
-                const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
-                                                               memory_order_relaxed);
-                if (out_delayed->visible && progress != FRAME_ERROR)
-                    dav1d_picture_ref(&c->out, &out_delayed->p);
-                dav1d_thread_picture_unref(out_delayed);
-                if (c->out.data[0])
-                    return output_image(c, out, &c->out);
-            }
-        } while (++flush_count < c->n_fc);
-        return -EAGAIN;
+        return drain_picture(c, out);
     }
 
     while (in->sz > 0) {
@@ -333,11 +341,15 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     if (c->out.data[0])
         return output_image(c, out, &c->out);
 
+    if (c->n_fc > 1 && drain)
+        return drain_picture(c, out);
+
     return -EAGAIN;
 }
 
 void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_unref(&c->in);
+    c->drain = 0;
 
     if (c->n_fc == 1) return;
 
