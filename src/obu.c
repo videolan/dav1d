@@ -1388,14 +1388,14 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             if (c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
                 const int r = c->frame_hdr->existing_frame_idx;
                 for (int i = 0; i < 8; i++) {
-                    if (i == c->frame_hdr->existing_frame_idx) continue;
+                    if (i == r) continue;
 
                     if (c->refs[i].p.p.data[0])
                         dav1d_thread_picture_unref(&c->refs[i].p);
                     dav1d_thread_picture_ref(&c->refs[i].p, &c->refs[r].p);
 
                     if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
-                    dav1d_init_states(&c->cdf[i], c->refs[r].p.p.frame_hdr->quant.yac);
+                    dav1d_cdf_thread_ref(&c->cdf[i], &c->cdf[r]);
 
                     dav1d_ref_dec(&c->refs[i].segmap);
                     c->refs[i].segmap = c->refs[r].segmap;
