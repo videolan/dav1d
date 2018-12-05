@@ -3013,7 +3013,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
         switch (bpc) {
 #define assign_bitdepth_case(bd) \
-        case bd: \
             dav1d_cdef_dsp_init_##bd##bpc(&dsp->cdef); \
             dav1d_intra_pred_dsp_init_##bd##bpc(&dsp->ipred); \
             dav1d_itx_dsp_init_##bd##bpc(&dsp->itx); \
@@ -3022,10 +3021,13 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             dav1d_mc_dsp_init_##bd##bpc(&dsp->mc); \
             break
 #if CONFIG_8BPC
-        assign_bitdepth_case(8);
+        case 8:
+            assign_bitdepth_case(8);
 #endif
-#if CONFIG_10BPC
-        assign_bitdepth_case(10);
+#if CONFIG_16BPC
+        case 10:
+        case 12:
+            assign_bitdepth_case(16);
 #endif
 #undef assign_bitdepth_case
         default:
@@ -3047,7 +3049,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         assign_bitdepth_case(8);
 #endif
     } else {
-#if CONFIG_10BPC
+#if CONFIG_16BPC
         assign_bitdepth_case(16);
 #endif
     }
@@ -3168,6 +3170,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->sb_step = 16 << f->seq_hdr->sb128;
     f->sbh = (f->bh + f->sb_step - 1) >> f->sb_shift;
     f->b4_stride = (f->bw + 31) & ~31;
+    f->bitdepth_max = (1 << f->cur.p.bpc) - 1;
 
     // ref_mvs
     if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {

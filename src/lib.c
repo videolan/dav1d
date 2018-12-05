@@ -264,9 +264,10 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
         dav1d_apply_grain_8bpc(out, in);
         break;
 #endif
-#if CONFIG_10BPC
+#if CONFIG_16BPC
     case 10:
-        dav1d_apply_grain_10bpc(out, in);
+    case 12:
+        dav1d_apply_grain_16bpc(out, in);
         break;
 #endif
     default:

@@ -52,9 +52,9 @@ libdav1d_sources = files(
 # These files are compiled for each bitdepth with
 # `BITDEPTH` defined to the currently built bitdepth.
 libdav1d_tmpl_sources = files(
+    'ipred_prepare_tmpl.c',
     'ipred_tmpl.c',
     'itx_tmpl.c',
-    'ipred_prepare_tmpl.c',
     'lf_apply_tmpl.c',
     'loopfilter_tmpl.c',
     'mc_tmpl.c',

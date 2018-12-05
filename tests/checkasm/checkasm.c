@@ -69,13 +69,13 @@ static const struct {
     { "looprestoration_8bpc", checkasm_check_looprestoration_8bpc },
     { "mc_8bpc", checkasm_check_mc_8bpc },
 #endif
-#if CONFIG_10BPC
-    { "cdef_10bpc", checkasm_check_cdef_10bpc },
-    { "ipred_10bpc", checkasm_check_ipred_10bpc },
-    { "itx_10bpc", checkasm_check_itx_10bpc },
-    { "loopfilter_10bpc", checkasm_check_loopfilter_10bpc },
-    { "looprestoration_10bpc", checkasm_check_looprestoration_10bpc },
-    { "mc_10bpc", checkasm_check_mc_10bpc },
+#if CONFIG_16BPC
+    { "cdef_16bpc", checkasm_check_cdef_16bpc },
+    { "ipred_16bpc", checkasm_check_ipred_16bpc },
+    { "itx_16bpc", checkasm_check_itx_16bpc },
+    { "loopfilter_16bpc", checkasm_check_loopfilter_16bpc },
+    { "looprestoration_16bpc", checkasm_check_looprestoration_16bpc },
+    { "mc_16bpc", checkasm_check_mc_16bpc },
 #endif
     { 0 }
 };

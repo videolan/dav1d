@@ -176,6 +176,7 @@ struct Dav1dFrameContext {
     int a_sz /* w*tile_rows */;
     AV1_COMMON *libaom_cm; // FIXME
     uint8_t jnt_weights[7][7];
+    int bitdepth_max;
 
     struct {
         struct thread_data td;

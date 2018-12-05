@@ -36,23 +36,16 @@
 #include "include/common/attributes.h"
 #include "include/common/intops.h"
 
-void checkasm_check_cdef_8bpc(void);
-void checkasm_check_cdef_10bpc(void);
+#define decl_check_bitfns(name) \
+name##_8bpc(void); \
+name##_16bpc(void)
 
-void checkasm_check_ipred_8bpc(void);
-void checkasm_check_ipred_10bpc(void);
-
-void checkasm_check_itx_8bpc(void);
-void checkasm_check_itx_10bpc(void);
-
-void checkasm_check_loopfilter_8bpc(void);
-void checkasm_check_loopfilter_10bpc(void);
-
-void checkasm_check_looprestoration_8bpc(void);
-void checkasm_check_looprestoration_10bpc(void);
-
-void checkasm_check_mc_8bpc(void);
-void checkasm_check_mc_10bpc(void);
+decl_check_bitfns(void checkasm_check_cdef);
+decl_check_bitfns(void checkasm_check_ipred);
+decl_check_bitfns(void checkasm_check_itx);
+decl_check_bitfns(void checkasm_check_loopfilter);
+decl_check_bitfns(void checkasm_check_looprestoration);
+decl_check_bitfns(void checkasm_check_mc);
 
 void *checkasm_check_func(void *func, const char *name, ...);
 int checkasm_bench_func(void);
