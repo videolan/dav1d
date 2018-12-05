@@ -44,6 +44,7 @@ static unsigned get_seed(void) {
 }
 #else
 #include <unistd.h>
+#include <signal.h>
 #include <sys/time.h>
 #define COLOR_RED    1
 #define COLOR_GREEN  2
@@ -400,6 +401,44 @@ static CheckasmFunc *get_func(CheckasmFunc **root, const char *const name) {
     return f;
 }
 
+checkasm_context checkasm_context_buf;
+
+/* Crash handling: attempt to catch crashes and handle them
+ * gracefully instead of just aborting abruptly. */
+#ifdef _WIN32
+static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
+    switch (e->ExceptionRecord->ExceptionCode) {
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        checkasm_fail_func("fatal arithmetic error");
+        break;
+    case EXCEPTION_ILLEGAL_INSTRUCTION:
+    case EXCEPTION_PRIV_INSTRUCTION:
+        checkasm_fail_func("illegal instruction");
+        break;
+    case EXCEPTION_ACCESS_VIOLATION:
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+    case EXCEPTION_DATATYPE_MISALIGNMENT:
+    case EXCEPTION_IN_PAGE_ERROR:
+    case EXCEPTION_STACK_OVERFLOW:
+        checkasm_fail_func("segmentation fault");
+        break;
+    default:
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    checkasm_load_context();
+    return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
+}
+#else
+static void signal_handler(const int s) {
+    checkasm_set_signal_handler_state(0);
+    checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
+                       s == SIGILL ? "illegal instruction" :
+                                     "segmentation fault");
+    checkasm_load_context();
+}
+#endif
+
 /* Perform tests and benchmarks for the specified
  * cpu flag if supported by the host */
 static void check_cpu_flag(const char *const name, unsigned flag) {
@@ -604,4 +643,18 @@ void checkasm_report(const char *const name, ...) {
         if (length > max_length)
             max_length = length;
     }
+}
+
+void checkasm_set_signal_handler_state(const int enabled) {
+#ifdef _WIN32
+    if (enabled)
+        AddVectoredExceptionHandler(0, signal_handler);
+    else
+        RemoveVectoredExceptionHandler(signal_handler);
+#else
+    void (*const handler)(int) = enabled ? signal_handler : SIG_DFL;
+    signal(SIGFPE,  handler);
+    signal(SIGILL,  handler);
+    signal(SIGSEGV, handler);
+#endif
 }

@@ -97,6 +97,11 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
 {
     ALIGN_STK_32(pixel, c_dst_mem, 128 * 16,);
     ALIGN_STK_32(pixel, a_dst_mem, 128 * 16,);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const uint32_t *mask,
+                 const uint8_t (*l)[4], ptrdiff_t b4_stride,
+                 const Av1FilterLUT *lut, int w HIGHBD_DECL_SUFFIX);
+
     pixel *a_dst, *c_dst;
     ptrdiff_t stride, b4_stride;
     if (dir) {
@@ -110,10 +115,6 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
         stride = 16 * sizeof(pixel);
         b4_stride = 2;
     }
-
-    declare_func(void, pixel *dst, ptrdiff_t dst_stride, const uint32_t *mask,
-                 const uint8_t (*l)[4], ptrdiff_t b4_stride,
-                 const Av1FilterLUT *lut, int w HIGHBD_DECL_SUFFIX);
 
     Av1FilterLUT lut;
     const int sharp = rand() & 7;
