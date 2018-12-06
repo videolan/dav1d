@@ -77,7 +77,7 @@ void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     if(!(flags & DAV1D_X86_CPU_FLAG_SSSE3))
         return;
 
-#if BITDEPTH == 8 && ARCH_X86_64
+#if BITDEPTH == 8
     c->avg = dav1d_avg_ssse3;
     c->w_avg = dav1d_w_avg_ssse3;
     c->mask = dav1d_mask_ssse3;
