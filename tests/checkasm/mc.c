@@ -60,16 +60,16 @@ static void check_mc(Dav1dMCDSPContext *const c) {
                     const int min = w <= 32 ? 2 : w / 4;
                     const int max = imax(imin(w * 4, 128), 32);
                     for (int h = min; h <= max; h <<= 1) {
-                        const int mx = (mxy & 1) ? rand() % 15 + 1 : 0;
-                        const int my = (mxy & 2) ? rand() % 15 + 1 : 0;
+                        const int mx = (mxy & 1) ? rnd() % 15 + 1 : 0;
+                        const int my = (mxy & 2) ? rnd() % 15 + 1 : 0;
 #if BITDEPTH == 16
-                        const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                         const int bitdepth_max = 0xff;
 #endif
 
                         for (int i = 0; i < 135 * 135; i++)
-                            src_buf[i] = rand() & bitdepth_max;
+                            src_buf[i] = rnd() & bitdepth_max;
 
                         call_ref(c_dst, w, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
                         call_new(a_dst, w, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
@@ -100,16 +100,16 @@ static void check_mct(Dav1dMCDSPContext *const c) {
                     filter_names[filter], w, mxy_names[mxy], BITDEPTH))
                     for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
                     {
-                        const int mx = (mxy & 1) ? rand() % 15 + 1 : 0;
-                        const int my = (mxy & 2) ? rand() % 15 + 1 : 0;
+                        const int mx = (mxy & 1) ? rnd() % 15 + 1 : 0;
+                        const int my = (mxy & 2) ? rnd() % 15 + 1 : 0;
 #if BITDEPTH == 16
-                        const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                         const int bitdepth_max = 0xff;
 #endif
 
                         for (int i = 0; i < 135 * 135; i++)
-                            src_buf[i] = rand() & bitdepth_max;
+                            src_buf[i] = rnd() & bitdepth_max;
 
                         call_ref(c_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
                         call_new(a_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
@@ -128,10 +128,10 @@ static void init_tmp(Dav1dMCDSPContext *const c, pixel *const buf,
 {
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 135 * 135; j++)
-            buf[j] = rand() & bitdepth_max;
-        c->mct[rand() % N_2D_FILTERS](tmp[i], buf + 135 * 3 + 3,
+            buf[j] = rnd() & bitdepth_max;
+        c->mct[rnd() % N_2D_FILTERS](tmp[i], buf + 135 * 3 + 3,
                                       128 * sizeof(pixel), 128, 128,
-                                      rand() & 15, rand() & 15
+                                      rnd() & 15, rnd() & 15
                                       HIGHBD_TAIL_SUFFIX);
     }
 }
@@ -149,7 +149,7 @@ static void check_avg(Dav1dMCDSPContext *const c) {
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
@@ -176,9 +176,9 @@ static void check_w_avg(Dav1dMCDSPContext *const c) {
         if (check_func(c->w_avg, "w_avg_w%d_%dbpc", w, BITDEPTH))
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
-                int weight = rand() % 15 + 1;
+                int weight = rnd() % 15 + 1;
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
@@ -201,7 +201,7 @@ static void check_mask(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(uint8_t, mask,  128 * 128,);
 
     for (int i = 0; i < 128 * 128; i++)
-        mask[i] = rand() % 65;
+        mask[i] = rnd() % 65;
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const int16_t *tmp1,
                  const int16_t *tmp2, int w, int h, const uint8_t *mask
@@ -212,7 +212,7 @@ static void check_mask(Dav1dMCDSPContext *const c) {
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
@@ -246,9 +246,9 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
                            BITDEPTH))
                 for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
                 {
-                    int sign = rand() & 1;
+                    int sign = rnd() & 1;
 #if BITDEPTH == 16
-                    const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                    const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                     const int bitdepth_max = 0xff;
 #endif
@@ -284,16 +284,16 @@ static void check_blend(Dav1dMCDSPContext *const c) {
         if (check_func(c->blend, "blend_w%d_%dbpc", w, BITDEPTH))
             for (int h = imax(w / 2, 4); h <= imin(w * 2, 32); h <<= 1) {
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
                 for (int i = 0; i < 32 * 32; i++) {
-                    tmp[i] = rand() & bitdepth_max;
-                    mask[i] = rand() % 65;
+                    tmp[i] = rnd() & bitdepth_max;
+                    mask[i] = rnd() % 65;
                 }
                 for (int i = 0; i < w * h; i++)
-                    c_dst[i] = a_dst[i] = rand() & bitdepth_max;
+                    c_dst[i] = a_dst[i] = rnd() & bitdepth_max;
 
                 call_ref(c_dst, dst_stride, tmp, w, h, mask);
                 call_new(a_dst, dst_stride, tmp, w, h, mask);
@@ -319,15 +319,15 @@ static void check_blend_v(Dav1dMCDSPContext *const c) {
         if (check_func(c->blend_v, "blend_v_w%d_%dbpc", w, BITDEPTH))
             for (int h = 2; h <= (w == 2 ? 64 : 128); h <<= 1) {
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
 
                 for (int i = 0; i < w * h; i++)
-                    c_dst[i] = a_dst[i] = rand() & bitdepth_max;
+                    c_dst[i] = a_dst[i] = rnd() & bitdepth_max;
                 for (int i = 0; i < 32 * 128; i++)
-                    tmp[i] = rand() & bitdepth_max;
+                    tmp[i] = rnd() & bitdepth_max;
 
                 call_ref(c_dst, dst_stride, tmp, w, h);
                 call_new(a_dst, dst_stride, tmp, w, h);
@@ -353,14 +353,14 @@ static void check_blend_h(Dav1dMCDSPContext *const c) {
         if (check_func(c->blend_h, "blend_h_w%d_%dbpc", w, BITDEPTH))
             for (int h = (w == 128 ? 4 : 2); h <= 32; h <<= 1) {
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
                 for (int i = 0; i < w * h; i++)
-                    c_dst[i] = a_dst[i] = rand() & bitdepth_max;
+                    c_dst[i] = a_dst[i] = rnd() & bitdepth_max;
                 for (int i = 0; i < 128 * 32; i++)
-                    tmp[i] = rand() & bitdepth_max;
+                    tmp[i] = rnd() & bitdepth_max;
 
                 call_ref(c_dst, dst_stride, tmp, w, h);
                 call_new(a_dst, dst_stride, tmp, w, h);
@@ -387,19 +387,19 @@ static void check_warp8x8(Dav1dMCDSPContext *const c) {
                  HIGHBD_DECL_SUFFIX);
 
     if (check_func(c->warp8x8, "warp_8x8_%dbpc", BITDEPTH)) {
-        const int mx = (rand() & 0x1fff) - 0x800;
-        const int my = (rand() & 0x1fff) - 0x800;
+        const int mx = (rnd() & 0x1fff) - 0x800;
+        const int my = (rnd() & 0x1fff) - 0x800;
 #if BITDEPTH == 16
-        const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
         const int bitdepth_max = 0xff;
 #endif
 
         for (int i = 0; i < 4; i++)
-            abcd[i] = (rand() & 0x1fff) - 0x800;
+            abcd[i] = (rnd() & 0x1fff) - 0x800;
 
         for (int i = 0; i < 15 * 15; i++)
-            src_buf[i] = rand() & bitdepth_max;
+            src_buf[i] = rnd() & bitdepth_max;
 
         call_ref(c_dst, dst_stride, src, src_stride, abcd, mx, my HIGHBD_TAIL_SUFFIX);
         call_new(a_dst, dst_stride, src, src_stride, abcd, mx, my HIGHBD_TAIL_SUFFIX);
@@ -424,19 +424,19 @@ static void check_warp8x8t(Dav1dMCDSPContext *const c) {
                  HIGHBD_DECL_SUFFIX);
 
     if (check_func(c->warp8x8t, "warp_8x8t_%dbpc", BITDEPTH)) {
-        const int mx = (rand() & 0x1fff) - 0x800;
-        const int my = (rand() & 0x1fff) - 0x800;
+        const int mx = (rnd() & 0x1fff) - 0x800;
+        const int my = (rnd() & 0x1fff) - 0x800;
 #if BITDEPTH == 16
-        const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
         const int bitdepth_max = 0xff;
 #endif
 
         for (int i = 0; i < 4; i++)
-            abcd[i] = (rand() & 0x1fff) - 0x800;
+            abcd[i] = (rnd() & 0x1fff) - 0x800;
 
         for (int i = 0; i < 15 * 15; i++)
-            src_buf[i] = rand() & bitdepth_max;
+            src_buf[i] = rnd() & bitdepth_max;
 
         call_ref(c_tmp, 8, src, src_stride, abcd, mx, my HIGHBD_TAIL_SUFFIX);
         call_new(a_tmp, 8, src, src_stride, abcd, mx, my HIGHBD_TAIL_SUFFIX);
@@ -473,21 +473,21 @@ static void random_offset_for_edge(int *const x, int *const y,
                                    const enum EdgeFlags edge)
 {
 #define set_off(edge1, edge2, pos, dim) \
-    *i##dim = edge & (HAVE_##edge1 | HAVE_##edge2) ? 160 : 1 + (rand() % (b##dim - 2)); \
+    *i##dim = edge & (HAVE_##edge1 | HAVE_##edge2) ? 160 : 1 + (rnd() % (b##dim - 2)); \
     switch (edge & (HAVE_##edge1 | HAVE_##edge2)) { \
     case HAVE_##edge1 | HAVE_##edge2: \
         assert(b##dim <= *i##dim); \
-        *pos = rand() % (*i##dim - b##dim + 1); \
+        *pos = rnd() % (*i##dim - b##dim + 1); \
         break; \
     case HAVE_##edge1: \
-        *pos = (*i##dim - b##dim) + 1 + (rand() % (b##dim - 1)); \
+        *pos = (*i##dim - b##dim) + 1 + (rnd() % (b##dim - 1)); \
         break; \
     case HAVE_##edge2: \
-        *pos = -(1 + (rand() % (b##dim - 1))); \
+        *pos = -(1 + (rnd() % (b##dim - 1))); \
         break; \
     case 0: \
         assert(b##dim - 1 > *i##dim); \
-        *pos = -(1 + (rand() % (b##dim - *i##dim - 1))); \
+        *pos = -(1 + (rnd() % (b##dim - *i##dim - 1))); \
         break; \
     }
     set_off(LEFT, RIGHT, x, w);
@@ -500,7 +500,7 @@ static void check_emuedge(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src,   160 * 160,);
 
     for (int i = 0; i < 160 * 160; i++)
-        src[i] = rand() & ((1U << BITDEPTH) - 1);
+        src[i] = rnd() & ((1U << BITDEPTH) - 1);
 
     declare_func(void, intptr_t bw, intptr_t bh, intptr_t iw, intptr_t ih,
                  intptr_t x, intptr_t y,
@@ -513,8 +513,8 @@ static void check_emuedge(Dav1dMCDSPContext *const c) {
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1) {
                 // we skip 0xf, since it implies that we don't need emu_edge
                 for (enum EdgeFlags edge = 0; edge < 0xf; edge++) {
-                    const int bw = w + (rand() & 7);
-                    const int bh = h + (rand() & 7);
+                    const int bw = w + (rnd() & 7);
+                    const int bh = h + (rnd() & 7);
                     random_offset_for_edge(&x, &y, bw, bh, &iw, &ih, edge);
                     call_ref(bw, bh, iw, ih, x, y,
                              c_dst, 192 * sizeof(pixel), src, 160 * sizeof(pixel));

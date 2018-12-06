@@ -155,7 +155,7 @@ static int copy_subcoefs(coef *coeff,
     }
 
     if (eob)
-        eob += rand() % (n - eob - 1);
+        eob += rnd() % (n - eob - 1);
     for (n = eob + 1; n < sw * sh; n++)
         coeff[scan[n]] = 0;
     return eob;
@@ -173,7 +173,7 @@ static int ftx(coef *const buf, const enum RectTxfmSize tx,
         double in[64], temp_out[64];
 
         for (int i = 0; i < w; i++)
-            in[i] = (rand() & (2 * bitdepth_max + 1)) - bitdepth_max;
+            in[i] = (rnd() & (2 * bitdepth_max + 1)) - bitdepth_max;
 
         switch (itx_1d_types[txtp][0]) {
         case DCT:
@@ -258,14 +258,14 @@ void bitfn(checkasm_check_itx)(void) {
                                BITDEPTH))
                 {
 #if BITDEPTH == 16
-                    const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                    const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                     const int bitdepth_max = 0xff;
 #endif
                     const int eob = ftx(coeff[0], tx, txtp, w, h, subsh, bitdepth_max);
 
                     for (int j = 0; j < w * h; j++)
-                        c_dst[j] = a_dst[j] = rand() & bitdepth_max;
+                        c_dst[j] = a_dst[j] = rnd() & bitdepth_max;
 
                     memcpy(coeff[1], coeff[0], sw * sh * sizeof(**coeff));
                     memcpy(coeff[2], coeff[0], sw * sh * sizeof(**coeff));

@@ -143,6 +143,33 @@ typedef union {
     uint32_t i;
 } intfloat;
 
+static uint32_t xs_state[4];
+
+static void xor128_srand(unsigned int seed) {
+    xs_state[0] = seed;
+    xs_state[1] = ( seed & 0xffff0000) | (~seed & 0x0000ffff);
+    xs_state[2] = (~seed & 0xffff0000) | ( seed & 0x0000ffff);
+    xs_state[3] = ~seed;
+}
+
+// xor128 from Marsaglia, George (July 2003). "Xorshift RNGs".
+//             Journal of Statistical Software. 8 (14).
+//             doi:10.18637/jss.v008.i14.
+int xor128_rand(void) {
+    const uint32_t x = xs_state[0];
+    const uint32_t t = x ^ (x << 11);
+
+    xs_state[0] = xs_state[1];
+    xs_state[1] = xs_state[2];
+    xs_state[2] = xs_state[3];
+    uint32_t w = xs_state[3];
+
+    w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
+    xs_state[3] = w;
+
+    return w >> 1;
+}
+
 static int is_negative(const intfloat u) {
     return u.i >> 31;
 }
@@ -453,7 +480,7 @@ static void check_cpu_flag(const char *const name, unsigned flag) {
         for (int i = 0; tests[i].func; i++) {
             if (state.test_name && strcmp(tests[i].name, state.test_name))
                 continue;
-            srand(state.seed);
+            xor128_srand(state.seed);
             state.current_test_name = tests[i].name;
             tests[i].func();
         }
@@ -567,7 +594,7 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
     v->ok = 1;
     v->cpu = state.cpu_flag;
     state.current_func_ver = v;
-    srand(state.seed);
+    xor128_srand(state.seed);
 
     if (state.cpu_flag)
         state.num_checked++;

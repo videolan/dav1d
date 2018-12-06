@@ -34,7 +34,7 @@
 
 static void init_tmp(pixel *buf, int n, const int bitdepth_max) {
     while (n--)
-        *buf++ = rand() & bitdepth_max;
+        *buf++ = rnd() & bitdepth_max;
 }
 
 static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
@@ -57,7 +57,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
                 memcpy(c_src, src, (10 * 16 + 8) * sizeof(pixel));
 
 #if BITDEPTH == 16
-                const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
                 const int bitdepth_max = 0xff;
 #endif
@@ -66,8 +66,8 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
                 init_tmp(top, 16 * 2 + 8, bitdepth_max);
                 init_tmp((pixel *) left,8 * 2, bitdepth_max);
 
-                const int lvl = 1 + (rand() % 62);
-                const int damping = 3 + (rand() & 3) + bitdepth_min_8;
+                const int lvl = 1 + (rnd() % 62);
+                const int damping = 3 + (rnd() & 3) + bitdepth_min_8;
                 const int pri_strength = (lvl >> 2) << bitdepth_min_8;
                 int sec_strength = lvl & 3;
                 sec_strength += sec_strength == 3;
@@ -100,7 +100,7 @@ static void check_cdef_direction(const cdef_dir_fn fn) {
     if (check_func(fn, "cdef_dir_%dbpc", BITDEPTH)) {
         unsigned c_var, a_var;
 #if BITDEPTH == 16
-        const int bitdepth_max = rand() & 1 ? 0x3ff : 0xfff;
+        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
         const int bitdepth_max = 0xff;
 #endif

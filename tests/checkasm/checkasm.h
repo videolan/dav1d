@@ -50,6 +50,9 @@
 #include "include/common/attributes.h"
 #include "include/common/intops.h"
 
+int xor128_rand(void);
+#define rnd xor128_rand
+
 #define decl_check_bitfns(name) \
 name##_8bpc(void); \
 name##_16bpc(void)
