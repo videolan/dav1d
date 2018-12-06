@@ -69,6 +69,7 @@ decl_warp8x8_fn(dav1d_warp_affine_8x8_avx2);
 decl_warp8x8t_fn(dav1d_warp_affine_8x8t_avx2);
 
 decl_emu_edge_fn(dav1d_emu_edge_avx2);
+decl_emu_edge_fn(dav1d_emu_edge_ssse3);
 
 void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 #define init_mc_fn(type, name, suffix) \
@@ -89,6 +90,7 @@ void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->blend = dav1d_blend_ssse3;
     c->blend_v = dav1d_blend_v_ssse3;
     c->blend_h = dav1d_blend_h_ssse3;
+    c->emu_edge = dav1d_emu_edge_ssse3;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2))
