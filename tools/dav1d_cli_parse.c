@@ -96,7 +96,7 @@ static void usage(const char *const app, const char *const reason, ...) {
     fprintf(stderr, "Supported options:\n"
             " --input/-i  $file:   input file\n"
             " --output/-o $file:   output file\n"
-            " --demuxer $name:     force demuxer type (must be 'ivf'; default: detect from extension)\n"
+            " --demuxer $name:     force demuxer type ('ivf' or 'annexb'; default: detect from extension)\n"
             " --muxer $name:       force muxer type ('md5', 'yuv', 'yuv4mpeg2' or 'null'; default: detect from extension)\n"
             " --quiet/-q:          disable status messages\n"
             " --limit/-l $num:     stop decoding after $num frames\n"
