@@ -97,11 +97,11 @@ static int annexb_read(AnnexbInputContext *const c, Dav1dData *const data) {
     }
     if (!c->frame_unit_size) {
         res = leb128(c, &c->frame_unit_size);
-        if (res < 0) return -1;
+        if (res < 0 || (c->frame_unit_size + res) > c->temporal_unit_size) return -1;
         c->temporal_unit_size -= res;
     }
     res = leb128(c, &len);
-    if (res < 0) return -1;
+    if (res < 0 || (len + res) > c->frame_unit_size) return -1;
     uint8_t *ptr = dav1d_data_create(data, len);
     if (!ptr) return -1;
     c->temporal_unit_size -= len + res;
