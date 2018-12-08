@@ -3178,6 +3178,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
         f->mvs_ref = dav1d_ref_create(f->sb128h * 32 * f->b4_stride *
                                       sizeof(*f->mvs));
+        if (!f->mvs_ref) {
+            res = -ENOMEM;
+            goto error;
+        }
         f->mvs = f->mvs_ref->data;
         if (!f->frame_hdr->allow_intrabc) {
             for (int i = 0; i < 7; i++)
