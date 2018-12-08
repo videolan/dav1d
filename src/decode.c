@@ -2493,7 +2493,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
 
 int dav1d_decode_frame(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
-    int retval = -EINVAL;
+    int retval = -ENOMEM;
 
     if (f->n_tc > 1) {
         if (f->frame_hdr->tiling.cols * f->sbh > f->tile_thread.titsati_sz) {
@@ -2501,7 +2501,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->tile_thread.task_idx_to_sby_and_tile_idx =
                 malloc(sizeof(*f->tile_thread.task_idx_to_sby_and_tile_idx) *
                        f->frame_hdr->tiling.cols * f->sbh);
-            if (!f->tile_thread.task_idx_to_sby_and_tile_idx) return -ENOMEM;
+            if (!f->tile_thread.task_idx_to_sby_and_tile_idx) goto error;
             f->tile_thread.titsati_sz = f->frame_hdr->tiling.cols * f->sbh;
         }
         if (f->tile_thread.titsati_init[0] != f->frame_hdr->tiling.cols ||
@@ -2532,7 +2532,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     if (f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows > f->n_ts) {
         f->ts = realloc(f->ts, f->frame_hdr->tiling.cols *
                                f->frame_hdr->tiling.rows * sizeof(*f->ts));
-        if (!f->ts) return -ENOMEM;
+        if (!f->ts) goto error;
         for (int n = f->n_ts;
              n < f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows; n++)
         {
@@ -2545,7 +2545,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->frame_thread.tile_start_off =
                 malloc(sizeof(*f->frame_thread.tile_start_off) *
                        f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows);
-            if (!f->frame_thread.tile_start_off) return -ENOMEM;
+            if (!f->frame_thread.tile_start_off) goto error;
         }
         f->n_ts = f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows;
     }
@@ -2567,7 +2567,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     if (f->sb128w * f->frame_hdr->tiling.rows > f->a_sz) {
         freep(&f->a);
         f->a = malloc(f->sb128w * f->frame_hdr->tiling.rows * sizeof(*f->a));
-        if (!f->a) return -ENOMEM;
+        if (!f->a) goto error;
         f->a_sz = f->sb128w * f->frame_hdr->tiling.rows;
     }
 
@@ -2579,7 +2579,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         // 10 bits/component data
         uint16_t *ptr = f->lf.cdef_line =
             dav1d_alloc_aligned(f->b4_stride * 4 * 12 * sizeof(uint16_t), 32);
-        if (!ptr) return -ENOMEM;
+        if (!ptr) goto error;
 
         for (int pl = 0; pl <= 2; pl++) {
             f->lf.cdef_line_ptr[0][pl][0] = ptr + f->b4_stride * 4 * 0;
@@ -2599,7 +2599,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         uint16_t *lr_ptr = f->lf.lr_lpf_line =
             dav1d_alloc_aligned(lr_stride * 3 * 12 * sizeof(uint16_t), 32);
 
-        if (!lr_ptr) return -ENOMEM;
+        if (!lr_ptr) goto error;
 
         for (int pl = 0; pl <= 2; pl++) {
             f->lf.lr_lpf_line_ptr[pl] = lr_ptr;
@@ -2617,7 +2617,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         f->lf.mask = malloc(f->sb128w * f->sb128h * sizeof(*f->lf.mask));
         f->lf.level = malloc(f->sb128w * f->sb128h * 32 * 32 *
                              sizeof(*f->lf.level));
-        if (!f->lf.mask || !f->lf.level) return -ENOMEM;
+        if (!f->lf.mask || !f->lf.level) goto error;
         if (c->n_fc > 1) {
             freep(&f->frame_thread.b);
             freep(&f->frame_thread.cbi);
@@ -2639,7 +2639,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             if (!f->frame_thread.b || !f->frame_thread.pal_idx ||
                 !f->frame_thread.cf)
             {
-                return -ENOMEM;
+                goto error;
             }
             memset(f->frame_thread.cf, 0,
                    sizeof(int32_t) * 3 * f->sb128w * f->sb128h * 128 * 128);
@@ -2650,7 +2650,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     if (f->sr_sb128w * f->sb128h > f->lf.lr_mask_sz) {
         freep(&f->lf.lr_mask);
         f->lf.lr_mask = malloc(f->sr_sb128w * f->sb128h * sizeof(*f->lf.lr_mask));
-        if (!f->lf.lr_mask) return -ENOMEM;
+        if (!f->lf.lr_mask) goto error;
         f->lf.lr_mask_sz = f->sr_sb128w * f->sb128h;
     }
     if (f->frame_hdr->loopfilter.sharpness != f->lf.last_sharpness) {
@@ -2664,7 +2664,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         dav1d_freep_aligned(&f->ipred_edge[0]);
         uint16_t *ptr = f->ipred_edge[0] =
             dav1d_alloc_aligned(f->sb128w * 128 * f->sbh * 3 * sizeof(uint16_t), 32);
-        if (!f->ipred_edge[0]) return -ENOMEM;
+        if (!f->ipred_edge[0]) goto error;
         f->ipred_edge_sz = f->sbh * f->sb128w * 128;
         f->ipred_edge[1] = &ptr[f->ipred_edge_sz];
         f->ipred_edge[2] = &ptr[f->ipred_edge_sz * 2];
@@ -2674,7 +2674,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         freep(&f->lf.tx_lpf_right_edge[0]);
         f->lf.tx_lpf_right_edge[0] = malloc((f->sb128h * 32 * 2) *
                                             f->frame_hdr->tiling.cols);
-        if (!f->lf.tx_lpf_right_edge[0]) return -ENOMEM;
+        if (!f->lf.tx_lpf_right_edge[0]) goto error;
         f->lf.tx_lpf_right_edge[1] = f->lf.tx_lpf_right_edge[0] +
                                      f->sb128h * 32 * f->frame_hdr->tiling.cols;
         f->lf.re_sz = f->sb128h * f->frame_hdr->tiling.cols;
@@ -2693,10 +2693,11 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                                                f->frame_hdr->hp, f->frame_hdr->force_integer_mv,
                                                f->frame_hdr->use_ref_frame_mvs,
                                                order_hint_n_bits);
-        if (ret < 0) return -ENOMEM;
+        if (ret < 0) goto error;
         if (c->n_fc == 1 && f->frame_hdr->use_ref_frame_mvs)
             av1_init_ref_mv_tile_row(f->libaom_cm, 0, f->bw, 0, f->bh);
     }
+    retval = -EINVAL;
 
     // setup dequant tables
     init_quant_tables(f->seq_hdr, f->frame_hdr, f->frame_hdr->quant.yac, f->dq);
