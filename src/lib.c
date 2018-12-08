@@ -157,11 +157,21 @@ int dav1d_open(Dav1dContext **const c_out,
 error:
     if (c) {
         if (c->fc) {
-            for (unsigned n = 0; n < c->n_fc; n++)
-                if (c->fc[n].tc)
+            for (unsigned n = 0; n < c->n_fc; n++) {
+                if (c->fc[n].tc) {
+                    for (int m = 0; m < s->n_tile_threads; m++) {
+                        Dav1dTileContext *const t = &c->fc[n].tc[m];
+                        dav1d_free_aligned(t->cf);
+                        dav1d_free_aligned(t->scratch.mem);
+                        dav1d_free_aligned(t->emu_edge);
+                    }
                     dav1d_free_aligned(c->fc[n].tc);
+                }
+                if (c->fc[n].libaom_cm) av1_free_ref_mv_common(c->fc[n].libaom_cm);
+            }
             dav1d_free_aligned(c->fc);
         }
+        if (c->n_fc > 1) free(c->frame_thread.out_delayed);
         dav1d_freep_aligned(c_out);
     }
     fprintf(stderr, "Failed to allocate memory: %s\n", strerror(errno));
