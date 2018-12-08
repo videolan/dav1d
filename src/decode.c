@@ -2637,6 +2637,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 dav1d_alloc_aligned(sizeof(int32_t) * 3 *
                                     f->sb128w * f->sb128h * 128 * 128, 32);
             if (!f->frame_thread.b || !f->frame_thread.pal_idx ||
+                !f->frame_thread.pal || !f->frame_thread.cbi ||
                 !f->frame_thread.cf)
             {
                 goto error;
@@ -3242,6 +3243,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             // put the new values. Allocate them here (the data
             // actually gets set elsewhere)
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
+            if (!f->cur_segmap_ref) {
+                res = -ENOMEM;
+                goto error;
+            }
             f->cur_segmap = f->cur_segmap_ref->data;
         } else if (f->prev_segmap_ref) {
             // We're not updating an existing map, and we have a valid
@@ -3252,6 +3257,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         } else {
             // We need to make a new map. Allocate one here and zero it out.
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
+            if (!f->cur_segmap_ref) {
+                res = -ENOMEM;
+                goto error;
+            }
             f->cur_segmap = f->cur_segmap_ref->data;
             memset(f->cur_segmap_ref->data, 0, f->b4_stride * 32 * f->sb128h);
         }
