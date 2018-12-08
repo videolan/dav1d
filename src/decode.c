@@ -3103,13 +3103,15 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // setup entropy
     if (f->frame_hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
-        dav1d_init_states(&f->in_cdf, f->frame_hdr->quant.yac);
+        res = dav1d_init_states(&f->in_cdf, f->frame_hdr->quant.yac);
+        if (res < 0) goto error;
     } else {
         const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
         dav1d_cdf_thread_ref(&f->in_cdf, &c->cdf[pri_ref]);
     }
     if (f->frame_hdr->refresh_context) {
-        dav1d_cdf_thread_alloc(&f->out_cdf, c->n_fc > 1 ? &f->frame_thread.td : NULL);
+        res = dav1d_cdf_thread_alloc(&f->out_cdf, c->n_fc > 1 ? &f->frame_thread.td : NULL);
+        if (res < 0) goto error;
     }
 
     // FIXME qsort so tiles are in order (for frame threading)

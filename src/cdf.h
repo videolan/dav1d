@@ -131,11 +131,11 @@ typedef struct CdfThreadContext {
     atomic_uint *progress;
 } CdfThreadContext;
 
-void dav1d_init_states(CdfThreadContext *cdf, int qidx);
+int dav1d_init_states(CdfThreadContext *cdf, int qidx);
 void dav1d_update_tile_cdf(const Dav1dFrameHeader *hdr, CdfContext *dst,
                          const CdfContext *src);
 
-void dav1d_cdf_thread_alloc(CdfThreadContext *cdf, struct thread_data *t);
+int dav1d_cdf_thread_alloc(CdfThreadContext *cdf, struct thread_data *t);
 void dav1d_cdf_thread_ref(CdfThreadContext *dst, CdfThreadContext *src);
 void dav1d_cdf_thread_unref(CdfThreadContext *cdf);
 

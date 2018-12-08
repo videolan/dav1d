@@ -4055,14 +4055,15 @@ static CdfThreadContext cdf_init[4] = {
     [3] = { .cdf = NULL },
 };
 
-void dav1d_init_states(CdfThreadContext *const cdf, const int qidx) {
+int dav1d_init_states(CdfThreadContext *const cdf, const int qidx) {
     const int qcat = get_qcat_idx(qidx);
     if (cdf_init[qcat].cdf) {
         dav1d_cdf_thread_ref(cdf, &cdf_init[qcat]);
-        return;
+        return 0;
     }
 
-    dav1d_cdf_thread_alloc(&cdf_init[qcat], NULL);
+    int res = dav1d_cdf_thread_alloc(&cdf_init[qcat], NULL);
+    if (res < 0) return res;
     cdf_init[qcat].cdf->m = av1_default_cdf;
     memcpy(cdf_init[qcat].cdf->kfym, default_kf_y_mode_cdf,
            sizeof(default_kf_y_mode_cdf));
@@ -4070,6 +4071,7 @@ void dav1d_init_states(CdfThreadContext *const cdf, const int qidx) {
     cdf_init[qcat].cdf->mv = default_mv_cdf;
     cdf_init[qcat].cdf->dmv = default_mv_cdf;
     dav1d_cdf_thread_ref(cdf, &cdf_init[qcat]);
+    return 0;
 }
 
 void dav1d_update_tile_cdf(const Dav1dFrameHeader *const hdr,
@@ -4211,17 +4213,19 @@ void dav1d_update_tile_cdf(const Dav1dFrameHeader *const hdr,
 /*
  * CDF threading wrappers.
  */
-void dav1d_cdf_thread_alloc(CdfThreadContext *const cdf,
+int dav1d_cdf_thread_alloc(CdfThreadContext *const cdf,
                             struct thread_data *const t)
 {
     cdf->ref = dav1d_ref_create(sizeof(CdfContext) +
                                 (t != NULL) * sizeof(atomic_uint));
+    if (!cdf->ref) return -ENOMEM;
     cdf->cdf = cdf->ref->data;
     if (t) {
         cdf->progress = (atomic_uint *) &cdf->cdf[1];
         atomic_init(cdf->progress, 0);
         cdf->t = t;
     }
+    return 0;
 }
 
 void dav1d_cdf_thread_ref(CdfThreadContext *const dst,
