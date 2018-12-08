@@ -31,6 +31,8 @@ if not get_option('build_tests')
     subdir_done()
 endif
 
+libdav1d_nasm_objs_if_needed = []
+
 if is_asm_enabled
     checkasm_sources = files('checkasm/checkasm.c')
 
@@ -67,7 +69,6 @@ if is_asm_enabled
 
     m_lib = cc.find_library('m', required: false)
 
-    libdav1d_nasm_objs_if_needed = []
     if meson.version().version_compare('< 0.48.999')
         libdav1d_nasm_objs_if_needed = libdav1d_nasm_objs
     endif
@@ -122,6 +123,32 @@ dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
     build_by_default: true,
     dependencies : [thread_dependency],
     )
+
+if (cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args) and
+    cc.has_link_argument('-Wl,-wrap,malloc'))
+
+    alloc_fail = shared_library('alloc_fail',
+        files('libfuzzer/alloc_fail.c'),
+        libdav1d_nasm_objs_if_needed,
+        objects: [
+            libdav1d.extract_all_objects(recursive: true),
+            ],
+        include_directories: dav1d_inc_dirs,
+        c_args : [stackalign_flag],
+        link_args: ['-Wl,-wrap,malloc', '-Wl,-wrap,posix_memalign'],
+        dependencies : [thread_dependency],
+        )
+
+    dav1d_fuzzer_mem = executable('dav1d_fuzzer_mem',
+        dav1d_fuzzer_sources,
+        include_directories: dav1d_inc_dirs,
+        c_args: [stackalign_flag, stackrealign_flag, '-DDAV1D_ALLOC_FAIL'],
+        link_args: fuzzer_ldflags,
+        link_with : [alloc_fail],
+        build_by_default: true,
+        dependencies : [thread_dependency],
+        )
+endif
 
 # Include dav1d test data repository with additional tests
 if get_option('testdata_tests')
