@@ -265,8 +265,11 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
 
     // Apply film grain to a new copy of the image to avoid corrupting refs
     int res = dav1d_picture_alloc_copy(out, in->p.w, in);
-    if (res < 0)
+    if (res < 0) {
+        dav1d_picture_unref(in);
+        dav1d_picture_unref(out);
         return res;
+    }
 
     switch (out->p.bpc) {
 #if CONFIG_8BPC
