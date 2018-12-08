@@ -44,21 +44,18 @@ typedef struct DemuxerPriv {
 
 static int leb128(AnnexbInputContext *const c, size_t *const len) {
     unsigned more, i = 0;
-    int64_t sz = 0;
     uint8_t byte;
+    *len = 0;
     do {
         if (fread(&byte, 1, 1, c->f) < 1)
             return -1;
         more = byte & 0x80;
         unsigned bits = byte & 0x7f;
         if (i <= 3 || (i == 4 && bits < (1 << 4)))
-            sz |= (int64_t)bits << (i * 7);
+            *len |= bits << (i * 7);
         else if (bits) return -1;
         if (++i == 8 && more) return -1;
     } while (more);
-    if (sz > 0xFFFFFFFFU)
-        return -1;
-    *len = sz;
     return i;
 }
 
