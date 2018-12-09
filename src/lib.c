@@ -399,8 +399,7 @@ void dav1d_flush(Dav1dContext *const c) {
             dav1d_thread_picture_unref(&c->refs[i].p);
         dav1d_ref_dec(&c->refs[i].segmap);
         dav1d_ref_dec(&c->refs[i].refmvs);
-        if (c->cdf[i].cdf)
-            dav1d_cdf_thread_unref(&c->cdf[i]);
+        dav1d_cdf_thread_unref(&c->cdf[i]);
     }
     c->frame_hdr = NULL;
     c->seq_hdr = NULL;
@@ -493,8 +492,7 @@ void dav1d_close(Dav1dContext **const c_out) {
     for (int n = 0; n < c->n_tile_data; n++)
         dav1d_data_unref(&c->tile[n].data);
     for (int n = 0; n < 8; n++) {
-        if (c->cdf[n].cdf)
-            dav1d_cdf_thread_unref(&c->cdf[n]);
+        dav1d_cdf_thread_unref(&c->cdf[n]);
         if (c->refs[n].p.p.data[0])
             dav1d_thread_picture_unref(&c->refs[n].p);
         dav1d_ref_dec(&c->refs[n].refmvs);

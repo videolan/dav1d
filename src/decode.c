@@ -2215,7 +2215,7 @@ static void setup_tile(Dav1dTileState *const ts,
 
     ts->frame_thread.pal_idx = &f->frame_thread.pal_idx[tile_start_off * 2];
     ts->frame_thread.cf = &((int32_t *) f->frame_thread.cf)[tile_start_off * 3];
-    ts->cdf = *f->in_cdf.cdf;
+    dav1d_cdf_thread_copy(&ts->cdf, &f->in_cdf);
     ts->last_qidx = f->frame_hdr->quant.yac;
     memset(ts->last_delta_lf, 0, sizeof(ts->last_delta_lf));
 
@@ -2762,7 +2762,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
     dav1d_cdf_thread_wait(&f->in_cdf);
     if (f->frame_hdr->refresh_context)
-        memcpy(f->out_cdf.cdf, f->in_cdf.cdf, sizeof(*f->in_cdf.cdf));
+        dav1d_cdf_thread_copy(f->out_cdf.data.cdf, &f->in_cdf);
 
     // parse individual tiles per tile group
     int update_set = 0, tile_row = 0, tile_col = 0;
@@ -2914,8 +2914,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         if (f->frame_thread.pass <= 1 && f->frame_hdr->refresh_context) {
             // cdf update
             if (update_set)
-                dav1d_update_tile_cdf(f->frame_hdr, f->out_cdf.cdf,
-                                      &f->ts[f->frame_hdr->tiling.update].cdf);
+                dav1d_cdf_thread_update(f->frame_hdr, f->out_cdf.data.cdf,
+                                        &f->ts[f->frame_hdr->tiling.update].cdf);
             dav1d_cdf_thread_signal(&f->out_cdf);
         }
         if (f->frame_thread.pass == 1) {
@@ -3105,8 +3105,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // setup entropy
     if (f->frame_hdr->primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
-        res = dav1d_init_states(&f->in_cdf, f->frame_hdr->quant.yac);
-        if (res < 0) goto error;
+        dav1d_cdf_thread_init_static(&f->in_cdf, f->frame_hdr->quant.yac);
     } else {
         const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
         dav1d_cdf_thread_ref(&f->in_cdf, &c->cdf[pri_ref]);
@@ -3277,7 +3276,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 dav1d_thread_picture_unref(&c->refs[i].p);
             dav1d_thread_picture_ref(&c->refs[i].p, &f->sr_cur);
 
-            if (c->cdf[i].cdf) dav1d_cdf_thread_unref(&c->cdf[i]);
+            dav1d_cdf_thread_unref(&c->cdf[i]);
             if (f->frame_hdr->refresh_context) {
                 dav1d_cdf_thread_ref(&c->cdf[i], &f->out_cdf);
             } else {
@@ -3306,8 +3305,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                 if (refresh_frame_flags & (1 << i)) {
                     if (c->refs[i].p.p.data[0])
                         dav1d_thread_picture_unref(&c->refs[i].p);
-                    if (c->cdf[i].cdf)
-                        dav1d_cdf_thread_unref(&c->cdf[i]);
+                    dav1d_cdf_thread_unref(&c->cdf[i]);
                     dav1d_ref_dec(&c->refs[i].segmap);
                     dav1d_ref_dec(&c->refs[i].refmvs);
                 }
