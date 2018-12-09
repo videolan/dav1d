@@ -248,15 +248,6 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     int has_grain = fgdata->num_y_points || fgdata->num_uv_points[0] ||
                     fgdata->num_uv_points[1];
 
-    // skip lower spatial layers
-    if (c->operating_point_idc && !c->all_layers) {
-        const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
-        if (max_spatial_id > in->frame_hdr->spatial_id) {
-            dav1d_picture_unref(in);
-            return 0;
-        }
-    }
-
     // If there is nothing to be done, skip the allocation/copy
     if (!c->apply_grain || !has_grain) {
         dav1d_picture_move_ref(out, in);
@@ -291,6 +282,22 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     return 0;
 }
 
+static int output_picture_ready(Dav1dContext *const c) {
+
+    if (!c->out.data[0]) return 0;
+
+    // skip lower spatial layers
+    if (c->operating_point_idc && !c->all_layers) {
+        const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
+        if (max_spatial_id > c->out.frame_hdr->spatial_id) {
+            dav1d_picture_unref(&c->out);
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
     unsigned drain_count = 0;
     do {
@@ -312,7 +319,7 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
             if (out_delayed->visible && progress != FRAME_ERROR)
                 dav1d_picture_ref(&c->out, &out_delayed->p);
             dav1d_thread_picture_unref(out_delayed);
-            if (c->out.data[0])
+            if (output_picture_ready(c))
                 return output_image(c, out, &c->out);
         }
     } while (++drain_count < c->n_fc);
@@ -346,13 +353,13 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
             in->data += res;
             if (!in->sz) dav1d_data_unref(in);
         }
-        if (c->out.data[0])
+        if (output_picture_ready(c))
             break;
         if (res < 0)
             return res;
     }
 
-    if (c->out.data[0])
+    if (output_picture_ready(c))
         return output_image(c, out, &c->out);
 
     if (c->n_fc > 1 && drain)
