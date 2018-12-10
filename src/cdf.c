@@ -4200,9 +4200,9 @@ void dav1d_cdf_thread_ref(CdfThreadContext *const dst,
 }
 
 void dav1d_cdf_thread_unref(CdfThreadContext *const cdf) {
-    memset(cdf, 0, sizeof(*cdf));
     if (cdf->ref)
         dav1d_ref_dec(&cdf->ref);
+    memset(cdf, 0, sizeof(*cdf));
 }
 
 void dav1d_cdf_thread_wait(CdfThreadContext *const cdf) {
