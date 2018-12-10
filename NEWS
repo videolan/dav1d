@@ -1,4 +1,9 @@
-Changes for 0.0.1:
+Changes for 0.1.0:
 ------------------
 
-Initial release
+Initial release of dav1d, the fast and small AV1 decoder.
+ - Support for all features of the AV1 bitstream
+ - Support for all bitdepth, 8, 10 and 12bits
+ - Full acceleration for AVX-2 64bits processors, making it the fastest decoder
+ - Partial acceleration for SSSE3 processors
+ - Partial acceleration for NEON processors
