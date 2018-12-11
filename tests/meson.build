@@ -125,7 +125,7 @@ dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
     )
 
 if (cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args) and
-    cc.has_link_argument('-Wl,-wrap,malloc'))
+    cc.has_link_argument('-Wl,-wrap,malloc') and not get_option('b_lto'))
 
     alloc_fail = shared_library('alloc_fail',
         files('libfuzzer/alloc_fail.c'),
