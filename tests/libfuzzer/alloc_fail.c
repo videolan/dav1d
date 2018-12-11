@@ -44,23 +44,21 @@ void dav1d_setup_alloc_fail(unsigned seed, unsigned probability) {
     fail_probability = probability;
 }
 
-void * __real_malloc(size_t);
 void * __wrap_malloc(size_t);
 
 void * __wrap_malloc(size_t sz) {
     if (rand() < fail_probability)
         return NULL;
-    return __real_malloc(sz);
+    return malloc(sz);
 }
 
 #if defined(HAVE_POSIX_MEMALIGN)
-int __real_posix_memalign(void **memptr, size_t alignment, size_t size);
 int __wrap_posix_memalign(void **memptr, size_t alignment, size_t size);
 
 int __wrap_posix_memalign(void **memptr, size_t alignment, size_t size) {
     if (rand() < fail_probability)
         return ENOMEM;
-    return __real_posix_memalign(memptr, alignment, size);
+    return posix_memalign(memptr, alignment, size);
 }
 #else
 #error "HAVE_POSIX_MEMALIGN required"
