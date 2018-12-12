@@ -1233,7 +1233,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         if (!ref) return -ENOMEM;
         Dav1dSequenceHeader *seq_hdr = ref->data;
         memset(seq_hdr, 0, sizeof(*seq_hdr));
-        c->frame_hdr = NULL;
         if ((res = parse_seq_hdr(c, &gb, seq_hdr)) < 0) {
             dav1d_ref_dec(&ref);
             return res;
@@ -1245,7 +1244,10 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         // If we have read a sequence header which is different from
         // the old one, this is a new video sequence and can't use any
         // previous state. Free that state.
-        if (c->seq_hdr && memcmp(seq_hdr, c->seq_hdr, sizeof(*seq_hdr))) {
+        if (!c->seq_hdr)
+            c->frame_hdr = NULL;
+        else if (memcmp(seq_hdr, c->seq_hdr, sizeof(*seq_hdr))) {
+            c->frame_hdr = NULL;
             for (int i = 0; i < 8; i++) {
                 if (c->refs[i].p.p.data[0])
                     dav1d_thread_picture_unref(&c->refs[i].p);
