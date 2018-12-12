@@ -824,7 +824,7 @@ inv_identity4_1d(const coef *const in, const ptrdiff_t in_s,
                  coef *const out, const ptrdiff_t out_s, const int range)
 {
     for (int i = 0; i < 4; i++)
-        out[out_s * i] = (in[in_s * i] * 5793 + 2048) >> 12;
+        out[out_s * i] = in[in_s * i] + ((in[in_s * i] * 1697 + 2048) >> 12);
 }
 
 static void NOINLINE
@@ -840,7 +840,7 @@ inv_identity16_1d(const coef *const in, const ptrdiff_t in_s,
                   coef *const out, const ptrdiff_t out_s, const int range)
 {
     for (int i = 0; i < 16; i++)
-        out[out_s * i] = (in[in_s * i] * 2 * 5793 + 2048) >> 12;
+        out[out_s * i] = 2 * in[in_s * i] + ((in[in_s * i] * 1697 + 1024) >> 11);
 }
 
 static void NOINLINE
