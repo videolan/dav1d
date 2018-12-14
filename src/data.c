@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -49,6 +50,8 @@ uint8_t *dav1d_data_create_internal(Dav1dData *const buf, const size_t sz) {
     buf->m.timestamp = INT64_MIN;
     buf->m.duration = 0;
     buf->m.offset = -1;
+    buf->m.user_data.data = NULL;
+    buf->m.user_data.ref = NULL;
 
     return buf->ref->data;
 }
@@ -56,20 +59,38 @@ uint8_t *dav1d_data_create_internal(Dav1dData *const buf, const size_t sz) {
 int dav1d_data_wrap_internal(Dav1dData *const buf, const uint8_t *const ptr,
                              const size_t sz,
                              void (*const free_callback)(const uint8_t *data,
-                                                         void *user_data),
-                             void *const user_data)
+                                                         void *cookie),
+                             void *const cookie)
 {
     validate_input_or_ret(buf != NULL, -EINVAL);
     validate_input_or_ret(ptr != NULL, -EINVAL);
     validate_input_or_ret(free_callback != NULL, -EINVAL);
 
-    buf->ref = dav1d_ref_wrap(ptr, free_callback, user_data);
+    buf->ref = dav1d_ref_wrap(ptr, free_callback, cookie);
     if (!buf->ref) return -ENOMEM;
     buf->data = ptr;
     buf->sz = buf->m.size = sz;
     buf->m.timestamp = INT64_MIN;
     buf->m.duration = 0;
     buf->m.offset = -1;
+    buf->m.user_data.data = NULL;
+    buf->m.user_data.ref = NULL;
+
+    return 0;
+}
+
+int dav1d_data_wrap_user_data_internal(Dav1dData *const buf,
+                                       const uint8_t *const user_data,
+                                       void (*const free_callback)(const uint8_t *user_data,
+                                                                   void *cookie),
+                                       void *const cookie)
+{
+    validate_input_or_ret(buf != NULL, -EINVAL);
+    validate_input_or_ret(free_callback != NULL, -EINVAL);
+
+    buf->m.user_data.ref = dav1d_ref_wrap(user_data, free_callback, cookie);
+    if (!buf->m.user_data.ref) return -ENOMEM;
+    buf->m.user_data.data = user_data;
 
     return 0;
 }
@@ -86,12 +107,24 @@ void dav1d_data_move_ref(Dav1dData *const dst, Dav1dData *const src) {
     memset(src, 0, sizeof(*src));
 }
 
+void dav1d_data_props_copy(Dav1dDataProps *const dst,
+                           const Dav1dDataProps *const src)
+{
+    assert(dst != NULL);
+    assert(src != NULL);
+
+    *dst = *src;
+    if (dst->user_data.ref) dav1d_ref_inc(dst->user_data.ref);
+}
+
 void dav1d_data_unref_internal(Dav1dData *const buf) {
     validate_input(buf != NULL);
 
+    struct Dav1dRef *user_data_ref = buf->m.user_data.ref;
     if (buf->ref) {
         validate_input(buf->data != NULL);
         dav1d_ref_dec(&buf->ref);
     }
     memset(buf, 0, sizeof(*buf));
+    dav1d_ref_dec(&user_data_ref);
 }

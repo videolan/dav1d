@@ -3185,7 +3185,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                                      f->frame_hdr->show_frame, &c->allocator);
     if (res < 0) goto error;
 
-    f->sr_cur.p.m = f->tile[0].data.m;
+    dav1d_data_props_copy(&f->sr_cur.p.m, &f->tile[0].data.m);
     f->sr_cur.p.frame_hdr = f->frame_hdr;
     f->sr_cur.p.frame_hdr_ref = f->frame_hdr_ref;
     dav1d_ref_inc(f->frame_hdr_ref);

@@ -92,8 +92,10 @@ struct pic_ctx_context {
 static void free_buffer(const uint8_t *const data, void *const user_data) {
     struct pic_ctx_context *pic_ctx = user_data;
 
+    struct Dav1dRef *user_data_ref = pic_ctx->pic.m.user_data.ref;
     pic_ctx->allocator.release_picture_callback(&pic_ctx->pic,
                                                 pic_ctx->allocator.cookie);
+    if (user_data_ref) dav1d_ref_dec(&user_data_ref);
     free(pic_ctx);
 }
 
@@ -120,6 +122,8 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     p->m.timestamp = INT64_MIN;
     p->m.duration = 0;
     p->m.offset = -1;
+    p->m.user_data.data = NULL;
+    p->m.user_data.ref = NULL;
     p->p.layout = layout;
     p->p.bpc = bpc;
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
@@ -176,7 +180,7 @@ int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
 
     if (!res) {
         dst->p = src->p;
-        dst->m = src->m;
+        dav1d_data_props_copy(&dst->m, &src->m);
         dst->p.w = w;
         dst->frame_hdr = src->frame_hdr;
         dst->frame_hdr_ref = src->frame_hdr_ref;

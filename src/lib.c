@@ -521,6 +521,18 @@ int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr,
     return dav1d_data_wrap_internal(buf, ptr, sz, free_callback, user_data);
 }
 
+int dav1d_data_wrap_user_data(Dav1dData *const buf,
+                              const uint8_t *const user_data,
+                              void (*const free_callback)(const uint8_t *user_data,
+                                                          void *cookie),
+                              void *const cookie)
+{
+    return dav1d_data_wrap_user_data_internal(buf,
+                                              user_data,
+                                              free_callback,
+                                              cookie);
+}
+
 void dav1d_data_unref(Dav1dData *const buf) {
     dav1d_data_unref_internal(buf);
 }
