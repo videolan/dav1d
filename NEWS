@@ -1,3 +1,11 @@
+Changes for 0.1.1 'Gazelle':
+----------------------------
+
+ - Fix installation of includes
+ - Rewrite inverse transforms to avoid overflows
+ - More AVX-2 assembly
+
+
 Changes for 0.1.0 'Gazelle':
 ----------------------------
 
