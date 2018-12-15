@@ -113,6 +113,15 @@ idct64_mul: COEF_X8  4095,   101,  4065,   501,  2967, -2824,  3229, -2520
             COEF_X8  3996,   897,  3889,  1285,  3461, -2191,  3659, -1842
             COEF_X8  3349,  2359,  3102,  2675,  4036,  -700,  4085,  -301
 
+pw_201_4091x8:   dw   201*8, 4091*8
+pw_m601_4052x8:  dw  -601*8, 4052*8
+pw_995_3973x8:   dw   995*8, 3973*8
+pw_m1380_3857x8: dw -1380*8, 3857*8
+pw_1751_3703x8:  dw  1751*8, 3703*8
+pw_m2106_3513x8: dw -2106*8, 3513*8
+pw_2440_3290x8:  dw  2440*8, 3290*8
+pw_m2751_3035x8: dw -2751*8, 3035*8
+
 %define o_idct64_offset idct64_mul - (o_base) - 8
 
 SECTION .text
@@ -213,12 +222,6 @@ SECTION .text
     psrad               m%3, 12
     psrad               m%2, 12
     packssdw            m%2, m%3
-%endmacro
-
-%macro ITX_MULHRSW_SHL3 4 ; dst/src, tmp, coef[1-2]
-    vpbroadcastd        m%2, [pw_%3_%4]
-    psllw               m%2, 3
-    pmulhrsw            m%1, m%2
 %endmacro
 
 %macro IDCT4_1D 7 ; src[1-4], tmp[1-2], pd_2048
@@ -3277,6 +3280,15 @@ ALIGN function_align
 %endif
 %endmacro
 
+%macro ITX_UNPACK_MULHRSW 7 ; dst1, dst2/src, tmp, coef[1-4]
+    vpbroadcastd        m%3, [r4-pw_201_4091x8+pw_%4_%5x8]
+    punpcklwd           m%1, m%2, m%2
+    pmulhrsw            m%1, m%3
+    vpbroadcastd        m%3, [r4-pw_201_4091x8+pw_%6_%7x8]
+    punpckhwd           m%2, m%2
+    pmulhrsw            m%2, m%3
+%endmacro
+
 cglobal inv_txfm_add_dct_dct_8x32, 4, 4, 0, dst, stride, c, eob
     lea                 rax, [o_base]
     test               eobd, eobd
@@ -3431,22 +3443,11 @@ ALIGN function_align
     mova [rsp+gprsize+1*32], m1
     mova                 m0, [rsp+gprsize+2*32]
     mova [rsp+gprsize+2*32], m6
-    punpcklwd            m1, m8, m8
-    punpckhwd            m8, m8
-    punpcklwd           m15, m9, m9
-    punpckhwd            m9, m9
-    punpcklwd           m14, m0, m0
-    punpckhwd            m0, m0
-    punpcklwd           m13, m11, m11
-    punpckhwd           m11, m11
-    ITX_MULHRSW_SHL3      1,  6,   201, 4091 ; t16a, t31a
-    ITX_MULHRSW_SHL3      8,  6,  m601, 4052 ; t23a, t24a
-    ITX_MULHRSW_SHL3     15,  6,   995, 3973 ; t20a, t27a
-    ITX_MULHRSW_SHL3      9,  6, m1380, 3857 ; t19a, t28a
-    ITX_MULHRSW_SHL3     14,  6,  1751, 3703 ; t18a, t29a
-    ITX_MULHRSW_SHL3      0,  6, m2106, 3513 ; t21a, t26a
-    ITX_MULHRSW_SHL3     13,  6,  2440, 3290 ; t22a, t25a
-    ITX_MULHRSW_SHL3     11,  6, m2751, 3035 ; t17a, t30a
+    lea                  r4, [rax-(o_base)+pw_201_4091x8]
+    ITX_UNPACK_MULHRSW    1,  8,  6,  201, 4091,  m601, 4052 ; t16a, t31a, t23a, t24a
+    ITX_UNPACK_MULHRSW   15,  9,  6,  995, 3973, m1380, 3857 ; t20a, t27a, t19a, t28a
+    ITX_UNPACK_MULHRSW   14,  0,  6, 1751, 3703, m2106, 3513 ; t18a, t29a, t21a, t26a
+    ITX_UNPACK_MULHRSW   13, 11,  6, 2440, 3290, m2751, 3035 ; t22a, t25a, t17a, t30a
     jmp .main2
 ALIGN function_align
 .main:
