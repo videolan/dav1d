@@ -1905,6 +1905,61 @@ static int decode_b(Dav1dTileContext *const t,
     return 0;
 }
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+
+#include <sanitizer/msan_interface.h>
+
+static int checked_decode_b(Dav1dTileContext *const t,
+                            const enum BlockLevel bl,
+                            const enum BlockSize bs,
+                            const enum BlockPartition bp,
+                            const enum EdgeFlags intra_edge_flags)
+{
+    const Dav1dFrameContext *const f = t->f;
+    const int err = decode_b(t, bl, bs, bp, intra_edge_flags);
+
+    if (err == 0 && !(f->frame_thread.pass & 1)) {
+        const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+        const int ss_hor = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+        const uint8_t *const b_dim = dav1d_block_dimensions[bs];
+        const int bw4 = b_dim[0], bh4 = b_dim[1];
+        const int w4 = imin(bw4, f->bw - t->bx), h4 = imin(bh4, f->bh - t->by);
+        const int has_chroma = f->seq_hdr->layout != DAV1D_PIXEL_LAYOUT_I400 &&
+                               (bw4 > ss_hor || t->bx & 1) &&
+                               (bh4 > ss_ver || t->by & 1);
+
+        for (int p = 0; p < 1 + 2 * has_chroma; p++) {
+            const int ss_ver = p && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+            const int ss_hor = p && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+            const int stride = f->cur.stride[!!p];
+            const int bx = t->bx & ~ss_hor;
+            const int by = t->by & ~ss_ver;
+            const int width  = w4 << (2 - ss_hor + (bw4 == ss_hor));
+            const int height = h4 << (2 - ss_ver + (bh4 == ss_ver));
+
+            const uint8_t *data = f->cur.data[p] + (by << (2 - ss_ver)) * stride +
+                                  (bx << (2 - ss_hor + !!f->seq_hdr->hbd));
+
+            for (int y = 0; y < height; data += stride, y++) {
+                const size_t line_sz = width << !!f->seq_hdr->hbd;
+                if (__msan_test_shadow(data, line_sz) != -1) {
+                    fprintf(stderr, "B[%d](%d, %d) w4:%d, h4:%d, row:%d\n",
+                            p, bx, by, w4, h4, y);
+                    __msan_check_mem_is_initialized(data, line_sz);
+                }
+            }
+        }
+    }
+
+    return err;
+}
+
+#define decode_b checked_decode_b
+
+#endif /* defined(__has_feature) */
+#endif /* __has_feature(memory_sanitizer) */
+
 static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
                      const EdgeNode *const node)
 {
