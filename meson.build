@@ -256,13 +256,12 @@ if host_machine.cpu_family().startswith('x86')
         cdata.set10('ARCH_X86_64', true)
         cdata_asm.set10('ARCH_X86_32', false)
         cdata.set10('ARCH_X86_32', false)
-
-        cdata_asm.set10('PIC', true)
     else
         cdata_asm.set10('ARCH_X86_64', false)
         cdata.set10('ARCH_X86_64', false)
         cdata_asm.set10('ARCH_X86_32', true)
         cdata.set10('ARCH_X86_32', true)
+        cdata_asm.set10('PIC', true)
     endif
 else
     cdata.set10('ARCH_X86', false)
