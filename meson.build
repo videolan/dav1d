@@ -147,6 +147,9 @@ if (host_machine.cpu_family() == 'aarch64' or
     if cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
         cdata.set('HAVE_GETAUXVAL', 1)
     endif
+    if cc.has_function('elf_aux_info', prefix : '#include <sys/auxv.h>', args : test_args)
+        cdata.set('HAVE_ELF_AUX_INFO', 1)
+    endif
 endif
 
 # Compiler flag tests
