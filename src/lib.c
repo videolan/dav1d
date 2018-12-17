@@ -194,7 +194,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
     dav1d_default_settings(&s);
 
     Dav1dContext *c;
-    res	= dav1d_open(&c, &s);
+    res = dav1d_open(&c, &s);
     if (res < 0) return res;
 
     if (ptr) {
