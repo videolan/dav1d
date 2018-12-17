@@ -66,7 +66,6 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
 #if BITDEPTH == 8
-#if ARCH_AARCH64
     init_mc_fn (FILTER_2D_8TAP_REGULAR,        8tap_regular,        neon);
     init_mc_fn (FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, neon);
     init_mc_fn (FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  neon);
@@ -88,7 +87,6 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   neon);
     init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          neon);
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               neon);
-#endif
 
     c->avg = dav1d_avg_8bpc_neon;
     c->w_avg = dav1d_w_avg_8bpc_neon;
