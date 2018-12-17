@@ -3281,10 +3281,10 @@ ALIGN function_align
 %endmacro
 
 %macro ITX_UNPACK_MULHRSW 7 ; dst1, dst2/src, tmp, coef[1-4]
-    vpbroadcastd        m%3, [r4-pw_201_4091x8+pw_%4_%5x8]
+    vpbroadcastd        m%3, [r5-pw_201_4091x8+pw_%4_%5x8]
     punpcklwd           m%1, m%2, m%2
     pmulhrsw            m%1, m%3
-    vpbroadcastd        m%3, [r4-pw_201_4091x8+pw_%6_%7x8]
+    vpbroadcastd        m%3, [r5-pw_201_4091x8+pw_%6_%7x8]
     punpckhwd           m%2, m%2
     pmulhrsw            m%2, m%3
 %endmacro
@@ -3443,7 +3443,7 @@ ALIGN function_align
     mova [rsp+gprsize+1*32], m1
     mova                 m0, [rsp+gprsize+2*32]
     mova [rsp+gprsize+2*32], m6
-    lea                  r4, [rax-(o_base)+pw_201_4091x8]
+    lea                  r5, [rax-(o_base)+pw_201_4091x8]
     ITX_UNPACK_MULHRSW    1,  8,  6,  201, 4091,  m601, 4052 ; t16a, t31a, t23a, t24a
     ITX_UNPACK_MULHRSW   15,  9,  6,  995, 3973, m1380, 3857 ; t20a, t27a, t19a, t28a
     ITX_UNPACK_MULHRSW   14,  0,  6, 1751, 3703, m2106, 3513 ; t18a, t29a, t21a, t26a
