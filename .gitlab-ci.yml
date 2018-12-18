@@ -36,7 +36,7 @@ build-debian-static:
         - cd build && meson test -v
 
 build-debian32:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20181217183631
+    image: registry.videolan.org:5000/dav1d-debian-unstable:20181218135732
     stage: build
     tags:
         - debian
