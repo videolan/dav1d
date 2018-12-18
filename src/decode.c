@@ -1264,16 +1264,17 @@ static int decode_b(Dav1dTileContext *const t,
         }
         int src_left   = t->bx * 4 + (b->mv[0].x >> 3);
         int src_top    = t->by * 4 + (b->mv[0].y >> 3);
-        int src_right  = src_left + w4 * 4;
-        int src_bottom = src_top  + h4 * 4;
+        int src_right  = src_left + bw4 * 4;
+        int src_bottom = src_top  + bh4 * 4;
+        const int border_right = ((ts->tiling.col_end + (bw4 - 1)) & ~(bw4 - 1)) * 4;
 
         // check against left or right tile boundary and adjust if necessary
         if (src_left < border_left) {
             src_right += border_left - src_left;
             src_left  += border_left - src_left;
-        } else if (src_right > ts->tiling.col_end * 4) {
-            src_left  -= src_right - ts->tiling.col_end * 4;
-            src_right -= src_right - ts->tiling.col_end * 4;
+        } else if (src_right > border_right) {
+            src_left  -= src_right - border_right;
+            src_right -= src_right - border_right;
         }
         // check against top tile boundary and adjust if necessary
         if (src_top < border_top) {
