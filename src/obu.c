@@ -1283,7 +1283,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             return res;
         }
         for (int n = 0; n < c->n_tile_data; n++)
-            dav1d_data_unref(&c->tile[n].data);
+            dav1d_data_unref_internal(&c->tile[n].data);
         c->n_tile_data = 0;
         c->n_tiles = 0;
         if (type != OBU_FRAME) {
@@ -1333,7 +1333,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             c->tile[c->n_tile_data].start != c->n_tiles)
         {
             for (int i = 0; i <= c->n_tile_data; i++)
-                dav1d_data_unref(&c->tile[i].data);
+                dav1d_data_unref_internal(&c->tile[i].data);
             c->n_tile_data = 0;
             c->n_tiles = 0;
             goto error;

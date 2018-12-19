@@ -224,7 +224,7 @@ void dav1d_thread_picture_ref(Dav1dThreadPicture *dst,
     dst->progress = src->progress;
 }
 
-void dav1d_picture_unref(Dav1dPicture *const p) {
+void dav1d_picture_unref_internal(Dav1dPicture *const p) {
     validate_input(p != NULL);
 
     if (p->ref) {
@@ -237,7 +237,7 @@ void dav1d_picture_unref(Dav1dPicture *const p) {
 }
 
 void dav1d_thread_picture_unref(Dav1dThreadPicture *const p) {
-    dav1d_picture_unref(&p->p);
+    dav1d_picture_unref_internal(&p->p);
 
     p->t = NULL;
     p->progress = NULL;

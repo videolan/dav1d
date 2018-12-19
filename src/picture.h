@@ -109,5 +109,6 @@ void dav1d_thread_picture_signal(const Dav1dThreadPicture *p, int y,
 
 int default_picture_allocator(Dav1dPicture *, void *cookie);
 void default_picture_release(Dav1dPicture *, void *cookie);
+void dav1d_picture_unref_internal(Dav1dPicture *p);
 
 #endif /* __DAV1D_SRC_PICTURE_H__ */

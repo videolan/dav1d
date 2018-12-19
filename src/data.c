@@ -39,7 +39,7 @@
 #include "src/data.h"
 #include "src/ref.h"
 
-uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
+uint8_t *dav1d_data_create_internal(Dav1dData *const buf, const size_t sz) {
     validate_input_or_ret(buf != NULL, NULL);
 
     buf->ref = dav1d_ref_create(sz);
@@ -53,9 +53,11 @@ uint8_t * dav1d_data_create(Dav1dData *const buf, const size_t sz) {
     return buf->ref->data;
 }
 
-int dav1d_data_wrap(Dav1dData *const buf, const uint8_t *const ptr, const size_t sz,
-                    void (*free_callback)(const uint8_t *data, void *user_data),
-                    void *user_data)
+int dav1d_data_wrap_internal(Dav1dData *const buf, const uint8_t *const ptr,
+                             const size_t sz,
+                             void (*const free_callback)(const uint8_t *data,
+                                                         void *user_data),
+                             void *const user_data)
 {
     validate_input_or_ret(buf != NULL, -EINVAL);
     validate_input_or_ret(ptr != NULL, -EINVAL);
@@ -84,7 +86,7 @@ void dav1d_data_move_ref(Dav1dData *const dst, Dav1dData *const src) {
     memset(src, 0, sizeof(*src));
 }
 
-void dav1d_data_unref(Dav1dData *const buf) {
+void dav1d_data_unref_internal(Dav1dData *const buf) {
     validate_input(buf != NULL);
 
     if (buf->ref) {
