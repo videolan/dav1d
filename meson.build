@@ -194,30 +194,35 @@ stackalign_flag = []
 stackrealign_flag = []
 
 if host_machine.cpu_family().startswith('x86')
-    if cc.has_argument('-mpreferred-stack-boundary=5')
-        stackalign_flag = ['-mpreferred-stack-boundary=5']
-        stackrealign_flag = ['-mincoming-stack-boundary=4']
-        cdata_asm.set('STACK_ALIGNMENT', 32)
-        cdata.set('STACK_ALIGNMENT', 32)
-    elif cc.has_argument('-mpreferred-stack-boundary=4')
-        stackalign_flag = ['-mpreferred-stack-boundary=4']
-        stackrealign_flag = ['-mincoming-stack-boundary=4']
-        cdata_asm.set('STACK_ALIGNMENT', 16)
-        cdata.set('STACK_ALIGNMENT', 16)
-    elif cc.has_argument('-mstack-alignment=32')
-        stackalign_flag = ['-mstack-alignment=32']
-        stackrealign_flag = ['-mstackrealign']
-        cdata_asm.set('STACK_ALIGNMENT', 32)
-        cdata.set('STACK_ALIGNMENT', 32)
-    else
-        if host_machine.cpu_family() == 'x86_64'
-            cdata_asm.set('STACK_ALIGNMENT', 16)
-            cdata.set('STACK_ALIGNMENT', 16)
+    if host_machine.cpu_family() == 'x86_64'
+        if cc.has_argument('-mpreferred-stack-boundary=5')
+            stackalign_flag = ['-mpreferred-stack-boundary=5']
+            stackrealign_flag = ['-mincoming-stack-boundary=4']
+            stack_alignment = 32
+        elif cc.has_argument('-mstack-alignment=32')
+            stackalign_flag = ['-mstack-alignment=32']
+            stackrealign_flag = ['-mstackrealign']
+            stack_alignment = 32
         else
-            cdata_asm.set('STACK_ALIGNMENT', 4)
-            cdata.set('STACK_ALIGNMENT', 4)
+            stack_alignment = 16
+        endif
+    else
+        if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
+            stack_alignment = 16
+        elif cc.has_argument('-mpreferred-stack-boundary=4')
+            stackalign_flag = ['-mpreferred-stack-boundary=4']
+            stackrealign_flag = ['-mincoming-stack-boundary=2']
+            stack_alignment = 16
+        elif cc.has_argument('-mstack-alignment=16')
+            stackalign_flag = ['-mstack-alignment=16']
+            stackrealign_flag = ['-mstackrealign']
+            stack_alignment = 16
+        else
+            stack_alignment = 4
         endif
     endif
+    cdata_asm.set('STACK_ALIGNMENT', stack_alignment)
+    cdata.set('STACK_ALIGNMENT', stack_alignment)
 endif
 
 cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64')
