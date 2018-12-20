@@ -170,6 +170,12 @@ optional_arguments = [
   '-Wno-unused-parameter',
   '-Werror=missing-prototypes',
 ]
+if cc.get_id() == 'msvc'
+    optional_arguments += [
+      '-wd4028', # parameter different from declaration
+      '-wd4996'  # use of POSIX functions
+    ]
+endif
 
 if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
     optional_arguments += '-fomit-frame-pointer'
