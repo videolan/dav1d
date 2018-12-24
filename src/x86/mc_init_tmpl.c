@@ -38,6 +38,7 @@ decl_mc_fn(dav1d_put_8tap_sharp_avx2);
 decl_mc_fn(dav1d_put_8tap_sharp_regular_avx2);
 decl_mc_fn(dav1d_put_8tap_sharp_smooth_avx2);
 decl_mc_fn(dav1d_put_bilin_avx2);
+decl_mc_fn(dav1d_put_bilin_ssse3);
 
 decl_mct_fn(dav1d_prep_8tap_regular_avx2);
 decl_mct_fn(dav1d_prep_8tap_regular_smooth_avx2);
@@ -83,6 +84,8 @@ void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
         return;
 
 #if BITDEPTH == 8
+    init_mc_fn (FILTER_2D_BILINEAR,            bilin,               ssse3);
+
     c->avg = dav1d_avg_ssse3;
     c->w_avg = dav1d_w_avg_ssse3;
     c->mask = dav1d_mask_ssse3;
