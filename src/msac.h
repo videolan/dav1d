@@ -43,8 +43,6 @@ typedef struct MsacContext {
     int allow_update_cdf;
 } MsacContext;
 
-#define EC_PROB_SHIFT 6
-
 void msac_init(MsacContext *c, const uint8_t *data, size_t sz, int disable_cdf_update_flag);
 unsigned msac_decode_symbol(MsacContext *s, const uint16_t *cdf,
                             const unsigned n_symbols);

@@ -34,6 +34,7 @@
 
 #include "src/msac.h"
 
+#define EC_PROB_SHIFT 6
 #define EC_MIN_PROB 4  // must be <= (1<<EC_PROB_SHIFT)/16
 
 #define EC_WIN_SIZE (sizeof(ec_win) << 3)
@@ -115,7 +116,7 @@ unsigned msac_decode_bool(MsacContext *const s, const unsigned f) {
     uint16_t r = s->rng;
     unsigned ret;
     assert((dif >> (EC_WIN_SIZE - 16)) < r);
-    v = ((r >> 8) * f >> (7 - EC_PROB_SHIFT)) + EC_MIN_PROB;
+    v = ((r >> 8) * (f >> EC_PROB_SHIFT) >> (7 - EC_PROB_SHIFT)) + EC_MIN_PROB;
     vw   = v << (EC_WIN_SIZE - 16);
     ret  = dif >= vw;
     dif -= ret*vw;
@@ -179,7 +180,7 @@ unsigned msac_decode_symbol_adapt(MsacContext *const c,
 }
 
 unsigned msac_decode_bool_adapt(MsacContext *const c, uint16_t *const cdf) {
-    const unsigned bit = msac_decode_bool(c, *cdf >> EC_PROB_SHIFT);
+    const unsigned bit = msac_decode_bool(c, *cdf);
 
     if(c->allow_update_cdf){
         // update_cdf() specialized for boolean CDFs
