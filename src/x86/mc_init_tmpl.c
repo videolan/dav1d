@@ -29,14 +29,23 @@
 #include "src/mc.h"
 
 decl_mc_fn(dav1d_put_8tap_regular_avx2);
+decl_mc_fn(dav1d_put_8tap_regular_ssse3);
 decl_mc_fn(dav1d_put_8tap_regular_smooth_avx2);
+decl_mc_fn(dav1d_put_8tap_regular_smooth_ssse3);
 decl_mc_fn(dav1d_put_8tap_regular_sharp_avx2);
+decl_mc_fn(dav1d_put_8tap_regular_sharp_ssse3);
 decl_mc_fn(dav1d_put_8tap_smooth_avx2);
+decl_mc_fn(dav1d_put_8tap_smooth_ssse3);
 decl_mc_fn(dav1d_put_8tap_smooth_regular_avx2);
+decl_mc_fn(dav1d_put_8tap_smooth_regular_ssse3);
 decl_mc_fn(dav1d_put_8tap_smooth_sharp_avx2);
+decl_mc_fn(dav1d_put_8tap_smooth_sharp_ssse3);
 decl_mc_fn(dav1d_put_8tap_sharp_avx2);
+decl_mc_fn(dav1d_put_8tap_sharp_ssse3);
 decl_mc_fn(dav1d_put_8tap_sharp_regular_avx2);
+decl_mc_fn(dav1d_put_8tap_sharp_regular_ssse3);
 decl_mc_fn(dav1d_put_8tap_sharp_smooth_avx2);
+decl_mc_fn(dav1d_put_8tap_sharp_smooth_ssse3);
 decl_mc_fn(dav1d_put_bilin_avx2);
 decl_mc_fn(dav1d_put_bilin_ssse3);
 
@@ -88,6 +97,15 @@ void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 
 #if BITDEPTH == 8
     init_mc_fn (FILTER_2D_BILINEAR,            bilin,               ssse3);
+    init_mc_fn (FILTER_2D_8TAP_REGULAR,        8tap_regular,        ssse3);
+    init_mc_fn (FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, ssse3);
+    init_mc_fn (FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SMOOTH_REGULAR, 8tap_smooth_regular, ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SMOOTH,         8tap_smooth,         ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SMOOTH_SHARP,   8tap_smooth_sharp,   ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SHARP_REGULAR,  8tap_sharp_regular,  ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   ssse3);
+    init_mc_fn (FILTER_2D_8TAP_SHARP,          8tap_sharp,          ssse3);
 
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               ssse3);
 
