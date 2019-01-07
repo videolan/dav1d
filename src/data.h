@@ -30,6 +30,8 @@
 
 #include "dav1d/data.h"
 
+void dav1d_data_ref(Dav1dData *dst, const Dav1dData *src);
+
 /**
  * Move a data reference.
  */

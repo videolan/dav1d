@@ -1323,10 +1323,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         const unsigned bit_pos = dav1d_get_bits_pos(&gb);
         assert((bit_pos & 7) == 0);
         assert(pkt_bytelen >= (bit_pos >> 3));
-        dav1d_ref_inc(in->ref);
-        c->tile[c->n_tile_data].data.ref = in->ref;
-        dav1d_data_props_copy(&c->tile[c->n_tile_data].data.m, &in->m);
-        c->tile[c->n_tile_data].data.data = in->data + (bit_pos >> 3);
+        dav1d_data_ref(&c->tile[c->n_tile_data].data, in);
+        c->tile[c->n_tile_data].data.data += bit_pos >> 3;
         c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);
         // ensure tile groups are in order and sane, see 6.10.1
         if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end ||
