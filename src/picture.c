@@ -92,10 +92,8 @@ struct pic_ctx_context {
 static void free_buffer(const uint8_t *const data, void *const user_data) {
     struct pic_ctx_context *pic_ctx = user_data;
 
-    struct Dav1dRef *user_data_ref = pic_ctx->pic.m.user_data.ref;
     pic_ctx->allocator.release_picture_callback(&pic_ctx->pic,
                                                 pic_ctx->allocator.cookie);
-    if (user_data_ref) dav1d_ref_dec(&user_data_ref);
     free(pic_ctx);
 }
 
@@ -203,6 +201,7 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
         dav1d_ref_inc(src->ref);
         if (src->frame_hdr_ref) dav1d_ref_inc(src->frame_hdr_ref);
         if (src->seq_hdr_ref) dav1d_ref_inc(src->seq_hdr_ref);
+        if (src->m.user_data.ref) dav1d_ref_inc(src->m.user_data.ref);
     }
     *dst = *src;
 }
@@ -236,6 +235,7 @@ void dav1d_picture_unref_internal(Dav1dPicture *const p) {
         dav1d_ref_dec(&p->ref);
         dav1d_ref_dec(&p->seq_hdr_ref);
         dav1d_ref_dec(&p->frame_hdr_ref);
+        dav1d_ref_dec(&p->m.user_data.ref);
     }
     memset(p, 0, sizeof(*p));
 }

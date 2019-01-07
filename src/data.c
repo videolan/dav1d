@@ -113,6 +113,7 @@ void dav1d_data_props_copy(Dav1dDataProps *const dst,
     assert(dst != NULL);
     assert(src != NULL);
 
+    dav1d_ref_dec(&dst->user_data.ref);
     *dst = *src;
     if (dst->user_data.ref) dav1d_ref_inc(dst->user_data.ref);
 }
