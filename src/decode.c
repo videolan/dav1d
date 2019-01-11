@@ -3180,18 +3180,12 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     // allocate frame
     res = dav1d_thread_picture_alloc(&f->sr_cur, f->frame_hdr->width[1],
                                      f->frame_hdr->height,
-                                     f->seq_hdr->layout, bpc,
+                                     f->seq_hdr, f->seq_hdr_ref,
+                                     f->frame_hdr, f->frame_hdr_ref,
+                                     bpc, &f->tile[0].data.m,
                                      c->n_fc > 1 ? &f->frame_thread.td : NULL,
                                      f->frame_hdr->show_frame, &c->allocator);
     if (res < 0) goto error;
-
-    dav1d_data_props_copy(&f->sr_cur.p.m, &f->tile[0].data.m);
-    f->sr_cur.p.frame_hdr = f->frame_hdr;
-    f->sr_cur.p.frame_hdr_ref = f->frame_hdr_ref;
-    dav1d_ref_inc(f->frame_hdr_ref);
-    f->sr_cur.p.seq_hdr = f->seq_hdr;
-    f->sr_cur.p.seq_hdr_ref = f->seq_hdr_ref;
-    dav1d_ref_inc(f->seq_hdr_ref);
 
     if (f->frame_hdr->super_res.enabled) {
         res = dav1d_picture_alloc_copy(&f->cur, f->frame_hdr->width[0], &f->sr_cur.p);
