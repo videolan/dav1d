@@ -45,7 +45,7 @@ Dav1dRef *dav1d_ref_create(const size_t size) {
 
     res = dav1d_ref_wrap(data, default_free_callback, data);
     if (!res) {
-        free(data);
+        dav1d_free_aligned(data);
     } else {
         res->data = data;
     }
