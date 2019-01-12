@@ -221,7 +221,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     if (hdr->monochrome) {
         hdr->color_range = dav1d_get_bits(gb, 1);
         hdr->layout = DAV1D_PIXEL_LAYOUT_I400;
-        hdr->ss_hor = hdr->ss_ver = 0;
+        hdr->ss_hor = hdr->ss_ver = 1;
         hdr->chr = DAV1D_CHR_UNKNOWN;
         hdr->separate_uv_delta_q = 0;
     } else if (hdr->pri == DAV1D_COLOR_PRI_BT709 &&
