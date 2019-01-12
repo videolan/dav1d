@@ -229,7 +229,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                hdr->mtrx == DAV1D_MC_IDENTITY)
     {
         hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
-        hdr->ss_hor = hdr->ss_ver = 1;
+        hdr->ss_hor = hdr->ss_ver = 0;
         hdr->color_range = 1;
         if (hdr->profile != 1 && !(hdr->profile == 2 && hdr->hbd == 2))
             goto error;
