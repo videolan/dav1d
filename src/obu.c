@@ -258,8 +258,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         }
         hdr->chr = hdr->ss_hor == 1 && hdr->ss_ver == 1 ?
                    dav1d_get_bits(gb, 2) : DAV1D_CHR_UNKNOWN;
-        hdr->separate_uv_delta_q = dav1d_get_bits(gb, 1);
     }
+    hdr->separate_uv_delta_q = !hdr->monochrome && dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
     printf("SEQHDR: post-colorinfo: off=%ld\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
