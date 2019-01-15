@@ -473,6 +473,7 @@ void dav1d_close(Dav1dContext **const c_out) {
         dav1d_free_aligned(f->tc);
         dav1d_free_aligned(f->ipred_edge[0]);
         free(f->a);
+        free(f->tile);
         free(f->lf.mask);
         free(f->lf.lr_mask);
         free(f->lf.level);
@@ -491,6 +492,7 @@ void dav1d_close(Dav1dContext **const c_out) {
     }
     for (int n = 0; n < c->n_tile_data; n++)
         dav1d_data_unref_internal(&c->tile[n].data);
+    free(c->tile);
     for (int n = 0; n < 8; n++) {
         dav1d_cdf_thread_unref(&c->cdf[n]);
         if (c->refs[n].p.p.data[0])

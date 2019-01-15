@@ -65,16 +65,19 @@ typedef struct Dav1dDSPContext {
     Dav1dLoopRestorationDSPContext lr;
 } Dav1dDSPContext;
 
+struct Dav1dTileGroup {
+    Dav1dData data;
+    int start, end;
+};
+
 struct Dav1dContext {
     Dav1dFrameContext *fc;
     unsigned n_fc;
 
     // cache of OBUs that make up a single frame before we submit them
     // to a frame worker to be decoded
-    struct {
-        Dav1dData data;
-        int start, end;
-    } tile[256];
+    struct Dav1dTileGroup *tile;
+    int n_tile_data_alloc;
     int n_tile_data;
     int n_tiles;
     Dav1dRef *seq_hdr_ref;
@@ -139,10 +142,8 @@ struct Dav1dFrameContext {
     unsigned refpoc[7], refrefpoc[7][7];
     uint8_t gmv_warp_allowed[7];
     CdfThreadContext in_cdf, out_cdf;
-    struct {
-        Dav1dData data;
-        int start, end;
-    } tile[256];
+    struct Dav1dTileGroup *tile;
+    int n_tile_data_alloc;
     int n_tile_data;
 
     // for scalable references

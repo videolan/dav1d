@@ -1311,7 +1311,14 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
     case OBU_TILE_GRP: {
         if (global) break;
         if (!c->frame_hdr) goto error;
-        if (c->n_tile_data >= 256) goto error;
+        if (c->n_tile_data_alloc < c->n_tile_data + 1) {
+            if ((c->n_tile_data + 1) > INT_MAX / (int)sizeof(*c->tile)) goto error;
+            struct Dav1dTileGroup *tile = realloc(c->tile, (c->n_tile_data + 1) * sizeof(*c->tile));
+            if (!tile) goto error;
+            c->tile = tile;
+            memset(c->tile + c->n_tile_data, 0, sizeof(*c->tile));
+            c->n_tile_data_alloc = c->n_tile_data + 1;
+        }
         parse_tile_hdr(c, &gb);
         // Align to the next byte boundary and check for overrun.
         dav1d_bytealign_get_bits(&gb);
