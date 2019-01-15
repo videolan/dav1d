@@ -70,7 +70,7 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this pr
 
 # Compile
 
-1. Install [Meson](https://mesonbuild.com/) (0.47 or higher), [Ninja](https://ninja-build.org/), and, for x86* targets, [nasm](https://nasm.us/) (2.13 or higher)
+1. Install [Meson](https://mesonbuild.com/) (0.47 or higher), [Ninja](https://ninja-build.org/), and, for x86* targets, [nasm](https://nasm.us/) (2.13.02 or higher)
 2. Run `meson build --buildtype release`
 3. Build with `ninja -C build`
 
