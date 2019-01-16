@@ -88,6 +88,40 @@ build-win64:
             - build/dav1d_install/
         expire_in: 1 week
 
+build-win-arm32:
+    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
+    stage: build
+    tags:
+        - win32
+    script:
+        - meson build --buildtype release
+                      --werror
+                      --libdir lib
+                      --prefix "$(pwd)/build/dav1d_install"
+                      --cross-file /opt/crossfiles/armv7-w64-mingw32.meson
+                      -Ddefault_library=both
+        - ninja -C build
+
+build-win-arm64:
+    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
+    stage: build
+    tags:
+        - win64
+    script:
+        - meson build --buildtype release
+                      --werror
+                      --libdir lib
+                      --prefix "$(pwd)/build/dav1d_install"
+                      --cross-file /opt/crossfiles/aarch64-w64-mingw32.meson
+                      -Ddefault_library=both
+        - ninja -C build
+        - ninja -C build install
+    artifacts:
+        name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+        paths:
+            - build/dav1d_install/
+        expire_in: 1 week
+
 build-debian-aarch64:
     stage: build
     image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
