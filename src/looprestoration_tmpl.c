@@ -508,7 +508,7 @@ static void selfguided_filter(coef *dst, const pixel *src,
             A += REST_UNIT_STRIDE;
         }
     }
-#undef NINE_NEIGHBORS
+#undef EIGHT_NEIGHBORS
 }
 
 static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
