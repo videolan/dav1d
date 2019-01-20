@@ -35,7 +35,7 @@ The plan is the folllowing:
 6. Make it fast on older desktop, by writing asm for SSE chips.
 
 ### After
-7. Improve C code base with [various tweaks](wiki/task-list),
+7. Improve C code base with [various tweaks](https://code.videolan.org/videolan/dav1d/wikis/task-list),
 8. Accelerate for less common architectures,
 9. Use more GPU, when possible.
 
