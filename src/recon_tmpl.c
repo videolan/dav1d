@@ -833,8 +833,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           edge_flags, dst,
                                                           f->cur.stride[0], top_sb_edge,
                                                           b->y_mode, &angle,
-                                                          t_dim->w, t_dim->h, edge
-                                                          HIGHBD_CALL_SUFFIX);
+                                                          t_dim->w, t_dim->h,
+                                                          f->seq_hdr->intra_edge_filter,
+                                                          edge HIGHBD_CALL_SUFFIX);
                     dsp->ipred.intra_pred[m](dst, f->cur.stride[0], edge,
                                              t_dim->w * 4, t_dim->h * 4,
                                              angle | intra_flags,
@@ -951,9 +952,8 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                           ts->tiling.row_end >> ss_ver,
                                                           0, uv_dst[pl], stride,
                                                           top_sb_edge, DC_PRED, &angle,
-                                                          uv_t_dim->w,
-                                                          uv_t_dim->h, edge
-                                                          HIGHBD_CALL_SUFFIX);
+                                                          uv_t_dim->w, uv_t_dim->h, 0,
+                                                          edge HIGHBD_CALL_SUFFIX);
                     dsp->ipred.cfl_pred[m](uv_dst[pl], stride, edge,
                                            uv_t_dim->w * 4,
                                            uv_t_dim->h * 4,
@@ -1053,8 +1053,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTileContext *const t, const enum BlockSize
                                                               edge_flags, dst, stride,
                                                               top_sb_edge, uv_mode,
                                                               &angle, uv_t_dim->w,
-                                                              uv_t_dim->h, edge
-                                                              HIGHBD_CALL_SUFFIX);
+                                                              uv_t_dim->h,
+                                                              f->seq_hdr->intra_edge_filter,
+                                                              edge HIGHBD_CALL_SUFFIX);
                         angle |= intra_edge_filter_flag;
                         dsp->ipred.intra_pred[m](dst, stride, edge,
                                                  uv_t_dim->w * 4,
@@ -1216,7 +1217,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                                                   t->by, t->by > ts->tiling.row_start,
                                                   ts->tiling.col_end, ts->tiling.row_end,
                                                   0, dst, f->cur.stride[0], top_sb_edge,
-                                                  m, &angle, bw4, bh4, tl_edge
+                                                  m, &angle, bw4, bh4, 0, tl_edge
                                                   HIGHBD_CALL_SUFFIX);
             dsp->ipred.intra_pred[m](tmp, 4 * bw4 * sizeof(pixel),
                                      tl_edge, bw4 * 4, bh4 * 4, 0, 0, 0
@@ -1358,7 +1359,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                                                           ts->tiling.row_end >> ss_ver,
                                                           0, uvdst, f->cur.stride[1],
                                                           top_sb_edge, m,
-                                                          &angle, cbw4, cbh4, tl_edge
+                                                          &angle, cbw4, cbh4, 0, tl_edge
                                                           HIGHBD_CALL_SUFFIX);
                     dsp->ipred.intra_pred[m](tmp, cbw4 * 4 * sizeof(pixel),
                                              tl_edge, cbw4 * 4, cbh4 * 4, 0, 0, 0
