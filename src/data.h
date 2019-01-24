@@ -43,6 +43,8 @@ void dav1d_data_move_ref(Dav1dData *dst, Dav1dData *src);
  */
 void dav1d_data_props_copy(Dav1dDataProps *dst, const Dav1dDataProps *src);
 
+void dav1d_data_props_set_defaults(Dav1dDataProps *props);
+
 uint8_t *dav1d_data_create_internal(Dav1dData *buf, size_t sz);
 int dav1d_data_wrap_internal(Dav1dData *buf, const uint8_t *ptr, size_t sz,
                              void (*free_callback)(const uint8_t *data,

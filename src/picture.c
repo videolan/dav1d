@@ -118,15 +118,11 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
 
     p->p.w = w;
     p->p.h = h;
-    p->m.timestamp = INT64_MIN;
-    p->m.duration = 0;
-    p->m.offset = -1;
-    p->m.user_data.data = NULL;
-    p->m.user_data.ref = NULL;
     p->seq_hdr = seq_hdr;
     p->frame_hdr = frame_hdr;
     p->p.layout = seq_hdr->layout;
     p->p.bpc = bpc;
+    dav1d_data_props_set_defaults(&p->m);
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
     if (res < 0) {
         free(pic_ctx);
