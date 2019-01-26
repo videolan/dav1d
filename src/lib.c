@@ -38,6 +38,7 @@
 #include "common/validate.h"
 
 #include "src/internal.h"
+#include "src/log.h"
 #include "src/obu.h"
 #include "src/qm.h"
 #include "src/ref.h"
@@ -62,6 +63,8 @@ void dav1d_default_settings(Dav1dSettings *const s) {
     s->allocator.cookie = NULL;
     s->allocator.alloc_picture_callback = default_picture_allocator;
     s->allocator.release_picture_callback = default_picture_release;
+    s->logger.cookie = NULL;
+    s->logger.callback = dav1d_log_default_callback;
     s->operating_point = 0;
     s->all_layers = 1; // just until the tests are adjusted
 }
@@ -90,6 +93,7 @@ int dav1d_open(Dav1dContext **const c_out,
     memset(c, 0, sizeof(*c));
 
     c->allocator = s->allocator;
+    c->logger = s->logger;
     c->apply_grain = s->apply_grain;
     c->operating_point = s->operating_point;
     c->all_layers = s->all_layers;

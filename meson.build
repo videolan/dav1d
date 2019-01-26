@@ -70,6 +70,10 @@ if is_asm_enabled and get_option('b_sanitize') == 'memory'
     error('asm causes false positive with memory sanitizer. Use \'-Dbuild_asm=false\'.')
 endif
 
+# Logging option
+if get_option('logging')
+    cdata.set('CONFIG_LOG', 1)
+endif
 
 #
 # OS/Compiler checks and defines

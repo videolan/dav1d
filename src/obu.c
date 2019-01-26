@@ -39,6 +39,7 @@
 #include "src/decode.h"
 #include "src/getbits.h"
 #include "src/levels.h"
+#include "src/log.h"
 #include "src/obu.h"
 #include "src/ref.h"
 #include "src/thread_task.h"

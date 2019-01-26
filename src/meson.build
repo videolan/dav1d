@@ -32,6 +32,7 @@ libdav1d_sources = files(
     'cpu.c',
     'data.c',
     'ref.c',
+    'log.c',
     'getbits.c',
     'obu.c',
     'decode.c',

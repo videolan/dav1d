@@ -123,6 +123,8 @@ struct Dav1dContext {
     unsigned operating_point_idc;
     int all_layers;
     int drain;
+
+    Dav1dLogger logger;
 };
 
 struct Dav1dFrameContext {
