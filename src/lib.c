@@ -176,9 +176,9 @@ error:
             dav1d_free_aligned(c->fc);
         }
         if (c->n_fc > 1) free(c->frame_thread.out_delayed);
+        dav1d_log(c, "Failed to allocate memory: %s\n", strerror(errno));
         dav1d_freep_aligned(c_out);
     }
-    fprintf(stderr, "Failed to allocate memory: %s\n", strerror(errno));
     return -ENOMEM;
 }
 
@@ -259,7 +259,7 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     }
 
     // Apply film grain to a new copy of the image to avoid corrupting refs
-    int res = dav1d_picture_alloc_copy(out, in->p.w, in);
+    int res = dav1d_picture_alloc_copy(c, out, in->p.w, in);
     if (res < 0) {
         dav1d_picture_unref_internal(in);
         dav1d_picture_unref_internal(out);

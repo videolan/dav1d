@@ -281,7 +281,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     return 0;
 
 error:
-    fprintf(stderr, "Error parsing sequence header\n");
+    dav1d_log(c, "Error parsing sequence header\n");
     return -EINVAL;
 }
 
@@ -1118,7 +1118,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     return 0;
 
 error:
-    fprintf(stderr, "Error parsing frame header\n");
+    dav1d_log(c, "Error parsing frame header\n");
     return -EINVAL;
 }
 
@@ -1142,11 +1142,12 @@ static void parse_tile_hdr(Dav1dContext *const c, GetBits *const gb) {
 // Check that we haven't read more than obu_len bytes from the buffer
 // since init_bit_pos.
 static int
-check_for_overrun(GetBits *const gb, unsigned init_bit_pos, unsigned obu_len)
+check_for_overrun(Dav1dContext *const c, GetBits *const gb,
+                  unsigned init_bit_pos, unsigned obu_len)
 {
     // Make sure we haven't actually read past the end of the gb buffer
     if (gb->error) {
-        fprintf(stderr, "Overrun in OBU bit buffer\n");
+        dav1d_log(c, "Overrun in OBU bit buffer\n");
         return 1;
     }
 
@@ -1157,7 +1158,7 @@ check_for_overrun(GetBits *const gb, unsigned init_bit_pos, unsigned obu_len)
     assert (init_bit_pos <= pos);
 
     if (pos - init_bit_pos > 8 * obu_len) {
-        fprintf(stderr, "Overrun in OBU bit buffer into next OBU\n");
+        dav1d_log(c, "Overrun in OBU bit buffer into next OBU\n");
         return 1;
     }
 
@@ -1238,7 +1239,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             dav1d_ref_dec(&ref);
             return res;
         }
-        if (check_for_overrun(&gb, init_bit_pos, len)) {
+        if (check_for_overrun(c, &gb, init_bit_pos, len)) {
             dav1d_ref_dec(&ref);
             return -EINVAL;
         }
@@ -1291,7 +1292,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             // This is actually a frame header OBU so read the
             // trailing bit and check for overrun.
             dav1d_get_bits(&gb, 1);
-            if (check_for_overrun(&gb, init_bit_pos, len)) {
+            if (check_for_overrun(c, &gb, init_bit_pos, len)) {
                 c->frame_hdr = NULL;
                 return -EINVAL;
             }
@@ -1323,7 +1324,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         parse_tile_hdr(c, &gb);
         // Align to the next byte boundary and check for overrun.
         dav1d_bytealign_get_bits(&gb);
-        if (check_for_overrun(&gb, init_bit_pos, len))
+        if (check_for_overrun(c, &gb, init_bit_pos, len))
             return -EINVAL;
         // The current bit position is a multiple of 8 (because we
         // just aligned it) and less than 8*pkt_bytelen because
@@ -1355,7 +1356,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         // ignore OBUs we don't care about
         break;
     default:
-        fprintf(stderr, "Unknown OBU type %d of size %u\n", type, len);
+        dav1d_log(c, "Unknown OBU type %d of size %u\n", type, len);
         return -EINVAL;
     }
 
@@ -1426,6 +1427,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
     return len + init_byte_pos;
 
 error:
-    fprintf(stderr, "Error parsing OBU data\n");
+    dav1d_log(c, "Error parsing OBU data\n");
     return -EINVAL;
 }

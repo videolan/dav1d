@@ -42,6 +42,7 @@
 #include "src/decode.h"
 #include "src/dequant_tables.h"
 #include "src/env.h"
+#include "src/log.h"
 #include "src/qm.h"
 #include "src/recon.h"
 #include "src/ref.h"
@@ -3089,7 +3090,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 #endif
 #undef assign_bitdepth_case
         default:
-            fprintf(stderr, "Compiled without support for %d-bit decoding\n",
+            dav1d_log(c, "Compiled without support for %d-bit decoding\n",
                     8 + 2 * f->seq_hdr->hbd);
             res = -ENOPROTOOPT;
             goto error;
@@ -3184,7 +3185,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     c->n_tile_data = 0;
 
     // allocate frame
-    res = dav1d_thread_picture_alloc(&f->sr_cur, f->frame_hdr->width[1],
+    res = dav1d_thread_picture_alloc(c, &f->sr_cur, f->frame_hdr->width[1],
                                      f->frame_hdr->height,
                                      f->seq_hdr, f->seq_hdr_ref,
                                      f->frame_hdr, f->frame_hdr_ref,
@@ -3194,7 +3195,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     if (res < 0) goto error;
 
     if (f->frame_hdr->super_res.enabled) {
-        res = dav1d_picture_alloc_copy(&f->cur, f->frame_hdr->width[0], &f->sr_cur.p);
+        res = dav1d_picture_alloc_copy(c, &f->cur, f->frame_hdr->width[0], &f->sr_cur.p);
         if (res < 0) goto error;
     } else {
         dav1d_picture_ref(&f->cur, &f->sr_cur.p);

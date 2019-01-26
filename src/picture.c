@@ -38,6 +38,7 @@
 #include "common/mem.h"
 #include "common/validate.h"
 
+#include "src/log.h"
 #include "src/picture.h"
 #include "src/ref.h"
 #include "src/thread.h"
@@ -59,8 +60,6 @@ int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
 
     uint8_t *data = dav1d_alloc_aligned(pic_size, 32);
     if (data == NULL) {
-        fprintf(stderr, "Failed to allocate memory of size %zu: %s\n",
-                pic_size, strerror(errno));
         return -1;
     }
 
@@ -97,7 +96,7 @@ static void free_buffer(const uint8_t *const data, void *const user_data) {
     free(pic_ctx);
 }
 
-static int picture_alloc_with_edges(Dav1dPicture *const p,
+static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p,
                                     const int w, const int h,
                                     Dav1dSequenceHeader *seq_hdr, Dav1dRef *seq_hdr_ref,
                                     Dav1dFrameHeader *frame_hdr,  Dav1dRef *frame_hdr_ref,
@@ -106,7 +105,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
                                     const size_t extra, void **const extra_ptr)
 {
     if (p->data[0]) {
-        fprintf(stderr, "Picture already allocated!\n");
+        dav1d_log(c, "Picture already allocated!\n");
         return -1;
     }
     assert(bpc > 0 && bpc <= 16);
@@ -135,7 +134,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     if (!(p->ref = dav1d_ref_wrap(p->data[0], free_buffer, pic_ctx))) {
         p_allocator->release_picture_callback(p, p_allocator->cookie);
         free(pic_ctx);
-        fprintf(stderr, "Failed to wrap picture: %s\n", strerror(errno));
+        dav1d_log(c, "Failed to wrap picture: %s\n", strerror(errno));
         return -ENOMEM;
     }
 
@@ -153,7 +152,7 @@ static int picture_alloc_with_edges(Dav1dPicture *const p,
     return 0;
 }
 
-int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
+int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dThreadPicture *const p,
                                const int w, const int h,
                                Dav1dSequenceHeader *seq_hdr, Dav1dRef *seq_hdr_ref,
                                Dav1dFrameHeader *frame_hdr, Dav1dRef *frame_hdr_ref,
@@ -164,7 +163,7 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
     p->t = t;
 
     const int res =
-        picture_alloc_with_edges(&p->p, w, h,
+        picture_alloc_with_edges(c, &p->p, w, h,
                                  seq_hdr, seq_hdr_ref,
                                  frame_hdr, frame_hdr_ref,
                                  bpc, props, p_allocator,
@@ -180,11 +179,11 @@ int dav1d_thread_picture_alloc(Dav1dThreadPicture *const p,
     return res;
 }
 
-int dav1d_picture_alloc_copy(Dav1dPicture *const dst, const int w,
+int dav1d_picture_alloc_copy(Dav1dContext *const c, Dav1dPicture *const dst, const int w,
                              const Dav1dPicture *const src)
 {
     struct pic_ctx_context *const pic_ctx = src->ref->user_data;
-    const int res = picture_alloc_with_edges(dst, w, src->p.h,
+    const int res = picture_alloc_with_edges(c, dst, w, src->p.h,
                                              src->seq_hdr, src->seq_hdr_ref,
                                              src->frame_hdr, src->frame_hdr_ref,
                                              src->p.bpc, &src->m, &pic_ctx->allocator,
