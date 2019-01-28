@@ -32,7 +32,7 @@
 #include "common/intops.h"
 #include "src/tables.h"
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if BITDEPTH == 8
 // This calculates things slightly differently than the reference C version.
 // This version calculates roughly this:
 // int16_t sum = 0;
@@ -100,7 +100,7 @@ void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPContext *
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if BITDEPTH == 8
     c->wiener = wiener_filter_neon;
 #endif
 }
