@@ -66,7 +66,7 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                const int w, const int h, const int16_t fh[7],
                                const int16_t fv[7], const enum LrEdgeFlags edges)
 {
-    ALIGN_STK_32(int16_t, mid, 68 * 384,);
+    ALIGN_STK_16(int16_t, mid, 68 * 384,);
     int mid_stride = (w + 7) & ~7;
 
     // Horizontal filter
