@@ -196,6 +196,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
 
     Dav1dSettings s;
     dav1d_default_settings(&s);
+    s.logger.callback = NULL;
 
     Dav1dContext *c;
     res = dav1d_open(&c, &s);
