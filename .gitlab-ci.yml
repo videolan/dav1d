@@ -163,6 +163,28 @@ build-debian-werror:
         - env CC='clang-7' meson build --buildtype debug --werror
         - ninja -C build
 
+build-debian-armv7:
+    stage: build
+    image: registry.videolan.org:5000/dav1d-debian-unstable-armv7:20190202101732
+    tags:
+        - armv7
+        - debian
+    script:
+        - meson build --buildtype release --werror
+        - ninja -C build
+        - cd build && meson test -v
+
+build-debian-armv7-clang-5:
+    stage: build
+    image: registry.videolan.org:5000/dav1d-debian-unstable-armv7:20190202101732
+    tags:
+        - armv7
+        - debian
+    script:
+        - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
+        - ninja -C build
+        - cd build && meson test -v
+
 test-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20181114201132
     stage: test
