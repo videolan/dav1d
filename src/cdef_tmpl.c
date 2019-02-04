@@ -61,19 +61,19 @@ static void padding(uint16_t *tmp, const ptrdiff_t tmp_stride,
 {
     // fill extended input buffer
     int x_start = -2, x_end = w + 2, y_start = -2, y_end = h + 2;
-    if (!(edges & HAVE_TOP)) {
+    if (!(edges & CDEF_HAVE_TOP)) {
         fill(tmp - 2 - 2 * tmp_stride, tmp_stride, w + 4, 2);
         y_start = 0;
     }
-    if (!(edges & HAVE_BOTTOM)) {
+    if (!(edges & CDEF_HAVE_BOTTOM)) {
         fill(tmp + h * tmp_stride - 2, tmp_stride, w + 4, 2);
         y_end -= 2;
     }
-    if (!(edges & HAVE_LEFT)) {
+    if (!(edges & CDEF_HAVE_LEFT)) {
         fill(tmp + y_start * tmp_stride - 2, tmp_stride, 2, y_end - y_start);
         x_start = 0;
     }
-    if (!(edges & HAVE_RIGHT)) {
+    if (!(edges & CDEF_HAVE_RIGHT)) {
         fill(tmp + y_start * tmp_stride + w, tmp_stride, 2, y_end - y_start);
         x_end -= 2;
     }

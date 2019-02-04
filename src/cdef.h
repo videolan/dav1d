@@ -34,10 +34,10 @@
 #include "common/bitdepth.h"
 
 enum CdefEdgeFlags {
-    HAVE_LEFT = 1 << 0,
-    HAVE_RIGHT = 1 << 1,
-    HAVE_TOP = 1 << 2,
-    HAVE_BOTTOM = 1 << 3,
+    CDEF_HAVE_LEFT = 1 << 0,
+    CDEF_HAVE_RIGHT = 1 << 1,
+    CDEF_HAVE_TOP = 1 << 2,
+    CDEF_HAVE_BOTTOM = 1 << 3,
 };
 
 #ifdef BITDEPTH

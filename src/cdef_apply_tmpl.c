@@ -85,7 +85,7 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
 {
     const int bitdepth_min_8 = BITDEPTH == 8 ? 0 : f->cur.p.bpc - 8;
     const Dav1dDSPContext *const dsp = f->dsp;
-    enum CdefEdgeFlags edges = HAVE_BOTTOM | (by_start > 0 ? HAVE_TOP : 0);
+    enum CdefEdgeFlags edges = CDEF_HAVE_BOTTOM | (by_start > 0 ? CDEF_HAVE_TOP : 0);
     pixel *ptrs[3] = { p[0], p[1], p[2] };
     const int sbsz = 16;
     const int sb64w = f->sb128w << 1;
@@ -101,11 +101,11 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
     // the backup of pre-filter data is empty, and the restore is therefore
     // unnecessary as well.
 
-    for (int bit = 0, by = by_start; by < by_end; by += 2, edges |= HAVE_TOP) {
+    for (int bit = 0, by = by_start; by < by_end; by += 2, edges |= CDEF_HAVE_TOP) {
         const int tf = f->lf.top_pre_cdef_toggle;
-        if (by + 2 >= f->bh) edges &= ~HAVE_BOTTOM;
+        if (by + 2 >= f->bh) edges &= ~CDEF_HAVE_BOTTOM;
 
-        if (edges & HAVE_BOTTOM) {
+        if (edges & CDEF_HAVE_BOTTOM) {
             // backup pre-filter data for next iteration
             backup2lines(f->lf.cdef_line_ptr[!tf], ptrs, f->cur.stride,
                          8, f->bw * 4, layout);
@@ -113,9 +113,9 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
 
         pixel lr_bak[2 /* idx */][3 /* plane */][8 /* y */][2 /* x */];
         pixel *iptrs[3] = { ptrs[0], ptrs[1], ptrs[2] };
-        edges &= ~HAVE_LEFT;
-        edges |= HAVE_RIGHT;
-        for (int sbx = 0, last_skip = 1; sbx < sb64w; sbx++, edges |= HAVE_LEFT) {
+        edges &= ~CDEF_HAVE_LEFT;
+        edges |= CDEF_HAVE_RIGHT;
+        for (int sbx = 0, last_skip = 1; sbx < sb64w; sbx++, edges |= CDEF_HAVE_LEFT) {
             const int sb128x = sbx >>1;
             const int sb64_idx = ((by & sbsz) >> 3) + (sbx & 1);
             const int cdef_idx = lflvl[sb128x].cdef_idx[sb64_idx];
@@ -131,9 +131,9 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
             const int uv_lvl = f->frame_hdr->cdef.uv_strength[cdef_idx];
             pixel *bptrs[3] = { iptrs[0], iptrs[1], iptrs[2] };
             for (int bx = sbx * sbsz; bx < imin((sbx + 1) * sbsz, f->bw);
-                 bx += 2, edges |= HAVE_LEFT)
+                 bx += 2, edges |= CDEF_HAVE_LEFT)
             {
-                if (bx + 2 >= f->bw) edges &= ~HAVE_RIGHT;
+                if (bx + 2 >= f->bw) edges &= ~CDEF_HAVE_RIGHT;
 
                 // check if this 8x8 block had any coded coefficients; if not,
                 // go to the next block
@@ -146,12 +146,12 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
                     goto next_b;
                 }
 
-                if (last_skip && edges & HAVE_LEFT) {
+                if (last_skip && edges & CDEF_HAVE_LEFT) {
                     // we didn't backup the prefilter data because it wasn't
                     // there, so do it here instead
                     backup2x8(lr_bak[bit], bptrs, f->cur.stride, 0, layout);
                 }
-                if (edges & HAVE_RIGHT) {
+                if (edges & CDEF_HAVE_RIGHT) {
                     // backup pre-filter data for next iteration
                     backup2x8(lr_bak[!bit], bptrs, f->cur.stride, 8, layout);
                 }
