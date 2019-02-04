@@ -85,11 +85,13 @@ if is_asm_enabled
             'arm/cpu.c',
         )
         libdav1d_tmpl_sources += files(
+            'arm/cdef_init_tmpl.c',
             'arm/looprestoration_init_tmpl.c',
             'arm/mc_init_tmpl.c',
         )
         if host_machine.cpu_family() == 'aarch64'
             libdav1d_sources += files(
+                'arm/64/cdef.S',
                 'arm/64/looprestoration.S',
                 'arm/64/mc.S',
             )
