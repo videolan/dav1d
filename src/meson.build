@@ -172,7 +172,7 @@ endif
 # Helper library for dav1d entrypoints
 libdav1d_entrypoints_objs = static_library('dav1d_entrypoint',
     libdav1d_entrypoints_sources,
-    rev_target,
+    rev_target, config_h_target,
 
     include_directories : dav1d_inc_dirs,
     dependencies: [stdatomic_dependency],

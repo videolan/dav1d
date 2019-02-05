@@ -1,4 +1,4 @@
-# Copyright © 2018, VideoLAN and dav1d authors
+# Copyright © 2019, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -22,15 +22,20 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Revision file (vcs_version.h) generation
-dav1d_git_dir = join_paths(dav1d_src_root, '.git')
-rev_target = vcs_tag(command: [
-        'git', '--git-dir', dav1d_git_dir,
-        'describe', '--tags', '--long',
-        '--match', '?.*.*', '--always'
-    ],
-    input: 'vcs_version.h.in',
-    output: 'vcs_version.h'
-)
+# installed version.h header generation
+version_h_data = configuration_data()
+version_h_data.set('DAV1D_VERSION_MAJOR', dav1d_version_major)
+version_h_data.set('DAV1D_VERSION_MINOR', dav1d_version_minor)
+version_h_data.set('DAV1D_VERSION_PATCH', dav1d_version_revision)
+version_h_target = configure_file(input: 'version.h.in',
+                                  output: 'version.h',
+                                  configuration: version_h_data)
 
-subdir('dav1d')
+# install headers
+install_headers('common.h',
+                'data.h',
+                'dav1d.h',
+                'headers.h',
+                'picture.h',
+                version_h_target,
+                subdir : 'dav1d')

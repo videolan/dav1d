@@ -38,6 +38,7 @@ extern "C" {
 #include "common.h"
 #include "picture.h"
 #include "data.h"
+#include "dav1d/version.h"
 
 typedef struct Dav1dContext Dav1dContext;
 typedef struct Dav1dRef Dav1dRef;
@@ -71,6 +72,16 @@ typedef struct Dav1dSettings {
  * Get library version.
  */
 DAV1D_API const char *dav1d_version(void);
+
+/**
+ * Get library version based on version control system.
+ */
+DAV1D_API const char *dav1d_version_vcs(void);
+
+/**
+ * Get library version as unsigned int.
+ */
+DAV1D_API unsigned int dav1d_version_int(void);
 
 /**
  * Initialize settings to default values.
