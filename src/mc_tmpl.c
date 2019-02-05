@@ -39,9 +39,14 @@
 
 #if BITDEPTH == 8
 #define get_intermediate_bits(bitdepth_max) 4
+// Output in interval [-5132, 9212], fits in int16_t as is
+#define PREP_BIAS 0
 #else
 // 4 for 10 bits/component, 2 for 12 bits/component
 #define get_intermediate_bits(bitdepth_max) (14 - bitdepth_from_max(bitdepth_max))
+// Output in interval [-20588, 36956] (10-bit), [-20602, 36983] (12-bit)
+// Subtract a bias to ensure the output fits in int16_t
+#define PREP_BIAS 8192
 #endif
 
 static NOINLINE void
@@ -63,7 +68,7 @@ prep_c(int16_t *tmp, const pixel *src, const ptrdiff_t src_stride,
     const int intermediate_bits = get_intermediate_bits(bitdepth_max);
     do {
         for (int x = 0; x < w; x++)
-            tmp[x] = src[x] << intermediate_bits;
+            tmp[x] = (src[x] << intermediate_bits) - PREP_BIAS;
 
         tmp += w;
         src += src_stride;
@@ -237,8 +242,12 @@ prep_8tap_c(int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
 
             mid_ptr = mid + 128 * 3;
             do {
-                for (int x = 0; x < w; x++)
-                    tmp[x] = DAV1D_FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6);
+                for (int x = 0; x < w; x++) {
+                    int t = DAV1D_FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6) -
+                                  PREP_BIAS;
+                    assert(t >= INT16_MIN && t <= INT16_MAX);
+                    tmp[x] = t;
+                }
 
                 mid_ptr += 128;
                 tmp += w;
@@ -247,7 +256,8 @@ prep_8tap_c(int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
             do {
                 for (int x = 0; x < w; x++)
                     tmp[x] = DAV1D_FILTER_8TAP_RND(src, x, fh, 1,
-                                                   6 - intermediate_bits);
+                                                   6 - intermediate_bits) -
+                             PREP_BIAS;
 
                 tmp += w;
                 src += src_stride;
@@ -257,7 +267,8 @@ prep_8tap_c(int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
         do {
             for (int x = 0; x < w; x++)
                 tmp[x] = DAV1D_FILTER_8TAP_RND(src, x, fv, src_stride,
-                                               6 - intermediate_bits);
+                                               6 - intermediate_bits) -
+                         PREP_BIAS;
 
             tmp += w;
             src += src_stride;
@@ -302,7 +313,8 @@ prep_8tap_scaled_c(int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
         GET_V_FILTER(my >> 6);
 
         for (x = 0; x < w; x++)
-            tmp[x] = fv ? DAV1D_FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6) : mid_ptr[x];
+            tmp[x] = (fv ? DAV1D_FILTER_8TAP_RND(mid_ptr, x, fv, 128, 6)
+                         : mid_ptr[x]) - PREP_BIAS;
 
         my += dy;
         mid_ptr += (my >> 10) * 128;
@@ -499,7 +511,8 @@ static void prep_bilin_c(int16_t *tmp,
             mid_ptr = mid;
             do {
                 for (int x = 0; x < w; x++)
-                    tmp[x] = FILTER_BILIN_RND(mid_ptr, x, my, 128, 4);
+                    tmp[x] = FILTER_BILIN_RND(mid_ptr, x, my, 128, 4) -
+                             PREP_BIAS;
 
                 mid_ptr += 128;
                 tmp += w;
@@ -508,7 +521,8 @@ static void prep_bilin_c(int16_t *tmp,
             do {
                 for (int x = 0; x < w; x++)
                     tmp[x] = FILTER_BILIN_RND(src, x, mx, 1,
-                                              4 - intermediate_bits);
+                                              4 - intermediate_bits) -
+                             PREP_BIAS;
 
                 tmp += w;
                 src += src_stride;
@@ -518,7 +532,7 @@ static void prep_bilin_c(int16_t *tmp,
         do {
             for (int x = 0; x < w; x++)
                 tmp[x] = FILTER_BILIN_RND(src, x, my, src_stride,
-                                          4 - intermediate_bits);
+                                          4 - intermediate_bits) - PREP_BIAS;
 
             tmp += w;
             src += src_stride;
@@ -557,7 +571,7 @@ static void prep_bilin_scaled_c(int16_t *tmp,
         int x;
 
         for (x = 0; x < w; x++)
-            tmp[x] = FILTER_BILIN_RND(mid_ptr, x, my >> 6, 128, 4);
+            tmp[x] = FILTER_BILIN_RND(mid_ptr, x, my >> 6, 128, 4) - PREP_BIAS;
 
         my += dy;
         mid_ptr += (my >> 10) * 128;
@@ -571,7 +585,8 @@ static void avg_c(pixel *dst, const ptrdiff_t dst_stride,
                   HIGHBD_DECL_SUFFIX)
 {
     const int intermediate_bits = get_intermediate_bits(bitdepth_max);
-    const int sh = intermediate_bits + 1, rnd = 1 << intermediate_bits;
+    const int sh = intermediate_bits + 1;
+    const int rnd = (1 << intermediate_bits) + PREP_BIAS * 2;
     do {
         for (int x = 0; x < w; x++)
             dst[x] = iclip_pixel((tmp1[x] + tmp2[x] + rnd) >> sh);
@@ -587,7 +602,8 @@ static void w_avg_c(pixel *dst, const ptrdiff_t dst_stride,
                     const int weight HIGHBD_DECL_SUFFIX)
 {
     const int intermediate_bits = get_intermediate_bits(bitdepth_max);
-    const int sh = intermediate_bits + 4, rnd = 8 << intermediate_bits;
+    const int sh = intermediate_bits + 4;
+    const int rnd = (8 << intermediate_bits) + PREP_BIAS * 16;
     do {
         for (int x = 0; x < w; x++)
             dst[x] = iclip_pixel((tmp1[x] * weight +
@@ -604,7 +620,8 @@ static void mask_c(pixel *dst, const ptrdiff_t dst_stride,
                    const uint8_t *mask HIGHBD_DECL_SUFFIX)
 {
     const int intermediate_bits = get_intermediate_bits(bitdepth_max);
-    const int sh = intermediate_bits + 6, rnd = 32 << intermediate_bits;
+    const int sh = intermediate_bits + 6;
+    const int rnd = (32 << intermediate_bits) + PREP_BIAS * 64;
     do {
         for (int x = 0; x < w; x++)
             dst[x] = iclip_pixel((tmp1[x] * mask[x] +
@@ -668,7 +685,8 @@ static void w_mask_c(pixel *dst, const ptrdiff_t dst_stride,
     // and then load this intermediate to calculate final value for odd rows
     const int intermediate_bits = get_intermediate_bits(bitdepth_max);
     const int bitdepth = bitdepth_from_max(bitdepth_max);
-    const int sh = intermediate_bits + 6, rnd = 32 << intermediate_bits;
+    const int sh = intermediate_bits + 6;
+    const int rnd = (32 << intermediate_bits) + PREP_BIAS * 64;
     const int mask_sh = bitdepth + intermediate_bits - 4;
     const int mask_rnd = 1 << (mask_sh - 5);
     do {
@@ -797,7 +815,7 @@ static void warp_affine_8x8t_c(int16_t *tmp, const ptrdiff_t tmp_stride,
             const int8_t *const filter =
                 dav1d_mc_warp_filter[64 + ((tmy + 512) >> 10)];
 
-            tmp[x] = FILTER_WARP_RND(mid_ptr, x, filter, 8, 7);
+            tmp[x] = FILTER_WARP_RND(mid_ptr, x, filter, 8, 7) - PREP_BIAS;
         }
         mid_ptr += 8;
         tmp += tmp_stride;

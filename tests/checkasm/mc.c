@@ -84,6 +84,17 @@ static void check_mc(Dav1dMCDSPContext *const c) {
     report("mc");
 }
 
+/* Generate worst case input in the topleft corner, randomize the rest */
+static void generate_mct_input(pixel *const buf, const int bitdepth_max) {
+    static const int8_t pattern[8] = { -1,  0, -1,  0,  0, -1,  0, -1 };
+    const int sign = -(rnd() & 1);
+
+    for (int y = 0; y < 135; y++)
+        for (int x = 0; x < 135; x++)
+            buf[135*y+x] = ((x | y) < 8 ? (pattern[x] ^ pattern[y] ^ sign)
+                                        : rnd()) & bitdepth_max;
+}
+
 static void check_mct(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 135 * 135,);
     ALIGN_STK_32(int16_t, c_tmp,   128 * 128,);
@@ -107,9 +118,7 @@ static void check_mct(Dav1dMCDSPContext *const c) {
 #else
                         const int bitdepth_max = 0xff;
 #endif
-
-                        for (int i = 0; i < 135 * 135; i++)
-                            src_buf[i] = rnd() & bitdepth_max;
+                        generate_mct_input(src_buf, bitdepth_max);
 
                         call_ref(c_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
                         call_new(a_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
@@ -127,12 +136,10 @@ static void init_tmp(Dav1dMCDSPContext *const c, pixel *const buf,
                      int16_t (*const tmp)[128 * 128], const int bitdepth_max)
 {
     for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 135 * 135; j++)
-            buf[j] = rnd() & bitdepth_max;
-        c->mct[rnd() % N_2D_FILTERS](tmp[i], buf + 135 * 3 + 3,
-                                      128 * sizeof(pixel), 128, 128,
-                                      rnd() & 15, rnd() & 15
-                                      HIGHBD_TAIL_SUFFIX);
+        generate_mct_input(buf, bitdepth_max);
+        c->mct[FILTER_2D_8TAP_SHARP](tmp[i], buf + 135 * 3 + 3,
+                                      135 * sizeof(pixel), 128, 128,
+                                      8, 8 HIGHBD_TAIL_SUFFIX);
     }
 }
 
