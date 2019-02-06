@@ -36,6 +36,9 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#ifdef HAVE_IO_H
+# include <io.h>
+#endif
 
 #include "dav1d/data.h"
 

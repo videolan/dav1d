@@ -124,6 +124,10 @@ if cc.check_header('unistd.h')
     cdata.set('HAVE_UNISTD_H', 1)
 endif
 
+if cc.check_header('io.h')
+    cdata.set('HAVE_IO_H', 1)
+endif
+
 
 # Function checks
 
