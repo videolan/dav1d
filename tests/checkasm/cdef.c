@@ -53,9 +53,6 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
     if (check_func(fn, "%s_%dbpc", name, BITDEPTH)) {
         for (int dir = 0; dir < 8; dir++) {
             for (enum CdefEdgeFlags edges = 0; edges <= 0xf; edges++) {
-                memcpy(a_src, src, (10 * 16 + 8) * sizeof(pixel));
-                memcpy(c_src, src, (10 * 16 + 8) * sizeof(pixel));
-
 #if BITDEPTH == 16
                 const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
@@ -65,6 +62,9 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
                 init_tmp(src, 10 * 16 + 8, bitdepth_max);
                 init_tmp(top, 16 * 2 + 8, bitdepth_max);
                 init_tmp((pixel *) left,8 * 2, bitdepth_max);
+
+                memcpy(a_src, src, (10 * 16 + 8) * sizeof(pixel));
+                memcpy(c_src, src, (10 * 16 + 8) * sizeof(pixel));
 
                 const int lvl = 1 + (rnd() % 62);
                 const int damping = 3 + (rnd() & 3) + bitdepth_min_8;
