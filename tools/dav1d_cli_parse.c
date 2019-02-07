@@ -134,7 +134,7 @@ static void error(const char *const app, const char *const optarg,
 
 static unsigned parse_unsigned(char *optarg, const int option, const char *app) {
     char *end;
-    const unsigned res = strtoul(optarg, &end, 0);
+    const unsigned res = (unsigned) strtoul(optarg, &end, 0);
     if (*end || end == optarg) error(app, optarg, option, "an integer");
     return res;
 }
@@ -193,9 +193,9 @@ static unsigned parse_enum(char *optarg, const EnumParseTable *const tbl,
     char *end;
     unsigned res;
     if (!strncmp(optarg, "0x", 2)) {
-        res = strtoul(&optarg[2], &end, 16);
+        res = (unsigned) strtoul(&optarg[2], &end, 16);
     } else {
-        res = strtoul(optarg, &end, 0);
+        res = (unsigned) strtoul(optarg, &end, 0);
     }
 
     if (*end || end == optarg) {

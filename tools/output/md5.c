@@ -230,7 +230,7 @@ static int md5_verify(MD5Context *const md5, const char *const md5_str) {
             char *ignore;
             memcpy(t, p, 2);
             p += 2;
-            val = strtoul(t, &ignore, 16);
+            val = (unsigned) strtoul(t, &ignore, 16);
             abcd[i] |= val << (8 * j);
         }
     }

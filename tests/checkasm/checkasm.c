@@ -521,7 +521,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "]\n");
             return 0;
         } else {
-            state.seed = strtoul(argv[1], NULL, 10);
+            state.seed = (unsigned int) strtoul(argv[1], NULL, 10);
         }
 
         argc--;
