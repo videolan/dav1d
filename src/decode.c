@@ -2594,8 +2594,12 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
              n < f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows; n++)
         {
             Dav1dTileState *const ts = &f->ts[n];
-            pthread_mutex_init(&ts->tile_thread.lock, NULL);
-            pthread_cond_init(&ts->tile_thread.cond, NULL);
+            if (pthread_mutex_init(&ts->tile_thread.lock, NULL)) goto error;
+            if (pthread_cond_init(&ts->tile_thread.cond, NULL)) {
+                pthread_mutex_destroy(&ts->tile_thread.lock);
+                goto error;
+            }
+            f->n_ts = n + 1;
         }
         if (c->n_fc > 1) {
             freep(&f->frame_thread.tile_start_off);

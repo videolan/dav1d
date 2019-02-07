@@ -69,6 +69,8 @@ void dav1d_default_settings(Dav1dSettings *const s) {
     s->all_layers = 1; // just until the tests are adjusted
 }
 
+static void close_internal(Dav1dContext **const c_out, int flush);
+
 int dav1d_open(Dav1dContext **const c_out,
                const Dav1dSettings *const s)
 {
@@ -119,9 +121,17 @@ int dav1d_open(Dav1dContext **const c_out,
         if (!f->tc) goto error;
         memset(f->tc, 0, sizeof(*f->tc) * s->n_tile_threads);
         if (f->n_tc > 1) {
-            pthread_mutex_init(&f->tile_thread.lock, NULL);
-            pthread_cond_init(&f->tile_thread.cond, NULL);
-            pthread_cond_init(&f->tile_thread.icond, NULL);
+            if (pthread_mutex_init(&f->tile_thread.lock, NULL)) goto error;
+            if (pthread_cond_init(&f->tile_thread.cond, NULL)) {
+                pthread_mutex_destroy(&f->tile_thread.lock);
+                goto error;
+            }
+            if (pthread_cond_init(&f->tile_thread.icond, NULL)) {
+                pthread_mutex_destroy(&f->tile_thread.lock);
+                pthread_cond_destroy(&f->tile_thread.cond);
+                goto error;
+            }
+            f->tile_thread.inited = 1;
         }
         for (int m = 0; m < s->n_tile_threads; m++) {
             Dav1dTileContext *const t = &f->tc[m];
@@ -135,18 +145,34 @@ int dav1d_open(Dav1dContext **const c_out,
                 dav1d_alloc_aligned(320 * (256 + 7) * sizeof(uint16_t), 32);
             if (!t->emu_edge) goto error;
             if (f->n_tc > 1) {
-                pthread_mutex_init(&t->tile_thread.td.lock, NULL);
-                pthread_cond_init(&t->tile_thread.td.cond, NULL);
+                if (pthread_mutex_init(&t->tile_thread.td.lock, NULL)) goto error;
+                if (pthread_cond_init(&t->tile_thread.td.cond, NULL)) {
+                    pthread_mutex_destroy(&t->tile_thread.td.lock);
+                    goto error;
+                }
                 t->tile_thread.fttd = &f->tile_thread;
-                pthread_create(&t->tile_thread.td.thread, NULL, dav1d_tile_task, t);
+                if (pthread_create(&t->tile_thread.td.thread, NULL, dav1d_tile_task, t)) {
+                    pthread_cond_destroy(&t->tile_thread.td.cond);
+                    pthread_mutex_destroy(&t->tile_thread.td.lock);
+                    goto error;
+                }
+                t->tile_thread.td.inited = 1;
             }
         }
         f->libaom_cm = av1_alloc_ref_mv_common();
         if (!f->libaom_cm) goto error;
         if (c->n_fc > 1) {
-            pthread_mutex_init(&f->frame_thread.td.lock, NULL);
-            pthread_cond_init(&f->frame_thread.td.cond, NULL);
-            pthread_create(&f->frame_thread.td.thread, NULL, dav1d_frame_task, f);
+            if (pthread_mutex_init(&f->frame_thread.td.lock, NULL)) goto error;
+            if (pthread_cond_init(&f->frame_thread.td.cond, NULL)) {
+                pthread_mutex_destroy(&f->frame_thread.td.lock);
+                goto error;
+            }
+            if (pthread_create(&f->frame_thread.td.thread, NULL, dav1d_frame_task, f)) {
+                pthread_cond_destroy(&f->frame_thread.td.cond);
+                pthread_mutex_destroy(&f->frame_thread.td.lock);
+                goto error;
+            }
+            f->frame_thread.td.inited = 1;
         }
     }
 
@@ -159,26 +185,7 @@ int dav1d_open(Dav1dContext **const c_out,
     return 0;
 
 error:
-    if (c) {
-        if (c->fc) {
-            for (unsigned n = 0; n < c->n_fc; n++) {
-                if (c->fc[n].tc) {
-                    for (int m = 0; m < s->n_tile_threads; m++) {
-                        Dav1dTileContext *const t = &c->fc[n].tc[m];
-                        dav1d_free_aligned(t->cf);
-                        dav1d_free_aligned(t->scratch.mem);
-                        dav1d_free_aligned(t->emu_edge);
-                    }
-                    dav1d_free_aligned(c->fc[n].tc);
-                }
-                if (c->fc[n].libaom_cm) av1_free_ref_mv_common(c->fc[n].libaom_cm);
-            }
-            dav1d_free_aligned(c->fc);
-        }
-        if (c->n_fc > 1) free(c->frame_thread.out_delayed);
-        dav1d_log(c, "Failed to allocate memory: %s\n", strerror(errno));
-        dav1d_freep_aligned(c_out);
-    }
+    if (c) close_internal(c_out, 0);
     return -ENOMEM;
 }
 
@@ -415,16 +422,20 @@ void dav1d_flush(Dav1dContext *const c) {
 
 void dav1d_close(Dav1dContext **const c_out) {
     validate_input(c_out != NULL);
+    close_internal(c_out, 1);
+}
 
+static void close_internal(Dav1dContext **const c_out, int flush) {
     Dav1dContext *const c = *c_out;
     if (!c) return;
 
-    dav1d_flush(c);
-    for (unsigned n = 0; n < c->n_fc; n++) {
+    if (flush) dav1d_flush(c);
+
+    for (unsigned n = 0; c->fc && n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
 
         // clean-up threading stuff
-        if (c->n_fc > 1) {
+        if (c->n_fc > 1 && f->frame_thread.td.inited) {
             pthread_mutex_lock(&f->frame_thread.td.lock);
             f->frame_thread.die = 1;
             pthread_cond_signal(&f->frame_thread.td.cond);
@@ -439,11 +450,14 @@ void dav1d_close(Dav1dContext **const c_out) {
             pthread_mutex_destroy(&f->frame_thread.td.lock);
             pthread_cond_destroy(&f->frame_thread.td.cond);
         }
-        if (f->n_tc > 1) {
+        if (f->n_tc > 1 && f->tc && f->tile_thread.inited) {
             pthread_mutex_lock(&f->tile_thread.lock);
             for (int m = 0; m < f->n_tc; m++) {
                 Dav1dTileContext *const t = &f->tc[m];
                 t->tile_thread.die = 1;
+                // mark not created tile threads as available
+                if (!t->tile_thread.td.inited)
+                    f->tile_thread.available |= 1<<m;
             }
             pthread_cond_broadcast(&f->tile_thread.cond);
             while (f->tile_thread.available != ~0ULL >> (64 - f->n_tc))
@@ -452,7 +466,7 @@ void dav1d_close(Dav1dContext **const c_out) {
             pthread_mutex_unlock(&f->tile_thread.lock);
             for (int m = 0; m < f->n_tc; m++) {
                 Dav1dTileContext *const t = &f->tc[m];
-                if (f->n_tc > 1) {
+                if (f->n_tc > 1 && t->tile_thread.td.inited) {
                     pthread_join(t->tile_thread.td.thread, NULL);
                     pthread_mutex_destroy(&t->tile_thread.td.lock);
                     pthread_cond_destroy(&t->tile_thread.td.cond);
@@ -463,13 +477,13 @@ void dav1d_close(Dav1dContext **const c_out) {
             pthread_cond_destroy(&f->tile_thread.icond);
             freep(&f->tile_thread.task_idx_to_sby_and_tile_idx);
         }
-        for (int m = 0; m < f->n_tc; m++) {
+        for (int m = 0; f->tc && m < f->n_tc; m++) {
             Dav1dTileContext *const t = &f->tc[m];
             dav1d_free_aligned(t->cf);
             dav1d_free_aligned(t->scratch.mem);
             dav1d_free_aligned(t->emu_edge);
         }
-        for (int m = 0; m < f->n_ts; m++) {
+        for (int m = 0; f->ts && m < f->n_ts; m++) {
             Dav1dTileState *const ts = &f->ts[m];
             pthread_cond_destroy(&ts->tile_thread.cond);
             pthread_mutex_destroy(&ts->tile_thread.lock);
@@ -483,13 +497,13 @@ void dav1d_close(Dav1dContext **const c_out) {
         free(f->lf.lr_mask);
         free(f->lf.level);
         free(f->lf.tx_lpf_right_edge[0]);
-        av1_free_ref_mv_common(f->libaom_cm);
+        if (f->libaom_cm) av1_free_ref_mv_common(f->libaom_cm);
         dav1d_free_aligned(f->lf.cdef_line);
         dav1d_free_aligned(f->lf.lr_lpf_line);
     }
     dav1d_free_aligned(c->fc);
     dav1d_data_unref_internal(&c->in);
-    if (c->n_fc > 1) {
+    if (c->n_fc > 1 && c->frame_thread.out_delayed) {
         for (unsigned n = 0; n < c->n_fc; n++)
             if (c->frame_thread.out_delayed[n].p.data[0])
                 dav1d_thread_picture_unref(&c->frame_thread.out_delayed[n]);

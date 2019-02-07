@@ -230,6 +230,7 @@ struct Dav1dFrameContext {
         int tasks_left, num_tasks;
         int (*task_idx_to_sby_and_tile_idx)[2];
         int titsati_sz, titsati_init[3];
+        int inited;
     } tile_thread;
 };
 

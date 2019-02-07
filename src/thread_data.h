@@ -34,6 +34,7 @@ struct thread_data {
     pthread_t thread;
     pthread_cond_t cond;
     pthread_mutex_t lock;
+    int inited;
 };
 
 #endif /* __DAV1D_SRC_THREAD_DATA_H__ */
