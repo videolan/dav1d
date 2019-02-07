@@ -58,7 +58,7 @@ static void backup2x8(pixel dst[3][8][2],
                       const ptrdiff_t src_stride[2], int x_off,
                       const enum Dav1dPixelLayout layout)
 {
-    for (int y = 0, y_off = 0; y < 8; y++, y_off += PXSTRIDE(src_stride[0]))
+    for (ptrdiff_t y = 0, y_off = 0; y < 8; y++, y_off += PXSTRIDE(src_stride[0]))
         pixel_copy(dst[0][y], &src[0][y_off + x_off - 2], 2);
 
     if (layout == DAV1D_PIXEL_LAYOUT_I400) return;
@@ -66,7 +66,7 @@ static void backup2x8(pixel dst[3][8][2],
     const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
 
     x_off >>= ss_hor;
-    for (int y = 0, y_off = 0; y < (8 >> ss_ver); y++, y_off += PXSTRIDE(src_stride[1])) {
+    for (ptrdiff_t y = 0, y_off = 0; y < (8 >> ss_ver); y++, y_off += PXSTRIDE(src_stride[1])) {
         pixel_copy(dst[1][y], &src[1][y_off + x_off - 2], 2);
         pixel_copy(dst[2][y], &src[2][y_off + x_off - 2], 2);
     }

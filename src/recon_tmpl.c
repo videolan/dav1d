@@ -1247,7 +1247,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         // chroma prediction
         if (is_sub8x8) {
             assert(ss_hor == 1);
-            int h_off = 0, v_off = 0;
+            ptrdiff_t h_off = 0, v_off = 0;
             if (bw4 == 1 && bh4 == ss_ver) {
                 for (int pl = 0; pl < 2; pl++) {
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff,
