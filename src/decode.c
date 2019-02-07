@@ -331,8 +331,8 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     int mvd[8], ret = 0;
     const int thresh = 4 * iclip(imax(bw4, bh4), 4, 28);
     for (int i = 0; i < np; i++) {
-        mvd[i] = labs(pts[i][1][0] - pts[i][0][0] - mv.x) +
-                 labs(pts[i][1][1] - pts[i][0][1] - mv.y);
+        mvd[i] = abs(pts[i][1][0] - pts[i][0][0] - mv.x) +
+                 abs(pts[i][1][1] - pts[i][0][1] - mv.y);
         if (mvd[i] > thresh)
             mvd[i] = -1;
         else
