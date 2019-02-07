@@ -182,6 +182,7 @@ optional_arguments = [
   '-Wno-missing-field-initializers',
   '-Wno-unused-parameter',
   '-Werror=missing-prototypes',
+  '-Wshorten-64-to-32',
 ]
 if cc.get_id() == 'msvc'
     optional_arguments += [
