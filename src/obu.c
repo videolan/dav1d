@@ -918,6 +918,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         unsigned off_before[2] = { 0xFFFFFFFF, 0xFFFFFFFF };
         int off_after = -1;
         int off_before_idx[2], off_after_idx;
+        off_before_idx[0] = 0;
         for (int i = 0; i < 7; i++) {
             if (!c->refs[hdr->refidx[i]].p.p.data[0]) return -EINVAL;
             const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.frame_hdr->frame_offset;
