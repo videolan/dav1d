@@ -52,7 +52,7 @@ void dav1d_bytealign_get_bits(GetBits *c);
 
 // Return the current bit position relative to the start of the buffer.
 static inline unsigned dav1d_get_bits_pos(const GetBits *c) {
-    return (c->ptr - c->ptr_start) * 8 - c->bits_left;
+    return (unsigned) (c->ptr - c->ptr_start) * 8 - c->bits_left;
 }
 
 #endif /* __DAV1D_SRC_GETBITS_H__ */

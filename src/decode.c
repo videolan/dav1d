@@ -303,7 +303,7 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     if ((unsigned) masks[0] == 1 && !(masks[1] >> 32)) {
         const int off = t->bx & (bs(&r[-b4_stride])[0] - 1);
         add_sample(-off, 0, 1, -1, &r[-b4_stride]);
-    } else for (unsigned off = 0, xmask = masks[0]; np < 8 && xmask;) { // top
+    } else for (unsigned off = 0, xmask = (uint32_t) masks[0]; np < 8 && xmask;) { // top
         const int tz = ctz(xmask);
         off += tz;
         xmask >>= tz;
@@ -313,7 +313,7 @@ static void derive_warpmv(const Dav1dTileContext *const t,
     if (np < 8 && masks[1] == 1) {
         const int off = t->by & (bs(&r[-1])[1] - 1);
         add_sample(0, -off, -1, 1, &r[-1 - off * b4_stride]);
-    } else for (unsigned off = 0, ymask = masks[1]; np < 8 && ymask;) { // left
+    } else for (unsigned off = 0, ymask = (uint32_t) masks[1]; np < 8 && ymask;) { // left
         const int tz = ctz(ymask);
         off += tz;
         ymask >>= tz;
@@ -2667,7 +2667,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             lr_ptr += lr_stride * 12;
         }
 
-        f->lf.lr_line_sz = lr_stride;
+        f->lf.lr_line_sz = (int) lr_stride;
     }
 
     // update allocation for loopfilter masks

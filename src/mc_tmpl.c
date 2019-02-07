@@ -829,20 +829,21 @@ static void emu_edge_c(const intptr_t bw, const intptr_t bh,
                        const pixel *ref, const ptrdiff_t ref_stride)
 {
     // find offset in reference of visible block to copy
-    ref += iclip(y, 0, ih - 1) * PXSTRIDE(ref_stride) + iclip(x, 0, iw - 1);
+    ref += iclip((int) y, 0, (int) ih - 1) * PXSTRIDE(ref_stride) +
+           iclip((int) x, 0, (int) iw - 1);
 
     // number of pixels to extend (left, right, top, bottom)
-    const int left_ext = iclip(-x, 0, bw - 1);
-    const int right_ext = iclip(x + bw - iw, 0, bw - 1);
+    const int left_ext = iclip((int) -x, 0, (int) bw - 1);
+    const int right_ext = iclip((int) (x + bw - iw), 0, (int) bw - 1);
     assert(left_ext + right_ext < bw);
-    const int top_ext = iclip(-y, 0, bh - 1);
-    const int bottom_ext = iclip(y + bh - ih, 0, bh - 1);
+    const int top_ext = iclip((int) -y, 0, (int) bh - 1);
+    const int bottom_ext = iclip((int) (y + bh - ih), 0, (int) bh - 1);
     assert(top_ext + bottom_ext < bh);
 
     // copy visible portion first
     pixel *blk = dst + top_ext * PXSTRIDE(dst_stride);
-    const int center_w = bw - left_ext - right_ext;
-    const int center_h = bh - top_ext - bottom_ext;
+    const int center_w = (int) (bw - left_ext - right_ext);
+    const int center_h = (int) (bh - top_ext - bottom_ext);
     for (int y = 0; y < center_h; y++) {
         pixel_copy(blk + left_ext, ref, center_w);
         // extend left edge for this line

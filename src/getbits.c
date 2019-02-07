@@ -70,7 +70,7 @@ unsigned dav1d_get_bits(GetBits *const c, const unsigned n) {
     c->bits_left -= n;
     c->state <<= n;
 
-    return state >> (64 - n);
+    return (unsigned) (state >> (64 - n));
 }
 
 int dav1d_get_sbits(GetBits *const c, const unsigned n) {

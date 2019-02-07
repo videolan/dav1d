@@ -53,7 +53,7 @@ static unsigned get_seed(void) {
 static unsigned get_seed(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_usec + tv.tv_sec * 1000000;
+    return (unsigned) (tv.tv_usec + tv.tv_sec * 1000000);
 }
 #endif
 
@@ -325,7 +325,7 @@ static int measure_nop_time(void) {
 
     for (i = 0; i < 10000; i++) {
         uint64_t t = readtime();
-        nops[i] = readtime() - t;
+        nops[i] = (uint16_t) (readtime() - t);
     }
 
     qsort(nops, 10000, sizeof(uint16_t), cmp_nop);
@@ -345,8 +345,8 @@ static void print_benchs(const CheckasmFunc *const f) {
             const CheckasmFuncVersion *v = &f->versions;
             do {
                 if (v->iterations) {
-                    int decicycles = (10*v->cycles/v->iterations -
-                                      state.nop_time) / 4;
+                    int decicycles = (int) (10*v->cycles/v->iterations -
+                                            state.nop_time) / 4;
                     printf("%s_%s: %d.%d\n", f->name, cpu_suffix(v->cpu),
                            decicycles/10, decicycles%10);
                 }

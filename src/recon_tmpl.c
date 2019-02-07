@@ -200,7 +200,8 @@ static int decode_coefs(Dav1dTileContext *const t,
             } while (tok < 15);
         }
 
-        levels[x * stride + y] = cf[rc] = tok;
+        cf[rc] = tok;
+        levels[x * stride + y] = (uint8_t) cf[rc];
     }
 
     // residual and sign
@@ -559,7 +560,7 @@ static int mc(Dav1dTileContext *const t,
         int orig_pos_x = (bx * h_mul << 4) + mvx * (1 << !ss_hor);
 #define scale_mv(res, val, scale) do { \
             const int64_t tmp = (int64_t)(val) * scale + (scale - 0x4000) * 8; \
-            res = (int)apply_sign64((llabs(tmp) + 128) >> 8, tmp) + 32; \
+            res = apply_sign64((int) ((llabs(tmp) + 128) >> 8), tmp) + 32;     \
         } while (0)
         int pos_y, pos_x;
         scale_mv(pos_x, orig_pos_x, f->svc[refidx][0].scale);

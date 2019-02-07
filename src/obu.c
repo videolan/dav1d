@@ -1198,7 +1198,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             if (more && ++i == 8) goto error;
         } while (more);
     else
-        len = in->sz - 1 - has_extension;
+        len = (int) in->sz - 1 - has_extension;
     if (gb.error) goto error;
 
     const unsigned init_bit_pos = dav1d_get_bits_pos(&gb);

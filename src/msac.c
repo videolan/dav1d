@@ -88,7 +88,7 @@ unsigned msac_decode_symbol(MsacContext *const s, const uint16_t *const cdf,
 
     assert(u <= s->rng);
 
-    ctx_norm(s, s->dif - (v << (EC_WIN_SIZE - 16)), u - v);
+    ctx_norm(s, s->dif - (v << (EC_WIN_SIZE - 16)), (unsigned) (u - v));
     return ret - 1;
 }
 
@@ -104,7 +104,7 @@ unsigned msac_decode_bool_equi(MsacContext *const s) {
     ret  = dif >= vw;
     dif -= ret*vw;
     v   += ret*(r - 2*v);
-    ctx_norm(s, dif, v);
+    ctx_norm(s, dif, (unsigned) v);
     return !ret;
 }
 
@@ -121,7 +121,7 @@ unsigned msac_decode_bool(MsacContext *const s, const unsigned f) {
     ret  = dif >= vw;
     dif -= ret*vw;
     v   += ret*(r - 2*v);
-    ctx_norm(s, dif, v);
+    ctx_norm(s, dif, (unsigned) v);
     return !ret;
 }
 
