@@ -169,6 +169,7 @@ optional_arguments = [
   '-Wundef',
   '-Werror=vla',
   '-Wno-maybe-uninitialized',
+  '-Wno-missing-field-initializers',
   '-Wno-unused-parameter',
   '-Werror=missing-prototypes',
 ]
