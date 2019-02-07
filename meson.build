@@ -71,9 +71,7 @@ if is_asm_enabled and get_option('b_sanitize') == 'memory'
 endif
 
 # Logging option
-if get_option('logging')
-    cdata.set('CONFIG_LOG', 1)
-endif
+cdata.set10('CONFIG_LOG', get_option('logging'))
 
 #
 # OS/Compiler checks and defines
