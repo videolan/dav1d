@@ -119,6 +119,7 @@ if is_asm_enabled
         # NASM source files
         libdav1d_sources_asm = files(
             'x86/cdef.asm',
+            'x86/cdef_ssse3.asm',
             'x86/cpuid.asm',
             'x86/ipred.asm',
             'x86/itx.asm',
