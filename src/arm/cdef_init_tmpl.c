@@ -29,6 +29,8 @@
 #include "src/cdef.h"
 
 #if BITDEPTH == 8 && ARCH_AARCH64
+decl_cdef_dir_fn(dav1d_cdef_find_dir_neon);
+
 void dav1d_cdef_padding4_neon(uint16_t *tmp, const pixel *src,
                               ptrdiff_t src_stride, const pixel (*left)[2],
                               /*const*/ pixel *const top[2], int h,
@@ -76,6 +78,7 @@ void bitfn(dav1d_cdef_dsp_init_arm)(Dav1dCdefDSPContext *const c) {
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
 #if BITDEPTH == 8 && ARCH_AARCH64
+    c->dir = dav1d_cdef_find_dir_neon;
     c->fb[0] = cdef_filter_8x8_neon;
     c->fb[1] = cdef_filter_4x8_neon;
     c->fb[2] = cdef_filter_4x4_neon;
