@@ -3185,13 +3185,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     c->n_tile_data = 0;
 
     // allocate frame
-    res = dav1d_thread_picture_alloc(c, &f->sr_cur, f->frame_hdr->width[1],
-                                     f->frame_hdr->height,
-                                     f->seq_hdr, f->seq_hdr_ref,
-                                     f->frame_hdr, f->frame_hdr_ref,
-                                     bpc, &f->tile[0].data.m,
-                                     c->n_fc > 1 ? &f->frame_thread.td : NULL,
-                                     f->frame_hdr->show_frame, &c->allocator);
+    res = dav1d_thread_picture_alloc(c, f, bpc);
     if (res < 0) goto error;
 
     if (f->frame_hdr->super_res.enabled) {

@@ -38,6 +38,7 @@
 #include "common/mem.h"
 #include "common/validate.h"
 
+#include "src/internal.h"
 #include "src/log.h"
 #include "src/picture.h"
 #include "src/ref.h"
@@ -152,27 +153,23 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     return 0;
 }
 
-int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dThreadPicture *const p,
-                               const int w, const int h,
-                               Dav1dSequenceHeader *seq_hdr, Dav1dRef *seq_hdr_ref,
-                               Dav1dFrameHeader *frame_hdr, Dav1dRef *frame_hdr_ref,
-                               const int bpc, const Dav1dDataProps *props,
-                               struct thread_data *const t, const int visible,
-                               Dav1dPicAllocator *const p_allocator)
+int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f,
+                               const int bpc)
 {
-    p->t = t;
+    Dav1dThreadPicture *const p = &f->sr_cur;
+    p->t = c->n_fc > 1 ? &f->frame_thread.td : NULL;
 
     const int res =
-        picture_alloc_with_edges(c, &p->p, w, h,
-                                 seq_hdr, seq_hdr_ref,
-                                 frame_hdr, frame_hdr_ref,
-                                 bpc, props, p_allocator,
-                                 t != NULL ? sizeof(atomic_int) * 2 : 0,
+        picture_alloc_with_edges(c, &p->p, f->frame_hdr->width[1], f->frame_hdr->height,
+                                 f->seq_hdr, f->seq_hdr_ref,
+                                 f->frame_hdr, f->frame_hdr_ref,
+                                 bpc, &f->tile[0].data.m, &c->allocator,
+                                 p->t != NULL ? sizeof(atomic_int) * 2 : 0,
                                  (void **) &p->progress);
     if (res) return res;
 
-    p->visible = visible;
-    if (t) {
+    p->visible = f->frame_hdr->show_frame;
+    if (p->t) {
         atomic_init(&p->progress[0], 0);
         atomic_init(&p->progress[1], 0);
     }
