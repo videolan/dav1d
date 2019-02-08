@@ -46,13 +46,15 @@ static void check_mc(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, c_dst,   128 * 128,);
     ALIGN_STK_32(pixel, a_dst,   128 * 128,);
     const pixel *src = src_buf + 135 * 3 + 3;
+    const ptrdiff_t src_stride = 135 * sizeof(pixel);
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel *src,
                  ptrdiff_t src_stride, int w, int h, int mx, int my
                  HIGHBD_DECL_SUFFIX);
 
     for (int filter = 0; filter < N_2D_FILTERS; filter++)
-        for (int w = 2; w <= 128; w <<= 1)
+        for (int w = 2; w <= 128; w <<= 1) {
+            const ptrdiff_t dst_stride = w * sizeof(pixel);
             for (int mxy = 0; mxy < 4; mxy++)
                 if (check_func(c->mc[filter], "mc_%s_w%d_%s_%dbpc",
                     filter_names[filter], w, mxy_names[mxy], BITDEPTH))
@@ -71,16 +73,22 @@ static void check_mc(Dav1dMCDSPContext *const c) {
                         for (int i = 0; i < 135 * 135; i++)
                             src_buf[i] = rnd() & bitdepth_max;
 
-                        call_ref(c_dst, w, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
-                        call_new(a_dst, w, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
+                        call_ref(c_dst, dst_stride, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
+                        call_new(a_dst, dst_stride, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
                         if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
                             fail();
 
                         if (filter == FILTER_2D_8TAP_REGULAR ||
                             filter == FILTER_2D_BILINEAR)
-                            bench_new(a_dst, w, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
+                        {
+                            bench_new(a_dst, dst_stride, src, src_stride, w, h,
+                                      mx, my HIGHBD_TAIL_SUFFIX);
+                        }
                     }
                 }
+        }
     report("mc");
 }
 
@@ -97,9 +105,10 @@ static void generate_mct_input(pixel *const buf, const int bitdepth_max) {
 
 static void check_mct(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 135 * 135,);
-    ALIGN_STK_32(int16_t, c_tmp,   128 * 128,);
-    ALIGN_STK_32(int16_t, a_tmp,   128 * 128,);
+    ALIGN_STK_32(int16_t, c_tmp, 128 * 128,);
+    ALIGN_STK_32(int16_t, a_tmp, 128 * 128,);
     const pixel *src = src_buf + 135 * 3 + 3;
+    const ptrdiff_t src_stride = 135 * sizeof(pixel);
 
     declare_func(void, int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
                  int w, int h, int mx, int my HIGHBD_DECL_SUFFIX);
@@ -120,14 +129,19 @@ static void check_mct(Dav1dMCDSPContext *const c) {
 #endif
                         generate_mct_input(src_buf, bitdepth_max);
 
-                        call_ref(c_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
-                        call_new(a_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
+                        call_ref(c_tmp, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
+                        call_new(a_tmp, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
                         if (memcmp(c_tmp, a_tmp, w * h * sizeof(*c_tmp)))
                             fail();
 
                         if (filter == FILTER_2D_8TAP_REGULAR ||
                             filter == FILTER_2D_BILINEAR)
-                            bench_new(a_tmp, src, w, w, h, mx, my HIGHBD_TAIL_SUFFIX);
+                        {
+                            bench_new(a_tmp, src, src_stride, w, h,
+                                      mx, my HIGHBD_TAIL_SUFFIX);
+                        }
                     }
     report("mct");
 }
@@ -152,7 +166,8 @@ static void check_avg(Dav1dMCDSPContext *const c) {
                  const int16_t *tmp2, int w, int h HIGHBD_DECL_SUFFIX);
 
     for (int w = 4; w <= 128; w <<= 1)
-        if (check_func(c->avg, "avg_w%d_%dbpc", w, BITDEPTH))
+        if (check_func(c->avg, "avg_w%d_%dbpc", w, BITDEPTH)) {
+            ptrdiff_t dst_stride = w * sizeof(pixel);
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
 #if BITDEPTH == 16
@@ -160,14 +175,16 @@ static void check_avg(Dav1dMCDSPContext *const c) {
 #else
                 const int bitdepth_max = 0xff;
 #endif
+
                 init_tmp(c, c_dst, tmp, bitdepth_max);
-                call_ref(c_dst, w, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
-                call_new(a_dst, w, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
+                call_ref(c_dst, dst_stride, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
+                call_new(a_dst, dst_stride, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
                 if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
                     fail();
 
-                bench_new(a_dst, w, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
+                bench_new(a_dst, dst_stride, tmp[0], tmp[1], w, h HIGHBD_TAIL_SUFFIX);
             }
+        }
     report("avg");
 }
 
@@ -180,7 +197,8 @@ static void check_w_avg(Dav1dMCDSPContext *const c) {
                  const int16_t *tmp2, int w, int h, int weight HIGHBD_DECL_SUFFIX);
 
     for (int w = 4; w <= 128; w <<= 1)
-        if (check_func(c->w_avg, "w_avg_w%d_%dbpc", w, BITDEPTH))
+        if (check_func(c->w_avg, "w_avg_w%d_%dbpc", w, BITDEPTH)) {
+            ptrdiff_t dst_stride = w * sizeof(pixel);
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
                 int weight = rnd() % 15 + 1;
@@ -191,13 +209,14 @@ static void check_w_avg(Dav1dMCDSPContext *const c) {
 #endif
                 init_tmp(c, c_dst, tmp, bitdepth_max);
 
-                call_ref(c_dst, w, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
-                call_new(a_dst, w, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
+                call_ref(c_dst, dst_stride, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
+                call_new(a_dst, dst_stride, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
                 if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
                     fail();
 
-                bench_new(a_dst, w, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
+                bench_new(a_dst, dst_stride, tmp[0], tmp[1], w, h, weight HIGHBD_TAIL_SUFFIX);
             }
+        }
     report("w_avg");
 }
 
@@ -215,7 +234,8 @@ static void check_mask(Dav1dMCDSPContext *const c) {
                  HIGHBD_DECL_SUFFIX);
 
     for (int w = 4; w <= 128; w <<= 1)
-        if (check_func(c->mask, "mask_w%d_%dbpc", w, BITDEPTH))
+        if (check_func(c->mask, "mask_w%d_%dbpc", w, BITDEPTH)) {
+            ptrdiff_t dst_stride = w * sizeof(pixel);
             for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
             {
 #if BITDEPTH == 16
@@ -224,13 +244,14 @@ static void check_mask(Dav1dMCDSPContext *const c) {
                 const int bitdepth_max = 0xff;
 #endif
                 init_tmp(c, c_dst, tmp, bitdepth_max);
-                call_ref(c_dst, w, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
-                call_new(a_dst, w, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
+                call_ref(c_dst, dst_stride, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
+                call_new(a_dst, dst_stride, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
                 if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)))
                     fail();
 
-                bench_new(a_dst, w, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
+                bench_new(a_dst, dst_stride, tmp[0], tmp[1], w, h, mask HIGHBD_TAIL_SUFFIX);
             }
+        }
     report("mask");
 }
 
@@ -251,6 +272,8 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
         for (int w = 4; w <= 128; w <<= 1)
             if (check_func(c->w_mask[i], "w_mask_%d_w%d_%dbpc", ss[i], w,
                            BITDEPTH))
+            {
+                ptrdiff_t dst_stride = w * sizeof(pixel);
                 for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
                 {
                     int sign = rnd() & 1;
@@ -261,19 +284,20 @@ static void check_w_mask(Dav1dMCDSPContext *const c) {
 #endif
                     init_tmp(c, c_dst, tmp, bitdepth_max);
 
-                    call_ref(c_dst, w, tmp[0], tmp[1], w, h, c_mask, sign
-                             HIGHBD_TAIL_SUFFIX);
-                    call_new(a_dst, w, tmp[0], tmp[1], w, h, a_mask, sign
-                             HIGHBD_TAIL_SUFFIX);
+                    call_ref(c_dst, dst_stride, tmp[0], tmp[1], w, h,
+                             c_mask, sign HIGHBD_TAIL_SUFFIX);
+                    call_new(a_dst, dst_stride, tmp[0], tmp[1], w, h,
+                             a_mask, sign HIGHBD_TAIL_SUFFIX);
                     if (memcmp(c_dst, a_dst, w * h * sizeof(*c_dst)) ||
                         memcmp(c_mask, a_mask, (w * h * sizeof(*c_mask)) >> i))
                     {
                         fail();
                     }
 
-                    bench_new(a_dst, w, tmp[0], tmp[1], w, h, a_mask, sign
-                              HIGHBD_TAIL_SUFFIX);
+                    bench_new(a_dst, dst_stride, tmp[0], tmp[1], w, h,
+                              a_mask, sign HIGHBD_TAIL_SUFFIX);
                 }
+            }
     report("w_mask");
 }
 
