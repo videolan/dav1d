@@ -1343,9 +1343,79 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         c->n_tile_data++;
         break;
     }
+    case OBU_METADATA: {
+        // obu metadta type field
+        const enum ObuMetaType meta_type = dav1d_get_uleb128(&gb);
+        if (gb.error) goto error;
+        Dav1dRef *ref;
+        Dav1dContentLightLevel *content_light;
+        Dav1dMasteringDisplay *mastering_display;
+
+        switch (meta_type) {
+        case OBU_META_HDR_CLL:
+            ref = dav1d_ref_create(sizeof(Dav1dContentLightLevel));
+            if (!ref) return -ENOMEM;
+            content_light = ref->data;
+            memset(content_light, 0, sizeof(*content_light));
+
+            content_light->max_content_light_level = dav1d_get_bits(&gb, 16);
+            content_light->max_frame_average_light_level = dav1d_get_bits(&gb, 16);
+
+            // Skip the trailing bit, align to the next byte boundary and check for overrun.
+            dav1d_get_bits(&gb, 1);
+            dav1d_bytealign_get_bits(&gb);
+            if (check_for_overrun(c, &gb, init_bit_pos, len)) {
+                dav1d_ref_dec(&ref);
+                goto error;
+            }
+
+            dav1d_ref_dec(&c->content_light_ref);
+            c->content_light = content_light;
+            c->content_light_ref = ref;
+            break;
+        case OBU_META_HDR_MDCV: {
+            ref = dav1d_ref_create(sizeof(Dav1dMasteringDisplay));
+            if (!ref) return -ENOMEM;
+            mastering_display = ref->data;
+            memset(mastering_display, 0, sizeof(*mastering_display));
+
+            for (int i = 0; i < 3; i++) {
+                mastering_display->primaries[i][0] = dav1d_get_bits(&gb, 16);
+                mastering_display->primaries[i][1] = dav1d_get_bits(&gb, 16);
+            }
+            mastering_display->white_point[0] = dav1d_get_bits(&gb, 16);
+            mastering_display->white_point[1] = dav1d_get_bits(&gb, 16);
+
+            mastering_display->max_luminance = dav1d_get_bits(&gb, 32);
+            mastering_display->min_luminance = dav1d_get_bits(&gb, 32);
+
+            // Skip the trailing bit, align to the next byte boundary and check for overrun.
+            dav1d_get_bits(&gb, 1);
+            dav1d_bytealign_get_bits(&gb);
+            if (check_for_overrun(c, &gb, init_bit_pos, len)) {
+                dav1d_ref_dec(&ref);
+                goto error;
+            }
+
+            dav1d_ref_dec(&c->mastering_display_ref);
+            c->mastering_display = mastering_display;
+            c->mastering_display_ref = ref;
+            break;
+        }
+        case OBU_META_ITUT_T35:
+        case OBU_META_SCALABILITY:
+        case OBU_META_TIMECODE:
+            // ignore metadata OBUs we don't care about
+            break;
+        default:
+            // print a warning but don't fail for unknown types
+            dav1d_log(c, "Unknown Metadata OBU type %d\n", meta_type);
+        }
+
+        break;
+    }
     case OBU_PADDING:
     case OBU_TD:
-    case OBU_METADATA:
         // ignore OBUs we don't care about
         break;
     default:

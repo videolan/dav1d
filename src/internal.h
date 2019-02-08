@@ -85,6 +85,11 @@ struct Dav1dContext {
     Dav1dRef *frame_hdr_ref;
     Dav1dFrameHeader *frame_hdr;
 
+    Dav1dRef *content_light_ref;
+    Dav1dContentLightLevel *content_light;
+    Dav1dRef *mastering_display_ref;
+    Dav1dMasteringDisplay *mastering_display;
+
     // decoded output picture queue
     Dav1dData in;
     Dav1dPicture out;

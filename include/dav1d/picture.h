@@ -64,6 +64,10 @@ typedef struct Dav1dPicture {
     struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref, *ref; ///< allocation origins
 
     void *allocator_data; ///< pointer managed by the allocator
+
+    Dav1dContentLightLevel *content_light;
+    Dav1dMasteringDisplay *mastering_display;
+    struct Dav1dRef *content_light_ref, *mastering_display_ref;
 } Dav1dPicture;
 
 typedef struct Dav1dPicAllocator {

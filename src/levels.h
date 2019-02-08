@@ -43,6 +43,14 @@ enum ObuType {
     OBU_PADDING   = 15,
 };
 
+enum ObuMetaType {
+    OBU_META_HDR_CLL     = 1,
+    OBU_META_HDR_MDCV    = 2,
+    OBU_META_SCALABILITY = 3,
+    OBU_META_ITUT_T35    = 4,
+    OBU_META_TIMECODE    = 5,
+};
+
 enum TxfmSize {
     TX_4X4,
     TX_8X8,

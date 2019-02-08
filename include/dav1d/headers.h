@@ -160,6 +160,22 @@ enum Dav1dChromaSamplePosition {
     DAV1D_CHR_COLOCATED = 2, ///< Co-located with luma(0, 0) sample
 };
 
+typedef struct Dav1dContentLightLevel {
+    int max_content_light_level;
+    int max_frame_average_light_level;
+} Dav1dContentLightLevel;
+
+typedef struct Dav1dMasteringDisplay {
+    ///< 0.16 fixed point
+    uint16_t primaries[3][2];
+    ///< 0.16 fixed point
+    uint16_t white_point[2];
+    ///< 24.8 fixed point
+    uint32_t max_luminance;
+    ///< 18.14 fixed point
+    uint32_t min_luminance;
+} Dav1dMasteringDisplay;
+
 typedef struct Dav1dSequenceHeader {
     /**
      * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;

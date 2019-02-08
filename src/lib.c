@@ -417,6 +417,11 @@ void dav1d_flush(Dav1dContext *const c) {
     c->seq_hdr = NULL;
     dav1d_ref_dec(&c->seq_hdr_ref);
 
+    c->mastering_display = NULL;
+    c->content_light = NULL;
+    dav1d_ref_dec(&c->mastering_display_ref);
+    dav1d_ref_dec(&c->content_light_ref);
+
     c->frame_thread.next = 0;
 }
 

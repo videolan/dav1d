@@ -150,6 +150,14 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     if (extra && extra_ptr)
         *extra_ptr = &pic_ctx->extra_ptr;
 
+    p->content_light = c->content_light;
+    p->content_light_ref = c->content_light_ref;
+    if (c->content_light_ref) dav1d_ref_inc(c->content_light_ref);
+
+    p->mastering_display = c->mastering_display;
+    p->mastering_display_ref = c->mastering_display_ref;
+    if (c->mastering_display_ref) dav1d_ref_inc(c->mastering_display_ref);
+
     return 0;
 }
 
@@ -199,6 +207,8 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
         if (src->frame_hdr_ref) dav1d_ref_inc(src->frame_hdr_ref);
         if (src->seq_hdr_ref) dav1d_ref_inc(src->seq_hdr_ref);
         if (src->m.user_data.ref) dav1d_ref_inc(src->m.user_data.ref);
+        if (src->content_light_ref) dav1d_ref_inc(src->content_light_ref);
+        if (src->mastering_display_ref) dav1d_ref_inc(src->mastering_display_ref);
     }
     *dst = *src;
 }
@@ -233,6 +243,8 @@ void dav1d_picture_unref_internal(Dav1dPicture *const p) {
         dav1d_ref_dec(&p->seq_hdr_ref);
         dav1d_ref_dec(&p->frame_hdr_ref);
         dav1d_ref_dec(&p->m.user_data.ref);
+        dav1d_ref_dec(&p->content_light_ref);
+        dav1d_ref_dec(&p->mastering_display_ref);
     }
     memset(p, 0, sizeof(*p));
 }
