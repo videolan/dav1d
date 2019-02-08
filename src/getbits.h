@@ -41,6 +41,7 @@ typedef struct GetBits {
 void dav1d_init_get_bits(GetBits *c, const uint8_t *data, size_t sz);
 unsigned dav1d_get_bits(GetBits *c, unsigned n);
 int dav1d_get_sbits(GetBits *c, unsigned n);
+unsigned dav1d_get_uleb128(GetBits *c);
 
 // Output in range 0..max-1
 unsigned dav1d_get_uniform(GetBits *c, unsigned max);

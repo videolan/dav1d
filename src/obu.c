@@ -1187,17 +1187,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
     }
 
     // obu length field
-    unsigned len = 0, more, i = 0;
+    unsigned len = 0;
     if (has_length_field)
-        do {
-            more = dav1d_get_bits(&gb, 1);
-            unsigned bits = dav1d_get_bits(&gb, 7);
-            if (i <= 3 || (i == 4 && bits < (1 << 4)))
-                len |= bits << (i * 7);
-            else if (bits)
-                goto error;
-            if (more && ++i == 8) goto error;
-        } while (more);
+        len = dav1d_get_uleb128(&gb);
     else
         len = (int) in->sz - 1 - has_extension;
     if (gb.error) goto error;
