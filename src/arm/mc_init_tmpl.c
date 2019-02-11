@@ -56,6 +56,9 @@ decl_avg_fn(dav1d_avg_8bpc_neon);
 decl_w_avg_fn(dav1d_w_avg_8bpc_neon);
 decl_mask_fn(dav1d_mask_8bpc_neon);
 
+decl_warp8x8_fn(dav1d_warp_affine_8x8_8bpc_neon);
+decl_warp8x8t_fn(dav1d_warp_affine_8x8t_8bpc_neon);
+
 void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
 #define init_mc_fn(type, name, suffix) \
     c->mc[type] = dav1d_put_##name##_8bpc_##suffix
@@ -91,5 +94,9 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     c->avg = dav1d_avg_8bpc_neon;
     c->w_avg = dav1d_w_avg_8bpc_neon;
     c->mask = dav1d_mask_8bpc_neon;
+#if ARCH_AARCH64
+    c->warp8x8 = dav1d_warp_affine_8x8_8bpc_neon;
+    c->warp8x8t = dav1d_warp_affine_8x8t_8bpc_neon;
+#endif
 #endif
 }
