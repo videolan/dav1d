@@ -89,6 +89,12 @@ if host_machine.system() == 'windows'
     cdata.set('UNICODE',                1) # Define to 1 for Unicode (Wide Chars) APIs
     cdata.set('_UNICODE',               1) # Define to 1 for Unicode (Wide Chars) APIs
     cdata.set('__USE_MINGW_ANSI_STDIO', 1) # Define to force use of MinGW printf
+    if cc.has_function('fseeko', prefix : '#include <stdio.h>', args : test_args)
+        cdata.set('_FILE_OFFSET_BITS', 64) # Not set by default by Meson on Windows
+    else
+        cdata.set('fseeko', '_fseeki64')
+        cdata.set('ftello', '_ftelli64')
+    endif
 endif
 
 # On Windows, we use a compatibility layer to emulate pthread

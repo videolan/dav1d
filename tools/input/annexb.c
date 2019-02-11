@@ -77,9 +77,9 @@ static int annexb_open(AnnexbInputContext *const c, const char *const file,
         res = leb128(c, &len);
         if (res < 0)
             break;
-        fseek(c->f, len, SEEK_CUR);
+        fseeko(c->f, len, SEEK_CUR);
     }
-    fseek(c->f, 0, SEEK_SET);
+    fseeko(c->f, 0, SEEK_SET);
 
     return 0;
 }
