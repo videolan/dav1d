@@ -279,7 +279,7 @@ struct Dav1dTileContext {
     // FIXME types can be changed to pixel (and dynamically allocated)
     // which would make copy/assign operations slightly faster?
     uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
-    uint16_t pal[3 /* plane */][8 /* palette_idx */];
+    ALIGN(uint16_t pal[3 /* plane */][8 /* palette_idx */], 16);
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
     uint8_t txtp_map[32 * 32]; // inter-only
     Dav1dWarpedMotionParams warpmv;
