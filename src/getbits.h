@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_GETBITS_H__
-#define __DAV1D_SRC_GETBITS_H__
+#ifndef DAV1D_SRC_GETBITS_H
+#define DAV1D_SRC_GETBITS_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -55,4 +55,4 @@ static inline unsigned dav1d_get_bits_pos(const GetBits *c) {
     return (unsigned) (c->ptr - c->ptr_start) * 8 - c->bits_left;
 }
 
-#endif /* __DAV1D_SRC_GETBITS_H__ */
+#endif /* DAV1D_SRC_GETBITS_H */

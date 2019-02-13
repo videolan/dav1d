@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_DATA_H__
-#define __DAV1D_DATA_H__
+#ifndef DAV1D_DATA_H
+#define DAV1D_DATA_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -106,4 +106,4 @@ DAV1D_API int dav1d_data_wrap_user_data(Dav1dData *data,
  */
 DAV1D_API void dav1d_data_unref(Dav1dData *data);
 
-#endif /* __DAV1D_DATA_H__ */
+#endif /* DAV1D_DATA_H */

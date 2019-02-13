@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_PICTURE_H__
-#define __DAV1D_PICTURE_H__
+#ifndef DAV1D_PICTURE_H
+#define DAV1D_PICTURE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -108,4 +108,4 @@ typedef struct Dav1dPicAllocator {
  */
 DAV1D_API void dav1d_picture_unref(Dav1dPicture *p);
 
-#endif /* __DAV1D_PICTURE_H__ */
+#endif /* DAV1D_PICTURE_H */

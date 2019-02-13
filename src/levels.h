@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_LEVELS_H__
-#define __DAV1D_SRC_LEVELS_H__
+#ifndef DAV1D_SRC_LEVELS_H
+#define DAV1D_SRC_LEVELS_H
 
 #include <stdint.h>
 
@@ -281,4 +281,4 @@ typedef struct Av1Block {
     };
 } Av1Block;
 
-#endif /* __DAV1D_SRC_LEVELS_H__ */
+#endif /* DAV1D_SRC_LEVELS_H */

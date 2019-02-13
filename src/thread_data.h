@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_THREAD_DATA_H__
-#define __DAV1D_SRC_THREAD_DATA_H__
+#ifndef DAV1D_SRC_THREAD_DATA_H
+#define DAV1D_SRC_THREAD_DATA_H
 
 #include "src/thread.h"
 
@@ -37,4 +37,4 @@ struct thread_data {
     int inited;
 };
 
-#endif /* __DAV1D_SRC_THREAD_DATA_H__ */
+#endif /* DAV1D_SRC_THREAD_DATA_H */

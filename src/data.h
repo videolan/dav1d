@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_DATA_H__
-#define __DAV1D_SRC_DATA_H__
+#ifndef DAV1D_SRC_DATA_H
+#define DAV1D_SRC_DATA_H
 
 #include "dav1d/data.h"
 
@@ -57,4 +57,4 @@ int dav1d_data_wrap_user_data_internal(Dav1dData *buf,
                                        void *cookie);
 void dav1d_data_unref_internal(Dav1dData *buf);
 
-#endif /* __DAV1D_SRC_DATA_H__ */
+#endif /* DAV1D_SRC_DATA_H */

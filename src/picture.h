@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_PICTURE_H__
-#define __DAV1D_SRC_PICTURE_H__
+#ifndef DAV1D_SRC_PICTURE_H
+#define DAV1D_SRC_PICTURE_H
 
 #include <stdatomic.h>
 
@@ -109,4 +109,4 @@ int default_picture_allocator(Dav1dPicture *, void *cookie);
 void default_picture_release(Dav1dPicture *, void *cookie);
 void dav1d_picture_unref_internal(Dav1dPicture *p);
 
-#endif /* __DAV1D_SRC_PICTURE_H__ */
+#endif /* DAV1D_SRC_PICTURE_H */

@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_H__
-#define __DAV1D_H__
+#ifndef DAV1D_H
+#define DAV1D_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -201,4 +201,4 @@ DAV1D_API void dav1d_flush(Dav1dContext *c);
 }
 # endif
 
-#endif /* __DAV1D_H__ */
+#endif /* DAV1D_H */

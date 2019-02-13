@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_INTERNAL_H__
-#define __DAV1D_SRC_INTERNAL_H__
+#ifndef DAV1D_SRC_INTERNAL_H
+#define DAV1D_SRC_INTERNAL_H
 
 #include <stdatomic.h>
 
@@ -301,4 +301,4 @@ struct Dav1dTileContext {
     } tile_thread;
 };
 
-#endif /* __DAV1D_SRC_INTERNAL_H__ */
+#endif /* DAV1D_SRC_INTERNAL_H */

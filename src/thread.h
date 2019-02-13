@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_THREAD_H__
-#define __DAV1D_THREAD_H__
+#ifndef DAV1D_SRC_THREAD_H
+#define DAV1D_SRC_THREAD_H
 
 #if defined(_WIN32)
 
@@ -108,4 +108,4 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 
 #endif
 
-#endif /* __DAV1D_THREAD_H__ */
+#endif /* DAV1D_SRC_THREAD_H */

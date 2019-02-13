@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_ENV_H__
-#define __DAV1D_SRC_ENV_H__
+#ifndef DAV1D_SRC_ENV_H
+#define DAV1D_SRC_ENV_H
 
 #include <assert.h>
 #include <stddef.h>
@@ -754,4 +754,4 @@ static inline mv get_gmv_2d(const Dav1dWarpedMotionParams *const gmv,
     }
 }
 
-#endif /* __DAV1D_SRC_ENV_H__ */
+#endif /* DAV1D_SRC_ENV_H */

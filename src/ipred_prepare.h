@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_IPRED_PREPARE_H__
-#define __DAV1D_SRC_IPRED_PREPARE_H__
+#ifndef DAV1D_SRC_IPRED_PREPARE_H
+#define DAV1D_SRC_IPRED_PREPARE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -105,4 +105,4 @@ static inline int sm_uv_flag(const BlockContext *const b, const int idx) {
             m == SMOOTH_V_PRED) ? ANGLE_SMOOTH_EDGE_FLAG : 0;
 }
 
-#endif /* __DAV1D_SRC_IPRED_PREPARE_H__ */
+#endif /* DAV1D_SRC_IPRED_PREPARE_H */

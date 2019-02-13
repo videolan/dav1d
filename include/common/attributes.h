@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_COMMON_ATTRIBUTES_H__
-#define __DAV1D_COMMON_ATTRIBUTES_H__
+#ifndef DAV1D_COMMON_ATTRIBUTES_H
+#define DAV1D_COMMON_ATTRIBUTES_H
 
 #include "config.h"
 
@@ -139,4 +139,4 @@ static inline int clzll(const unsigned long long mask) {
 }
 #endif /* !_MSC_VER */
 
-#endif /* __DAV1D_COMMON_ATTRIBUTES_H__ */
+#endif /* DAV1D_COMMON_ATTRIBUTES_H */

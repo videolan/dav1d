@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_HEADERS_H__
-#define __DAV1D_HEADERS_H__
+#ifndef DAV1D_HEADERS_H
+#define DAV1D_HEADERS_H
 
 // Constants from Section 3. "Symbols and abbreviated terms"
 #define DAV1D_MAX_CDEF_STRENGTHS 8
@@ -382,4 +382,4 @@ typedef struct Dav1dFrameHeader {
     Dav1dWarpedMotionParams gmv[DAV1D_REFS_PER_FRAME];
 } Dav1dFrameHeader;
 
-#endif /* __DAV1D_HEADERS_H__ */
+#endif /* DAV1D_HEADERS_H */

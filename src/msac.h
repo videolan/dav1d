@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_MSAC_H__
-#define __DAV1D_SRC_MSAC_H__
+#ifndef DAV1D_SRC_MSAC_H
+#define DAV1D_SRC_MSAC_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -55,4 +55,4 @@ unsigned msac_decode_bools(MsacContext *c, unsigned l);
 int msac_decode_subexp(MsacContext *c, int ref, int n, unsigned k);
 int msac_decode_uniform(MsacContext *c, unsigned n);
 
-#endif /* __DAV1D_SRC_MSAC_H__ */
+#endif /* DAV1D_SRC_MSAC_H */

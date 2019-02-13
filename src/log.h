@@ -24,8 +24,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DAV1D_SRC_LOG_H__
-#define __DAV1D_SRC_LOG_H__
+#ifndef DAV1D_SRC_LOG_H
+#define DAV1D_SRC_LOG_H
 
 #include "config.h"
 
@@ -44,4 +44,4 @@ void dav1d_log(Dav1dContext *c, const char *format, ...) ATTR_FORMAT_PRINTF(2, 3
 #define dav1d_log(...) do { } while(0)
 #endif
 
-#endif /* __DAV1D_SRC_LOG_H__ */
+#endif /* DAV1D_SRC_LOG_H */
