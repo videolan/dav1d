@@ -67,4 +67,4 @@ typedef struct Dav1dDataProps {
     struct Dav1dUserData user_data; ///< user-configurable data, default NULL members
 } Dav1dDataProps;
 
-#endif // __DAV1D_COMMON_H__
+#endif /* __DAV1D_COMMON_H__ */

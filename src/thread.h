@@ -108,4 +108,4 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 
 #endif
 
-#endif // __DAV1D_THREAD_H__
+#endif /* __DAV1D_THREAD_H__ */
