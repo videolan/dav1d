@@ -25,8 +25,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __AV1_CDF_H__
-#define __AV1_CDF_H__
+#ifndef __DAV1D_SRC_CDF_H__
+#define __DAV1D_SRC_CDF_H__
 
 #include <stdint.h>
 
@@ -148,4 +148,4 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *hdr, CdfContext *dst,
 void dav1d_cdf_thread_wait(CdfThreadContext *cdf);
 void dav1d_cdf_thread_signal(CdfThreadContext *cdf);
 
-#endif /* __AV1_CDF_H__ */
+#endif /* __DAV1D_SRC_CDF_H__ */
