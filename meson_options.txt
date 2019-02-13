@@ -35,3 +35,7 @@ option('fuzzing_engine',
     choices : ['none', 'libfuzzer', 'oss-fuzz'],
     value: 'none',
     description: 'Select the fuzzing engine')
+
+option('stack_alignment',
+    type: 'integer',
+    value: 0)

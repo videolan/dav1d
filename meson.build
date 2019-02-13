@@ -214,7 +214,9 @@ stackalign_flag = []
 stackrealign_flag = []
 
 if host_machine.cpu_family().startswith('x86')
-    if host_machine.cpu_family() == 'x86_64'
+    if get_option('stack_alignment') > 0
+        stack_alignment = get_option('stack_alignment')
+    elif host_machine.cpu_family() == 'x86_64'
         if cc.has_argument('-mpreferred-stack-boundary=5')
             stackalign_flag = ['-mpreferred-stack-boundary=5']
             stackrealign_flag = ['-mincoming-stack-boundary=4']
