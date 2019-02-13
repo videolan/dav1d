@@ -457,7 +457,7 @@ static void close_internal(Dav1dContext **const c_out, int flush) {
                 t->tile_thread.die = 1;
                 // mark not created tile threads as available
                 if (!t->tile_thread.td.inited)
-                    f->tile_thread.available |= 1<<m;
+                    f->tile_thread.available |= 1ULL<<m;
             }
             pthread_cond_broadcast(&f->tile_thread.cond);
             while (f->tile_thread.available != ~0ULL >> (64 - f->n_tc))
