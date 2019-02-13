@@ -71,6 +71,21 @@ build-win32:
             - build/dav1d_install/
         expire_in: 1 week
 
+build-win32-unaligned-stack:
+    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190218133533
+    stage: build
+    tags:
+        - debian
+        - amd64
+    script:
+        - wineserver -p && wine wineboot
+        - meson build --buildtype release
+                      --werror
+                      --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+                      -Dstack_alignment=4
+        - ninja -C build
+        - cd build && meson test -v
+
 build-win64:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
     stage: build
