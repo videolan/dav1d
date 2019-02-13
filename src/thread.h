@@ -26,7 +26,7 @@
  */
 
 #ifndef __DAV1D_THREAD_H__
-# define __DAV1D_THREAD_H__
+#define __DAV1D_THREAD_H__
 
 #if defined(_WIN32)
 
