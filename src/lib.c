@@ -392,6 +392,22 @@ void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_unref_internal(&c->in);
     c->drain = 0;
 
+    for (int i = 0; i < 8; i++) {
+        if (c->refs[i].p.p.data[0])
+            dav1d_thread_picture_unref(&c->refs[i].p);
+        dav1d_ref_dec(&c->refs[i].segmap);
+        dav1d_ref_dec(&c->refs[i].refmvs);
+        dav1d_cdf_thread_unref(&c->cdf[i]);
+    }
+    c->frame_hdr = NULL;
+    c->seq_hdr = NULL;
+    dav1d_ref_dec(&c->seq_hdr_ref);
+
+    c->mastering_display = NULL;
+    c->content_light = NULL;
+    dav1d_ref_dec(&c->mastering_display_ref);
+    dav1d_ref_dec(&c->content_light_ref);
+
     if (c->n_fc == 1) return;
 
     // mark each currently-running frame as flushing, so that we
@@ -413,22 +429,6 @@ void dav1d_flush(Dav1dContext *const c) {
             dav1d_thread_picture_unref(out_delayed);
     }
     atomic_store(c->frame_thread.flush, 0);
-
-    for (int i = 0; i < 8; i++) {
-        if (c->refs[i].p.p.data[0])
-            dav1d_thread_picture_unref(&c->refs[i].p);
-        dav1d_ref_dec(&c->refs[i].segmap);
-        dav1d_ref_dec(&c->refs[i].refmvs);
-        dav1d_cdf_thread_unref(&c->cdf[i]);
-    }
-    c->frame_hdr = NULL;
-    c->seq_hdr = NULL;
-    dav1d_ref_dec(&c->seq_hdr_ref);
-
-    c->mastering_display = NULL;
-    c->content_light = NULL;
-    dav1d_ref_dec(&c->mastering_display_ref);
-    dav1d_ref_dec(&c->content_light_ref);
 
     c->frame_thread.next = 0;
 }
