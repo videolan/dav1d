@@ -535,6 +535,9 @@ static void close_internal(Dav1dContext **const c_out, int flush) {
     dav1d_ref_dec(&c->seq_hdr_ref);
     dav1d_ref_dec(&c->frame_hdr_ref);
 
+    dav1d_ref_dec(&c->mastering_display_ref);
+    dav1d_ref_dec(&c->content_light_ref);
+
     dav1d_freep_aligned(c_out);
 }
 
