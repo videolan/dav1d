@@ -61,13 +61,23 @@ typedef struct Dav1dPicture {
 
     Dav1dPictureParameters p;
     Dav1dDataProps m;
-    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref, *ref; ///< allocation origins
+
+    /**
+     * High Dynamic Range Content Light Level metadata applying to this picture,
+     * as defined in section 5.8.3 and 6.7.3
+     */
+    Dav1dContentLightLevel *content_light;
+    /**
+     * High Dynamic Range Mastering Display Color Volume metadata applying to
+     * this picture, as defined in section 5.8.4 and 6.7.4
+     */
+    Dav1dMasteringDisplay *mastering_display;
+
+    struct Dav1dRef *frame_hdr_ref, *seq_hdr_ref; ///< Frame parameter allocation origins
+    struct Dav1dRef *content_light_ref, *mastering_display_ref; ///< Metadata allocation origins
+    struct Dav1dRef *ref; ///< Frame data allocation origin
 
     void *allocator_data; ///< pointer managed by the allocator
-
-    Dav1dContentLightLevel *content_light;
-    Dav1dMasteringDisplay *mastering_display;
-    struct Dav1dRef *content_light_ref, *mastering_display_ref;
 } Dav1dPicture;
 
 typedef struct Dav1dPicAllocator {
@@ -89,8 +99,10 @@ typedef struct Dav1dPicAllocator {
      *             a custom pointer that will be passed to
      *             release_picture_callback().
      * @param cookie Custom pointer passed to all calls.
-    *
-    * @return 0 on success. A negative errno value on error.
+     *
+     * @note No fields other than data, stride and allocator_data must be filled
+     *       by this callback.
+     * @return 0 on success. A negative errno value on error.
      */
     int (*alloc_picture_callback)(Dav1dPicture *pic, void *cookie);
     /**
