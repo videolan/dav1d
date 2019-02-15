@@ -112,6 +112,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         for (int i = 0; i < hdr->num_operating_points; i++) {
             struct Dav1dSequenceHeaderOperatingPoint *const op =
                 &hdr->operating_points[i];
+            struct Dav1dSequenceHeaderOperatingParameterInfo *const opi =
+                &hdr->operating_parameter_info[i];
             op->idc = dav1d_get_bits(gb, 12);
             op->major_level = 2 + dav1d_get_bits(gb, 3);
             op->minor_level = dav1d_get_bits(gb, 2);
@@ -119,11 +121,11 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             op->decoder_model_param_present =
                 hdr->decoder_model_info_present && dav1d_get_bits(gb, 1);
             if (op->decoder_model_param_present) {
-                op->decoder_buffer_delay =
+                opi->decoder_buffer_delay =
                     dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
-                op->encoder_buffer_delay =
+                opi->encoder_buffer_delay =
                     dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
-                op->low_delay_mode = dav1d_get_bits(gb, 1);
+                opi->low_delay_mode = dav1d_get_bits(gb, 1);
             }
             op->display_model_param_present =
                 hdr->display_model_info_present && dav1d_get_bits(gb, 1);
@@ -1241,7 +1243,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         // previous state. Free that state.
         if (!c->seq_hdr)
             c->frame_hdr = NULL;
-        else if (memcmp(seq_hdr, c->seq_hdr, sizeof(*seq_hdr))) {
+        // see 7.5, operating_parameter_info is allowed to change in
+        // sequence headers of a single sequence
+        else if (memcmp(seq_hdr, c->seq_hdr, offsetof(Dav1dSequenceHeader, operating_parameter_info))) {
             c->frame_hdr = NULL;
             c->mastering_display = NULL;
             c->content_light = NULL;

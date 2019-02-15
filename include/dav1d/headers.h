@@ -215,9 +215,6 @@ typedef struct Dav1dSequenceHeader {
         int idc;
         int tier;
         int decoder_model_param_present;
-        int decoder_buffer_delay;
-        int encoder_buffer_delay;
-        int low_delay_mode;
         int display_model_param_present;
     } operating_points[DAV1D_MAX_OPERATING_POINTS];
 
@@ -258,6 +255,18 @@ typedef struct Dav1dSequenceHeader {
     int color_description_present;
     int separate_uv_delta_q;
     int film_grain_present;
+
+    // Dav1dSequenceHeaders of the same sequence are required to be
+    // bit-identical until this offset. See 7.5 "Ordering of OBUs":
+    //   Within a particular coded video sequence, the contents of
+    //   sequence_header_obu must be bit-identical each time the
+    //   sequence header appears except for the contents of
+    //   operating_parameters_info.
+    struct Dav1dSequenceHeaderOperatingParameterInfo {
+        int decoder_buffer_delay;
+        int encoder_buffer_delay;
+        int low_delay_mode;
+    } operating_parameter_info[DAV1D_MAX_OPERATING_POINTS];
 } Dav1dSequenceHeader;
 
 typedef struct Dav1dSegmentationData {
