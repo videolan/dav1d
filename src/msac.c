@@ -68,30 +68,6 @@ static inline void ctx_norm(MsacContext *s, ec_win dif, uint32_t rng) {
         ctx_refill(s);
 }
 
-/* Decodes a symbol given an inverse cumulative distribution function (CDF)
- * table in Q15. */
-unsigned msac_decode_symbol(MsacContext *const s, const uint16_t *const cdf,
-                            const unsigned n_symbols)
-{
-    ec_win u, v = s->rng, r = s->rng >> 8;
-    const ec_win c = s->dif >> (EC_WIN_SIZE - 16);
-    unsigned ret = 0;
-
-    assert(!cdf[n_symbols - 1]);
-
-    do {
-        u = v;
-        v = r * (cdf[ret++] >> EC_PROB_SHIFT);
-        v >>= 7 - EC_PROB_SHIFT;
-        v += EC_MIN_PROB * (n_symbols - ret);
-    } while (c < v);
-
-    assert(u <= s->rng);
-
-    ctx_norm(s, s->dif - (v << (EC_WIN_SIZE - 16)), (unsigned) (u - v));
-    return ret - 1;
-}
-
 unsigned msac_decode_bool_equi(MsacContext *const s) {
     ec_win v, vw, dif = s->dif;
     uint16_t r = s->rng;
@@ -157,6 +133,30 @@ int msac_decode_uniform(MsacContext *const c, const unsigned n) {
     return v < m ? v : (v << 1) - m + msac_decode_bool_equi(c);
 }
 
+/* Decodes a symbol given an inverse cumulative distribution function (CDF)
+ * table in Q15. */
+static unsigned decode_symbol(MsacContext *const s, const uint16_t *const cdf,
+                              const unsigned n_symbols)
+{
+    ec_win u, v = s->rng, r = s->rng >> 8;
+    const ec_win c = s->dif >> (EC_WIN_SIZE - 16);
+    unsigned ret = 0;
+
+    assert(!cdf[n_symbols - 1]);
+
+    do {
+        u = v;
+        v = r * (cdf[ret++] >> EC_PROB_SHIFT);
+        v >>= 7 - EC_PROB_SHIFT;
+        v += EC_MIN_PROB * (n_symbols - ret);
+    } while (c < v);
+
+    assert(u <= s->rng);
+
+    ctx_norm(s, s->dif - (v << (EC_WIN_SIZE - 16)), (unsigned) (u - v));
+    return ret - 1;
+}
+
 static void update_cdf(uint16_t *const cdf, const unsigned val,
                        const unsigned n_symbols)
 {
@@ -173,7 +173,7 @@ static void update_cdf(uint16_t *const cdf, const unsigned val,
 unsigned msac_decode_symbol_adapt(MsacContext *const c,
                                   uint16_t *const cdf, const unsigned n_symbols)
 {
-    const unsigned val = msac_decode_symbol(c, cdf, n_symbols);
+    const unsigned val = decode_symbol(c, cdf, n_symbols);
     if(c->allow_update_cdf)
         update_cdf(cdf, val, n_symbols);
     return val;
