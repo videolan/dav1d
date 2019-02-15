@@ -38,7 +38,7 @@ extern "C" {
 #include "common.h"
 #include "picture.h"
 #include "data.h"
-#include "dav1d/version.h"
+#include "version.h"
 
 typedef struct Dav1dContext Dav1dContext;
 typedef struct Dav1dRef Dav1dRef;
