@@ -50,8 +50,8 @@ static unsigned read_golomb(MsacContext *const msac) {
     int len = 0;
     unsigned val = 1;
 
-    while (!msac_decode_bool_equi(msac) && len < 32) len++;
-    while (len--) val = (val << 1) | msac_decode_bool_equi(msac);
+    while (!dav1d_msac_decode_bool_equi(msac) && len < 32) len++;
+    while (len--) val = (val << 1) | dav1d_msac_decode_bool_equi(msac);
 
     return val - 1;
 }
@@ -73,8 +73,8 @@ static int decode_coefs(Dav1dTileContext *const t,
 
     // does this block have any non-zero coefficients
     const int sctx = get_coef_skip_ctx(t_dim, bs, a, l, chroma, f->cur.p.layout);
-    const int all_skip =
-        msac_decode_bool_adapt(&ts->msac, ts->cdf.coef.skip[t_dim->ctx][sctx]);
+    const int all_skip = dav1d_msac_decode_bool_adapt(&ts->msac,
+                             ts->cdf.coef.skip[t_dim->ctx][sctx]);
     if (dbg)
     printf("Post-non-zero[%d][%d][%d]: r=%d\n",
            t_dim->ctx, sctx, all_skip, ts->msac.rng);
@@ -107,7 +107,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             uint16_t *const txtp_cdf = intra ?
                        ts->cdf.m.txtp_intra[set_idx][t_dim->min][y_mode_nofilt] :
                        ts->cdf.m.txtp_inter[set_idx][t_dim->min];
-            idx = msac_decode_symbol_adapt(&ts->msac, txtp_cdf, set_cnt);
+            idx = dav1d_msac_decode_symbol_adapt(&ts->msac, txtp_cdf, set_cnt);
             if (dbg)
             printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
                    set, set_idx, tx, t_dim->min, intra ? (int)y_mode_nofilt : -1,
@@ -125,7 +125,7 @@ static int decode_coefs(Dav1dTileContext *const t,
 #define case_sz(sz, bin) \
     case sz: { \
         uint16_t *const eob_bin_cdf = ts->cdf.coef.eob_bin_##bin[chroma][is_1d]; \
-        eob_bin = msac_decode_symbol_adapt(&ts->msac, eob_bin_cdf, 5 + sz); \
+        eob_bin = dav1d_msac_decode_symbol_adapt(&ts->msac, eob_bin_cdf, 5 + sz); \
         break; \
     }
     case_sz(0,   16);
@@ -145,14 +145,15 @@ static int decode_coefs(Dav1dTileContext *const t,
         eob = 1 << (eob_bin - 1);
         uint16_t *const eob_hi_bit_cdf =
             ts->cdf.coef.eob_hi_bit[t_dim->ctx][chroma][eob_bin];
-        const int eob_hi_bit = msac_decode_bool_adapt(&ts->msac, eob_hi_bit_cdf);
+        const int eob_hi_bit = dav1d_msac_decode_bool_adapt(&ts->msac,
+                                                            eob_hi_bit_cdf);
         if (dbg)
         printf("Post-eob_hi_bit[%d][%d][%d][%d]: r=%d\n",
                t_dim->ctx, chroma, eob_bin, eob_hi_bit, ts->msac.rng);
         unsigned mask = eob >> 1;
         if (eob_hi_bit) eob |= mask;
         for (mask >>= 1; mask; mask >>= 1) {
-            const int eob_bit = msac_decode_bool_equi(&ts->msac);
+            const int eob_bit = dav1d_msac_decode_bool_equi(&ts->msac);
             if (eob_bit) eob |= mask;
         }
         if (dbg)
@@ -178,8 +179,8 @@ static int decode_coefs(Dav1dTileContext *const t,
         uint16_t *const lo_cdf = is_last ?
             ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma][ctx] :
             ts->cdf.coef.base_tok[t_dim->ctx][chroma][ctx];
-        int tok = msac_decode_symbol_adapt(&ts->msac, lo_cdf,
-                                           4 - is_last) + is_last;
+        int tok = dav1d_msac_decode_symbol_adapt(&ts->msac, lo_cdf,
+                                                 4 - is_last) + is_last;
         if (dbg)
         printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n",
                t_dim->ctx, chroma, ctx, i, rc, tok, ts->msac.rng);
@@ -189,8 +190,8 @@ static int decode_coefs(Dav1dTileContext *const t,
         if (tok == 3) {
             const int br_ctx = get_br_ctx(levels, rc, tx, tx_class);
             do {
-                const int tok_br =
-                    msac_decode_symbol_adapt(&ts->msac, br_cdf[br_ctx], 4);
+                const int tok_br = dav1d_msac_decode_symbol_adapt(&ts->msac,
+                                       br_cdf[br_ctx], 4);
                 if (dbg)
                 printf("Post-hi_tok[%d][%d][%d][%d=%d=%d->%d]: r=%d\n",
                        imin(t_dim->ctx, 3), chroma, br_ctx,
@@ -225,14 +226,14 @@ static int decode_coefs(Dav1dTileContext *const t,
             const int dc_sign_ctx = get_dc_sign_ctx(t_dim, a, l);
             uint16_t *const dc_sign_cdf =
                 ts->cdf.coef.dc_sign[chroma][dc_sign_ctx];
-            sign = msac_decode_bool_adapt(&ts->msac, dc_sign_cdf);
+            sign = dav1d_msac_decode_bool_adapt(&ts->msac, dc_sign_cdf);
             if (dbg)
             printf("Post-dc_sign[%d][%d][%d]: r=%d\n",
                    chroma, dc_sign_ctx, sign, ts->msac.rng);
             dc_sign = sign ? 0 : 2;
             dq = (dq_tbl[0] * qm_tbl[0] + 16) >> 5;
         } else {
-            sign = msac_decode_bool_equi(&ts->msac);
+            sign = dav1d_msac_decode_bool_equi(&ts->msac);
             if (dbg)
             printf("Post-sign[%d=%d=%d]: r=%d\n", i, rc, sign, ts->msac.rng);
             dq = (dq_tbl[1] * qm_tbl[rc] + 16) >> 5;

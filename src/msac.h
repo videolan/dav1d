@@ -43,14 +43,15 @@ typedef struct MsacContext {
     int allow_update_cdf;
 } MsacContext;
 
-void msac_init(MsacContext *c, const uint8_t *data, size_t sz, int disable_cdf_update_flag);
-unsigned msac_decode_symbol_adapt(MsacContext *s, uint16_t *cdf,
-                                  const unsigned n_symbols);
-unsigned msac_decode_bool_equi(MsacContext *const s);
-unsigned msac_decode_bool(MsacContext *s, unsigned f);
-unsigned msac_decode_bool_adapt(MsacContext *s, uint16_t *cdf);
-unsigned msac_decode_bools(MsacContext *c, unsigned l);
-int msac_decode_subexp(MsacContext *c, int ref, int n, unsigned k);
-int msac_decode_uniform(MsacContext *c, unsigned n);
+void dav1d_msac_init(MsacContext *c, const uint8_t *data, size_t sz,
+                     int disable_cdf_update_flag);
+unsigned dav1d_msac_decode_symbol_adapt(MsacContext *s, uint16_t *cdf,
+                                        const unsigned n_symbols);
+unsigned dav1d_msac_decode_bool_equi(MsacContext *const s);
+unsigned dav1d_msac_decode_bool(MsacContext *s, unsigned f);
+unsigned dav1d_msac_decode_bool_adapt(MsacContext *s, uint16_t *cdf);
+unsigned dav1d_msac_decode_bools(MsacContext *c, unsigned l);
+int dav1d_msac_decode_subexp(MsacContext *c, int ref, int n, unsigned k);
+int dav1d_msac_decode_uniform(MsacContext *c, unsigned n);
 
 #endif /* DAV1D_SRC_MSAC_H */
