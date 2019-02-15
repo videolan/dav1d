@@ -52,7 +52,8 @@ build-win32:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
     stage: build
     tags:
-        - win32
+        - debian
+        - amd64
     script:
         - wineserver -p && wine wineboot
         - meson build --buildtype release
@@ -74,7 +75,8 @@ build-win64:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
     stage: build
     tags:
-        - win64
+        - debian
+        - amd64
     script:
         - wineserver -p && wine wineboot
         - meson build --buildtype release
@@ -96,7 +98,8 @@ build-win-arm32:
     image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
     stage: build
     tags:
-        - win32
+        - debian
+        - amd64
     script:
         - meson build --buildtype release
                       --werror
@@ -110,7 +113,8 @@ build-win-arm64:
     image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
     stage: build
     tags:
-        - win64
+        - debian
+        - amd64
     script:
         - meson build --buildtype release
                       --werror
