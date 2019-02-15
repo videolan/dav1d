@@ -54,6 +54,7 @@ build-win32:
     tags:
         - win32
     script:
+        - wineserver -p && wine wineboot
         - meson build --buildtype release
                       --werror
                       --libdir lib
@@ -62,6 +63,7 @@ build-win32:
                       -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
+        - cd build && meson test -v
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
@@ -74,6 +76,7 @@ build-win64:
     tags:
         - win64
     script:
+        - wineserver -p && wine wineboot
         - meson build --buildtype release
                       --werror
                       --libdir lib
@@ -82,6 +85,7 @@ build-win64:
                       -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
+        - cd build && meson test -v
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
