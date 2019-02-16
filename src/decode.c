@@ -2415,7 +2415,7 @@ static void read_restoration_info(Dav1dTileContext *const t,
         lr->sgr_weights[1] = dav1d_sgr_params[idx][1] ?
             dav1d_msac_decode_subexp(&ts->msac,
                 ts->lr_ref[p]->sgr_weights[1] + 32, 128, 4) - 32 :
-            iclip(128 - lr->sgr_weights[0], -32, 95);
+            95;
         memcpy(lr->filter_v, ts->lr_ref[p]->filter_v, sizeof(lr->filter_v));
         memcpy(lr->filter_h, ts->lr_ref[p]->filter_h, sizeof(lr->filter_h));
         ts->lr_ref[p] = lr;
