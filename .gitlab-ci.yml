@@ -95,7 +95,7 @@ build-win64:
         expire_in: 1 week
 
 build-win-arm32:
-    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
+    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190218133533
     stage: build
     tags:
         - debian
@@ -110,7 +110,7 @@ build-win-arm32:
         - ninja -C build
 
 build-win-arm64:
-    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190117110230
+    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190218133533
     stage: build
     tags:
         - debian
