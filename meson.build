@@ -45,7 +45,7 @@ cdata = configuration_data()
 cdata_asm = configuration_data()
 
 # Include directories
-dav1d_inc_dirs = include_directories(['.', 'include', 'include/dav1d'])
+dav1d_inc_dirs = include_directories(['.', 'include/dav1d', 'include'])
 
 
 
