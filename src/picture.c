@@ -101,6 +101,8 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
                                     const int w, const int h,
                                     Dav1dSequenceHeader *seq_hdr, Dav1dRef *seq_hdr_ref,
                                     Dav1dFrameHeader *frame_hdr,  Dav1dRef *frame_hdr_ref,
+                                    Dav1dContentLightLevel *content_light, Dav1dRef *content_light_ref,
+                                    Dav1dMasteringDisplay *mastering_display, Dav1dRef *mastering_display_ref,
                                     const int bpc, const Dav1dDataProps *props,
                                     Dav1dPicAllocator *const p_allocator,
                                     const size_t extra, void **const extra_ptr)
@@ -150,13 +152,13 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     if (extra && extra_ptr)
         *extra_ptr = &pic_ctx->extra_ptr;
 
-    p->content_light = c->content_light;
-    p->content_light_ref = c->content_light_ref;
-    if (c->content_light_ref) dav1d_ref_inc(c->content_light_ref);
+    p->content_light = content_light;
+    p->content_light_ref = content_light_ref;
+    if (content_light_ref) dav1d_ref_inc(content_light_ref);
 
-    p->mastering_display = c->mastering_display;
-    p->mastering_display_ref = c->mastering_display_ref;
-    if (c->mastering_display_ref) dav1d_ref_inc(c->mastering_display_ref);
+    p->mastering_display = mastering_display;
+    p->mastering_display_ref = mastering_display_ref;
+    if (mastering_display_ref) dav1d_ref_inc(mastering_display_ref);
 
     return 0;
 }
@@ -171,6 +173,8 @@ int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f
         picture_alloc_with_edges(c, &p->p, f->frame_hdr->width[1], f->frame_hdr->height,
                                  f->seq_hdr, f->seq_hdr_ref,
                                  f->frame_hdr, f->frame_hdr_ref,
+                                 c->content_light, c->content_light_ref,
+                                 c->mastering_display, c->mastering_display_ref,
                                  bpc, &f->tile[0].data.m, &c->allocator,
                                  p->t != NULL ? sizeof(atomic_int) * 2 : 0,
                                  (void **) &p->progress);
@@ -191,6 +195,8 @@ int dav1d_picture_alloc_copy(Dav1dContext *const c, Dav1dPicture *const dst, con
     const int res = picture_alloc_with_edges(c, dst, w, src->p.h,
                                              src->seq_hdr, src->seq_hdr_ref,
                                              src->frame_hdr, src->frame_hdr_ref,
+                                             src->content_light, src->content_light_ref,
+                                             src->mastering_display, src->mastering_display_ref,
                                              src->p.bpc, &src->m, &pic_ctx->allocator,
                                              0, NULL);
     return res;
