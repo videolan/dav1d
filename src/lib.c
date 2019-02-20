@@ -458,7 +458,7 @@ static void close_internal(Dav1dContext **const c_out, int flush) {
             dav1d_freep_aligned(&f->frame_thread.pal_idx);
             dav1d_freep_aligned(&f->frame_thread.cf);
             freep(&f->frame_thread.tile_start_off);
-            freep(&f->frame_thread.pal);
+            dav1d_freep_aligned(&f->frame_thread.pal);
             freep(&f->frame_thread.cbi);
             pthread_mutex_destroy(&f->frame_thread.td.lock);
             pthread_cond_destroy(&f->frame_thread.td.cond);

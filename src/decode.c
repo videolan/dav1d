@@ -2700,11 +2700,12 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             freep(&f->frame_thread.cbi);
             dav1d_freep_aligned(&f->frame_thread.cf);
             dav1d_freep_aligned(&f->frame_thread.pal_idx);
-            freep(&f->frame_thread.pal);
+            dav1d_freep_aligned(&f->frame_thread.pal);
             f->frame_thread.b = malloc(sizeof(*f->frame_thread.b) *
                                        f->sb128w * f->sb128h * 32 * 32);
-            f->frame_thread.pal = malloc(sizeof(*f->frame_thread.pal) *
-                                         f->sb128w * f->sb128h * 16 * 16);
+            f->frame_thread.pal =
+                dav1d_alloc_aligned(sizeof(*f->frame_thread.pal) *
+                                    f->sb128w * f->sb128h * 16 * 16, 32);
             f->frame_thread.pal_idx =
                 dav1d_alloc_aligned(sizeof(*f->frame_thread.pal_idx) *
                                     f->sb128w * f->sb128h * 128 * 128 * 2, 32);
