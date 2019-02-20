@@ -10,7 +10,7 @@ style-check:
         - debian
         - amd64
     script:
-        - git grep -n -e $'\t' --or -e $'\r' -- . ':(exclude)*/compat/*' && exit 1
+        - git grep -n -P "\t|\r| $" -- . ':(exclude)*/compat/*' && exit 1
         - git remote add upstream https://code.videolan.org/videolan/dav1d.git && git fetch -q upstream master
         - for i in $(git rev-list HEAD ^upstream/master); do
               echo "Checking commit message of $i";
