@@ -67,7 +67,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h,
                 memcpy(c_src, src, (10 * 16 + 8) * sizeof(pixel));
 
                 const int lvl = 1 + (rnd() % 62);
-                const int damping = 3 + (rnd() & 3) + bitdepth_min_8;
+                const int damping = 3 + (rnd() & 3) + bitdepth_min_8 - (w == 4 || (rnd() & 1));
                 const int pri_strength = (lvl >> 2) << bitdepth_min_8;
                 int sec_strength = lvl & 3;
                 sec_strength += sec_strength == 3;
