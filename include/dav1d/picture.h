@@ -34,6 +34,11 @@
 #include "common.h"
 #include "headers.h"
 
+/* Number of bytes to align AND pad picture memory buffers by, so that SIMD
+ * implementations can over-read by a few bytes, and use aligned read/write
+ * instructions. */
+#define DAV1D_PICTURE_ALIGNMENT 32
+
 typedef struct Dav1dPictureParameters {
     int w; ///< width (in pixels)
     int h; ///< height (in pixels)
@@ -85,8 +90,10 @@ typedef struct Dav1dPicAllocator {
     /**
      * Allocate the picture buffer based on the Dav1dPictureParameters.
      *
-     * The data[0], data[1] and data[2] must be 32 byte aligned and with a
-     * pixel width/height multiple of 128 pixels.
+     * The data[0], data[1] and data[2] must be DAV1D_PICTURE_ALIGNMENT byte
+     * aligned and with a pixel width/height multiple of 128 pixels. Any
+     * allocated memory area should also be padded by DAV1D_PICTURE_ALIGNMENT
+     * bytes.
      * data[1] and data[2] must share the same stride[1].
      *
      * This function will be called on the main thread (the thread which calls

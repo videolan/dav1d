@@ -59,7 +59,8 @@ int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
     const size_t uv_sz = p->stride[1] * (aligned_h >> ss_ver);
     const size_t pic_size = y_sz + 2 * uv_sz;
 
-    uint8_t *data = dav1d_alloc_aligned(pic_size, 32);
+    uint8_t *data = dav1d_alloc_aligned(pic_size + DAV1D_PICTURE_ALIGNMENT,
+                                        DAV1D_PICTURE_ALIGNMENT);
     if (data == NULL) {
         return -1;
     }
