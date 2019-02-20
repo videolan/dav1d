@@ -86,7 +86,7 @@ int main(const int argc, char *const *const argv) {
                 filename, strerror(errno));
         goto error;
     }
-        
+
     ret = LLVMFuzzerTestOneInput(data, size);
 
 error:
