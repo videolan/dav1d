@@ -1429,7 +1429,8 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 if (b->inter_mode == GLOBALMV_GLOBALMV &&
                     imin(cbw4, cbh4) > 1 && f->gmv_warp_allowed[b->ref[i]])
                 {
-                    res = warp_affine(t, NULL, tmp[i], bw4 * 2, b_dim, 1 + pl,
+                    res = warp_affine(t, NULL, tmp[i], bw4 * 4 >> ss_hor,
+                                      b_dim, 1 + pl,
                                       refp, &f->frame_hdr->gmv[b->ref[i]]);
                     if (res) return res;
                 } else {
