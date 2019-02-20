@@ -11,7 +11,19 @@ style-check:
         - amd64
     script:
         - git grep -n -e $'\t' --or -e $'\r' -- . ':(exclude)*/compat/*' && exit 1
-        - /bin/true
+        - git remote add upstream https://code.videolan.org/videolan/dav1d.git && git fetch -q upstream master
+        - for i in $(git rev-list HEAD ^upstream/master); do
+              echo "Checking commit message of $i";
+              msg="$(git log --format=%B -n 1 $i)";
+              if [ -n "$(echo "$msg" | awk "NR==2")" ]; then
+                  echo "Malformed commit message in $i, second line must be empty";
+                  exit 1;
+              fi;
+              if echo "$msg" | head -1 | grep -q '\.$'; then
+                  echo "Malformed commit message in $i, trailing period in subject line";
+                  exit 1;
+              fi;
+          done
 
 build-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
