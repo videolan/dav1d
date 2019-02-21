@@ -11,7 +11,7 @@ style-check:
         - amd64
     script:
         - git grep -n -P "\t|\r| $" -- . ':(exclude)*/compat/*' && exit 1
-        - git remote rm upstream 2> /dev/null
+        - git remote rm upstream 2> /dev/null || true
         - git remote add upstream https://code.videolan.org/videolan/dav1d.git
         - git fetch -q upstream master
         - for i in $(git rev-list HEAD ^upstream/master); do
