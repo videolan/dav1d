@@ -1,6 +1,7 @@
 name: dav1d
 base: core18
 version: git
+version-script: git describe HEAD --always
 summary: AV1 decoder from VideoLAN
 description: |
   A small and fast AV1 decoder from the people who brought you VLC.
