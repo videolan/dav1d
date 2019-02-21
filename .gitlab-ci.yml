@@ -222,6 +222,19 @@ build-debian-armv7-clang-5:
         - ninja -C build
         - cd build && meson test -v
 
+build-ubuntu-snap:
+    stage: build
+    image: registry.videolan.org:5000/dav1d-ubuntu-bionic:20190221154127
+    tags:
+        - debian
+    script:
+        - snapcraft snap
+    artifacts:
+        name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+        paths:
+            - dav1d_*.snap
+        expire_in: 1 week
+
 test-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
     stage: test
