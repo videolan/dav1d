@@ -229,6 +229,12 @@ build-ubuntu-snap:
         - debian
     script:
         - snapcraft snap
+        - |
+           if [ "$CI_PROJECT_NAMESPACE" = "videolan" ]; then
+            echo $SNAP_LOGIN | base64 --decode | snapcraft login --with -
+            snapcraft push dav1d_*.snap --release edge
+            snapcraft logout
+           fi
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
