@@ -143,11 +143,12 @@ endif
 #
 
 if host_machine.system() == 'windows' and get_option('default_library') != 'static'
+    rc_version_array = meson.project_version().split('.')
     winmod = import('windows')
     rc_data = configuration_data()
-    rc_data.set('VERSION_MAJOR', dav1d_version_major)
-    rc_data.set('VERSION_MINOR', dav1d_version_minor)
-    rc_data.set('VERSION_REVISION', dav1d_version_revision)
+    rc_data.set('VERSION_MAJOR', rc_version_array[0])
+    rc_data.set('VERSION_MINOR', rc_version_array[1])
+    rc_data.set('VERSION_REVISION', rc_version_array[2])
     rc_data.set('VERSION_EXTRA', '0')
     rc_data.set('COPYRIGHT_YEARS', '2018')
 
@@ -219,7 +220,7 @@ libdav1d = library('dav1d',
         thread_compat_dep,
         ],
     c_args : [stackalign_flag],
-    version : meson.project_version(),
+    version : david_soname_version,
     soversion : dav1d_soversion,
     install : true,
 )
