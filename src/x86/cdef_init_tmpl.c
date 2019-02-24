@@ -29,6 +29,7 @@
 #include "src/cdef.h"
 
 decl_cdef_fn(dav1d_cdef_filter_8x8_avx2);
+decl_cdef_fn(dav1d_cdef_filter_4x8_avx2);
 decl_cdef_fn(dav1d_cdef_filter_4x4_avx2);
 
 decl_cdef_dir_fn(dav1d_cdef_dir_avx2);
@@ -41,6 +42,7 @@ void bitfn(dav1d_cdef_dsp_init_x86)(Dav1dCdefDSPContext *const c) {
 #if BITDEPTH == 8 && ARCH_X86_64
     c->dir = dav1d_cdef_dir_avx2;
     c->fb[0] = dav1d_cdef_filter_8x8_avx2;
+    c->fb[1] = dav1d_cdef_filter_4x8_avx2;
     c->fb[2] = dav1d_cdef_filter_4x4_avx2;
 #endif
 }
