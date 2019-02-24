@@ -29,8 +29,6 @@
 #include "src/looprestoration.h"
 
 #include "common/attributes.h"
-#include "common/intops.h"
-#include "src/tables.h"
 
 #if BITDEPTH == 8
 // This calculates things slightly differently than the reference C version.
