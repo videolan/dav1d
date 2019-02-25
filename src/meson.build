@@ -220,7 +220,7 @@ libdav1d = library('dav1d',
         thread_compat_dep,
         ],
     c_args : [stackalign_flag],
-    version : david_soname_version,
+    version : dav1d_soname_version,
     soversion : dav1d_soversion,
     install : true,
 )
