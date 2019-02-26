@@ -241,6 +241,7 @@ build-ubuntu-snap:
         paths:
             - dav1d_*.snap
         expire_in: 1 week
+    allow_failure: true
 
 test-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
