@@ -227,6 +227,7 @@ build-ubuntu-snap:
     image: registry.videolan.org:5000/dav1d-ubuntu-bionic:20190221154127
     tags:
         - debian
+        - amd64
     script:
         - snapcraft snap
         - |
