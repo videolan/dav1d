@@ -63,6 +63,27 @@ static const unsigned k[] = {
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 };
 
+
+#if ENDIANNESS_BIG
+#define NE2LE_32(x) (((x & 0x00ff) << 24) |\
+                     ((x & 0xff00) <<  8) |\
+                     ((x >>  8) & 0xff00) |\
+                     ((x >> 24) & 0x00ff))
+
+#define NE2LE_64(x) (((x & 0x000000ff) << 56) |\
+                     ((x & 0x0000ff00) << 40) |\
+                     ((x & 0x00ff0000) << 24) |\
+                     ((x & 0xff000000) <<  8) |\
+                     ((x >>  8) & 0xff000000) |\
+                     ((x >> 24) & 0x00ff0000) |\
+                     ((x >> 40) & 0x0000ff00) |\
+                     ((x >> 56) & 0x000000ff))
+
+#else
+#define NE2LE_32(x) (x)
+#define NE2LE_64(x) (x)
+#endif
+
 typedef struct MuxerPriv {
     unsigned abcd[4];
     uint8_t data[64];
@@ -123,7 +144,7 @@ static void md5_body(MD5Context *md5, const uint8_t *const _data) {
         tmp = d;
         d = c;
         c = b;
-        b += leftrotate(a + f + k[i] + data[g], s[i >> 4][i & 3]);
+        b += leftrotate(a + f + k[i] + NE2LE_32(data[g]), s[i >> 4][i & 3]);
         a = tmp;
     }
 
@@ -193,7 +214,7 @@ static int md5_write(MD5Context *const md5, Dav1dPicture *const p) {
 
 static void md5_finish(MD5Context *const md5) {
     static const uint8_t bit[2] = { 0x80, 0x00 };
-    uint64_t len = md5->len << 3;
+    uint64_t len = NE2LE_64(md5->len << 3);
 
     md5_update(md5, &bit[0], 1);
     while ((md5->len & 63) != 56)

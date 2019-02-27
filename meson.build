@@ -214,6 +214,8 @@ endif
 stackalign_flag = []
 stackrealign_flag = []
 
+cdata.set10('ENDIANNESS_BIG', host_machine.endian() == 'big')
+
 if host_machine.cpu_family().startswith('x86')
     if get_option('stack_alignment') > 0
         stack_alignment = get_option('stack_alignment')
