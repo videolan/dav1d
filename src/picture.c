@@ -62,7 +62,7 @@ int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
     uint8_t *data = dav1d_alloc_aligned(pic_size + DAV1D_PICTURE_ALIGNMENT,
                                         DAV1D_PICTURE_ALIGNMENT);
     if (data == NULL) {
-        return -1;
+        return -ENOMEM;
     }
 
     p->data[0] = data;
@@ -131,7 +131,7 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     int res = p_allocator->alloc_picture_callback(p, p_allocator->cookie);
     if (res < 0) {
         free(pic_ctx);
-        return -ENOMEM;
+        return res;
     }
 
     pic_ctx->allocator = *p_allocator;
