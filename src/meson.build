@@ -1,4 +1,4 @@
-# Copyright © 2018, VideoLAN and dav1d authors
+# Copyright © 2019, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -151,7 +151,7 @@ if host_machine.system() == 'windows' and get_option('default_library') != 'stat
     rc_data.set('VERSION_MINOR', rc_version_array[1])
     rc_data.set('VERSION_REVISION', rc_version_array[2])
     rc_data.set('VERSION_EXTRA', '0')
-    rc_data.set('COPYRIGHT_YEARS', '2018')
+    rc_data.set('COPYRIGHT_YEARS', '2019')
 
     rc_file = configure_file(
         input : 'dav1d.rc.in',
