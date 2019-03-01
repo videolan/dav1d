@@ -123,6 +123,8 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     p->p.h = h;
     p->seq_hdr = seq_hdr;
     p->frame_hdr = frame_hdr;
+    p->content_light = content_light;
+    p->mastering_display = mastering_display;
     p->p.layout = seq_hdr->layout;
     p->p.bpc = bpc;
     dav1d_data_props_set_defaults(&p->m);
@@ -153,11 +155,9 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
     if (extra && extra_ptr)
         *extra_ptr = &pic_ctx->extra_ptr;
 
-    p->content_light = content_light;
     p->content_light_ref = content_light_ref;
     if (content_light_ref) dav1d_ref_inc(content_light_ref);
 
-    p->mastering_display = mastering_display;
     p->mastering_display_ref = mastering_display_ref;
     if (mastering_display_ref) dav1d_ref_inc(mastering_display_ref);
 
