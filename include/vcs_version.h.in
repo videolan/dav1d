@@ -1,2 +1,2 @@
 /* auto-generated, do not edit */
-#define DAV1D_VERSION_VCS "@VCS_TAG@"
+#define DAV1D_VERSION "@VCS_TAG@"

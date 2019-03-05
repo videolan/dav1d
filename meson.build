@@ -30,7 +30,7 @@ project('dav1d', ['c'],
                       'b_ndebug=if-release'],
     meson_version: '>= 0.47.0')
 
-dav1d_soname_version   = '1.0.0'
+dav1d_soname_version   = '1.0.1'
 dav1d_version_array    = dav1d_soname_version.split('.')
 dav1d_version_major    = dav1d_version_array[0]
 dav1d_version_minor    = dav1d_version_array[1]

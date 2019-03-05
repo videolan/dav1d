@@ -263,7 +263,7 @@ void parse(const int argc, char *const *const argv,
                 !!parse_unsigned(optarg, ARG_ALL_LAYERS, argv[0]);
             break;
         case 'v':
-            fprintf(stderr, "%s\n", dav1d_version_vcs());
+            fprintf(stderr, "%s\n", dav1d_version());
             exit(0);
         case ARG_CPU_MASK:
             dav1d_set_cpu_flags_mask(parse_enum(optarg, cpu_mask_tbl,

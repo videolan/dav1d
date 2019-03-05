@@ -56,14 +56,6 @@ const char *dav1d_version(void) {
     return DAV1D_VERSION;
 }
 
-const char *dav1d_version_vcs(void) {
-    return DAV1D_VERSION_VCS;
-}
-
-unsigned int dav1d_version_int(void) {
-    return DAV1D_VERSION_INT;
-}
-
 void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_frame_threads = 1;
     s->n_tile_threads = 1;
