@@ -31,10 +31,10 @@ project('dav1d', ['c'],
     meson_version: '>= 0.47.0')
 
 dav1d_soname_version   = '1.0.1'
-dav1d_version_array    = dav1d_soname_version.split('.')
-dav1d_version_major    = dav1d_version_array[0]
-dav1d_version_minor    = dav1d_version_array[1]
-dav1d_version_revision = dav1d_version_array[2]
+dav1d_api_version_array    = dav1d_soname_version.split('.')
+dav1d_api_version_major    = dav1d_api_version_array[0]
+dav1d_api_version_minor    = dav1d_api_version_array[1]
+dav1d_api_version_revision = dav1d_api_version_array[2]
 
 dav1d_src_root = meson.current_source_dir()
 cc = meson.get_compiler('c')

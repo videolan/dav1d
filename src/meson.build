@@ -201,7 +201,7 @@ endforeach
 if host_machine.system() == 'windows'
     dav1d_soversion = ''
 else
-    dav1d_soversion = dav1d_version_major
+    dav1d_soversion = dav1d_api_version_major
 endif
 
 libdav1d = library('dav1d',
