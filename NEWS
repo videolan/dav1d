@@ -1,6 +1,11 @@
 Changes for 0.2.1 'Antelope':
 ----------------------------
 
+ - SSSE3 optimization for cdef_dir
+ - AVX-2 improvements of the existing CDEF optimizations
+ - NEON improvements of the existing CDEF and wiener optimizations
+ - Clarification about the numbering/versionning scheme
+
 
 Changes for 0.2.0 'Antelope':
 ----------------------------
