@@ -124,7 +124,7 @@ if is_asm_enabled
         if dav1d_bitdepths.contains('8')
             libdav1d_sources_asm += files(
                 'x86/cdef.asm',
-                'x86/cdef_ssse3.asm',
+                'x86/cdef_sse.asm',
                 'x86/ipred.asm',
                 'x86/ipred_ssse3.asm',
                 'x86/itx.asm',
