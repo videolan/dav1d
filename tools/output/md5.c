@@ -89,6 +89,10 @@ typedef struct MuxerPriv {
     uint8_t data[64];
     uint64_t len;
     FILE *f;
+#if ENDIANNESS_BIG
+    uint8_t *bswap;
+    int bswap_w;
+#endif
 } MD5Context;
 
 static int md5_open(MD5Context *const md5, const char *const file,
@@ -101,6 +105,11 @@ static int md5_open(MD5Context *const md5, const char *const file,
         fprintf(stderr, "Failed to open %s: %s\n", file, strerror(errno));
         return -1;
     }
+
+#if ENDIANNESS_BIG
+    md5->bswap = NULL;
+    md5->bswap_w = 0;
+#endif
 
     md5->abcd[0] = 0x67452301;
     md5->abcd[1] = 0xefcdab89;
@@ -187,7 +196,26 @@ static int md5_write(MD5Context *const md5, Dav1dPicture *const p) {
     const int w = p->p.w, h = p->p.h;
     uint8_t *yptr = p->data[0];
 
+#if ENDIANNESS_BIG
+    if (hbd && (!md5->bswap || md5->bswap_w < p->p.w)) {
+        free(md5->bswap);
+        md5->bswap_w = 0;
+        md5->bswap = malloc(p->p.w << 1);
+        if (!md5->bswap) return -1;
+        md5->bswap_w = p->p.w;
+    }
+#endif
+
     for (int y = 0; y < h; y++) {
+#if ENDIANNESS_BIG
+        if (hbd) {
+            for (int x = 0; x < w; x++) {
+                md5->bswap[2 * x + 1] = yptr[2 * x];
+                md5->bswap[2 * x]     = yptr[2 * x + 1];
+            }
+            md5_update(md5, md5->bswap, w << hbd);
+        } else
+#endif
         md5_update(md5, yptr, w << hbd);
         yptr += p->stride[0];
     }
@@ -201,6 +229,15 @@ static int md5_write(MD5Context *const md5, Dav1dPicture *const p) {
             uint8_t *uvptr = p->data[pl];
 
             for (int y = 0; y < ch; y++) {
+#if ENDIANNESS_BIG
+                if (hbd) {
+                    for (int x = 0; x < cw; x++){
+                        md5->bswap[2 * x + 1] = uvptr[2 * x];
+                        md5->bswap[2 * x]     = uvptr[2 * x + 1];
+                    }
+                    md5_update(md5, md5->bswap, cw << hbd);
+                } else
+#endif
                 md5_update(md5, uvptr, cw << hbd);
                 uvptr += p->stride[1];
             }
@@ -232,6 +269,11 @@ static void md5_close(MD5Context *const md5) {
                 md5->abcd[i] >> 24);
     fprintf(md5->f, "\n");
 
+#if ENDIANNESS_BIG
+    free(md5->bswap);
+    md5->bswap_w = 0;
+#endif
+
     if (md5->f != stdout)
         fclose(md5->f);
 }
@@ -255,6 +297,11 @@ static int md5_verify(MD5Context *const md5, const char *const md5_str) {
             abcd[i] |= val << (8 * j);
         }
     }
+
+#if ENDIANNESS_BIG
+    free(md5->bswap);
+    md5->bswap_w = 0;
+#endif
 
     return !!memcmp(abcd, md5->abcd, sizeof(abcd));
 }
