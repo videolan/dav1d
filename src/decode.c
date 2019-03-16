@@ -3195,9 +3195,9 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     // FIXME qsort so tiles are in order (for frame threading)
     if (f->n_tile_data_alloc < c->n_tile_data) {
-        struct Dav1dTileGroup *tile = realloc(f->tile, c->n_tile_data * sizeof(*f->tile));
-        if (!tile) goto error;
-        f->tile = tile;
+        freep(&f->tile);
+        f->tile = malloc(c->n_tile_data * sizeof(*f->tile));
+        if (!f->tile) goto error;
         f->n_tile_data_alloc = c->n_tile_data;
     }
     memcpy(f->tile, c->tile, c->n_tile_data * sizeof(*f->tile));
