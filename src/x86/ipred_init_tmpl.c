@@ -67,6 +67,9 @@ decl_cfl_pred_fn(dav1d_ipred_cfl_128_ssse3);
 decl_cfl_pred_fn(dav1d_ipred_cfl_top_ssse3);
 decl_cfl_pred_fn(dav1d_ipred_cfl_left_ssse3);
 
+decl_cfl_ac_fn(dav1d_ipred_cfl_ac_420_ssse3);
+decl_cfl_ac_fn(dav1d_ipred_cfl_ac_422_ssse3);
+
 decl_pal_pred_fn(dav1d_pal_pred_ssse3);
 
 void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c) {
@@ -90,7 +93,10 @@ void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c) {
     c->cfl_pred[TOP_DC_PRED]     = dav1d_ipred_cfl_top_ssse3;
     c->cfl_pred[LEFT_DC_PRED]    = dav1d_ipred_cfl_left_ssse3;
 
-    c->pal_pred = dav1d_pal_pred_ssse3;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1] = dav1d_ipred_cfl_ac_420_ssse3;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1] = dav1d_ipred_cfl_ac_422_ssse3;
+
+    c->pal_pred                  = dav1d_pal_pred_ssse3;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
