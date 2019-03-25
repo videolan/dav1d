@@ -88,6 +88,9 @@ decl_itx16_fns(16,  8, ssse3);
 decl_itx12_fns(16, 16, ssse3);
 decl_itx2_fns ( 8, 32, ssse3);
 decl_itx2_fns (32,  8, ssse3);
+decl_itx2_fns (16, 32, ssse3);
+decl_itx2_fns (32, 16, ssse3);
+decl_itx2_fns (32, 32, ssse3);
 
 void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c) {
 #define assign_itx_fn(pfx, w, h, type, type_enum, ext) \
@@ -142,6 +145,9 @@ void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c) {
     assign_itx12_fn(,  16, 16, ssse3);
     assign_itx2_fn (R,  8, 32, ssse3);
     assign_itx2_fn (R, 32,  8, ssse3);
+    assign_itx2_fn (R, 16, 32, ssse3);
+    assign_itx2_fn (R, 32, 16, ssse3);
+    assign_itx2_fn (,  32, 32, ssse3);
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
