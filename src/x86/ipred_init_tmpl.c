@@ -69,6 +69,7 @@ decl_cfl_pred_fn(dav1d_ipred_cfl_left_ssse3);
 
 decl_cfl_ac_fn(dav1d_ipred_cfl_ac_420_ssse3);
 decl_cfl_ac_fn(dav1d_ipred_cfl_ac_422_ssse3);
+decl_cfl_ac_fn(dav1d_ipred_cfl_ac_444_ssse3);
 
 decl_pal_pred_fn(dav1d_pal_pred_ssse3);
 
@@ -95,6 +96,7 @@ void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c) {
 
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1] = dav1d_ipred_cfl_ac_420_ssse3;
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1] = dav1d_ipred_cfl_ac_422_ssse3;
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1] = dav1d_ipred_cfl_ac_444_ssse3;
 
     c->pal_pred                  = dav1d_pal_pred_ssse3;
 #endif
