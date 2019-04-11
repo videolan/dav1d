@@ -119,6 +119,7 @@ if is_asm_enabled
         # NASM source files
         libdav1d_sources_asm = files(
             'x86/cpuid.asm',
+            'x86/msac.asm',
         )
 
         if dav1d_bitdepths.contains('8')
