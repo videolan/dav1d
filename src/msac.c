@@ -145,7 +145,7 @@ static unsigned decode_symbol(MsacContext *const s, const uint16_t *const cdf,
         u = v;
         v = r * (cdf[ret++] >> EC_PROB_SHIFT);
         v >>= 7 - EC_PROB_SHIFT;
-        v += EC_MIN_PROB * (n_symbols - ret);
+        v += EC_MIN_PROB * (int) (n_symbols - ret);
     } while (c < v);
 
     assert(u <= s->rng);
