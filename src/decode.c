@@ -2692,7 +2692,9 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         freep(&f->lf.level);
         freep(&f->frame_thread.b);
         f->lf.mask = malloc(f->sb128w * f->sb128h * sizeof(*f->lf.mask));
-        f->lf.level = malloc(f->sb128w * f->sb128h * 32 * 32 *
+        // over-allocate by 3 bytes since some of the SIMD implementations
+        // index this from the level type and can thus over-read by up to 3
+        f->lf.level = malloc(3 + f->sb128w * f->sb128h * 32 * 32 *
                              sizeof(*f->lf.level));
         if (!f->lf.mask || !f->lf.level) goto error;
         if (c->n_fc > 1) {
