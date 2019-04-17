@@ -217,7 +217,7 @@ struct Dav1dFrameContext {
         Av1Restoration *lr_mask;
         int top_pre_cdef_toggle;
         int mask_sz /* w*h */, lr_mask_sz, line_sz /* w */, lr_line_sz, re_sz /* h */;
-        Av1FilterLUT lim_lut;
+        ALIGN(Av1FilterLUT lim_lut, 16);
         int last_sharpness;
         uint8_t lvl[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
         uint8_t *tx_lpf_right_edge[2];
