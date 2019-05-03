@@ -90,6 +90,10 @@ int dav1d_open(Dav1dContext **const c_out,
     validate_input_or_ret(s->operating_point >= 0 &&
                           s->operating_point <= 31, -EINVAL);
 
+    pthread_attr_t thread_attr;
+    if (pthread_attr_init(&thread_attr)) return -ENOMEM;
+    pthread_attr_setstacksize(&thread_attr, 512 * 1024);
+
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
     if (!c) goto error;
     memset(c, 0, sizeof(*c));
@@ -151,7 +155,7 @@ int dav1d_open(Dav1dContext **const c_out,
                     goto error;
                 }
                 t->tile_thread.fttd = &f->tile_thread;
-                if (pthread_create(&t->tile_thread.td.thread, NULL, dav1d_tile_task, t)) {
+                if (pthread_create(&t->tile_thread.td.thread, &thread_attr, dav1d_tile_task, t)) {
                     pthread_cond_destroy(&t->tile_thread.td.cond);
                     pthread_mutex_destroy(&t->tile_thread.td.lock);
                     goto error;
@@ -167,7 +171,7 @@ int dav1d_open(Dav1dContext **const c_out,
                 pthread_mutex_destroy(&f->frame_thread.td.lock);
                 goto error;
             }
-            if (pthread_create(&f->frame_thread.td.thread, NULL, dav1d_frame_task, f)) {
+            if (pthread_create(&f->frame_thread.td.thread, &thread_attr, dav1d_frame_task, f)) {
                 pthread_cond_destroy(&f->frame_thread.td.cond);
                 pthread_mutex_destroy(&f->frame_thread.td.lock);
                 goto error;
@@ -182,10 +186,13 @@ int dav1d_open(Dav1dContext **const c_out,
     c->intra_edge.root[BL_64X64] = &c->intra_edge.branch_sb64[0].node;
     dav1d_init_mode_tree(c->intra_edge.root[BL_64X64], c->intra_edge.tip_sb64, 0);
 
+    pthread_attr_destroy(&thread_attr);
+
     return 0;
 
 error:
     if (c) close_internal(c_out, 0);
+    pthread_attr_destroy(&thread_attr);
     return -ENOMEM;
 }
 
