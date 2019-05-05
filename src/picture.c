@@ -45,7 +45,7 @@
 #include "src/thread.h"
 #include "src/thread_task.h"
 
-int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
+int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
     assert(cookie == NULL);
     const int hbd = p->p.bpc > 8;
     const int aligned_w = (p->p.w + 127) & ~127;
@@ -76,7 +76,7 @@ int default_picture_allocator(Dav1dPicture *const p, void *cookie) {
     return 0;
 }
 
-void default_picture_release(Dav1dPicture *const p, void *cookie) {
+void dav1d_default_picture_release(Dav1dPicture *const p, void *const cookie) {
     assert(cookie == NULL);
 #ifndef NDEBUG /* safety check */
     assert(p->allocator_data == p->data[0]);

@@ -61,8 +61,8 @@ void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_tile_threads = 1;
     s->apply_grain = 1;
     s->allocator.cookie = NULL;
-    s->allocator.alloc_picture_callback = default_picture_allocator;
-    s->allocator.release_picture_callback = default_picture_release;
+    s->allocator.alloc_picture_callback = dav1d_default_picture_alloc;
+    s->allocator.release_picture_callback = dav1d_default_picture_release;
     s->logger.cookie = NULL;
     s->logger.callback = dav1d_log_default_callback;
     s->operating_point = 0;
