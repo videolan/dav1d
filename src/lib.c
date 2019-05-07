@@ -163,7 +163,7 @@ int dav1d_open(Dav1dContext **const c_out,
                 t->tile_thread.td.inited = 1;
             }
         }
-        f->libaom_cm = av1_alloc_ref_mv_common();
+        f->libaom_cm = dav1d_alloc_ref_mv_common();
         if (!f->libaom_cm) goto error;
         if (c->n_fc > 1) {
             if (pthread_mutex_init(&f->frame_thread.td.lock, NULL)) goto error;
@@ -509,7 +509,7 @@ static void close_internal(Dav1dContext **const c_out, int flush) {
         free(f->lf.lr_mask);
         free(f->lf.level);
         free(f->lf.tx_lpf_right_edge[0]);
-        if (f->libaom_cm) av1_free_ref_mv_common(f->libaom_cm);
+        if (f->libaom_cm) dav1d_free_ref_mv_common(f->libaom_cm);
         dav1d_free_aligned(f->lf.cdef_line);
         dav1d_free_aligned(f->lf.lr_lpf_line);
     }
