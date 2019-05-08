@@ -62,7 +62,7 @@ int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
     uint8_t *data = dav1d_alloc_aligned(pic_size + DAV1D_PICTURE_ALIGNMENT,
                                         DAV1D_PICTURE_ALIGNMENT);
     if (data == NULL) {
-        return -ENOMEM;
+        return DAV1D_ERR(ENOMEM);
     }
 
     p->data[0] = data;
@@ -116,7 +116,7 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
 
     struct pic_ctx_context *pic_ctx = malloc(extra + sizeof(struct pic_ctx_context));
     if (pic_ctx == NULL) {
-        return -ENOMEM;
+        return DAV1D_ERR(ENOMEM);
     }
 
     p->p.w = w;
@@ -141,7 +141,7 @@ static int picture_alloc_with_edges(Dav1dContext *const c, Dav1dPicture *const p
         p_allocator->release_picture_callback(p, p_allocator->cookie);
         free(pic_ctx);
         dav1d_log(c, "Failed to wrap picture: %s\n", strerror(errno));
-        return -ENOMEM;
+        return DAV1D_ERR(ENOMEM);
     }
 
     p->seq_hdr_ref = seq_hdr_ref;

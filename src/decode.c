@@ -2566,7 +2566,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
 
 int dav1d_decode_frame(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
-    int retval = -ENOMEM;
+    int retval = DAV1D_ERR(ENOMEM);
 
     if (f->n_tc > 1) {
         if (f->frame_hdr->tiling.cols * f->sbh > f->tile_thread.titsati_sz) {
@@ -2778,7 +2778,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         if (c->n_fc == 1 && f->frame_hdr->use_ref_frame_mvs)
             dav1d_init_ref_mv_tile_row(f->libaom_cm, 0, f->bw, 0, f->bh);
     }
-    retval = -EINVAL;
+    retval = DAV1D_ERR(EINVAL);
 
     // setup dequant tables
     init_quant_tables(f->seq_hdr, f->frame_hdr, f->frame_hdr->quant.yac, f->dq);
@@ -3115,7 +3115,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         default:
             dav1d_log(c, "Compiled without support for %d-bit decoding\n",
                     8 + 2 * f->seq_hdr->hbd);
-            res = -ENOPROTOOPT;
+            res = DAV1D_ERR(ENOPROTOOPT);
             goto error;
         }
     }
@@ -3142,7 +3142,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE) {
             const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
             if (!c->refs[pri_ref].p.p.data[0]) {
-                res = -EINVAL;
+                res = DAV1D_ERR(EINVAL);
                 goto error;
             }
         }
@@ -3158,7 +3158,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             {
                 for (int j = 0; j < i; j++)
                     dav1d_thread_picture_unref(&f->refp[j]);
-                res = -EINVAL;
+                res = DAV1D_ERR(EINVAL);
                 goto error;
             }
             dav1d_thread_picture_ref(&f->refp[i], &c->refs[refidx].p);
@@ -3255,7 +3255,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f->mvs_ref = dav1d_ref_create(f->sb128h * 32 * f->b4_stride *
                                       sizeof(*f->mvs));
         if (!f->mvs_ref) {
-            res = -ENOMEM;
+            res = DAV1D_ERR(ENOMEM);
             goto error;
         }
         f->mvs = f->mvs_ref->data;
@@ -3318,7 +3318,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             // actually gets set elsewhere)
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
             if (!f->cur_segmap_ref) {
-                res = -ENOMEM;
+                res = DAV1D_ERR(ENOMEM);
                 goto error;
             }
             f->cur_segmap = f->cur_segmap_ref->data;
@@ -3332,7 +3332,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             // We need to make a new map. Allocate one here and zero it out.
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
             if (!f->cur_segmap_ref) {
-                res = -ENOMEM;
+                res = DAV1D_ERR(ENOMEM);
                 goto error;
             }
             f->cur_segmap = f->cur_segmap_ref->data;

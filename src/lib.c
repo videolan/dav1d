@@ -77,21 +77,21 @@ int dav1d_open(Dav1dContext **const c_out,
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
 
-    validate_input_or_ret(c_out != NULL, -EINVAL);
-    validate_input_or_ret(s != NULL, -EINVAL);
+    validate_input_or_ret(c_out != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->n_tile_threads >= 1 &&
-                          s->n_tile_threads <= DAV1D_MAX_TILE_THREADS, -EINVAL);
+                          s->n_tile_threads <= DAV1D_MAX_TILE_THREADS, DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->n_frame_threads >= 1 &&
-                          s->n_frame_threads <= DAV1D_MAX_FRAME_THREADS, -EINVAL);
+                          s->n_frame_threads <= DAV1D_MAX_FRAME_THREADS, DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->allocator.alloc_picture_callback != NULL,
-                          -EINVAL);
+                          DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->allocator.release_picture_callback != NULL,
-                          -EINVAL);
+                          DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->operating_point >= 0 &&
-                          s->operating_point <= 31, -EINVAL);
+                          s->operating_point <= 31, DAV1D_ERR(EINVAL));
 
     pthread_attr_t thread_attr;
-    if (pthread_attr_init(&thread_attr)) return -ENOMEM;
+    if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
     pthread_attr_setstacksize(&thread_attr, 512 * 1024);
 
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
@@ -193,7 +193,7 @@ int dav1d_open(Dav1dContext **const c_out,
 error:
     if (c) close_internal(c_out, 0);
     pthread_attr_destroy(&thread_attr);
-    return -ENOMEM;
+    return DAV1D_ERR(ENOMEM);
 }
 
 static void dummy_free(const uint8_t *const data, void *const user_data) {
@@ -206,7 +206,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
     Dav1dData buf = { 0 };
     int res;
 
-    validate_input_or_ret(out != NULL, -EINVAL);
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
 
     Dav1dSettings s;
     dav1d_default_settings(&s);
@@ -231,7 +231,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
     }
 
     if (!c->seq_hdr) {
-        res = -EINVAL;
+        res = DAV1D_ERR(EINVAL);
         goto error;
     }
 
@@ -247,14 +247,14 @@ error:
 
 int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
 {
-    validate_input_or_ret(c != NULL, -EINVAL);
-    validate_input_or_ret(in != NULL, -EINVAL);
-    validate_input_or_ret(in->data == NULL || in->sz, -EINVAL);
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
 
     c->drain = 0;
 
     if (c->in.data)
-        return -EAGAIN;
+        return DAV1D_ERR(EAGAIN);
     dav1d_data_move_ref(&c->in, in);
 
     return 0;
@@ -343,22 +343,22 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
         }
     } while (++drain_count < c->n_fc);
 
-    return -EAGAIN;
+    return DAV1D_ERR(EAGAIN);
 }
 
 int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res;
 
-    validate_input_or_ret(c != NULL, -EINVAL);
-    validate_input_or_ret(out != NULL, -EINVAL);
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
 
     const int drain = c->drain;
     c->drain = 1;
 
     Dav1dData *const in = &c->in;
     if (!in->data) {
-        if (c->n_fc == 1) return -EAGAIN;
+        if (c->n_fc == 1) return DAV1D_ERR(EAGAIN);
         return drain_picture(c, out);
     }
 
@@ -384,7 +384,7 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     if (c->n_fc > 1 && drain)
         return drain_picture(c, out);
 
-    return -EAGAIN;
+    return DAV1D_ERR(EAGAIN);
 }
 
 void dav1d_flush(Dav1dContext *const c) {
