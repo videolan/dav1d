@@ -92,7 +92,7 @@ int dav1d_open(Dav1dContext **const c_out,
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
-    pthread_attr_setstacksize(&thread_attr, 512 * 1024);
+    pthread_attr_setstacksize(&thread_attr, 1024 * 1024);
 
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
     if (!c) goto error;
