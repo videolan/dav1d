@@ -81,6 +81,8 @@ cdata.set10('CONFIG_LOG', get_option('logging'))
 # Arguments in test_args will be used even on feature tests
 test_args = []
 
+optional_arguments = []
+
 # Define _POSIX_C_SOURCE to POSIX.1–2001 (IEEE Std 1003.1-2001)
 test_args  += '-D_POSIX_C_SOURCE=200112L'
 add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
@@ -96,10 +98,12 @@ if host_machine.system() == 'windows'
         cdata.set('fseeko', '_fseeki64')
         cdata.set('ftello', '_ftelli64')
     endif
-endif
 
-# On Windows, we use a compatibility layer to emulate pthread
-if host_machine.system() == 'windows'
+    if (host_machine.cpu_family() == 'x86_64' and cc.get_id() == 'gcc')
+        optional_arguments += '-mcmodel=small'
+    endif
+
+    # On Windows, we use a compatibility layer to emulate pthread
     thread_dependency = []
     thread_compat_dep = declare_dependency(sources : files('src/win32/thread.c'))
 else
@@ -176,7 +180,7 @@ endif
 # Compiler flags that should be set
 # But when the compiler does not supports them
 # it is not an error and silently tolerated
-optional_arguments = [
+optional_arguments += [
   '-Wundef',
   '-Werror=vla',
   '-Wno-maybe-uninitialized',
