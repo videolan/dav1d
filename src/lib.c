@@ -46,17 +46,17 @@
 #include "src/wedge.h"
 #include "src/film_grain.h"
 
-static void init_internal(void) {
+static COLD void init_internal(void) {
     dav1d_init_wedge_masks();
     dav1d_init_interintra_masks();
     dav1d_init_qm_tables();
 }
 
-const char *dav1d_version(void) {
+COLD const char *dav1d_version(void) {
     return DAV1D_VERSION;
 }
 
-void dav1d_default_settings(Dav1dSettings *const s) {
+COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_frame_threads = 1;
     s->n_tile_threads = 1;
     s->apply_grain = 1;
@@ -71,9 +71,7 @@ void dav1d_default_settings(Dav1dSettings *const s) {
 
 static void close_internal(Dav1dContext **const c_out, int flush);
 
-int dav1d_open(Dav1dContext **const c_out,
-               const Dav1dSettings *const s)
-{
+COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
 
@@ -432,12 +430,12 @@ void dav1d_flush(Dav1dContext *const c) {
     c->frame_thread.next = 0;
 }
 
-void dav1d_close(Dav1dContext **const c_out) {
+COLD void dav1d_close(Dav1dContext **const c_out) {
     validate_input(c_out != NULL);
     close_internal(c_out, 1);
 }
 
-static void close_internal(Dav1dContext **const c_out, int flush) {
+static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     Dav1dContext *const c = *c_out;
     if (!c) return;
 

@@ -912,7 +912,7 @@ static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
     } while (--h);
 }
 
-void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
+COLD void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
 #define init_mc_fns(type, name) do { \
     c->mc        [type] = put_##name##_c; \
     c->mc_scaled [type] = put_##name##_scaled_c; \

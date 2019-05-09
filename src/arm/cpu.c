@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#include "common/attributes.h"
+
 #include "src/arm/cpu.h"
 
 #if defined(HAVE_GETAUXVAL) && ARCH_ARM
@@ -73,7 +75,7 @@ static unsigned parse_proc_cpuinfo(const char *flag) {
 }
 #endif
 
-unsigned dav1d_get_cpu_flags_arm(void) {
+COLD unsigned dav1d_get_cpu_flags_arm(void) {
     unsigned flags = 0;
 #if ARCH_AARCH64
     flags |= DAV1D_ARM_CPU_FLAG_NEON;
