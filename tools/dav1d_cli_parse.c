@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <getopt.h>
+#include <limits.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -55,6 +56,7 @@ enum {
     ARG_FILM_GRAIN,
     ARG_OPPOINT,
     ARG_ALL_LAYERS,
+    ARG_SIZE_LIMIT,
     ARG_CPU_MASK,
 };
 
@@ -76,6 +78,7 @@ static const struct option long_opts[] = {
     { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
     { "oppoint",        1, NULL, ARG_OPPOINT },
     { "alllayers",      1, NULL, ARG_ALL_LAYERS },
+    { "sizelimit",      1, NULL, ARG_SIZE_LIMIT },
     { "cpumask",        1, NULL, ARG_CPU_MASK },
     { NULL,             0, NULL, 0 },
 };
@@ -116,6 +119,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5)\n"
             " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 32)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
+            " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
             " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n");
     exit(1);
@@ -308,6 +312,17 @@ void parse(const int argc, char *const *const argv,
             lib_settings->all_layers =
                 !!parse_unsigned(optarg, ARG_ALL_LAYERS, argv[0]);
             break;
+        case ARG_SIZE_LIMIT:
+        {
+            char *arg = optarg, *end;
+            uint64_t res = strtoul(arg, &end, 0);
+            if (*end == 'x') // NxM
+                res *= strtoul((arg = end + 1), &end, 0);
+            if (*end || end == arg || res >= UINT_MAX)
+                error(argv[0], optarg, ARG_SIZE_LIMIT, "an integer or dimension");
+            lib_settings->frame_size_limit = (unsigned) res;
+            break;
+        }
         case 'v':
             fprintf(stderr, "%s\n", dav1d_version());
             exit(0);

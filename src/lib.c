@@ -67,6 +67,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->logger.callback = dav1d_log_default_callback;
     s->operating_point = 0;
     s->all_layers = 1; // just until the tests are adjusted
+    s->frame_size_limit = 0;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -101,6 +102,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->apply_grain = s->apply_grain;
     c->operating_point = s->operating_point;
     c->all_layers = s->all_layers;
+    c->frame_size_limit = s->frame_size_limit;
     c->frame_thread.flush = &c->frame_thread.flush_mem;
     atomic_init(c->frame_thread.flush, 0);
     c->n_fc = s->n_frame_threads;
