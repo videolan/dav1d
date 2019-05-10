@@ -103,6 +103,18 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->operating_point = s->operating_point;
     c->all_layers = s->all_layers;
     c->frame_size_limit = s->frame_size_limit;
+
+    /* On 32-bit systems extremely large frame sizes can cause overflows in
+     * dav1d_decode_frame() malloc size calculations. Prevent that from occuring
+     * by enforcing a maximum frame size limit, chosen to roughly correspond to
+     * the largest size possible to decode without exhausting virtual memory. */
+    if (sizeof(size_t) < 8 && s->frame_size_limit - 1 >= 8192 * 8192) {
+        c->frame_size_limit = 8192 * 8192;
+        if (s->frame_size_limit)
+            dav1d_log(c, "Frame size limit reduced from %u to %u.\n",
+                      s->frame_size_limit, c->frame_size_limit);
+    }
+
     c->frame_thread.flush = &c->frame_thread.flush_mem;
     atomic_init(c->frame_thread.flush, 0);
     c->n_fc = s->n_frame_threads;

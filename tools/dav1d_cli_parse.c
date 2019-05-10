@@ -312,8 +312,7 @@ void parse(const int argc, char *const *const argv,
             lib_settings->all_layers =
                 !!parse_unsigned(optarg, ARG_ALL_LAYERS, argv[0]);
             break;
-        case ARG_SIZE_LIMIT:
-        {
+        case ARG_SIZE_LIMIT: {
             char *arg = optarg, *end;
             uint64_t res = strtoul(arg, &end, 0);
             if (*end == 'x') // NxM
