@@ -1,3 +1,12 @@
+Changes for 0.3.1 'Sailfish':
+------------------------------
+
+ - Fix a buffer overflow in frame-threading mode on SSSE3 CPUs
+ - Reduce binary size, notably on Windows
+ - SSSE3 optimizations for ipred_filter
+ - ARM optimizations for MSAC
+
+
 Changes for 0.3.0 'Sailfish':
 ------------------------------
 
