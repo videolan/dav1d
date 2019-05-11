@@ -199,7 +199,7 @@ int main(const int argc, char *const *const argv) {
         }
     } else {
         i_fps = cli_settings.realtime_fps;
-        nspf = 1000000000.0 / cli_settings.realtime_fps;
+        nspf = (uint64_t)(1000000000.0 / cli_settings.realtime_fps);
     }
     tfirst = get_time_nanos();
 
