@@ -1418,6 +1418,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         default:
             // print a warning but don't fail for unknown types
             dav1d_log(c, "Unknown Metadata OBU type %d\n", meta_type);
+            break;
         }
 
         break;
