@@ -1427,8 +1427,9 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
         // ignore OBUs we don't care about
         break;
     default:
+        // print a warning but don't fail for unknown types
         dav1d_log(c, "Unknown OBU type %d of size %u\n", type, len);
-        return DAV1D_ERR(EINVAL);
+        break;
     }
 
     if (c->seq_hdr && c->frame_hdr) {
