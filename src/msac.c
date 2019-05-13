@@ -27,7 +27,6 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <limits.h>
 
 #include "common/intops.h"
@@ -68,7 +67,7 @@ static inline void ctx_norm(MsacContext *s, ec_win dif, unsigned rng) {
         ctx_refill(s);
 }
 
-unsigned dav1d_msac_decode_bool_equi(MsacContext *const s) {
+unsigned dav1d_msac_decode_bool_equi_c(MsacContext *const s) {
     ec_win vw, dif = s->dif;
     unsigned ret, v, r = s->rng;
     assert((dif >> (EC_WIN_SIZE - 16)) < r);
@@ -99,13 +98,6 @@ unsigned dav1d_msac_decode_bool(MsacContext *const s, const unsigned f) {
     return !ret;
 }
 
-unsigned dav1d_msac_decode_bools(MsacContext *const s, unsigned n) {
-    unsigned v = 0;
-    while (n--)
-        v = (v << 1) | dav1d_msac_decode_bool_equi(s);
-    return v;
-}
-
 int dav1d_msac_decode_subexp(MsacContext *const s, const int ref,
                              const int n, const unsigned k)
 {
@@ -120,15 +112,6 @@ int dav1d_msac_decode_subexp(MsacContext *const s, const int ref,
     const unsigned v = dav1d_msac_decode_bools(s, b) + a;
     return ref * 2 <= n ? inv_recenter(ref, v) :
                           n - 1 - inv_recenter(n - 1 - ref, v);
-}
-
-int dav1d_msac_decode_uniform(MsacContext *const s, const unsigned n) {
-    assert(n > 0);
-    const int l = ulog2(n) + 1;
-    assert(l > 1);
-    const unsigned m = (1 << l) - n;
-    const unsigned v = dav1d_msac_decode_bools(s, l - 1);
-    return v < m ? v : (v << 1) - m + dav1d_msac_decode_bool_equi(s);
 }
 
 /* Decodes a symbol given an inverse cumulative distribution function (CDF)
