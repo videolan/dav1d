@@ -85,7 +85,7 @@ unsigned dav1d_msac_decode_bool_equi_c(MsacContext *const s) {
 /* Decode a single binary value.
  * f: The probability that the bit is one
  * Return: The value decoded (0 or 1). */
-unsigned dav1d_msac_decode_bool(MsacContext *const s, const unsigned f) {
+unsigned dav1d_msac_decode_bool_c(MsacContext *const s, const unsigned f) {
     ec_win vw, dif = s->dif;
     unsigned ret, v, r = s->rng;
     assert((dif >> (EC_WIN_SIZE - 16)) < r);
@@ -155,8 +155,8 @@ unsigned dav1d_msac_decode_symbol_adapt_c(MsacContext *const s,
     return val;
 }
 
-unsigned dav1d_msac_decode_bool_adapt(MsacContext *const s,
-                                      uint16_t *const cdf)
+unsigned dav1d_msac_decode_bool_adapt_c(MsacContext *const s,
+                                        uint16_t *const cdf)
 {
     const unsigned bit = dav1d_msac_decode_bool(s, *cdf);
 
@@ -164,11 +164,10 @@ unsigned dav1d_msac_decode_bool_adapt(MsacContext *const s,
         // update_cdf() specialized for boolean CDFs
         const unsigned count = cdf[1];
         const int rate = (count >> 4) | 4;
-        if (bit) {
+        if (bit)
             cdf[0] += (32768 - cdf[0]) >> rate;
-        } else {
+        else
             cdf[0] -= cdf[0] >> rate;
-        }
         cdf[1] = count + (count < 32);
     }
 

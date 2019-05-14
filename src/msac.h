@@ -48,9 +48,9 @@ void dav1d_msac_init(MsacContext *s, const uint8_t *data, size_t sz,
                      int disable_cdf_update_flag);
 unsigned dav1d_msac_decode_symbol_adapt_c(MsacContext *s, uint16_t *cdf,
                                           size_t n_symbols);
+unsigned dav1d_msac_decode_bool_adapt_c(MsacContext *s, uint16_t *cdf);
 unsigned dav1d_msac_decode_bool_equi_c(MsacContext *s);
-unsigned dav1d_msac_decode_bool(MsacContext *s, unsigned f);
-unsigned dav1d_msac_decode_bool_adapt(MsacContext *s, uint16_t *cdf);
+unsigned dav1d_msac_decode_bool_c(MsacContext *s, unsigned f);
 int dav1d_msac_decode_subexp(MsacContext *s, int ref, int n, unsigned k);
 
 /* Supported n_symbols ranges: adapt4: 1-5, adapt8: 1-8, adapt16: 4-16 */
@@ -64,7 +64,9 @@ unsigned dav1d_msac_decode_symbol_adapt16_neon(MsacContext *s, uint16_t *cdf,
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt4_neon
 #define dav1d_msac_decode_symbol_adapt8  dav1d_msac_decode_symbol_adapt8_neon
 #define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt16_neon
+#define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_c
 #define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_c
+#define dav1d_msac_decode_bool           dav1d_msac_decode_bool_c
 #elif ARCH_X86_64 && HAVE_ASM
 unsigned dav1d_msac_decode_symbol_adapt4_sse2(MsacContext *s, uint16_t *cdf,
                                               size_t n_symbols);
@@ -72,16 +74,22 @@ unsigned dav1d_msac_decode_symbol_adapt8_sse2(MsacContext *s, uint16_t *cdf,
                                               size_t n_symbols);
 unsigned dav1d_msac_decode_symbol_adapt16_sse2(MsacContext *s, uint16_t *cdf,
                                                size_t n_symbols);
+unsigned dav1d_msac_decode_bool_adapt_sse2(MsacContext *s, uint16_t *cdf);
 unsigned dav1d_msac_decode_bool_equi_sse2(MsacContext *s);
+unsigned dav1d_msac_decode_bool_sse2(MsacContext *s, unsigned f);
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt4_sse2
 #define dav1d_msac_decode_symbol_adapt8  dav1d_msac_decode_symbol_adapt8_sse2
 #define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt16_sse2
+#define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_sse2
 #define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_sse2
+#define dav1d_msac_decode_bool           dav1d_msac_decode_bool_sse2
 #else
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt_c
 #define dav1d_msac_decode_symbol_adapt8  dav1d_msac_decode_symbol_adapt_c
 #define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt_c
+#define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_c
 #define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_c
+#define dav1d_msac_decode_bool           dav1d_msac_decode_bool_c
 #endif
 
 static inline unsigned dav1d_msac_decode_bools(MsacContext *const s, unsigned n) {
