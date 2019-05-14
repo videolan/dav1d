@@ -61,12 +61,15 @@ unsigned dav1d_msac_decode_symbol_adapt8_neon(MsacContext *s, uint16_t *cdf,
                                               size_t n_symbols);
 unsigned dav1d_msac_decode_symbol_adapt16_neon(MsacContext *s, uint16_t *cdf,
                                                size_t n_symbols);
+unsigned dav1d_msac_decode_bool_adapt_neon(MsacContext *s, uint16_t *cdf);
+unsigned dav1d_msac_decode_bool_equi_neon(MsacContext *s);
+unsigned dav1d_msac_decode_bool_neon(MsacContext *s, unsigned f);
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt4_neon
 #define dav1d_msac_decode_symbol_adapt8  dav1d_msac_decode_symbol_adapt8_neon
 #define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt16_neon
-#define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_c
-#define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_c
-#define dav1d_msac_decode_bool           dav1d_msac_decode_bool_c
+#define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_neon
+#define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_neon
+#define dav1d_msac_decode_bool           dav1d_msac_decode_bool_neon
 #elif ARCH_X86_64 && HAVE_ASM
 unsigned dav1d_msac_decode_symbol_adapt4_sse2(MsacContext *s, uint16_t *cdf,
                                               size_t n_symbols);
