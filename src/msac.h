@@ -32,8 +32,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/* Using uint32_t should be faster on 32 bit systems, in theory, maybe */
-typedef uint64_t ec_win;
+typedef size_t ec_win;
 
 typedef struct MsacContext {
     const uint8_t *buf_pos;
