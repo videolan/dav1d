@@ -180,16 +180,23 @@ endif
 # Compiler flags that should be set
 # But when the compiler does not supports them
 # it is not an error and silently tolerated
-optional_arguments += [
-  '-Wundef',
-  '-Werror=vla',
-  '-Wno-maybe-uninitialized',
-  '-Wno-missing-field-initializers',
-  '-Wno-unused-parameter',
-  '-Werror=missing-prototypes',
-  '-Wshorten-64-to-32',
-]
-if cc.get_id() == 'msvc'
+if cc.get_id() != 'msvc'
+    optional_arguments += [
+      '-Wundef',
+      '-Werror=vla',
+      '-Wno-maybe-uninitialized',
+      '-Wno-missing-field-initializers',
+      '-Wno-unused-parameter',
+      '-Werror=missing-prototypes',
+      '-Wshorten-64-to-32',
+    ]
+    if host_machine.cpu_family() == 'x86'
+        optional_arguments += [
+          '-msse2',
+          '-mfpmath=sse',
+        ]
+    endif
+else
     optional_arguments += [
       '-wd4028', # parameter different from declaration
       '-wd4996'  # use of POSIX functions
