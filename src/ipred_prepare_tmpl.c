@@ -99,17 +99,12 @@ bytefn(dav1d_prepare_intra_edges)(const int x, const int have_left,
     case VERT_LEFT_PRED: {
         *angle = av1_mode_to_angle_map[mode - VERT_PRED] + 3 * *angle;
 
-        if (*angle < 90) {
-            mode = have_top ? Z1_PRED : VERT_PRED;
-        } else if (*angle == 90) {
-            mode = VERT_PRED;
-        } else if (*angle < 180) {
+        if (*angle <= 90)
+            mode = *angle < 90 && have_top ? Z1_PRED : VERT_PRED;
+        else if (*angle < 180)
             mode = Z2_PRED;
-        } else if (*angle == 180) {
-            mode = HOR_PRED;
-        } else {
-            mode = have_left ? Z3_PRED : HOR_PRED;
-        }
+        else
+            mode = *angle > 180 && have_left ? Z3_PRED : HOR_PRED;
         break;
     }
     case DC_PRED:
