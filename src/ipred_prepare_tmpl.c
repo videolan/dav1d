@@ -191,14 +191,14 @@ bytefn(dav1d_prepare_intra_edges)(const int x, const int have_left,
     }
 
     if (av1_intra_prediction_edges[mode].needs_topleft) {
-        if (have_left) {
+        if (have_left)
             *topleft_out = have_top ? dst_top[-1] : dst[-1];
-        } else {
+        else
             *topleft_out = have_top ? *dst_top : (1 << bitdepth) >> 1;
-        }
+
         if (mode == Z2_PRED && tw + th >= 6 && filter_edge)
-            *topleft_out = (topleft_out[-1] * 5 + topleft_out[0] * 6 +
-                            topleft_out[1] * 5 + 8) >> 4;
+            *topleft_out = ((topleft_out[-1] + topleft_out[1]) * 5 +
+                            topleft_out[0] * 6 + 8) >> 4;
     }
 
     return mode;
