@@ -644,7 +644,7 @@ static int obmc(Dav1dTileContext *const t,
             if (a_r->ref[0] > 0) {
                 const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
                 const int oh4 = imin(b_dim[1], 16) >> 1;
-                res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, oh4,
+                res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, (oh4 * 3 + 3) >> 2,
                          t->bx + x, t->by, pl, a_r->mv[0],
                          &f->refp[a_r->ref[0] - 1], a_r->ref[0] - 1,
                          dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
