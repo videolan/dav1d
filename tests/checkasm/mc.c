@@ -41,6 +41,21 @@ static const char *const filter_names[] = {
 
 static const char *const mxy_names[] = { "0", "h", "v", "hv" };
 
+static int mc_h_next(const int h) {
+    switch (h) {
+    case 4:
+    case 8:
+    case 16:
+        return (h * 3) >> 1;
+    case 6:
+    case 12:
+    case 24:
+        return (h & (h - 1)) * 2;
+    default:
+        return h * 2;
+    }
+}
+
 static void check_mc(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 135 * 135,);
     ALIGN_STK_32(pixel, c_dst,   128 * 128,);
@@ -59,9 +74,9 @@ static void check_mc(Dav1dMCDSPContext *const c) {
                 if (check_func(c->mc[filter], "mc_%s_w%d_%s_%dbpc",
                     filter_names[filter], w, mxy_names[mxy], BITDEPTH))
                 {
-                    const int min = w <= 32 ? 2 : w / 4;
-                    const int max = imax(imin(w * 4, 128), 32);
-                    for (int h = min; h <= max; h <<= 1) {
+                    const int h_min = w <= 32 ? 2 : w / 4;
+                    const int h_max = imax(imin(w * 4, 128), 32);
+                    for (int h = h_min; h <= h_max; h = mc_h_next(h)) {
                         const int mx = (mxy & 1) ? rnd() % 15 + 1 : 0;
                         const int my = (mxy & 2) ? rnd() % 15 + 1 : 0;
 #if BITDEPTH == 16
