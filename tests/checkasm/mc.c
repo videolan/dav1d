@@ -433,8 +433,8 @@ static void check_warp8x8(Dav1dMCDSPContext *const c) {
                  HIGHBD_DECL_SUFFIX);
 
     if (check_func(c->warp8x8, "warp_8x8_%dbpc", BITDEPTH)) {
-        const int mx = (rnd() & 0x1fff) - 0x800;
-        const int my = (rnd() & 0x1fff) - 0x800;
+        const int mx = (rnd() & 0x1fff) - 0xa00;
+        const int my = (rnd() & 0x1fff) - 0xa00;
 #if BITDEPTH == 16
         const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
@@ -442,7 +442,7 @@ static void check_warp8x8(Dav1dMCDSPContext *const c) {
 #endif
 
         for (int i = 0; i < 4; i++)
-            abcd[i] = (rnd() & 0x1fff) - 0x800;
+            abcd[i] = (rnd() & 0x1fff) - 0xa00;
 
         for (int i = 0; i < 15 * 15; i++)
             src_buf[i] = rnd() & bitdepth_max;
@@ -459,8 +459,8 @@ static void check_warp8x8(Dav1dMCDSPContext *const c) {
 
 static void check_warp8x8t(Dav1dMCDSPContext *const c) {
     ALIGN_STK_32(pixel, src_buf, 15 * 15,);
-    ALIGN_STK_32(int16_t, c_tmp,    8 *  8,);
-    ALIGN_STK_32(int16_t, a_tmp,    8 *  8,);
+    ALIGN_STK_32(int16_t, c_tmp,  8 *  8,);
+    ALIGN_STK_32(int16_t, a_tmp,  8 *  8,);
     int16_t abcd[4];
     const pixel *src = src_buf + 15 * 3 + 3;
     const ptrdiff_t src_stride = 15 * sizeof(pixel);
@@ -470,8 +470,8 @@ static void check_warp8x8t(Dav1dMCDSPContext *const c) {
                  HIGHBD_DECL_SUFFIX);
 
     if (check_func(c->warp8x8t, "warp_8x8t_%dbpc", BITDEPTH)) {
-        const int mx = (rnd() & 0x1fff) - 0x800;
-        const int my = (rnd() & 0x1fff) - 0x800;
+        const int mx = (rnd() & 0x1fff) - 0xa00;
+        const int my = (rnd() & 0x1fff) - 0xa00;
 #if BITDEPTH == 16
         const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
@@ -479,7 +479,7 @@ static void check_warp8x8t(Dav1dMCDSPContext *const c) {
 #endif
 
         for (int i = 0; i < 4; i++)
-            abcd[i] = (rnd() & 0x1fff) - 0x800;
+            abcd[i] = (rnd() & 0x1fff) - 0xa00;
 
         for (int i = 0; i < 15 * 15; i++)
             src_buf[i] = rnd() & bitdepth_max;
