@@ -155,6 +155,24 @@ static inline uint64_t readtime(void) {
     return cycle_counter;
 }
 #define readtime readtime
+#elif ARCH_PPC64LE
+static inline uint64_t readtime(void) {
+    uint32_t tbu, tbl, temp;
+
+    __asm__ __volatile__(
+        "1:\n"
+        "mfspr %2,269\n"
+        "mfspr %0,268\n"
+        "mfspr %1,269\n"
+        "cmpw   %2,%1\n"
+        "bne    1b\n"
+    : "=r"(tbl), "=r"(tbu), "=r"(temp)
+    :
+    : "cc");
+
+    return (((uint64_t)tbu) << 32) | (uint64_t)tbl;
+}
+#define readtime readtime
 #endif
 
 /* Verifies that clobbered callee-saved registers

@@ -100,6 +100,8 @@ static const struct {
     { "AVX-512", "avx512", DAV1D_X86_CPU_FLAG_AVX512 },
 #elif ARCH_AARCH64 || ARCH_ARM
     { "NEON",    "neon",   DAV1D_ARM_CPU_FLAG_NEON },
+#elif ARCH_PPC64LE
+    { "VSX",     "vsx",    DAV1D_PPC_CPU_FLAG_VSX },
 #endif
     { 0 }
 };
