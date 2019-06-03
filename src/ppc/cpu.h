@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2019, VideoLAN and dav1d authors
+ * Copyright © 2019, Janne Grunau
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,33 +24,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "config.h"
 
-#include <stdint.h>
+#ifndef DAV1D_SRC_PPC_CPU_H
+#define DAV1D_SRC_PPC_CPU_H
 
-#include "src/cpu.h"
+enum CpuFlags {
+    DAV1D_PPC_CPU_FLAG_VSX = 1 << 0,
+};
 
-static unsigned flags_mask = -1;
+unsigned dav1d_get_cpu_flags_ppc(void);
 
-COLD unsigned dav1d_get_cpu_flags(void) {
-    static unsigned flags;
-    static uint8_t checked = 0;
-
-    if (!checked) {
-#if (ARCH_AARCH64 || ARCH_ARM) && HAVE_ASM
-        flags = dav1d_get_cpu_flags_arm();
-#elif ARCH_PPC64LE && HAVE_ASM
-        flags = dav1d_get_cpu_flags_ppc();
-#elif ARCH_X86 && HAVE_ASM
-        flags = dav1d_get_cpu_flags_x86();
-#else
-        flags = 0;
-#endif
-        checked = 1;
-    }
-    return flags & flags_mask;
-}
-
-COLD void dav1d_set_cpu_flags_mask(const unsigned mask) {
-    flags_mask = mask;
-}
+#endif /* DAV1D_SRC_PPC_CPU_H */

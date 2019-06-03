@@ -64,7 +64,8 @@ endforeach
 is_asm_enabled = (get_option('build_asm') == true and
     (host_machine.cpu_family().startswith('x86') or
      host_machine.cpu_family() == 'aarch64'      or
-     host_machine.cpu_family().startswith('arm')))
+     host_machine.cpu_family().startswith('arm') or
+     host_machine.cpu() == 'ppc64le'))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
 if is_asm_enabled and get_option('b_sanitize') == 'memory'
@@ -160,7 +161,8 @@ elif cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_arg
 endif
 
 if (host_machine.cpu_family() == 'aarch64' or
-    host_machine.cpu_family().startswith('arm'))
+    host_machine.cpu_family().startswith('arm') or
+    host_machine.cpu() == 'ppc64le')
     if cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
         cdata.set('HAVE_GETAUXVAL', 1)
     endif
@@ -302,6 +304,8 @@ if host_machine.cpu_family().startswith('x86')
     cdata_asm.set10('ARCH_X86_32', host_machine.cpu_family() == 'x86')
     cdata_asm.set10('PIC', true)
 endif
+
+cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
 
 if cc.symbols_have_underscore_prefix()
     cdata.set10('PREFIX', true)

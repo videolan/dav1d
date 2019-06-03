@@ -148,6 +148,10 @@ if is_asm_enabled
 
         # Compile the ASM sources with NASM
         libdav1d_nasm_objs = nasm_gen.process(libdav1d_sources_asm)
+    elif host_machine.cpu() == 'ppc64le'
+        libdav1d_sources += files(
+            'ppc/cpu.c',
+        )
     endif
 endif
 
