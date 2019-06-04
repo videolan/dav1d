@@ -138,6 +138,7 @@ static struct {
     const char *cpu_flag_name;
     const char *test_name;
     unsigned int seed;
+    int bench_c;
 } state;
 
 /* float compare support code */
@@ -344,7 +345,7 @@ static void print_benchs(const CheckasmFunc *const f) {
         print_benchs(f->child[0]);
 
         /* Only print functions with at least one assembly version */
-        if (f->versions.cpu || f->versions.next) {
+        if (state.bench_c || f->versions.cpu || f->versions.next) {
             const CheckasmFuncVersion *v = &f->versions;
             do {
                 if (v->iterations) {
@@ -512,7 +513,10 @@ int main(int argc, char *argv[]) {
                     "    --test=<test_name>  Test only <test_name>\n"
                     "    --bench=<pattern>   Test and benchmark the functions matching <pattern>\n"
                     "    --list              List the available tests\n"
+                    "    --bench-c           Benchmark the C-only functions\n");
             return 0;
+        } else if (!strncmp(argv[1], "--bench-c", 9)) {
+            state.bench_c = 1;
         } else if (!strncmp(argv[1], "--bench", 7)) {
 #ifndef readtime
             fprintf(stderr,
@@ -608,7 +612,7 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
     state.current_func_ver = v;
     xor128_srand(state.seed);
 
-    if (state.cpu_flag)
+    if (state.cpu_flag || state.bench_c)
         state.num_checked++;
 
     return ref;
