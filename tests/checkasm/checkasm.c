@@ -504,7 +504,16 @@ int main(int argc, char *argv[]) {
     int ret = 0;
 
     while (argc > 1) {
-        if (!strncmp(argv[1], "--bench", 7)) {
+        if (!strncmp(argv[1], "--help", 6)) {
+            fprintf(stdout,
+                    "checkasm [options] <random seed>\n"
+                    "    <random seed>       Numeric value to seed the rng\n"
+                    "Options:\n"
+                    "    --test=<test_name>  Test only <test_name>\n"
+                    "    --bench=<pattern>   Test and benchmark the functions matching <pattern>\n"
+                    "    --list              List the available tests\n"
+            return 0;
+        } else if (!strncmp(argv[1], "--bench", 7)) {
 #ifndef readtime
             fprintf(stderr,
                     "checkasm: --bench is not supported on your system\n");
