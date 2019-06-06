@@ -144,7 +144,7 @@ static inline uint64_t readtime(void) {
 }
 #define readtime readtime
 #endif
-#elif ARCH_ARM && !defined(_MSC_VER)
+#elif ARCH_ARM && !defined(_MSC_VER) && __ARM_ARCH >= 7
 static inline uint64_t readtime(void) {
     uint32_t cycle_counter;
     /* This requires enabling user mode access to the cycle counter (which
