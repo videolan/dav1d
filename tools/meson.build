@@ -31,6 +31,17 @@ if not get_option('build_tools')
     subdir_done()
 endif
 
+rt_dependency = []
+if host_machine.system() != 'windows'
+    if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
+        rt_dependency = cc.find_library('rt', required: false)
+        if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
+            error('clock_gettime not found')
+        endif
+    endif
+endif
+
+
 # dav1d cli tool sources
 dav1d_sources = files(
     'dav1d.c',
@@ -51,6 +62,6 @@ dav1d = executable('dav1d',
 
     link_with : libdav1d,
     include_directories : [dav1d_inc_dirs],
-    dependencies : [getopt_dependency, thread_dependency],
+    dependencies : [getopt_dependency, thread_dependency, rt_dependency],
     install : true,
 )
