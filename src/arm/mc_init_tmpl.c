@@ -59,6 +59,10 @@ decl_blend_fn(dav1d_blend_8bpc_neon);
 decl_blend_dir_fn(dav1d_blend_h_8bpc_neon);
 decl_blend_dir_fn(dav1d_blend_v_8bpc_neon);
 
+decl_w_mask_fn(dav1d_w_mask_444_8bpc_neon);
+decl_w_mask_fn(dav1d_w_mask_422_8bpc_neon);
+decl_w_mask_fn(dav1d_w_mask_420_8bpc_neon);
+
 decl_warp8x8_fn(dav1d_warp_affine_8x8_8bpc_neon);
 decl_warp8x8t_fn(dav1d_warp_affine_8x8t_8bpc_neon);
 
@@ -104,6 +108,9 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     c->blend = dav1d_blend_8bpc_neon;
     c->blend_h = dav1d_blend_h_8bpc_neon;
     c->blend_v = dav1d_blend_v_8bpc_neon;
+    c->w_mask[0] = dav1d_w_mask_444_8bpc_neon;
+    c->w_mask[1] = dav1d_w_mask_422_8bpc_neon;
+    c->w_mask[2] = dav1d_w_mask_420_8bpc_neon;
 #endif
 #endif
 }
