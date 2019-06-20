@@ -48,6 +48,7 @@
 #endif
 
 #include "include/common/attributes.h"
+#include "include/common/bitdepth.h"
 #include "include/common/intops.h"
 
 int xor128_rand(void);
@@ -279,6 +280,28 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
     } while (0)
 #else
 #define bench_new(...) while (0)
+#endif
+
+#define DECL_CHECKASM_CHECK_FUNC(type) \
+int checkasm_check_##type(const char *const file, const int line, \
+                          const type *const buf1, const ptrdiff_t stride1, \
+                          const type *const buf2, const ptrdiff_t stride2, \
+                          const int w, const int h, const char *const name)
+
+DECL_CHECKASM_CHECK_FUNC(uint8_t);
+DECL_CHECKASM_CHECK_FUNC(uint16_t);
+DECL_CHECKASM_CHECK_FUNC(int16_t);
+DECL_CHECKASM_CHECK_FUNC(int32_t);
+
+
+#define PASTE(a,b) a ## b
+#define CONCAT(a,b) PASTE(a,b)
+
+#define checkasm_check(prefix, ...) CONCAT(checkasm_check_, prefix)(__FILE__, __LINE__, __VA_ARGS__)
+
+#ifdef BITDEPTH
+#define checkasm_check_pixel(...) checkasm_check(PIXEL_TYPE, __VA_ARGS__)
+#define checkasm_check_coef(...)  checkasm_check(COEF_TYPE,  __VA_ARGS__)
 #endif
 
 #endif /* DAV1D_TESTS_CHECKASM_CHECKASM_H */

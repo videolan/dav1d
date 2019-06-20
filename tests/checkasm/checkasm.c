@@ -139,6 +139,7 @@ static struct {
     const char *test_name;
     unsigned int seed;
     int bench_c;
+    int verbose;
 } state;
 
 /* float compare support code */
@@ -513,7 +514,8 @@ int main(int argc, char *argv[]) {
                     "    --test=<test_name>  Test only <test_name>\n"
                     "    --bench=<pattern>   Test and benchmark the functions matching <pattern>\n"
                     "    --list              List the available tests\n"
-                    "    --bench-c           Benchmark the C-only functions\n");
+                    "    --bench-c           Benchmark the C-only functions\n"
+                    "    --verbose -v        Print failures verbosely\n");
             return 0;
         } else if (!strncmp(argv[1], "--bench-c", 9)) {
             state.bench_c = 1;
@@ -536,6 +538,8 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "%s%s", i ? ", ": "", tests[i].name);
             fprintf(stderr, "]\n");
             return 0;
+        } else if (!strcmp(argv[1], "--verbose") || !strcmp(argv[1], "-v")) {
+            state.verbose = 1;
         } else {
             state.seed = (unsigned int) strtoul(argv[1], NULL, 10);
         }
@@ -702,3 +706,42 @@ void checkasm_set_signal_handler_state(const int enabled) {
     signal(SIGSEGV, handler);
 #endif
 }
+
+#define DEF_CHECKASM_CHECK_FUNC(type, fmt) \
+int checkasm_check_##type(const char *const file, const int line, \
+                          const type *buf1, ptrdiff_t stride1, \
+                          const type *buf2, ptrdiff_t stride2, \
+                          const int w, int h, const char *const name) \
+{ \
+    stride1 /= sizeof(*buf1); \
+    stride2 /= sizeof(*buf2); \
+    int y = 0; \
+    for (y = 0; y < h; y++) \
+        if (memcmp(&buf1[y*stride1], &buf2[y*stride2], w*sizeof(*buf1))) \
+            break; \
+    if (y == h) \
+        return 0; \
+    checkasm_fail_func("%s:%d", file, line); \
+    if (!state.verbose) \
+        return 1; \
+    fprintf(stderr, "%s:\n", name); \
+    while (h--) { \
+        for (int x = 0; x < w; x++) \
+            fprintf(stderr, " " fmt, buf1[x]); \
+        fprintf(stderr, "    "); \
+        for (int x = 0; x < w; x++) \
+            fprintf(stderr, " " fmt, buf2[x]); \
+        fprintf(stderr, "    "); \
+        for (int x = 0; x < w; x++) \
+            fprintf(stderr, "%c", buf1[x] != buf2[x] ? 'x' : '.'); \
+        buf1 += stride1; \
+        buf2 += stride2; \
+        fprintf(stderr, "\n"); \
+    } \
+    return 1; \
+}
+
+DEF_CHECKASM_CHECK_FUNC(uint8_t,  "%02x")
+DEF_CHECKASM_CHECK_FUNC(uint16_t, "%04x")
+DEF_CHECKASM_CHECK_FUNC(int16_t,  "%6d")
+DEF_CHECKASM_CHECK_FUNC(int32_t,  "%9d")
