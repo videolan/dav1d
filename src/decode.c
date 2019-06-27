@@ -430,7 +430,7 @@ static void read_pal_plane(Dav1dTileContext *const t, Av1Block *const b,
     // parse new entries
     uint16_t *const pal = f->frame_thread.pass ?
         f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
-                            ((t->bx >> 1) + (t->by & 1))][pl] : t->pal[pl];
+                            ((t->bx >> 1) + (t->by & 1))][pl] : t->scratch.pal[pl];
     if (i < pal_sz) {
         int prev = pal[i++] = dav1d_msac_decode_bools(&ts->msac, f->cur.p.bpc);
 
@@ -486,7 +486,7 @@ static void read_pal_uv(Dav1dTileContext *const t, Av1Block *const b,
     const Dav1dFrameContext *const f = t->f;
     uint16_t *const pal = f->frame_thread.pass ?
         f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
-                            ((t->bx >> 1) + (t->by & 1))][2] : t->pal[2];
+                            ((t->bx >> 1) + (t->by & 1))][2] : t->scratch.pal[2];
     if (dav1d_msac_decode_bool_equi(&ts->msac)) {
         const int bits = f->cur.p.bpc - 4 +
                          dav1d_msac_decode_bools(&ts->msac, 2);
@@ -588,9 +588,10 @@ static void read_pal_indices(Dav1dTileContext *const t,
     pal_idx[0] = dav1d_msac_decode_uniform(&ts->msac, b->pal_sz[pl]);
     uint16_t (*const color_map_cdf)[8 + 1] =
         ts->cdf.m.color_map[pl][b->pal_sz[pl] - 2];
+    uint8_t (*const order)[8] = t->scratch.pal_order;
+    uint8_t *const ctx = t->scratch.pal_ctx;
     for (int i = 1; i < 4 * (w4 + h4) - 1; i++) {
         // top/left-to-bottom/right diagonals ("wave-front")
-        uint8_t order[64][8], ctx[64];
         const int first = imin(i, w4 * 4 - 1);
         const int last = imax(0, i - h4 * 4 + 1);
         order_palette(pal_idx, stride, i, first, last, order, ctx);
@@ -1211,7 +1212,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (b->pal_sz[0]) {
             uint16_t *const pal = f->frame_thread.pass ?
                 f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
-                                    ((t->bx >> 1) + (t->by & 1))][0] : t->pal[0];
+                                    ((t->bx >> 1) + (t->by & 1))][0] : t->scratch.pal[0];
             for (int x = 0; x < bw4; x++)
                 memcpy(t->al_pal[0][bx4 + x][0], pal, 16);
             for (int y = 0; y < bh4; y++)
@@ -1223,15 +1224,18 @@ static int decode_b(Dav1dTileContext *const t,
                 case_set(cbh4, l., 1, cby4);
                 case_set(cbw4, a->, 0, cbx4);
 #undef set_ctx
-            if (b->pal_sz[1]) for (int pl = 1; pl < 3; pl++) {
-                uint16_t *const pal = f->frame_thread.pass ?
-                    f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
-                                        ((t->bx >> 1) + (t->by & 1))][pl] : t->pal[pl];
+            if (b->pal_sz[1]) {
+                const uint16_t (*const pal)[8] = f->frame_thread.pass ?
+                    f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) *
+                    (f->b4_stride >> 1) + ((t->bx >> 1) + (t->by & 1))] :
+                    t->scratch.pal;
                 // see aomedia bug 2183 for why we use luma coordinates here
-                for (int x = 0; x < bw4; x++)
-                    memcpy(t->al_pal[0][bx4 + x][pl], pal, 16);
-                for (int y = 0; y < bh4; y++)
-                    memcpy(t->al_pal[1][by4 + y][pl], pal, 16);
+                for (int pl = 1; pl <= 2; pl++) {
+                    for (int x = 0; x < bw4; x++)
+                        memcpy(t->al_pal[0][bx4 + x][pl], pal[pl], 16);
+                    for (int y = 0; y < bh4; y++)
+                        memcpy(t->al_pal[1][by4 + y][pl], pal[pl], 16);
+                }
             }
         }
         if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
