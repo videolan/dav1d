@@ -196,12 +196,12 @@ struct Dav1dFrameContext {
             int16_t eob[3 /* plane */];
             uint8_t txtp[3 /* plane */];
         } *cbi;
-        int8_t *txtp;
         // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
         uint16_t (*pal)[3 /* plane */][8 /* idx */];
         // iterated over inside tile state
         uint8_t *pal_idx;
         coef *cf;
+        int pal_sz, pal_idx_sz, cf_sz;
         // start offsets per tile
         int *tile_start_off;
     } frame_thread;
@@ -217,10 +217,8 @@ struct Dav1dFrameContext {
         int last_sharpness;
         uint8_t lvl[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
         uint8_t *tx_lpf_right_edge[2];
-        pixel *cdef_line;
-        pixel *cdef_line_ptr[2 /* pre, post */][3 /* plane */][2 /* y */];
-        pixel *lr_lpf_line;
-        pixel *lr_lpf_line_ptr[3 /* plane */];
+        pixel *cdef_line[2 /* pre, post */][3 /* plane */][2 /* y */];
+        pixel *lr_lpf_line[3 /* plane */];
 
         // in-loop filter per-frame state keeping
         int tile_row; // for carry-over at tile row edges
