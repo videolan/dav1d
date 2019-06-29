@@ -629,8 +629,9 @@ int checkasm_bench_func(void) {
                     state.bench_pattern_len);
 }
 
-/* Indicate that the current test has failed */
-void checkasm_fail_func(const char *const msg, ...) {
+/* Indicate that the current test has failed, return whether verbose printing
+ * is requested. */
+int checkasm_fail_func(const char *const msg, ...) {
     if (state.current_func_ver->cpu && state.current_func_ver->ok) {
         va_list arg;
 
@@ -645,6 +646,7 @@ void checkasm_fail_func(const char *const msg, ...) {
         state.current_func_ver->ok = 0;
         state.num_failed++;
     }
+    return state.verbose;
 }
 
 /* Update benchmark results of the current function */
@@ -721,8 +723,7 @@ int checkasm_check_##type(const char *const file, const int line, \
             break; \
     if (y == h) \
         return 0; \
-    checkasm_fail_func("%s:%d", file, line); \
-    if (!state.verbose) \
+    if (!checkasm_fail_func("%s:%d", file, line)) \
         return 1; \
     fprintf(stderr, "%s:\n", name); \
     while (h--) { \

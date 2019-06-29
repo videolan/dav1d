@@ -68,7 +68,7 @@ decl_check_bitfns(void checkasm_check_mc);
 
 void *checkasm_check_func(void *func, const char *name, ...);
 int checkasm_bench_func(void);
-void checkasm_fail_func(const char *msg, ...);
+int checkasm_fail_func(const char *msg, ...);
 void checkasm_update_bench(int iterations, uint64_t cycles);
 void checkasm_report(const char *name, ...);
 void checkasm_set_signal_handler_state(int enabled);
