@@ -61,7 +61,7 @@ foreach bitdepth : ['8', '16']
 endforeach
 
 # ASM option
-is_asm_enabled = (get_option('build_asm') == true and
+is_asm_enabled = (get_option('enable_asm') == true and
     (host_machine.cpu_family().startswith('x86') or
      host_machine.cpu_family() == 'aarch64'      or
      host_machine.cpu_family().startswith('arm') or
@@ -69,7 +69,7 @@ is_asm_enabled = (get_option('build_asm') == true and
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
 if is_asm_enabled and get_option('b_sanitize') == 'memory'
-    error('asm causes false positive with memory sanitizer. Use \'-Dbuild_asm=false\'.')
+    error('asm causes false positive with memory sanitizer. Use \'-Denable_asm=false\'.')
 endif
 
 # Logging option

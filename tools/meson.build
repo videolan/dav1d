@@ -27,7 +27,7 @@
 #
 
 # Leave subdir if tools are disabled
-if not get_option('build_tools')
+if not get_option('enable_tools')
     subdir_done()
 endif
 

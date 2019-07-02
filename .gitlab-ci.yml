@@ -323,7 +323,7 @@ test-debian-asan:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
-        - meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=address -Dbuild_asm=false
+        - meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=address -Denable_asm=false
         - ninja -C build
         - cd build && time meson test -v --setup=sanitizer
     dependencies: []
@@ -345,7 +345,7 @@ test-debian-msan:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
-        - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=memory -Db_lundef=false -Dbuild_asm=false
+        - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=memory -Db_lundef=false -Denable_asm=false
         - ninja -C build
         - cd build && time meson test -v --setup=sanitizer
     dependencies: []
@@ -367,7 +367,7 @@ test-debian-ubsan:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
-        - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=undefined -Db_lundef=false -Dbuild_asm=false
+        - env CC=clang meson build --buildtype debugoptimized -Dtestdata_tests=true -Dlogging=false -Db_sanitize=undefined -Db_lundef=false -Denable_asm=false
         - ninja -C build
         - cd build && time meson test -v --setup=sanitizer
     dependencies: []
