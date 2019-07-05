@@ -2624,7 +2624,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             Dav1dTileState *ts_new = realloc(f->ts, sizeof(*f->ts) * n_ts);
             if (!ts_new) goto error;
             f->ts = ts_new;
-            for (int n = f->n_ts; n < n_ts; n++) {
+            for (int n = f->n_ts; n < n_ts; f->n_ts = ++n) {
                 Dav1dTileState *const ts = &f->ts[n];
                 if (pthread_mutex_init(&ts->tile_thread.lock, NULL)) goto error;
                 if (pthread_cond_init(&ts->tile_thread.cond, NULL)) {
@@ -2632,7 +2632,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                     goto error;
                 }
             }
-            f->n_ts = n_ts;
         } else {
             for (int n = n_ts; n < f->n_ts; n++) {
                 Dav1dTileState *const ts = &f->ts[n];
