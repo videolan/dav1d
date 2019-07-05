@@ -3241,7 +3241,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         freep(&f->tile);
         assert(c->n_tile_data < INT_MAX / (int)sizeof(*f->tile));
         f->tile = malloc(c->n_tile_data * sizeof(*f->tile));
-        if (!f->tile) goto error;
+        if (!f->tile) {
+            res = DAV1D_ERR(ENOMEM);
+            goto error;
+        }
         f->n_tile_data_alloc = c->n_tile_data;
     }
     memcpy(f->tile, c->tile, c->n_tile_data * sizeof(*f->tile));
