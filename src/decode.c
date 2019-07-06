@@ -3405,6 +3405,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             // actually gets set elsewhere)
             f->cur_segmap_ref = dav1d_ref_create(f->b4_stride * 32 * f->sb128h);
             if (!f->cur_segmap_ref) {
+                dav1d_ref_dec(&f->prev_segmap_ref);
                 res = DAV1D_ERR(ENOMEM);
                 goto error;
             }
@@ -3432,8 +3433,9 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 
     // update references etc.
+    const unsigned refresh_frame_flags = f->frame_hdr->refresh_frame_flags;
     for (int i = 0; i < 8; i++) {
-        if (f->frame_hdr->refresh_frame_flags & (1 << i)) {
+        if (refresh_frame_flags & (1 << i)) {
             if (c->refs[i].p.p.data[0])
                 dav1d_thread_picture_unref(&c->refs[i].p);
             dav1d_thread_picture_ref(&c->refs[i].p, &f->sr_cur);
@@ -3460,7 +3462,6 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     }
 
     if (c->n_fc == 1) {
-        const unsigned refresh_frame_flags = f->frame_hdr->refresh_frame_flags;
         if ((res = dav1d_decode_frame(f)) < 0) {
             dav1d_picture_unref_internal(&c->out);
             for (int i = 0; i < 8; i++) {
