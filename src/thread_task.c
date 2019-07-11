@@ -32,6 +32,7 @@
 void *dav1d_frame_task(void *const data) {
     Dav1dFrameContext *const f = data;
 
+    dav1d_set_thread_name("dav1d-frame");
     pthread_mutex_lock(&f->frame_thread.td.lock);
     for (;;) {
         while (!f->n_tile_data && !f->frame_thread.die) {
@@ -61,6 +62,8 @@ void *dav1d_tile_task(void *const data) {
     const Dav1dFrameContext *const f = t->f;
     const int tile_thread_idx = (int) (t - f->tc);
     const uint64_t mask = 1ULL << tile_thread_idx;
+
+    dav1d_set_thread_name("dav1d-tile");
 
     for (;;) {
         pthread_mutex_lock(&fttd->lock);
