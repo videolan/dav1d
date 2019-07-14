@@ -2623,6 +2623,20 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
     const int n_ts = f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows;
     if (n_ts != f->n_ts) {
+        if (c->n_fc > 1) {
+            freep(&f->frame_thread.tile_start_off);
+            f->frame_thread.tile_start_off =
+                malloc(sizeof(*f->frame_thread.tile_start_off) * n_ts);
+            if (!f->frame_thread.tile_start_off) {
+                for (int n = 0; n < f->n_ts; n++) {
+                    Dav1dTileState *const ts = &f->ts[n];
+                    pthread_cond_destroy(&ts->tile_thread.cond);
+                    pthread_mutex_destroy(&ts->tile_thread.lock);
+                }
+                f->n_ts = 0;
+                goto error;
+            }
+        }
         if (n_ts > f->n_ts) {
             Dav1dTileState *ts_new = realloc(f->ts, sizeof(*f->ts) * n_ts);
             if (!ts_new) goto error;
@@ -2645,20 +2659,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             Dav1dTileState *ts_new = realloc(f->ts, sizeof(*f->ts) * n_ts);
             if (!ts_new) goto error;
             f->ts = ts_new;
-        }
-        if (c->n_fc > 1) {
-            freep(&f->frame_thread.tile_start_off);
-            f->frame_thread.tile_start_off =
-                malloc(sizeof(*f->frame_thread.tile_start_off) * n_ts);
-            if (!f->frame_thread.tile_start_off) {
-                for (int n = 0; n < f->n_ts; n++) {
-                    Dav1dTileState *const ts = &f->ts[n];
-                    pthread_cond_destroy(&ts->tile_thread.cond);
-                    pthread_mutex_destroy(&ts->tile_thread.lock);
-                }
-                f->n_ts = 0;
-                goto error;
-            }
         }
     }
 
@@ -3284,7 +3284,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         assert(c->n_tile_data < INT_MAX / (int)sizeof(*f->tile));
         f->tile = malloc(c->n_tile_data * sizeof(*f->tile));
         if (!f->tile) {
-            f->n_tile_data_alloc = 0;
+            f->n_tile_data_alloc = f->n_tile_data = 0;
             res = DAV1D_ERR(ENOMEM);
             goto error;
         }
