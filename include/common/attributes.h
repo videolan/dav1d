@@ -46,7 +46,7 @@
 /* x86-64 needs 32-byte alignment for AVX2. */
 #define ALIGN_32_VAL 32
 #define ALIGN_16_VAL 16
-#elif ARCH_X86_32 || ARCH_ARM || ARCH_AARCH64
+#elif ARCH_X86_32 || ARCH_ARM || ARCH_AARCH64 || ARCH_PPC64LE
 /* ARM doesn't benefit from anything more than 16-byte alignment. */
 #define ALIGN_32_VAL 16
 #define ALIGN_16_VAL 16
