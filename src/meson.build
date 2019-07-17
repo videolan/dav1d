@@ -67,6 +67,10 @@ libdav1d_tmpl_sources = files(
     'recon_tmpl.c',
 )
 
+libdav1d_arch_tmpl_sources = []
+
+libdav1d_bitdepth_objs = []
+
 # libdav1d entrypoint source files
 # These source files contain library entry points and are
 # built with the stack-realign flag set, where necessary.
@@ -77,6 +81,8 @@ libdav1d_entrypoints_sources = files(
 
 # ASM specific sources
 libdav1d_nasm_objs = []
+# Arch-specific flags
+arch_flags = []
 if is_asm_enabled
     if (host_machine.cpu_family() == 'aarch64' or
         host_machine.cpu_family().startswith('arm'))
@@ -151,8 +157,12 @@ if is_asm_enabled
         # Compile the ASM sources with NASM
         libdav1d_nasm_objs = nasm_gen.process(libdav1d_sources_asm)
     elif host_machine.cpu() == 'ppc64le'
+        arch_flags = ['-maltivec', '-mvsx']
         libdav1d_sources += files(
             'ppc/cpu.c',
+        )
+        libdav1d_arch_tmpl_sources += files(
+            'ppc/cdef_init_tmpl.c',
         )
     endif
 endif
@@ -218,6 +228,19 @@ foreach bitdepth : dav1d_bitdepths
         include_directories: dav1d_inc_dirs,
         dependencies : [stdatomic_dependency],
         c_args : ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
+        install : false,
+        build_by_default : false,
+    ).extract_all_objects()
+endforeach
+
+# Helper library for each bitdepth and architecture-specific flags
+foreach bitdepth : dav1d_bitdepths
+    libdav1d_bitdepth_objs += static_library(
+        'dav1d_arch_bitdepth_@0@'.format(bitdepth),
+        libdav1d_arch_tmpl_sources, config_h_target,
+        include_directories: dav1d_inc_dirs,
+        dependencies : [stdatomic_dependency],
+        c_args : ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag + arch_flags,
         install : false,
         build_by_default : false,
     ).extract_all_objects()
