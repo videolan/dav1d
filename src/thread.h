@@ -138,6 +138,25 @@ static inline void dav1d_set_thread_name(const char* name) {
     prctl(PR_SET_NAME, name);
 }
 
+#elif defined(__DragonFly__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+
+#if defined(__FreeBSD__)
+ /* ALIGN from <sys/param.h> conflicts with ALIGN from "common/attributes.h" */
+#define _SYS_PARAM_H_
+#include <sys/types.h>
+#endif
+#include <pthread_np.h>
+
+static inline void dav1d_set_thread_name(const char* name) {
+    pthread_set_name_np(pthread_self(), name);
+}
+
+#elif defined(__NetBSD__)
+
+static inline void dav1d_set_thread_name(const char* name) {
+    pthread_setname_np(pthread_self(), "%s", (void*)name);
+}
+
 #else
 
 #define dav1d_set_thread_name(name)
