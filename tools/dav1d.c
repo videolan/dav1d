@@ -137,7 +137,7 @@ int main(const int argc, char *const *const argv) {
     Dav1dPicture p;
     Dav1dContext *c;
     Dav1dData data;
-    unsigned n_out = 0, total, fps[2];
+    unsigned n_out = 0, total, fps[2], timebase[2];
     uint64_t nspf, tfirst, elapsed;
     double i_fps;
     FILE *frametimes = NULL;
@@ -155,7 +155,7 @@ int main(const int argc, char *const *const argv) {
 
     if ((res = input_open(&in, cli_settings.demuxer,
                           cli_settings.inputfile,
-                          fps, &total)) < 0)
+                          fps, &total, timebase)) < 0)
     {
         return res;
     }

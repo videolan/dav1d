@@ -75,3 +75,36 @@ dav1d = executable('dav1d',
     dependencies : [getopt_dependency, thread_dependency, rt_dependency],
     install : true,
 )
+
+
+# dav1d player sources
+dav1dplay_sources = files(
+    'dav1dplay.c',
+    'input/input.c',
+    'input/annexb.c',
+    'input/ivf.c',
+)
+
+sdl2_dependency = dependency('sdl2', version: '>= 2.0.1', required: false)
+
+if sdl2_dependency.found()
+    placebo_dependency = dependency('libplacebo', version: '>= 1.18.0', required: false)
+    vulkan_dependency = dependency('vulkan', required: false)
+    sdl_has_vulkan = cc.has_header('SDL_vulkan.h', dependencies: [sdl2_dependency])
+    cflag_placebo = []
+    deps_placebo = []
+    if placebo_dependency.found() and vulkan_dependency.found() and sdl_has_vulkan
+        cflag_placebo += '-DHAVE_PLACEBO_VULKAN=1'
+        deps_placebo = [vulkan_dependency, placebo_dependency]
+    endif
+    dav1dplay = executable('dav1dplay',
+        dav1dplay_sources,
+        rev_target,
+
+        link_with : libdav1d,
+        include_directories : [dav1d_inc_dirs],
+        dependencies : [getopt_dependency, sdl2_dependency, deps_placebo],
+        install : true,
+        c_args : cflag_placebo,
+    )
+endif
