@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <getopt.h>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 
 #include "dav1d/dav1d.h"
@@ -166,7 +166,7 @@ typedef struct rdr_info
 #include <libplacebo/renderer.h>
 #include <libplacebo/utils/upload.h>
 #include <libplacebo/vulkan.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL_vulkan.h>
 
 
 /**
