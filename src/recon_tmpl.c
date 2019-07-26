@@ -176,23 +176,44 @@ static int decode_coefs(Dav1dTileContext *const t,
 
             const int ctx = 1 + (eob > sw * sh * 2) + (eob > sw * sh * 4);
             uint16_t *const lo_cdf = ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma][ctx];
-            int tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3) + 1;
+
+            int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
+            int tok = 1 + tok_br;
             if (dbg)
                 printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n",
                        t_dim->ctx, chroma, ctx, eob, rc, tok, ts->msac.rng);
 
-            if (tok == 3) {
+            // hi tok
+            if (tok_br == 2) {
+#define dbg_print_hi_tok(i, tok, tok_br) \
+    if (dbg)\
+        printf("Post-hi_tok[%d][%d][%d][%d=%d=%d->%d]: r=%d\n",\
+               imin(t_dim->ctx, 3), chroma, br_ctx, i, rc, tok, tok_br,\
+               ts->msac.rng)
                 const int br_ctx = get_br_ctx(levels, 1, tx_class, x, y, stride);
-                do {
-                    const int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                           br_cdf[br_ctx], 4);
-                    if (dbg)
-                        printf("Post-hi_tok[%d][%d][%d][%d=%d=%d->%d]: r=%d\n",
-                               imin(t_dim->ctx, 3), chroma, br_ctx,
-                               eob, rc, tok_br, tok, ts->msac.rng);
-                    tok += tok_br;
-                    if (tok_br < 3) break;
-                } while (tok < 15);
+
+                tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                            br_cdf[br_ctx], 4);
+                tok = 3 + tok_br;
+                dbg_print_hi_tok(eob, tok + tok_br, tok_br);
+
+                if (tok_br == 3) {
+                    tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                br_cdf[br_ctx], 4);
+                    tok = 6 + tok_br;
+                    dbg_print_hi_tok(eob, tok + tok_br, tok_br);
+                    if (tok_br == 3) {
+                        tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                     br_cdf[br_ctx], 4);
+                        tok = 9 + tok_br;
+                        dbg_print_hi_tok(eob, tok + tok_br, tok_br);
+                        if (tok_br == 3) {
+                            tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                          br_cdf[br_ctx], 4);
+                            dbg_print_hi_tok(eob, tok + tok_br, tok_br);
+                        }
+                    }
+                }
             }
 
             cf[rc] = tok;
@@ -212,65 +233,118 @@ static int decode_coefs(Dav1dTileContext *const t,
             // hi tok
             if (tok == 3) {
                 const int br_ctx = get_br_ctx(levels, 1, tx_class, x, y, stride);
-                do {
-                    const int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                           br_cdf[br_ctx], 4);
-                    if (dbg)
-                        printf("Post-hi_tok[%d][%d][%d][%d=%d=%d->%d]: r=%d\n",
-                               imin(t_dim->ctx, 3), chroma, br_ctx,
-                               i, rc, tok_br, tok, ts->msac.rng);
-                    tok += tok_br;
-                    if (tok_br < 3) break;
-                } while (tok < 15);
-            }
 
+                int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                             br_cdf[br_ctx], 4);
+                tok = 3 + tok_br;
+                dbg_print_hi_tok(i, tok + tok_br, tok_br);
+
+                if (tok_br == 3) {
+                    tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                 br_cdf[br_ctx], 4);
+
+                    tok = 6 + tok_br;
+                    dbg_print_hi_tok(i, tok + tok_br, tok_br);
+                    if (tok_br == 3) {
+                        tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                     br_cdf[br_ctx], 4);
+                        tok = 9 + tok_br;
+                        dbg_print_hi_tok(i, tok + tok_br, tok_br);
+                        if (tok_br == 3) {
+                            tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                          br_cdf[br_ctx], 4);
+                            dbg_print_hi_tok(i, tok + tok_br, tok_br);
+                        }
+                    }
+                }
+            }
+#undef dbg_print_hi_tok
             cf[rc] = tok;
             levels[x * stride + y] = (uint8_t) tok;
         }
         { // dc
-            int ctx = 0;
-            if (tx_class != TX_CLASS_2D)
-                ctx = get_coef_nz_ctx(levels, tx, tx_class, 0, 0, stride);
+            const int ctx = (tx_class != TX_CLASS_2D) ?
+                get_coef_nz_ctx(levels, tx, tx_class, 0, 0, stride) : 0;
             uint16_t *const lo_cdf = ts->cdf.coef.base_tok[t_dim->ctx][chroma][ctx];
             dc_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 4);
             if (dbg)
                 printf("Post-dc_lo_tok[%d][%d][%d][%d]: r=%d\n",
                        t_dim->ctx, chroma, ctx, dc_tok, ts->msac.rng);
 
+            // hi tok
             if (dc_tok == 3) {
+#define dbg_print_hi_tok(dc_tok, tok_br) \
+    if (dbg) \
+        printf("Post-dc_hi_tok[%d][%d][%d][%d->%d]: r=%d\n", \
+               imin(t_dim->ctx, 3), chroma, br_ctx, tok_br, dc_tok, ts->msac.rng);
+
                 const int br_ctx = get_br_ctx(levels, 0, tx_class, 0, 0, stride);
-                do {
-                    const int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                           br_cdf[br_ctx], 4);
-                    if (dbg)
-                        printf("Post-dc_hi_tok[%d][%d][%d][%d->%d]: r=%d\n",
-                               imin(t_dim->ctx, 3), chroma, br_ctx,
-                               tok_br, dc_tok, ts->msac.rng);
-                    dc_tok += tok_br;
-                    if (tok_br < 3) break;
-                } while (dc_tok < 15);
+
+                int tok_br =
+                    dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[br_ctx], 4);
+                dc_tok = 3 + tok_br;
+
+                dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+
+                if (tok_br == 3) {
+                    tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                br_cdf[br_ctx], 4);
+                    dc_tok = 6 + tok_br;
+                    dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                    if (tok_br == 3) {
+                        tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                    br_cdf[br_ctx], 4);
+                        dc_tok = 9 + tok_br;
+                        dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                        if (tok_br == 3) {
+                            dc_tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                        br_cdf[br_ctx], 4);
+                            dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                        }
+                    }
+                }
             }
+#undef dbg_print_hi_tok
         }
     } else { // dc-only
         uint16_t *const lo_cdf = ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma][0];
-        dc_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3) + 1;
+        int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
+        dc_tok = 1 + tok_br;
         if (dbg)
             printf("Post-dc_lo_tok[%d][%d][%d][%d]: r=%d\n",
                    t_dim->ctx, chroma, 0, dc_tok, ts->msac.rng);
 
-        if (dc_tok == 3) {
-            do {
-                const int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                       br_cdf[0], 4);
-                if (dbg)
-                    printf("Post-dc_hi_tok[%d][%d][%d][%d->%d]: r=%d\n",
-                           imin(t_dim->ctx, 3), chroma, 0,
-                           tok_br, dc_tok, ts->msac.rng);
-                dc_tok += tok_br;
-                if (tok_br < 3) break;
-            } while (dc_tok < 15);
+        // hi tok
+        if (tok_br == 2) {
+#define dbg_print_hi_tok(dc_tok, tok_br) \
+    if (dbg) \
+        printf("Post-dc_hi_tok[%d][%d][0][%d->%d]: r=%d\n", \
+               imin(t_dim->ctx, 3), chroma, tok_br, dc_tok, ts->msac.rng);
+
+            tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 4);
+            dc_tok = 3 + tok_br;
+
+            dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+
+            if (tok_br == 3) {
+                tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 4);
+                dc_tok = 6 + tok_br;
+                dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                if (tok_br == 3) {
+                    tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                br_cdf[0], 4);
+                    dc_tok = 9 + tok_br;
+                    dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                    if (tok_br == 3) {
+                        dc_tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                          br_cdf[0], 4);
+                        dbg_print_hi_tok(dc_tok + tok_br, tok_br);
+                    }
+                }
+            }
         }
     }
+#undef dbg_print_hi_tok
 
     // residual and sign
     int dc_sign = 1 << 6;
