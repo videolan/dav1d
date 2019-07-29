@@ -113,11 +113,23 @@ if host_machine.system() == 'windows'
     # On Windows, we use a compatibility layer to emulate pthread
     thread_dependency = []
     thread_compat_dep = declare_dependency(sources : files('src/win32/thread.c'))
+
+    rt_dependency = []
 else
     thread_dependency = dependency('threads')
     thread_compat_dep = []
-endif
 
+    rt_dependency = []
+    if cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
+        cdata.set('HAVE_CLOCK_GETTIME', 1)
+    else
+        rt_dependency = cc.find_library('rt', required: false)
+        if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
+            error('clock_gettime not found')
+        endif
+        cdata.set('HAVE_CLOCK_GETTIME', 1)
+    endif
+endif
 
 # Header checks
 
