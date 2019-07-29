@@ -138,8 +138,14 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 
 #include <sys/prctl.h>
 
-static inline void dav1d_set_thread_name(const char* name) {
+static inline void dav1d_set_thread_name(const char *const name) {
     prctl(PR_SET_NAME, name);
+}
+
+#elif defined(__APPLE__)
+
+static inline void dav1d_set_thread_name(const char *const name) {
+    pthread_setname_np(name);
 }
 
 #elif defined(__DragonFly__) || defined(__FreeBSD__) || defined(__OpenBSD__)
@@ -151,13 +157,13 @@ static inline void dav1d_set_thread_name(const char* name) {
 #endif
 #include <pthread_np.h>
 
-static inline void dav1d_set_thread_name(const char* name) {
+static inline void dav1d_set_thread_name(const char *const name) {
     pthread_set_name_np(pthread_self(), name);
 }
 
 #elif defined(__NetBSD__)
 
-static inline void dav1d_set_thread_name(const char* name) {
+static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(pthread_self(), "%s", (void*)name);
 }
 

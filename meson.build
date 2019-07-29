@@ -85,8 +85,13 @@ test_args = []
 optional_arguments = []
 
 # Define _POSIX_C_SOURCE to POSIX.1–2001 (IEEE Std 1003.1-2001)
-test_args  += '-D_POSIX_C_SOURCE=200112L'
+test_args += '-D_POSIX_C_SOURCE=200112L'
 add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
+
+if host_machine.system() == 'darwin'
+    test_args += '-D_DARWIN_C_SOURCE'
+    add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
+endif
 
 if host_machine.system() == 'windows'
     cdata.set('_WIN32_WINNT',           '0x0601')
