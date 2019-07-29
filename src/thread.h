@@ -48,6 +48,10 @@ typedef SRWLOCK pthread_mutex_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
 typedef INIT_ONCE pthread_once_t;
 
+void dav1d_init_thread(void);
+void dav1d_set_thread_name(const wchar_t *name);
+#define dav1d_set_thread_name(name) dav1d_set_thread_name(L##name)
+
 int dav1d_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                          void *(*func)(void*), void *arg);
 int dav1d_pthread_join(pthread_t *thread, void **res);
@@ -126,7 +130,7 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 
 #include <pthread.h>
 
-#endif
+#define dav1d_init_thread() while (0)
 
 /* Thread naming support */
 
@@ -159,7 +163,9 @@ static inline void dav1d_set_thread_name(const char* name) {
 
 #else
 
-#define dav1d_set_thread_name(name)
+#define dav1d_set_thread_name(name) while (0)
+
+#endif
 
 #endif
 

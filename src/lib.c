@@ -50,6 +50,7 @@ static COLD void init_internal(void) {
     dav1d_init_wedge_masks();
     dav1d_init_interintra_masks();
     dav1d_init_qm_tables();
+    dav1d_init_thread();
 }
 
 COLD const char *dav1d_version(void) {
