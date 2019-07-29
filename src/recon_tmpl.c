@@ -66,6 +66,7 @@ static int decode_coefs(Dav1dTileContext *const t,
     Dav1dTileState *const ts = t->ts;
     const int chroma = !!plane;
     const Dav1dFrameContext *const f = t->f;
+    const int lossless = f->frame_hdr->segmentation.lossless[b->seg_id];
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
     const int dbg = DEBUG_BLOCK_INFO && plane && 0;
 
@@ -81,41 +82,48 @@ static int decode_coefs(Dav1dTileContext *const t,
                t_dim->ctx, sctx, all_skip, ts->msac.rng);
     if (all_skip) {
         *res_ctx = 0x40;
-        *txtp = f->frame_hdr->segmentation.lossless[b->seg_id] ? WHT_WHT : DCT_DCT;
+        *txtp = lossless ? WHT_WHT : DCT_DCT;
         return -1;
     }
 
     // transform type (chroma: derived, luma: explicitly coded)
-    if (chroma) {
+    if (lossless) {
+        assert(t_dim->max == (int) TX_4X4);
+        *txtp = WHT_WHT;
+    } else if (chroma) {
         if (intra) {
-            *txtp = get_uv_intra_txtp(b->uv_mode, tx, f->frame_hdr, b->seg_id);
+            *txtp = t_dim->max == TX_32X32 ?
+                DCT_DCT : dav1d_txtp_from_uvmode[b->uv_mode];
         } else {
             const enum TxfmType y_txtp = *txtp;
-            *txtp = get_uv_inter_txtp(t_dim, y_txtp, f->frame_hdr, b->seg_id);
+            *txtp = get_uv_inter_txtp(t_dim, y_txtp);
         }
     } else {
-        const enum TxfmTypeSet set = get_ext_txtp_set(tx, !intra,
-                                                      f->frame_hdr, b->seg_id);
-        const unsigned set_cnt = dav1d_tx_type_count[set];
-        unsigned idx;
-        if (set_cnt == 1) {
-            idx = 0;
+        if (!f->frame_hdr->segmentation.qidx[b->seg_id]) {
+            *txtp = DCT_DCT;
         } else {
-            const int set_idx = dav1d_tx_type_set_index[!intra][set];
-            const enum IntraPredMode y_mode_nofilt = intra ? b->y_mode == FILTER_PRED ?
-                dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode : 0;
-            uint16_t *const txtp_cdf = intra ?
-                       ts->cdf.m.txtp_intra[set_idx][t_dim->min][y_mode_nofilt] :
-                       ts->cdf.m.txtp_inter[set_idx][t_dim->min];
-            idx = (set_cnt <= 8 ? dav1d_msac_decode_symbol_adapt8 :
-                     dav1d_msac_decode_symbol_adapt16)(&ts->msac, txtp_cdf, set_cnt);
+            const enum TxfmTypeSet set =
+                get_ext_txtp_set(t_dim, !intra, f->frame_hdr->reduced_txtp_set);
+            if (set == TXTP_SET_DCT)
+                *txtp = DCT_DCT;
+            else {
+                const unsigned set_cnt = dav1d_tx_type_count[set];
+                const int set_idx = dav1d_tx_type_set_index[!intra][set];
+                const enum IntraPredMode y_mode_nofilt = intra ? b->y_mode == FILTER_PRED ?
+                    dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode : 0;
+                uint16_t *const txtp_cdf = intra ?
+                          ts->cdf.m.txtp_intra[set_idx][t_dim->min][y_mode_nofilt] :
+                          ts->cdf.m.txtp_inter[set_idx][t_dim->min];
+                const unsigned idx = (set_cnt <= 8 ? dav1d_msac_decode_symbol_adapt8 :
+                        dav1d_msac_decode_symbol_adapt16)(&ts->msac, txtp_cdf, set_cnt);
 
-            if (dbg)
-                printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
-                       set, set_idx, tx, t_dim->min, intra ? (int)y_mode_nofilt : -1,
-                       idx, dav1d_tx_types_per_set[set][idx], ts->msac.rng);
+                *txtp = dav1d_tx_types_per_set[set][idx];
+                if (dbg)
+                    printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
+                           set, set_idx, tx, t_dim->min, intra ? (int)y_mode_nofilt : -1,
+                           idx, dav1d_tx_types_per_set[set][idx], ts->msac.rng);
+            }
         }
-        *txtp = dav1d_tx_types_per_set[set][idx];
     }
 
     // find end-of-block (eob)
@@ -199,17 +207,20 @@ static int decode_coefs(Dav1dTileContext *const t,
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 4);
                     tok = 6 + tok_br;
                     dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                     br_cdf[br_ctx], 4);
+                                                                 br_cdf[br_ctx],
+                                                                 4);
                         tok = 9 + tok_br;
                         dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                         if (tok_br == 3) {
-                            tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                          br_cdf[br_ctx], 4);
+                            tok = 12 +
+                                dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                                                br_cdf[br_ctx],
+                                                                4);
                             dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                         }
                     }
@@ -235,24 +246,26 @@ static int decode_coefs(Dav1dTileContext *const t,
                 const int br_ctx = get_br_ctx(levels, 1, tx_class, x, y, stride);
 
                 int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                             br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 4);
                 tok = 3 + tok_br;
                 dbg_print_hi_tok(i, tok + tok_br, tok_br);
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                 br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 4);
 
                     tok = 6 + tok_br;
                     dbg_print_hi_tok(i, tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                     br_cdf[br_ctx], 4);
+                                                                 br_cdf[br_ctx],
+                                                                 4);
                         tok = 9 + tok_br;
                         dbg_print_hi_tok(i, tok + tok_br, tok_br);
                         if (tok_br == 3) {
                             tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                          br_cdf[br_ctx], 4);
+                                                                       br_cdf[br_ctx],
+                                                                       4);
                             dbg_print_hi_tok(i, tok + tok_br, tok_br);
                         }
                     }
@@ -288,17 +301,20 @@ static int decode_coefs(Dav1dTileContext *const t,
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 4);
                     dc_tok = 6 + tok_br;
                     dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                    br_cdf[br_ctx], 4);
+                                                                 br_cdf[br_ctx],
+                                                                 4);
                         dc_tok = 9 + tok_br;
                         dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                         if (tok_br == 3) {
-                            dc_tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                        br_cdf[br_ctx], 4);
+                            dc_tok = 12 +
+                                dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                                                br_cdf[br_ctx],
+                                                                4);
                             dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                         }
                     }
@@ -332,12 +348,13 @@ static int decode_coefs(Dav1dTileContext *const t,
                 dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                br_cdf[0], 4);
+                                                             br_cdf[0], 4);
                     dc_tok = 9 + tok_br;
                     dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     if (tok_br == 3) {
-                        dc_tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                          br_cdf[0], 4);
+                        dc_tok = 12 +
+                            dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                                                            br_cdf[0], 4);
                         dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     }
                 }
@@ -348,7 +365,6 @@ static int decode_coefs(Dav1dTileContext *const t,
 
     // residual and sign
     int dc_sign = 1 << 6;
-    const int lossless = f->frame_hdr->segmentation.lossless[b->seg_id];
     const uint16_t *const dq_tbl = ts->dq[b->seg_id][plane];
     const uint8_t *const qm_tbl = f->qm[lossless || is_1d || *txtp == IDTX][tx][plane];
     const int dq_shift = imax(0, t_dim->ctx - 2);

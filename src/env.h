@@ -118,29 +118,17 @@ static inline unsigned gather_top_partition_prob(const uint16_t *const in,
     return out;
 }
 
-static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
+static inline enum TxfmTypeSet get_ext_txtp_set(const TxfmInfo *const t_dim,
                                                 const int inter,
-                                                const Dav1dFrameHeader *const hdr,
-                                                const int seg_id)
+                                                const int reduced_txtp_set)
 {
-    if (!hdr->segmentation.qidx[seg_id]) {
-        if (hdr->segmentation.lossless[seg_id]) {
-            assert(tx == (int) TX_4X4);
-            return TXTP_SET_LOSSLESS;
-        } else {
-            return TXTP_SET_DCT;
-        }
-    }
-
-    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
-
     if (t_dim->max >= TX_64X64)
         return TXTP_SET_DCT;
 
     if (t_dim->max == TX_32X32)
         return inter ? TXTP_SET_DCT_ID : TXTP_SET_DCT;
 
-    if (hdr->reduced_txtp_set)
+    if (reduced_txtp_set)
         return inter ? TXTP_SET_DCT_ID : TXTP_SET_DT4_ID;
 
     const enum TxfmSize txsqsz = t_dim->min;
@@ -151,31 +139,9 @@ static inline enum TxfmTypeSet get_ext_txtp_set(const enum RectTxfmSize tx,
         return txsqsz == TX_16X16 ? TXTP_SET_DT4_ID : TXTP_SET_DT4_ID_1D;
 }
 
-static inline enum TxfmType get_uv_intra_txtp(const enum IntraPredMode uv_mode,
-                                              const enum RectTxfmSize tx,
-                                              const Dav1dFrameHeader *const hdr,
-                                              const int seg_id)
-{
-    if (hdr->segmentation.lossless[seg_id]) {
-        assert(tx == (int) TX_4X4);
-        return WHT_WHT;
-    }
-
-    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[tx];
-
-    return t_dim->max == TX_32X32 ? DCT_DCT : dav1d_txtp_from_uvmode[uv_mode];
-}
-
 static inline enum TxfmType get_uv_inter_txtp(const TxfmInfo *const uvt_dim,
-                                              const enum TxfmType ytxtp,
-                                              const Dav1dFrameHeader *const hdr,
-                                              const int seg_id)
+                                              const enum TxfmType ytxtp)
 {
-    if (hdr->segmentation.lossless[seg_id]) {
-        assert(uvt_dim->max == TX_4X4);
-        return WHT_WHT;
-    }
-
     if (uvt_dim->max == TX_32X32)
         return ytxtp == IDTX ? IDTX : DCT_DCT;
     if (uvt_dim->min == TX_16X16 &&
