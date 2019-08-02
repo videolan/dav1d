@@ -7,7 +7,7 @@ Changes for 0.4.0 'Cheetah':
  - Improve speed on 32bits systems
  - Optimization in obmc blend
  - Reduce RAM usage significantly
- - The initial PPC SIMD code
+ - The initial PPC SIMD code, cdef_filter
  - NEON optimizations for blend functions on ARM
  - NEON optimizations for w_mask functions on ARM
  - NEON optimizations for inverse transforms on ARM64
