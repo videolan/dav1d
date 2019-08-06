@@ -409,8 +409,10 @@ void dav1d_flush(Dav1dContext *const c) {
 
     c->mastering_display = NULL;
     c->content_light = NULL;
+    c->itut_t35 = NULL;
     dav1d_ref_dec(&c->mastering_display_ref);
     dav1d_ref_dec(&c->content_light_ref);
+    dav1d_ref_dec(&c->itut_t35_ref);
 
     if (c->n_fc == 1) return;
 
@@ -535,6 +537,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
 
     dav1d_ref_dec(&c->mastering_display_ref);
     dav1d_ref_dec(&c->content_light_ref);
+    dav1d_ref_dec(&c->itut_t35_ref);
 
     dav1d_freep_aligned(c_out);
 }

@@ -1364,10 +1364,12 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
     case OBU_METADATA: {
         // obu metadta type field
         const enum ObuMetaType meta_type = dav1d_get_uleb128(&gb);
+        const int meta_type_len = (dav1d_get_bits_pos(&gb) - init_bit_pos) >> 3;
         if (gb.error) goto error;
         Dav1dRef *ref;
         Dav1dContentLightLevel *content_light;
         Dav1dMasteringDisplay *mastering_display;
+        Dav1dITUTT35 *itut_t35_metadata;
 
         switch (meta_type) {
         case OBU_META_HDR_CLL:
@@ -1420,7 +1422,47 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             c->mastering_display_ref = ref;
             break;
         }
-        case OBU_META_ITUT_T35:
+        case OBU_META_ITUT_T35: {
+            int payload_size = len;
+            // Don't take into account all the trailing bits for payload_size
+            while (payload_size > 0 && !in->data[init_byte_pos + payload_size - 1])
+                payload_size--; // trailing_zero_bit x 8
+            payload_size--; // trailing_one_bit + trailing_zero_bit x 7
+
+            // Don't take into account meta_type bytes
+            payload_size -= meta_type_len;
+
+            int country_code_extension_byte = 0;
+            int country_code = dav1d_get_bits(&gb, 8);
+            payload_size--;
+            if (country_code == 0xFF) {
+                country_code_extension_byte = dav1d_get_bits(&gb, 8);
+                payload_size--;
+            }
+
+            if (payload_size <= 0) {
+                dav1d_log(c, "Malformed ITU-T T.35 metadata message format\n");
+                goto error;
+            }
+
+            ref = dav1d_ref_create(sizeof(Dav1dITUTT35) + payload_size * sizeof(uint8_t));
+            if (!ref) return DAV1D_ERR(ENOMEM);
+            itut_t35_metadata = ref->data;
+
+            // We need our public headers to be C++ compatible, so payload can't be
+            // a flexible array member
+            itut_t35_metadata->payload = (uint8_t *) &itut_t35_metadata[1];
+            itut_t35_metadata->country_code = country_code;
+            itut_t35_metadata->country_code_extension_byte = country_code_extension_byte;
+            for (int i = 0; i < payload_size; i++)
+                itut_t35_metadata->payload[i] = dav1d_get_bits(&gb, 8);
+            itut_t35_metadata->payload_size = payload_size;
+
+            dav1d_ref_dec(&c->itut_t35_ref);
+            c->itut_t35 = itut_t35_metadata;
+            c->itut_t35_ref = ref;
+            break;
+        }
         case OBU_META_SCALABILITY:
         case OBU_META_TIMECODE:
             // ignore metadata OBUs we don't care about
