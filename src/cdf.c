@@ -34,6 +34,7 @@
 #include "common/intops.h"
 
 #include "src/cdf.h"
+#include "src/tables.h"
 
 #define AOM_ICDF(x) (32768-(x))
 
@@ -752,12 +753,11 @@ static const CdfMvComponent default_mv_component_cdf = {
     }
 };
 
-
-static const uint16_t default_mv_joint_cdf[N_MV_JOINTS + 1] = {
+static const uint16_t ALIGN(default_mv_joint_cdf[N_MV_JOINTS], 8) = {
     AOM_CDF4(4096, 11264, 19328)
 };
 
-static const uint16_t default_kf_y_mode_cdf[5][5][N_INTRA_PRED_MODES + 1 + 2] = {
+static const uint16_t ALIGN(default_kf_y_mode_cdf[5][5][N_INTRA_PRED_MODES + 3], 32) = {
     {
         { AOM_CDF13(15588, 17027, 19338, 20218, 20682, 21110, 21825, 23244,
                     24189, 28165, 29093, 30466) },
@@ -3927,25 +3927,18 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
                              CdfContext *const dst,
                              const CdfContext *const src)
 {
-    int i, j, k, l;
-
 #define update_cdf_1d(n1d, name) \
     do { \
-        memcpy(dst->name, src->name, sizeof(*dst->name) * n1d); \
-        assert(!dst->name[n1d - 1]); \
+        memcpy(dst->name, src->name, sizeof(dst->name)); \
         dst->name[n1d] = 0; \
     } while (0)
 
 #define update_cdf_2d(n1d, n2d, name) \
-    for (j = 0; j < (n1d); j++) update_cdf_1d(n2d, name[j])
+    for (int j = 0; j < (n1d); j++) update_cdf_1d(n2d, name[j])
 #define update_cdf_3d(n1d, n2d, n3d, name) \
-    for (k = 0; k < (n1d); k++) update_cdf_2d(n2d, n3d, name[k])
+    for (int k = 0; k < (n1d); k++) update_cdf_2d(n2d, n3d, name[k])
 #define update_cdf_4d(n1d, n2d, n3d, n4d, name) \
-    for (l = 0; l < (n1d); l++) update_cdf_3d(n2d, n3d, n4d, name[l])
-#define update_cdf_6d(n1d, n2d, n3d, n4d, n5d, n6d, name) \
-    for (n = 0; n < (n1d); n++) \
-        for (m = 0; m < (n2d); m++) \
-            update_cdf_4d(n3d, n4d, n5d, n6d, name[n][m])
+    for (int l = 0; l < (n1d); l++) update_cdf_3d(n2d, n3d, n4d, name[l])
 
 #define update_bit_0d(name) \
     do { \
@@ -3954,65 +3947,57 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     } while (0)
 
 #define update_bit_1d(n1d, name) \
-    for (i = 0; i < (n1d); i++) update_bit_0d(name[i])
+    for (int i = 0; i < (n1d); i++) update_bit_0d(name[i])
 #define update_bit_2d(n1d, n2d, name) \
-    for (j = 0; j < (n1d); j++) update_bit_1d(n2d, name[j])
+    for (int j = 0; j < (n1d); j++) update_bit_1d(n2d, name[j])
 #define update_bit_3d(n1d, n2d, n3d, name) \
-    for (k = 0; k < (n1d); k++) update_bit_2d(n2d, n3d, name[k])
+    for (int k = 0; k < (n1d); k++) update_bit_2d(n2d, n3d, name[k])
 
     update_bit_1d(N_BS_SIZES, m.use_filter_intra);
-    update_cdf_1d(5, m.filter_intra);
-    update_cdf_3d(2, N_INTRA_PRED_MODES, N_UV_INTRA_PRED_MODES - !k, m.uv_mode);
-    update_cdf_2d(8, 7, m.angle_delta);
-    update_cdf_3d(N_TX_SIZES - 1, 3, imin(k + 2, 3), m.txsz);
-    update_cdf_3d(2, N_INTRA_PRED_MODES, 7, m.txtp_intra1);
-    update_cdf_3d(3, N_INTRA_PRED_MODES, 5, m.txtp_intra2);
+    update_cdf_1d(4, m.filter_intra);
+    update_cdf_3d(2, N_INTRA_PRED_MODES, N_UV_INTRA_PRED_MODES - 1 - !k, m.uv_mode);
+    update_cdf_2d(8, 6, m.angle_delta);
+    update_cdf_3d(N_TX_SIZES - 1, 3, imin(k + 1, 2), m.txsz);
+    update_cdf_3d(2, N_INTRA_PRED_MODES, 6, m.txtp_intra1);
+    update_cdf_3d(3, N_INTRA_PRED_MODES, 4, m.txtp_intra2);
     update_bit_1d(3, m.skip);
-    static const uint8_t n_partitions[N_BL_LEVELS] = {
-        [BL_128X128] = N_PARTITIONS - 2,
-        [BL_64X64]   = N_PARTITIONS,
-        [BL_32X32]   = N_PARTITIONS,
-        [BL_16X16]   = N_PARTITIONS,
-        [BL_8X8]     = N_SUB8X8_PARTITIONS,
-    };
-    update_cdf_3d(N_BL_LEVELS, 4, n_partitions[k], m.partition);
+    update_cdf_3d(N_BL_LEVELS, 4, dav1d_partition_type_count[k], m.partition);
     update_bit_2d(N_TX_SIZES, 13, coef.skip);
-    update_cdf_3d(2, 2, 5, coef.eob_bin_16);
-    update_cdf_3d(2, 2, 6, coef.eob_bin_32);
-    update_cdf_3d(2, 2, 7, coef.eob_bin_64);
-    update_cdf_3d(2, 2, 8, coef.eob_bin_128);
-    update_cdf_3d(2, 2, 9, coef.eob_bin_256);
-    update_cdf_2d(2, 10, coef.eob_bin_512);
-    update_cdf_2d(2, 11, coef.eob_bin_1024);
+    update_cdf_3d(2, 2, 4, coef.eob_bin_16);
+    update_cdf_3d(2, 2, 5, coef.eob_bin_32);
+    update_cdf_3d(2, 2, 6, coef.eob_bin_64);
+    update_cdf_3d(2, 2, 7, coef.eob_bin_128);
+    update_cdf_3d(2, 2, 8, coef.eob_bin_256);
+    update_cdf_2d(2, 9, coef.eob_bin_512);
+    update_cdf_2d(2, 10, coef.eob_bin_1024);
     update_bit_3d(N_TX_SIZES, 2, 11 /*22*/, coef.eob_hi_bit);
-    update_cdf_4d(N_TX_SIZES, 2, 4, 3, coef.eob_base_tok);
-    update_cdf_4d(N_TX_SIZES, 2, 41 /*42*/, 4, coef.base_tok);
+    update_cdf_4d(N_TX_SIZES, 2, 4, 2, coef.eob_base_tok);
+    update_cdf_4d(N_TX_SIZES, 2, 41 /*42*/, 3, coef.base_tok);
     update_bit_2d(2, 3, coef.dc_sign);
-    update_cdf_4d(4, 2, 21, 4, coef.br_tok);
-    update_cdf_2d(3, DAV1D_MAX_SEGMENTS, m.seg_id);
-    update_cdf_1d(8, m.cfl_sign);
-    update_cdf_2d(6, 16, m.cfl_alpha);
+    update_cdf_4d(4, 2, 21, 3, coef.br_tok);
+    update_cdf_2d(3, DAV1D_MAX_SEGMENTS - 1, m.seg_id);
+    update_cdf_1d(7, m.cfl_sign);
+    update_cdf_2d(6, 15, m.cfl_alpha);
     update_bit_0d(m.restore_wiener);
     update_bit_0d(m.restore_sgrproj);
-    update_cdf_1d(3, m.restore_switchable);
-    update_cdf_1d(4, m.delta_q);
-    update_cdf_2d(5, 4, m.delta_lf);
+    update_cdf_1d(2, m.restore_switchable);
+    update_cdf_1d(3, m.delta_q);
+    update_cdf_2d(5, 3, m.delta_lf);
     update_bit_2d(7, 3, m.pal_y);
     update_bit_1d(2, m.pal_uv);
-    update_cdf_3d(2, 7, 7, m.pal_sz);
-    update_cdf_4d(2, 7, 5, k + 2, m.color_map);
-
+    update_cdf_3d(2, 7, 6, m.pal_sz);
+    update_cdf_4d(2, 7, 5, k + 1, m.color_map);
     update_bit_2d(7, 3, m.txpart);
-    update_cdf_2d(2, 16, m.txtp_inter1);
-    update_cdf_1d(12, m.txtp_inter2);
+    update_cdf_2d(2, 15, m.txtp_inter1);
+    update_cdf_1d(11, m.txtp_inter2);
     update_bit_1d(4, m.txtp_inter3);
 
     if (!(hdr->frame_type & 1)) {
         update_bit_0d(m.intrabc);
 
-        update_cdf_1d(N_MV_JOINTS, dmv.joint);
-        for (k = 0; k < 2; k++) {
-            update_cdf_1d(11, dmv.comp[k].classes);
+        update_cdf_1d(N_MV_JOINTS - 1, dmv.joint);
+        for (int k = 0; k < 2; k++) {
+            update_cdf_1d(10, dmv.comp[k].classes);
             update_bit_0d(dmv.comp[k].class0);
             update_bit_1d(10, dmv.comp[k].classN);
             update_bit_0d(dmv.comp[k].sign);
@@ -4021,20 +4006,20 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     }
 
     update_bit_1d(3, m.skip_mode);
-    update_cdf_2d(4, N_INTRA_PRED_MODES, m.y_mode);
-    update_cdf_3d(2, 8, DAV1D_N_SWITCHABLE_FILTERS, m.filter);
+    update_cdf_2d(4, N_INTRA_PRED_MODES - 1, m.y_mode);
+    update_cdf_3d(2, 8, DAV1D_N_SWITCHABLE_FILTERS - 1, m.filter);
     update_bit_1d(6, m.newmv_mode);
     update_bit_1d(2, m.globalmv_mode);
     update_bit_1d(6, m.refmv_mode);
     update_bit_1d(3, m.drl_bit);
-    update_cdf_2d(8, N_COMP_INTER_PRED_MODES, m.comp_inter_mode);
+    update_cdf_2d(8, N_COMP_INTER_PRED_MODES - 1, m.comp_inter_mode);
     update_bit_1d(4, m.intra);
     update_bit_1d(5, m.comp);
     update_bit_1d(5, m.comp_dir);
     update_bit_1d(6, m.jnt_comp);
     update_bit_1d(6, m.mask_comp);
     update_bit_1d(9, m.wedge_comp);
-    update_cdf_2d(9, 16, m.wedge_idx);
+    update_cdf_2d(9, 15, m.wedge_idx);
     update_bit_2d(6, 3, m.ref);
     update_bit_2d(3, 3, m.comp_fwd_ref);
     update_bit_2d(2, 3, m.comp_bwd_ref);
@@ -4042,17 +4027,17 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     update_bit_1d(3, m.seg_pred);
     update_bit_1d(4, m.interintra);
     update_bit_1d(7, m.interintra_wedge);
-    update_cdf_2d(4, 4, m.interintra_mode);
-    update_cdf_2d(N_BS_SIZES, 3, m.motion_mode);
+    update_cdf_2d(4, 3, m.interintra_mode);
+    update_cdf_2d(N_BS_SIZES, 2, m.motion_mode);
     update_bit_1d(N_BS_SIZES, m.obmc);
 
-    update_cdf_1d(N_MV_JOINTS, mv.joint);
-    for (k = 0; k < 2; k++) {
-        update_cdf_1d(11, mv.comp[k].classes);
+    update_cdf_1d(N_MV_JOINTS - 1, mv.joint);
+    for (int k = 0; k < 2; k++) {
+        update_cdf_1d(10, mv.comp[k].classes);
         update_bit_0d(mv.comp[k].class0);
         update_bit_1d(10, mv.comp[k].classN);
-        update_cdf_2d(2, 4, mv.comp[k].class0_fp);
-        update_cdf_1d(4, mv.comp[k].classN_fp);
+        update_cdf_2d(2, 3, mv.comp[k].class0_fp);
+        update_cdf_1d(3, mv.comp[k].classN_fp);
         update_bit_0d(mv.comp[k].class0_hp);
         update_bit_0d(mv.comp[k].classN_hp);
         update_bit_0d(mv.comp[k].sign);
@@ -4062,7 +4047,7 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
 /*
  * CDF threading wrappers.
  */
-static inline int get_qcat_idx(int q) {
+static inline int get_qcat_idx(const int q) {
     if (q <= 20) return 0;
     if (q <= 60) return 1;
     if (q <= 120) return 2;
@@ -4089,7 +4074,7 @@ void dav1d_cdf_thread_copy(CdfContext *const dst, const CdfThreadContext *const 
 }
 
 int dav1d_cdf_thread_alloc(CdfThreadContext *const cdf,
-                            struct thread_data *const t)
+                           struct thread_data *const t)
 {
     cdf->ref = dav1d_ref_create(sizeof(CdfContext) +
                                 (t != NULL) * sizeof(atomic_uint));

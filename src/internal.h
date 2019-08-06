@@ -241,13 +241,13 @@ struct Dav1dFrameContext {
 };
 
 struct Dav1dTileState {
+    CdfContext cdf;
+    MsacContext msac;
+
     struct {
         int col_start, col_end, row_start, row_end; // in 4px units
         int col, row; // in tile units
     } tiling;
-
-    CdfContext cdf;
-    MsacContext msac;
 
     atomic_int progress; // in sby units, TILE_ERROR after a decoding error
     struct {

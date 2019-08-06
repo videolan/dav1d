@@ -60,7 +60,7 @@ unsigned dav1d_msac_decode_bool_equi_c(MsacContext *s);
 unsigned dav1d_msac_decode_bool_c(MsacContext *s, unsigned f);
 int dav1d_msac_decode_subexp(MsacContext *s, int ref, int n, unsigned k);
 
-/* Supported n_symbols ranges: adapt4: 1-5, adapt8: 1-8, adapt16: 4-16 */
+/* Supported n_symbols ranges: adapt4: 1-4, adapt8: 1-7, adapt16: 3-15 */
 #ifndef dav1d_msac_decode_symbol_adapt4
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt_c
 #endif

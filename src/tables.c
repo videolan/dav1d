@@ -225,6 +225,14 @@ const uint8_t /* enum InterPredMode */
     [NEARMV_NEWMV]        = { NEARMV,    NEWMV     },
 };
 
+const uint8_t dav1d_partition_type_count[N_BL_LEVELS] = {
+    [BL_128X128] = N_PARTITIONS - 3,
+    [BL_64X64]   = N_PARTITIONS - 1,
+    [BL_32X32]   = N_PARTITIONS - 1,
+    [BL_16X16]   = N_PARTITIONS - 1,
+    [BL_8X8]     = N_SUB8X8_PARTITIONS - 1,
+};
+
 const uint8_t /* enum TxfmType */ dav1d_tx_types_per_set[40] = {
     /* Intra2 */
     IDTX, DCT_DCT, ADST_ADST, ADST_DCT, DCT_ADST,

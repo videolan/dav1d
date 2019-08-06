@@ -502,7 +502,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
             pthread_cond_destroy(&ts->tile_thread.cond);
             pthread_mutex_destroy(&ts->tile_thread.lock);
         }
-        free(f->ts);
+        dav1d_free_aligned(f->ts);
         dav1d_free_aligned(f->tc);
         dav1d_free_aligned(f->ipred_edge[0]);
         free(f->a);

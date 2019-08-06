@@ -104,11 +104,11 @@ static int decode_coefs(Dav1dTileContext *const t,
                 dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode;
             if (f->frame_hdr->reduced_txtp_set || t_dim->min == TX_16X16) {
                 idx = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                          ts->cdf.m.txtp_intra2[t_dim->min][y_mode_nofilt], 5);
+                          ts->cdf.m.txtp_intra2[t_dim->min][y_mode_nofilt], 4);
                 *txtp = dav1d_tx_types_per_set[idx + 0];
             } else {
                 idx = dav1d_msac_decode_symbol_adapt8(&ts->msac,
-                          ts->cdf.m.txtp_intra1[t_dim->min][y_mode_nofilt], 7);
+                          ts->cdf.m.txtp_intra1[t_dim->min][y_mode_nofilt], 6);
                 *txtp = dav1d_tx_types_per_set[idx + 5];
             }
             if (dbg)
@@ -121,11 +121,11 @@ static int decode_coefs(Dav1dTileContext *const t,
                 *txtp = (idx - 1) & IDTX; /* idx ? DCT_DCT : IDTX */
             } else if (t_dim->min == TX_16X16) {
                 idx = dav1d_msac_decode_symbol_adapt16(&ts->msac,
-                          ts->cdf.m.txtp_inter2, 12);
+                          ts->cdf.m.txtp_inter2, 11);
                 *txtp = dav1d_tx_types_per_set[idx + 12];
             } else {
                 idx = dav1d_msac_decode_symbol_adapt16(&ts->msac,
-                          ts->cdf.m.txtp_inter1[t_dim->min], 16);
+                          ts->cdf.m.txtp_inter1[t_dim->min], 15);
                 *txtp = dav1d_tx_types_per_set[idx + 24];
             }
             if (dbg)
@@ -143,7 +143,7 @@ static int decode_coefs(Dav1dTileContext *const t,
 #define case_sz(sz, bin, ns, is_1d) \
     case sz: { \
         uint16_t *const eob_bin_cdf = ts->cdf.coef.eob_bin_##bin[chroma]is_1d; \
-        eob_bin = dav1d_msac_decode_symbol_adapt##ns(&ts->msac, eob_bin_cdf, 5 + sz); \
+        eob_bin = dav1d_msac_decode_symbol_adapt##ns(&ts->msac, eob_bin_cdf, 4 + sz); \
         break; \
     }
     case_sz(0,   16,  4, [is_1d]);
@@ -175,7 +175,7 @@ static int decode_coefs(Dav1dTileContext *const t,
     }
 
     // base tokens
-    uint16_t (*const br_cdf)[5] =
+    uint16_t (*const br_cdf)[4] =
         ts->cdf.coef.br_tok[imin(t_dim->ctx, 3)][chroma];
     const int16_t *const scan = dav1d_scans[tx][tx_class];
     int dc_tok;
@@ -193,7 +193,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             const int ctx = 1 + (eob > sw * sh * 2) + (eob > sw * sh * 4);
             uint16_t *const lo_cdf = ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma][ctx];
 
-            int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
+            int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 2);
             int tok = 1 + tok_br;
             if (dbg)
                 printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n",
@@ -209,26 +209,26 @@ static int decode_coefs(Dav1dTileContext *const t,
                 const int br_ctx = get_br_ctx(levels, 1, tx_class, x, y, stride);
 
                 tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                            br_cdf[br_ctx], 4);
+                            br_cdf[br_ctx], 3);
                 tok = 3 + tok_br;
                 dbg_print_hi_tok(eob, tok + tok_br, tok_br);
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                             br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 3);
                     tok = 6 + tok_br;
                     dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                  br_cdf[br_ctx],
-                                                                 4);
+                                                                 3);
                         tok = 9 + tok_br;
                         dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                         if (tok_br == 3) {
                             tok = 12 +
                                 dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                 br_cdf[br_ctx],
-                                                                4);
+                                                                3);
                             dbg_print_hi_tok(eob, tok + tok_br, tok_br);
                         }
                     }
@@ -244,7 +244,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             // lo tok
             const int ctx = get_coef_nz_ctx(levels, tx, tx_class, x, y, stride);
             uint16_t *const lo_cdf = ts->cdf.coef.base_tok[t_dim->ctx][chroma][ctx];
-            int tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 4);
+            int tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
             if (dbg)
                 printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n",
                        t_dim->ctx, chroma, ctx, i, rc, tok, ts->msac.rng);
@@ -254,26 +254,26 @@ static int decode_coefs(Dav1dTileContext *const t,
                 const int br_ctx = get_br_ctx(levels, 1, tx_class, x, y, stride);
 
                 int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                             br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 3);
                 tok = 3 + tok_br;
                 dbg_print_hi_tok(i, tok + tok_br, tok_br);
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                             br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 3);
 
                     tok = 6 + tok_br;
                     dbg_print_hi_tok(i, tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                  br_cdf[br_ctx],
-                                                                 4);
+                                                                 3);
                         tok = 9 + tok_br;
                         dbg_print_hi_tok(i, tok + tok_br, tok_br);
                         if (tok_br == 3) {
                             tok = 12 + dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                        br_cdf[br_ctx],
-                                                                       4);
+                                                                       3);
                             dbg_print_hi_tok(i, tok + tok_br, tok_br);
                         }
                     }
@@ -287,7 +287,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             const int ctx = (tx_class != TX_CLASS_2D) ?
                 get_coef_nz_ctx(levels, tx, tx_class, 0, 0, stride) : 0;
             uint16_t *const lo_cdf = ts->cdf.coef.base_tok[t_dim->ctx][chroma][ctx];
-            dc_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 4);
+            dc_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
             if (dbg)
                 printf("Post-dc_lo_tok[%d][%d][%d][%d]: r=%d\n",
                        t_dim->ctx, chroma, ctx, dc_tok, ts->msac.rng);
@@ -302,27 +302,27 @@ static int decode_coefs(Dav1dTileContext *const t,
                 const int br_ctx = get_br_ctx(levels, 0, tx_class, 0, 0, stride);
 
                 int tok_br =
-                    dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[br_ctx], 4);
+                    dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[br_ctx], 3);
                 dc_tok = 3 + tok_br;
 
                 dbg_print_hi_tok(dc_tok + tok_br, tok_br);
 
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                             br_cdf[br_ctx], 4);
+                                                             br_cdf[br_ctx], 3);
                     dc_tok = 6 + tok_br;
                     dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                  br_cdf[br_ctx],
-                                                                 4);
+                                                                 3);
                         dc_tok = 9 + tok_br;
                         dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                         if (tok_br == 3) {
                             dc_tok = 12 +
                                 dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                                                 br_cdf[br_ctx],
-                                                                4);
+                                                                3);
                             dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                         }
                     }
@@ -332,7 +332,7 @@ static int decode_coefs(Dav1dTileContext *const t,
         }
     } else { // dc-only
         uint16_t *const lo_cdf = ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma][0];
-        int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 3);
+        int tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, lo_cdf, 2);
         dc_tok = 1 + tok_br;
         if (dbg)
             printf("Post-dc_lo_tok[%d][%d][%d][%d]: r=%d\n",
@@ -345,24 +345,24 @@ static int decode_coefs(Dav1dTileContext *const t,
         printf("Post-dc_hi_tok[%d][%d][0][%d->%d]: r=%d\n", \
                imin(t_dim->ctx, 3), chroma, tok_br, dc_tok, ts->msac.rng);
 
-            tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 4);
+            tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 3);
             dc_tok = 3 + tok_br;
 
             dbg_print_hi_tok(dc_tok + tok_br, tok_br);
 
             if (tok_br == 3) {
-                tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 4);
+                tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac, br_cdf[0], 3);
                 dc_tok = 6 + tok_br;
                 dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                 if (tok_br == 3) {
                     tok_br = dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                             br_cdf[0], 4);
+                                                             br_cdf[0], 3);
                     dc_tok = 9 + tok_br;
                     dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     if (tok_br == 3) {
                         dc_tok = 12 +
                             dav1d_msac_decode_symbol_adapt4(&ts->msac,
-                                                            br_cdf[0], 4);
+                                                            br_cdf[0], 3);
                         dbg_print_hi_tok(dc_tok + tok_br, tok_br);
                     }
                 }

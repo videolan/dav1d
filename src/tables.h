@@ -52,6 +52,7 @@ extern const uint8_t /* enum TxfmType */
 extern const uint8_t /* enum InterPredMode */
                      dav1d_comp_inter_pred_modes[N_COMP_INTER_PRED_MODES][2];
 
+extern const uint8_t dav1d_partition_type_count[N_BL_LEVELS];
 extern const uint8_t /* enum TxfmType */ dav1d_tx_types_per_set[40];
 
 extern const uint8_t dav1d_filter_mode_to_y_mode[5];
