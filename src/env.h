@@ -90,34 +90,31 @@ static inline int get_partition_ctx(const BlockContext *const a,
           (((l->partition[yb8] >> (4 - bl)) & 1) << 1);
 }
 
-static inline unsigned cdf_element_prob(const uint16_t *const cdf, const int e) {
-    assert(e > 0);
-    return cdf[e - 1] - cdf[e];
-}
-
 static inline unsigned gather_left_partition_prob(const uint16_t *const in,
                                                   const enum BlockLevel bl)
 {
-    unsigned out = 0;
-    out += cdf_element_prob(in, PARTITION_H);
-    if (bl != BL_128X128)
-        out += cdf_element_prob(in, PARTITION_H4);
+    unsigned out = in[PARTITION_H - 1] - in[PARTITION_H];
     // Exploit the fact that cdfs for PARTITION_SPLIT, PARTITION_T_TOP_SPLIT,
-    //  PARTITION_T_BOTTOM_SPLIT and PARTITION_T_LEFT_SPLIT are neighbors.
+    // PARTITION_T_BOTTOM_SPLIT and PARTITION_T_LEFT_SPLIT are neighbors.
     out += in[PARTITION_SPLIT - 1] - in[PARTITION_T_LEFT_SPLIT];
+    if (bl != BL_128X128)
+        out += in[PARTITION_H4 - 1] - in[PARTITION_H4];
     return out;
 }
 
 static inline unsigned gather_top_partition_prob(const uint16_t *const in,
                                                  const enum BlockLevel bl)
 {
-    unsigned out = 0;
+    // Exploit the fact that cdfs for PARTITION_V, PARTITION_SPLIT and
+    // PARTITION_T_TOP_SPLIT are neighbors.
+    unsigned out = in[PARTITION_V - 1] - in[PARTITION_T_TOP_SPLIT];
+    // Exploit the facts that cdfs for PARTITION_T_LEFT_SPLIT and
+    // PARTITION_T_RIGHT_SPLIT are neighbors, the probability for
+    // PARTITION_V4 is always zero, and the probability for
+    // PARTITION_T_RIGHT_SPLIT is zero in 128x128 blocks.
+    out += in[PARTITION_T_LEFT_SPLIT - 1];
     if (bl != BL_128X128)
-        out += cdf_element_prob(in, PARTITION_V4);
-    // Exploit the fact that cdfs for PARTITION_T_LEFT_SPLIT and PARTITION_T_RIGHT_SPLIT,
-    //  and PARTITION_V, PARTITION_SPLIT and PARTITION_T_TOP_SPLIT are neighbors.
-    out += in[PARTITION_T_LEFT_SPLIT - 1] - in[PARTITION_T_RIGHT_SPLIT];
-    out += in[PARTITION_V - 1] - in[PARTITION_T_TOP_SPLIT];
+        out += in[PARTITION_V4 - 1] - in[PARTITION_T_RIGHT_SPLIT];
     return out;
 }
 
