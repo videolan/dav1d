@@ -703,6 +703,7 @@ void checkasm_set_signal_handler_state(const int enabled) {
         RemoveVectoredExceptionHandler(signal_handler);
 #else
     void (*const handler)(int) = enabled ? signal_handler : SIG_DFL;
+    signal(SIGBUS,  handler);
     signal(SIGFPE,  handler);
     signal(SIGILL,  handler);
     signal(SIGSEGV, handler);
