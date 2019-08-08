@@ -118,27 +118,6 @@ static inline unsigned gather_top_partition_prob(const uint16_t *const in,
     return out;
 }
 
-static inline enum TxfmTypeSet get_ext_txtp_set(const TxfmInfo *const t_dim,
-                                                const int inter,
-                                                const int reduced_txtp_set)
-{
-    if (t_dim->max >= TX_64X64)
-        return TXTP_SET_DCT;
-
-    if (t_dim->max == TX_32X32)
-        return inter ? TXTP_SET_DCT_ID : TXTP_SET_DCT;
-
-    if (reduced_txtp_set)
-        return inter ? TXTP_SET_DCT_ID : TXTP_SET_DT4_ID;
-
-    const enum TxfmSize txsqsz = t_dim->min;
-
-    if (inter)
-        return txsqsz == TX_16X16 ? TXTP_SET_DT9_ID_1D : TXTP_SET_ALL;
-    else
-        return txsqsz == TX_16X16 ? TXTP_SET_DT4_ID : TXTP_SET_DT4_ID_1D;
-}
-
 static inline enum TxfmType get_uv_inter_txtp(const TxfmInfo *const uvt_dim,
                                               const enum TxfmType ytxtp)
 {

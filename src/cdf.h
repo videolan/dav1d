@@ -64,8 +64,11 @@ typedef struct CdfModeContext {
     uint16_t comp_uni_ref[3][3][2];
     uint16_t txsz[N_TX_SIZES - 1][3][4];
     uint16_t txpart[7][3][2];
-    uint16_t txtp_inter[4][N_TX_SIZES][N_TX_TYPES + 1];
-    uint16_t txtp_intra[3][N_TX_SIZES][N_INTRA_PRED_MODES][N_TX_TYPES + 1];
+    uint16_t txtp_inter1[2][16 + 1];
+    uint16_t txtp_inter2[12 + 1 + 3];
+    uint16_t txtp_inter3[4][2];
+    uint16_t txtp_intra1[2][N_INTRA_PRED_MODES][7 + 1];
+    uint16_t txtp_intra2[3][N_INTRA_PRED_MODES][5 + 1 + 2];
     uint16_t skip[3][2];
     uint16_t skip_mode[3][2];
     uint16_t partition[N_BL_LEVELS][4][N_PARTITIONS + 1 + 5];
@@ -94,8 +97,8 @@ typedef struct CdfCoefContext {
     uint16_t eob_bin_64[2][2][8];
     uint16_t eob_bin_128[2][2][9];
     uint16_t eob_bin_256[2][2][10 + 6];
-    uint16_t eob_bin_512[2][2][11 + 5];
-    uint16_t eob_bin_1024[2][2][12 + 4];
+    uint16_t eob_bin_512[2][11 + 5];
+    uint16_t eob_bin_1024[2][12 + 4];
     uint16_t eob_hi_bit[N_TX_SIZES][2][11 /*22*/][2];
     uint16_t eob_base_tok[N_TX_SIZES][2][4][4];
     uint16_t base_tok[N_TX_SIZES][2][41][5];

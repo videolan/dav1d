@@ -225,37 +225,18 @@ const uint8_t /* enum InterPredMode */
     [NEARMV_NEWMV]        = { NEARMV,    NEWMV     },
 };
 
-const uint8_t dav1d_tx_type_count[N_TXTP_SETS] = {
-    [TXTP_SET_DCT] = 1,
-    [TXTP_SET_DCT_ID] = 2,
-    [TXTP_SET_DT4_ID] = 5,
-    [TXTP_SET_DT4_ID_1D] = 7,
-    [TXTP_SET_DT9_ID_1D] = 12,
-    [TXTP_SET_ALL] = 16,
-    [TXTP_SET_LOSSLESS] = 1,
-};
-
-const uint8_t /* enum TxfmType */
-              dav1d_tx_types_per_set[N_TXTP_SETS][N_TX_TYPES] =
-{
-    [TXTP_SET_DCT]       = { DCT_DCT },
-    [TXTP_SET_DCT_ID]    = { IDTX, DCT_DCT },
-    [TXTP_SET_DT4_ID]    = { IDTX, DCT_DCT, ADST_ADST, ADST_DCT, DCT_ADST },
-    [TXTP_SET_DT4_ID_1D] = { IDTX, DCT_DCT, V_DCT, H_DCT, ADST_ADST, ADST_DCT,
-                             DCT_ADST },
-    [TXTP_SET_DT9_ID_1D] = { IDTX, V_DCT, H_DCT, DCT_DCT, ADST_DCT, DCT_ADST,
-                             FLIPADST_DCT, DCT_FLIPADST, ADST_ADST,
-                             FLIPADST_FLIPADST, ADST_FLIPADST, FLIPADST_ADST },
-    [TXTP_SET_ALL]       = { IDTX, V_DCT, H_DCT, V_ADST, H_ADST, V_FLIPADST,
-                             H_FLIPADST, DCT_DCT, ADST_DCT, DCT_ADST,
-                             FLIPADST_DCT, DCT_FLIPADST, ADST_ADST,
-                             FLIPADST_FLIPADST, ADST_FLIPADST, FLIPADST_ADST },
-    [TXTP_SET_LOSSLESS]  = { WHT_WHT },
-};
-
-const uint8_t dav1d_tx_type_set_index[2][N_TXTP_SETS] = {
-    { 0, -1,  2,  1, -1, -1, 3 },
-    { 0,  3, -1, -1,  2,  1, 4 },
+const uint8_t /* enum TxfmType */ dav1d_tx_types_per_set[40] = {
+    /* Intra2 */
+    IDTX, DCT_DCT, ADST_ADST, ADST_DCT, DCT_ADST,
+    /* Intra1 */
+    IDTX, DCT_DCT, V_DCT, H_DCT, ADST_ADST, ADST_DCT, DCT_ADST,
+    /* Inter2 */
+    IDTX, V_DCT, H_DCT, DCT_DCT, ADST_DCT, DCT_ADST, FLIPADST_DCT,
+    DCT_FLIPADST, ADST_ADST, FLIPADST_FLIPADST, ADST_FLIPADST, FLIPADST_ADST,
+    /* Inter1 */
+    IDTX, V_DCT, H_DCT, V_ADST, H_ADST, V_FLIPADST, H_FLIPADST,
+    DCT_DCT, ADST_DCT, DCT_ADST, FLIPADST_DCT, DCT_FLIPADST,
+    ADST_ADST, FLIPADST_FLIPADST, ADST_FLIPADST, FLIPADST_ADST,
 };
 
 const uint8_t dav1d_ymode_size_context[N_BS_SIZES] = {

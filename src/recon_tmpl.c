@@ -82,47 +82,55 @@ static int decode_coefs(Dav1dTileContext *const t,
                t_dim->ctx, sctx, all_skip, ts->msac.rng);
     if (all_skip) {
         *res_ctx = 0x40;
-        *txtp = lossless ? WHT_WHT : DCT_DCT;
+        *txtp = lossless * WHT_WHT; /* lossless ? WHT_WHT : DCT_DCT */
         return -1;
     }
 
     // transform type (chroma: derived, luma: explicitly coded)
     if (lossless) {
-        assert(t_dim->max == (int) TX_4X4);
+        assert(t_dim->max == TX_4X4);
         *txtp = WHT_WHT;
+    } else if (!f->frame_hdr->segmentation.qidx[b->seg_id] ||
+               t_dim->max + intra >= TX_64X64)
+    {
+        *txtp = DCT_DCT;
     } else if (chroma) {
-        if (intra) {
-            *txtp = t_dim->max == TX_32X32 ?
-                DCT_DCT : dav1d_txtp_from_uvmode[b->uv_mode];
-        } else {
-            const enum TxfmType y_txtp = *txtp;
-            *txtp = get_uv_inter_txtp(t_dim, y_txtp);
-        }
+        *txtp = intra ? dav1d_txtp_from_uvmode[b->uv_mode] :
+                        get_uv_inter_txtp(t_dim, *txtp);
     } else {
-        if (!f->frame_hdr->segmentation.qidx[b->seg_id]) {
-            *txtp = DCT_DCT;
-        } else {
-            const enum TxfmTypeSet set =
-                get_ext_txtp_set(t_dim, !intra, f->frame_hdr->reduced_txtp_set);
-            if (set == TXTP_SET_DCT)
-                *txtp = DCT_DCT;
-            else {
-                const unsigned set_cnt = dav1d_tx_type_count[set];
-                const int set_idx = dav1d_tx_type_set_index[!intra][set];
-                const enum IntraPredMode y_mode_nofilt = intra ? b->y_mode == FILTER_PRED ?
-                    dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode : 0;
-                uint16_t *const txtp_cdf = intra ?
-                          ts->cdf.m.txtp_intra[set_idx][t_dim->min][y_mode_nofilt] :
-                          ts->cdf.m.txtp_inter[set_idx][t_dim->min];
-                const unsigned idx = (set_cnt <= 8 ? dav1d_msac_decode_symbol_adapt8 :
-                        dav1d_msac_decode_symbol_adapt16)(&ts->msac, txtp_cdf, set_cnt);
-
-                *txtp = dav1d_tx_types_per_set[set][idx];
-                if (dbg)
-                    printf("Post-txtp[%d->%d][%d->%d][%d][%d->%d]: r=%d\n",
-                           set, set_idx, tx, t_dim->min, intra ? (int)y_mode_nofilt : -1,
-                           idx, dav1d_tx_types_per_set[set][idx], ts->msac.rng);
+        unsigned idx;
+        if (intra) {
+            const enum IntraPredMode y_mode_nofilt = b->y_mode == FILTER_PRED ?
+                dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode;
+            if (f->frame_hdr->reduced_txtp_set || t_dim->min == TX_16X16) {
+                idx = dav1d_msac_decode_symbol_adapt4(&ts->msac,
+                          ts->cdf.m.txtp_intra2[t_dim->min][y_mode_nofilt], 5);
+                *txtp = dav1d_tx_types_per_set[idx + 0];
+            } else {
+                idx = dav1d_msac_decode_symbol_adapt8(&ts->msac,
+                          ts->cdf.m.txtp_intra1[t_dim->min][y_mode_nofilt], 7);
+                *txtp = dav1d_tx_types_per_set[idx + 5];
             }
+            if (dbg)
+                printf("Post-txtp-intra[%d->%d][%d][%d->%d]: r=%d\n",
+                       tx, t_dim->min, y_mode_nofilt, idx, *txtp, ts->msac.rng);
+        } else {
+            if (f->frame_hdr->reduced_txtp_set || t_dim->max == TX_32X32) {
+                idx = dav1d_msac_decode_bool_adapt(&ts->msac,
+                          ts->cdf.m.txtp_inter3[t_dim->min]);
+                *txtp = (idx - 1) & IDTX; /* idx ? DCT_DCT : IDTX */
+            } else if (t_dim->min == TX_16X16) {
+                idx = dav1d_msac_decode_symbol_adapt16(&ts->msac,
+                          ts->cdf.m.txtp_inter2, 12);
+                *txtp = dav1d_tx_types_per_set[idx + 12];
+            } else {
+                idx = dav1d_msac_decode_symbol_adapt16(&ts->msac,
+                          ts->cdf.m.txtp_inter1[t_dim->min], 16);
+                *txtp = dav1d_tx_types_per_set[idx + 24];
+            }
+            if (dbg)
+                printf("Post-txtp-inter[%d->%d][%d->%d]: r=%d\n",
+                       tx, t_dim->min, idx, *txtp, ts->msac.rng);
         }
     }
 
@@ -132,19 +140,19 @@ static int decode_coefs(Dav1dTileContext *const t,
     const enum TxClass tx_class = dav1d_tx_type_class[*txtp];
     const int is_1d = tx_class != TX_CLASS_2D;
     switch (tx2dszctx) {
-#define case_sz(sz, bin, ns) \
+#define case_sz(sz, bin, ns, is_1d) \
     case sz: { \
-        uint16_t *const eob_bin_cdf = ts->cdf.coef.eob_bin_##bin[chroma][is_1d]; \
+        uint16_t *const eob_bin_cdf = ts->cdf.coef.eob_bin_##bin[chroma]is_1d; \
         eob_bin = dav1d_msac_decode_symbol_adapt##ns(&ts->msac, eob_bin_cdf, 5 + sz); \
         break; \
     }
-    case_sz(0,   16,  4);
-    case_sz(1,   32,  8);
-    case_sz(2,   64,  8);
-    case_sz(3,  128,  8);
-    case_sz(4,  256, 16);
-    case_sz(5,  512, 16);
-    case_sz(6, 1024, 16);
+    case_sz(0,   16,  4, [is_1d]);
+    case_sz(1,   32,  8, [is_1d]);
+    case_sz(2,   64,  8, [is_1d]);
+    case_sz(3,  128,  8, [is_1d]);
+    case_sz(4,  256, 16, [is_1d]);
+    case_sz(5,  512, 16,        );
+    case_sz(6, 1024, 16,        );
 #undef case_sz
     }
     if (dbg)
