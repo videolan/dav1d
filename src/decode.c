@@ -673,8 +673,6 @@ static inline unsigned get_prev_frame_segid(const Dav1dFrameContext *const f,
                                             const uint8_t *ref_seg_map,
                                             const ptrdiff_t stride)
 {
-    unsigned seg_id = 8;
-
     assert(f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
     if (dav1d_thread_picture_wait(&f->refp[f->frame_hdr->primary_ref_frame],
                                   (by + h4) * 4, PLANE_TYPE_BLOCK))
@@ -682,12 +680,13 @@ static inline unsigned get_prev_frame_segid(const Dav1dFrameContext *const f,
         return 8;
     }
 
+    unsigned seg_id = 8;
     ref_seg_map += by * stride + bx;
     do {
         for (int x = 0; x < w4; x++)
             seg_id = imin(seg_id, ref_seg_map[x]);
         ref_seg_map += stride;
-    } while (--h4 > 0);
+    } while (--h4 > 0 && seg_id);
     assert(seg_id < 8);
 
     return seg_id;
