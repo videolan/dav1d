@@ -29,7 +29,6 @@
 #include "vcs_version.h"
 #include "cli_config.h"
 
-#include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>

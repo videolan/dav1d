@@ -27,7 +27,6 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -1275,8 +1274,10 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, int global) {
             c->frame_hdr_ref = dav1d_ref_create(sizeof(Dav1dFrameHeader));
             if (!c->frame_hdr_ref) return DAV1D_ERR(ENOMEM);
         }
+#ifndef NDEBUG
         // ensure that the reference is writable
         assert(dav1d_ref_is_writable(c->frame_hdr_ref));
+#endif
         c->frame_hdr = c->frame_hdr_ref->data;
         memset(c->frame_hdr, 0, sizeof(*c->frame_hdr));
         c->frame_hdr->temporal_id = temporal_id;

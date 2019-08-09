@@ -28,9 +28,10 @@
 #ifndef DAV1D_SRC_MSAC_H
 #define DAV1D_SRC_MSAC_H
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+#include "common/attributes.h"
 
 typedef size_t ec_win;
 

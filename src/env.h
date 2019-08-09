@@ -28,7 +28,6 @@
 #ifndef DAV1D_SRC_ENV_H
 #define DAV1D_SRC_ENV_H
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>

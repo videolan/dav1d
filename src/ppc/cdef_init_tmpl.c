@@ -24,16 +24,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 
-#include "src/ppc/types.h"
-
 #include "common/bitdepth.h"
-
-#include "src/cpu.h"
-#include "src/cdef.h"
 #include "common/intops.h"
+
+#include "src/cdef.h"
+#include "src/cpu.h"
+
+#include "src/ppc/types.h"
 
 #if BITDEPTH == 8
 static inline i16x8 vconstrain(const i16x8 diff, const int16_t threshold,

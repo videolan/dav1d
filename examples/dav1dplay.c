@@ -27,14 +27,14 @@
 #include "config.h"
 #include "vcs_version.h"
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <assert.h>
 #include <getopt.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <SDL.h>
 
+#include "common/attributes.h"
 
 #include "dav1d/dav1d.h"
 
