@@ -38,8 +38,7 @@
 
 #include "dav1d/dav1d.h"
 
-#include "input/input.h"
-#include "dav1d_cli_parse.h"
+#include "tools/input/input.h"
 
 /**
  * Settings structure
