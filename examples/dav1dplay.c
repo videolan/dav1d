@@ -712,6 +712,8 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     if (optind < argc)
         dp_settings_print_usage(argv[0],
             "Extra/unused arguments found, e.g. '%s'\n", argv[optind]);
+    if (!settings->inputfile)
+        dp_settings_print_usage(argv[0], "Input file (-i/--input) is required");
 }
 
 /**
@@ -776,6 +778,7 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data)
     }
 
     dav1d_default_settings(&rd_ctx->lib_settings);
+    memset(&rd_ctx->settings, 0, sizeof(rd_ctx->settings));
 
     rd_ctx->last_pts = 0;
     rd_ctx->last_ticks = 0;
