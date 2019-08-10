@@ -38,7 +38,7 @@
 /* The normal code doesn't use function pointers */
 typedef unsigned (*decode_symbol_adapt_fn)(MsacContext *s, uint16_t *cdf,
                                            size_t n_symbols);
-typedef unsigned (*decode_bool_adapt_fn)(MsacContext *s, uint16_t *cdf);
+typedef unsigned (*decode_adapt_fn)(MsacContext *s, uint16_t *cdf);
 typedef unsigned (*decode_bool_equi_fn)(MsacContext *s);
 typedef unsigned (*decode_bool_fn)(MsacContext *s, unsigned f);
 
@@ -46,9 +46,10 @@ typedef struct {
     decode_symbol_adapt_fn symbol_adapt4;
     decode_symbol_adapt_fn symbol_adapt8;
     decode_symbol_adapt_fn symbol_adapt16;
-    decode_bool_adapt_fn   bool_adapt;
+    decode_adapt_fn        bool_adapt;
     decode_bool_equi_fn    bool_equi;
     decode_bool_fn         bool;
+    decode_adapt_fn        hi_tok;
 } MsacDSPContext;
 
 static void randomize_cdf(uint16_t *const cdf, const int n) {
@@ -199,6 +200,35 @@ static void check_decode_bool(MsacDSPContext *const c, uint8_t *const buf) {
     report("decode_bool");
 }
 
+static void check_decode_hi_tok(MsacDSPContext *const c, uint8_t *const buf) {
+    ALIGN_STK_16(uint16_t, cdf, 2, [16]);
+    MsacContext s_c, s_a;
+
+    if (check_func(c->hi_tok, "msac_decode_hi_tok")) {
+        declare_func(unsigned, MsacContext *s, uint16_t *cdf);
+        for (int cdf_update = 0; cdf_update <= 1; cdf_update++) {
+            dav1d_msac_init(&s_c, buf, BUF_SIZE, !cdf_update);
+            s_a = s_c;
+            randomize_cdf(cdf[0], 3);
+            memcpy(cdf[1], cdf[0], sizeof(*cdf));
+            for (int i = 0; i < 64; i++) {
+                unsigned c_res = call_ref(&s_c, cdf[0]);
+                unsigned a_res = call_new(&s_a, cdf[1]);
+                if (c_res != a_res || msac_cmp(&s_c, &s_a) ||
+                    memcmp(cdf[0], cdf[1], sizeof(*cdf)))
+                {
+                    if (fail())
+                        msac_dump(c_res, a_res, &s_c, &s_a, cdf[0], cdf[1], 3);
+                    break;
+                }
+            }
+            if (cdf_update)
+                bench_new(&s_a, cdf[1]);
+        }
+    }
+    report("decode_hi_tok");
+}
+
 void checkasm_check_msac(void) {
     MsacDSPContext c;
     c.symbol_adapt4  = dav1d_msac_decode_symbol_adapt_c;
@@ -207,6 +237,7 @@ void checkasm_check_msac(void) {
     c.bool_adapt     = dav1d_msac_decode_bool_adapt_c;
     c.bool_equi      = dav1d_msac_decode_bool_equi_c;
     c.bool           = dav1d_msac_decode_bool_c;
+    c.hi_tok         = dav1d_msac_decode_hi_tok_c;
 
 #if ARCH_AARCH64 && HAVE_ASM
     if (dav1d_get_cpu_flags() & DAV1D_ARM_CPU_FLAG_NEON) {
@@ -225,6 +256,7 @@ void checkasm_check_msac(void) {
         c.bool_adapt     = dav1d_msac_decode_bool_adapt_sse2;
         c.bool_equi      = dav1d_msac_decode_bool_equi_sse2;
         c.bool           = dav1d_msac_decode_bool_sse2;
+        c.hi_tok         = dav1d_msac_decode_hi_tok_sse2;
     }
 #endif
 
@@ -234,4 +266,5 @@ void checkasm_check_msac(void) {
 
     check_decode_symbol(&c, buf);
     check_decode_bool(&c, buf);
+    check_decode_hi_tok(&c, buf);
 }

@@ -171,6 +171,22 @@ unsigned dav1d_msac_decode_bool_adapt_c(MsacContext *const s,
     return bit;
 }
 
+unsigned dav1d_msac_decode_hi_tok_c(MsacContext *const s, uint16_t *const cdf) {
+    unsigned tok_br = dav1d_msac_decode_symbol_adapt4(s, cdf, 3);
+    unsigned tok = 3 + tok_br;
+    if (tok_br == 3) {
+        tok_br = dav1d_msac_decode_symbol_adapt4(s, cdf, 3);
+        tok = 6 + tok_br;
+        if (tok_br == 3) {
+            tok_br = dav1d_msac_decode_symbol_adapt4(s, cdf, 3);
+            tok = 9 + tok_br;
+            if (tok_br == 3)
+                tok = 12 + dav1d_msac_decode_symbol_adapt4(s, cdf, 3);
+        }
+    }
+    return tok;
+}
+
 void dav1d_msac_init(MsacContext *const s, const uint8_t *const data,
                      const size_t sz, const int disable_cdf_update_flag)
 {
