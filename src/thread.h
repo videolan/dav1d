@@ -130,7 +130,7 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 
 #include <pthread.h>
 
-#define dav1d_init_thread() while (0)
+#define dav1d_init_thread() do {} while (0)
 
 /* Thread naming support */
 
@@ -169,7 +169,7 @@ static inline void dav1d_set_thread_name(const char *const name) {
 
 #else
 
-#define dav1d_set_thread_name(name) while (0)
+#define dav1d_set_thread_name(name) do {} while (0)
 
 #endif
 

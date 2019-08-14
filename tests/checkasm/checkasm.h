@@ -279,7 +279,7 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
         }\
     } while (0)
 #else
-#define bench_new(...) while (0)
+#define bench_new(...) do {} while (0)
 #endif
 
 #define DECL_CHECKASM_CHECK_FUNC(type) \
