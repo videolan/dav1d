@@ -309,14 +309,14 @@ struct Dav1dTileContext {
             uint16_t edge_16bpc[257];
         };
         struct {
-            uint8_t pal_idx[2 * 64 * 64];
             union {
+                uint8_t levels[32 * 34];
                 struct {
                     uint8_t pal_order[64][8];
                     uint8_t pal_ctx[64];
                 };
-                uint8_t levels[36 * 36];
             };
+            uint8_t pal_idx[2 * 64 * 64];
             uint16_t pal[3 /* plane */][8 /* palette_idx */];
         };
         int16_t ac[32 * 32];
