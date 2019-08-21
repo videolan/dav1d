@@ -177,7 +177,7 @@ static int decode_coefs(Dav1dTileContext *const t,
     // base tokens
     uint16_t (*const br_cdf)[4] =
         ts->cdf.coef.br_tok[imin(t_dim->ctx, 3)][chroma];
-    const int16_t *const scan = dav1d_scans[tx][tx_class];
+    const uint16_t *const scan = dav1d_scans[tx][tx_class];
     int dc_tok;
 
     if (eob) {
