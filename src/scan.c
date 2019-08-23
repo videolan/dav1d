@@ -42,12 +42,6 @@ static const uint16_t ALIGN(av1_mrow_scan_4x4[], 32) = {
      2,  6, 10, 14,
      3,  7, 11, 15,
 };
-static const uint16_t ALIGN(av1_mcol_scan_4x4[], 32) = {
-     0,  1,  2,  3,
-     4,  5,  6,  7,
-     8,  9, 10, 11,
-    12, 13, 14, 15,
-};
 static const uint16_t ALIGN(av1_default_scan_4x8[], 32) = {
      0,  8,  1, 16,
      9,  2, 24, 17,
@@ -67,16 +61,6 @@ static const uint16_t ALIGN(av1_mrow_scan_4x8[], 32) = {
      5, 13, 21, 29,
      6, 14, 22, 30,
      7, 15, 23, 31,
-};
-static const uint16_t ALIGN(av1_mcol_scan_4x8[], 32) = {
-     0,  1,  2,  3,
-     4,  5,  6,  7,
-     8,  9, 10, 11,
-    12, 13, 14, 15,
-    16, 17, 18, 19,
-    20, 21, 22, 23,
-    24, 25, 26, 27,
-    28, 29, 30, 31,
 };
 static const uint16_t ALIGN(av1_default_scan_4x16[], 32) = {
      0, 16,  1, 32,
@@ -114,24 +98,6 @@ static const uint16_t ALIGN(av1_mrow_scan_4x16[], 32) = {
     14, 30, 46, 62,
     15, 31, 47, 63,
 };
-static const uint16_t ALIGN(av1_mcol_scan_4x16[], 32) = {
-     0,  1,  2,  3,
-     4,  5,  6,  7,
-     8,  9, 10, 11,
-    12, 13, 14, 15,
-    16, 17, 18, 19,
-    20, 21, 22, 23,
-    24, 25, 26, 27,
-    28, 29, 30, 31,
-    32, 33, 34, 35,
-    36, 37, 38, 39,
-    40, 41, 42, 43,
-    44, 45, 46, 47,
-    48, 49, 50, 51,
-    52, 53, 54, 55,
-    56, 57, 58, 59,
-    60, 61, 62, 63,
-};
 static const uint16_t ALIGN(av1_default_scan_8x4[], 32) = {
      0,  1,  4,  2,  5,  8,  3,  6,
      9, 12,  7, 10, 13, 16, 11, 14,
@@ -143,12 +109,6 @@ static const uint16_t ALIGN(av1_mrow_scan_8x4[], 32) = {
      1,  5,  9, 13, 17, 21, 25, 29,
      2,  6, 10, 14, 18, 22, 26, 30,
      3,  7, 11, 15, 19, 23, 27, 31,
-};
-static const uint16_t ALIGN(av1_mcol_scan_8x4[], 32) = {
-     0,  1,  2,  3,  4,  5,  6,  7,
-     8,  9, 10, 11, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23,
-    24, 25, 26, 27, 28, 29, 30, 31,
 };
 static const uint16_t ALIGN(av1_default_scan_8x8[], 32) = {
      0,  8,  1,  2,  9, 16, 24, 17,
@@ -169,16 +129,6 @@ static const uint16_t ALIGN(av1_mrow_scan_8x8[], 32) = {
      5, 13, 21, 29, 37, 45, 53, 61,
      6, 14, 22, 30, 38, 46, 54, 62,
      7, 15, 23, 31, 39, 47, 55, 63,
-};
-static const uint16_t ALIGN(av1_mcol_scan_8x8[], 32) = {
-     0,  1,  2,  3,  4,  5,  6,  7,
-     8,  9, 10, 11, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23,
-    24, 25, 26, 27, 28, 29, 30, 31,
-    32, 33, 34, 35, 36, 37, 38, 39,
-    40, 41, 42, 43, 44, 45, 46, 47,
-    48, 49, 50, 51, 52, 53, 54, 55,
-    56, 57, 58, 59, 60, 61, 62, 63,
 };
 static const uint16_t ALIGN(av1_default_scan_8x16[], 32) = {
       0,  16,   1,  32,  17,   2,  48,  33,
@@ -215,24 +165,6 @@ static const uint16_t ALIGN(av1_mrow_scan_8x16[], 32) = {
      13,  29,  45,  61,  77,  93, 109, 125,
      14,  30,  46,  62,  78,  94, 110, 126,
      15,  31,  47,  63,  79,  95, 111, 127,
-};
-static const uint16_t ALIGN(av1_mcol_scan_8x16[], 32) = {
-      0,   1,   2,   3,   4,   5,   6,   7,
-      8,   9,  10,  11,  12,  13,  14,  15,
-     16,  17,  18,  19,  20,  21,  22,  23,
-     24,  25,  26,  27,  28,  29,  30,  31,
-     32,  33,  34,  35,  36,  37,  38,  39,
-     40,  41,  42,  43,  44,  45,  46,  47,
-     48,  49,  50,  51,  52,  53,  54,  55,
-     56,  57,  58,  59,  60,  61,  62,  63,
-     64,  65,  66,  67,  68,  69,  70,  71,
-     72,  73,  74,  75,  76,  77,  78,  79,
-     80,  81,  82,  83,  84,  85,  86,  87,
-     88,  89,  90,  91,  92,  93,  94,  95,
-     96,  97,  98,  99, 100, 101, 102, 103,
-    104, 105, 106, 107, 108, 109, 110, 111,
-    112, 113, 114, 115, 116, 117, 118, 119,
-    120, 121, 122, 123, 124, 125, 126, 127,
 };
 static const uint16_t ALIGN(av1_default_scan_8x32[], 32) = {
       0,  32,   1,  64,  33,   2,  96,  65,
@@ -280,12 +212,6 @@ static const uint16_t ALIGN(av1_mrow_scan_16x4[], 32) = {
      2,  6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62,
      3,  7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63,
 };
-static const uint16_t ALIGN(av1_mcol_scan_16x4[], 32) = {
-     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-    32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
-    48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-};
 static const uint16_t ALIGN(av1_default_scan_16x8[], 32) = {
       0,   1,   8,   2,   9,  16,   3,  10,  17,  24,   4,  11,  18,  25,  32,   5,
      12,  19,  26,  33,  40,   6,  13,  20,  27,  34,  41,  48,   7,  14,  21,  28,
@@ -305,16 +231,6 @@ static const uint16_t ALIGN(av1_mrow_scan_16x8[], 32) = {
       5,  13,  21,  29,  37,  45,  53,  61,  69,  77,  85,  93, 101, 109, 117, 125,
       6,  14,  22,  30,  38,  46,  54,  62,  70,  78,  86,  94, 102, 110, 118, 126,
       7,  15,  23,  31,  39,  47,  55,  63,  71,  79,  87,  95, 103, 111, 119, 127,
-};
-static const uint16_t ALIGN(av1_mcol_scan_16x8[], 32) = {
-      0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,
-     16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,
-     32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,
-     48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,
-     64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,
-     80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,
-     96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-    112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
 };
 static const uint16_t ALIGN(av1_default_scan_16x16[], 32) = {
       0,  16,   1,   2,  17,  32,  48,  33,  18,   3,   4,  19,  34,  49,  64,  80,
@@ -471,11 +387,11 @@ const uint16_t *const dav1d_scans[N_RECT_TX_SIZES][3] = {
     [TX_4X4] = {
         [TX_CLASS_2D] = av1_default_scan_4x4,
         [TX_CLASS_V]  = av1_mrow_scan_4x4,
-        [TX_CLASS_H]  = av1_mcol_scan_4x4,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [TX_8X8] = {
         [TX_CLASS_2D] = av1_default_scan_8x8,
         [TX_CLASS_V]  = av1_mrow_scan_8x8,
-        [TX_CLASS_H]  = av1_mcol_scan_8x8,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [TX_16X16] = {
         [TX_CLASS_2D] = av1_default_scan_16x16,
         [TX_CLASS_V]  = av1_mrow_scan_16x16,
@@ -487,19 +403,19 @@ const uint16_t *const dav1d_scans[N_RECT_TX_SIZES][3] = {
     }, [RTX_4X8] = {
         [TX_CLASS_2D] = av1_default_scan_4x8,
         [TX_CLASS_V]  = av1_mrow_scan_4x8,
-        [TX_CLASS_H]  = av1_mcol_scan_4x8,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_8X4] = {
         [TX_CLASS_2D] = av1_default_scan_8x4,
         [TX_CLASS_V]  = av1_mrow_scan_8x4,
-        [TX_CLASS_H]  = av1_mcol_scan_8x4,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_8X16] = {
         [TX_CLASS_2D] = av1_default_scan_8x16,
         [TX_CLASS_V]  = av1_mrow_scan_8x16,
-        [TX_CLASS_H]  = av1_mcol_scan_8x16,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_16X8] = {
         [TX_CLASS_2D] = av1_default_scan_16x8,
         [TX_CLASS_V]  = av1_mrow_scan_16x8,
-        [TX_CLASS_H]  = av1_mcol_scan_16x8,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_16X32] = {
         [TX_CLASS_2D] = av1_default_scan_16x32,
     }, [RTX_32X16] = {
@@ -511,11 +427,11 @@ const uint16_t *const dav1d_scans[N_RECT_TX_SIZES][3] = {
     }, [RTX_4X16] = {
         [TX_CLASS_2D] = av1_default_scan_4x16,
         [TX_CLASS_V]  = av1_mrow_scan_4x16,
-        [TX_CLASS_H]  = av1_mcol_scan_4x16,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_16X4] = {
         [TX_CLASS_2D] = av1_default_scan_16x4,
         [TX_CLASS_V]  = av1_mrow_scan_16x4,
-        [TX_CLASS_H]  = av1_mcol_scan_16x4,
+        [TX_CLASS_H]  = av1_mcol_scan_16x16,
     }, [RTX_8X32] = {
         [TX_CLASS_2D] = av1_default_scan_8x32,
     }, [RTX_32X8] = {
