@@ -235,7 +235,8 @@ struct Dav1dFrameContext {
         pthread_cond_t cond, icond;
         int tasks_left, num_tasks;
         int (*task_idx_to_sby_and_tile_idx)[2];
-        int titsati_sz, titsati_init[3];
+        int titsati_sz, titsati_init[2];
+        uint16_t titsati_index_rows[1 + DAV1D_MAX_TILE_ROWS];
         int inited;
     } tile_thread;
 };

@@ -2595,8 +2595,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->tile_thread.titsati_sz = titsati_sz;
         }
         if (f->tile_thread.titsati_init[0] != f->frame_hdr->tiling.cols ||
-            f->tile_thread.titsati_init[1] != f->sbh ||
-            f->tile_thread.titsati_init[2] != f->frame_hdr->tiling.rows)
+            f->tile_thread.titsati_init[1] != f->frame_hdr->tiling.rows ||
+            memcmp(f->frame_hdr->tiling.row_start_sb, f->tile_thread.titsati_index_rows,
+                   sizeof(*f->tile_thread.titsati_index_rows) *
+                       (f->frame_hdr->tiling.rows + 1)))
         {
             for (int tile_row = 0, tile_idx = 0;
                  tile_row < f->frame_hdr->tiling.rows; tile_row++)
@@ -2614,8 +2616,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 }
             }
             f->tile_thread.titsati_init[0] = f->frame_hdr->tiling.cols;
-            f->tile_thread.titsati_init[1] = f->sbh;
-            f->tile_thread.titsati_init[2] = f->frame_hdr->tiling.rows;
+            f->tile_thread.titsati_init[1] = f->frame_hdr->tiling.rows;
+            memcpy(f->tile_thread.titsati_index_rows, f->frame_hdr->tiling.row_start_sb,
+                   sizeof(*f->tile_thread.titsati_index_rows) *
+                       (f->frame_hdr->tiling.rows + 1));
         }
     }
 
