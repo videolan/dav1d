@@ -1067,15 +1067,17 @@ static int warp_affine(Dav1dTileContext *const t,
             // luma pixel units
             const int src_x = t->bx * 4 + ((x + 4) << ss_hor);
             const int src_y = t->by * 4 + ((y + 4) << ss_ver);
-            const int mvx = (mat[2] * src_x + mat[3] * src_y + mat[0]) >> ss_hor;
-            const int mvy = (mat[4] * src_x + mat[5] * src_y + mat[1]) >> ss_ver;
+            const int64_t mvx = ((int64_t) mat[2] * src_x +
+                                 (int64_t) mat[3] * src_y + mat[0]) >> ss_hor;
+            const int64_t mvy = ((int64_t) mat[4] * src_x +
+                                 (int64_t) mat[5] * src_y + mat[1]) >> ss_ver;
 
-            const int dx = (mvx >> 16) - 4;
-            const int mx = ((mvx & 0xffff) - wmp->alpha * 4 -
-                                             wmp->beta  * 7) & ~0x3f;
-            const int dy = (mvy >> 16) - 4;
-            const int my = ((mvy & 0xffff) - wmp->gamma * 4 -
-                                             wmp->delta * 4) & ~0x3f;
+            const int dx = (int) (mvx >> 16) - 4;
+            const int mx = (((int) mvx & 0xffff) - wmp->alpha * 4 -
+                                                   wmp->beta  * 7) & ~0x3f;
+            const int dy = (int) (mvy >> 16) - 4;
+            const int my = (((int) mvy & 0xffff) - wmp->gamma * 4 -
+                                                   wmp->delta * 4) & ~0x3f;
 
             const pixel *ref_ptr;
             ptrdiff_t ref_stride = refp->p.stride[!!pl];
