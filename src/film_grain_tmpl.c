@@ -185,7 +185,7 @@ static void generate_scaling(const int bitdepth,
         const int ey = points[i+1][1];
         const int dx = ex - bx;
         const int dy = ey - by;
-        const int delta = dy * ((0xFFFF + (dx >> 1))) / dx;
+        const int delta = dy * ((0x10000 + (dx >> 1)) / dx);
         for (int x = 0; x < dx; x++) {
             const int v = by + ((x * delta + 0x8000) >> 16);
             scaling[bx + x] = v;
@@ -364,7 +364,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
     const int by = row_num * (BLOCK_SIZE >> sy);
     pixel *const dst_row = (pixel *) out->data[1 + uv] + PXSTRIDE(stride) * by;
     pixel *const src_row = (pixel *)  in->data[1 + uv] + PXSTRIDE(stride) * by;
-    pixel *const luma_row = (pixel *) out->data[0] + PXSTRIDE(out->stride[0]) * row_num * BLOCK_SIZE;
+    pixel *const luma_row = (pixel *) in->data[0] + PXSTRIDE(in->stride[0]) * row_num * BLOCK_SIZE;
 
     int offsets[2 /* col offset */][2 /* row offset */];
 
@@ -394,7 +394,7 @@ static void apply_to_row_uv(Dav1dPicture *const out, const Dav1dPicture *const i
 #define add_noise_uv(x, y, grain)                                               \
             const int lx = (bx + x) << sx;                                      \
             const int ly = y << sy;                                             \
-            pixel *luma = luma_row + ly * PXSTRIDE(out->stride[0]) + lx;        \
+            pixel *luma = luma_row + ly * PXSTRIDE(in->stride[0]) + lx;         \
             pixel avg = luma[0];                                                \
             if (sx && lx + 1 < out->p.w)                                        \
                 avg = (avg + luma[1] + 1) >> 1;                                 \
