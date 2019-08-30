@@ -180,16 +180,16 @@ static void generate_scaling(const int bitdepth,
 
     // Linearly interpolate the values in the middle
     for (int i = 0; i < num - 1; i++) {
-        const int bx = points[i][0] << shift_x;
+        const int bx = points[i][0];
         const int by = points[i][1];
-        const int ex = points[i+1][0] << shift_x;
+        const int ex = points[i+1][0];
         const int ey = points[i+1][1];
         const int dx = ex - bx;
         const int dy = ey - by;
         const int delta = dy * ((0x10000 + (dx >> 1)) / dx);
-        for (int x = 0; x < dx; x += pad) {
+        for (int x = 0; x < dx; x++) {
             const int v = by + ((x * delta + 0x8000) >> 16);
-            scaling[bx + x] = v;
+            scaling[(bx + x) << shift_x] = v;
         }
     }
 
