@@ -172,6 +172,7 @@ static void generate_scaling(const int bitdepth,
 {
     const int shift_x = bitdepth - 8;
     const int scaling_size = 1 << bitdepth;
+    const int pad = 1 << shift_x;
 
     // Fill up the preceding entries with the initial value
     for (int i = 0; i < points[0][0] << shift_x; i++)
@@ -186,7 +187,7 @@ static void generate_scaling(const int bitdepth,
         const int dx = ex - bx;
         const int dy = ey - by;
         const int delta = dy * ((0x10000 + (dx >> 1)) / dx);
-        for (int x = 0; x < dx; x++) {
+        for (int x = 0; x < dx; x += pad) {
             const int v = by + ((x * delta + 0x8000) >> 16);
             scaling[bx + x] = v;
         }
@@ -195,6 +196,21 @@ static void generate_scaling(const int bitdepth,
     // Fill up the remaining entries with the final value
     for (int i = points[num - 1][0] << shift_x; i < scaling_size; i++)
         scaling[i] = points[num - 1][1];
+
+    if (pad > 1) {
+        const int rnd = pad >> 1;
+        for (int i = 0; i < num - 1; i++) {
+            const int bx = points[i][0] << shift_x;
+            const int ex = points[i+1][0] << shift_x;
+            const int dx = ex - bx;
+            for (int x = 0; x < dx; x += pad) {
+                const int range = scaling[bx + x + pad] - scaling[bx + x];
+                for (int n = 1; n < pad; n++) {
+                    scaling[bx + x + n] = scaling[bx + x] + ((range * n + rnd) >> shift_x);
+                }
+            }
+        }
+    }
 }
 
 // samples from the correct block of a grain LUT, while taking into account the
