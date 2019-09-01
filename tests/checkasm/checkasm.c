@@ -65,6 +65,7 @@ static const struct {
     { "msac", checkasm_check_msac },
 #if CONFIG_8BPC
     { "cdef_8bpc", checkasm_check_cdef_8bpc },
+    { "filmgrain_8bpc", checkasm_check_filmgrain_8bpc },
     { "ipred_8bpc", checkasm_check_ipred_8bpc },
     { "itx_8bpc", checkasm_check_itx_8bpc },
     { "loopfilter_8bpc", checkasm_check_loopfilter_8bpc },
@@ -73,6 +74,7 @@ static const struct {
 #endif
 #if CONFIG_16BPC
     { "cdef_16bpc", checkasm_check_cdef_16bpc },
+    { "filmgrain_16bpc", checkasm_check_filmgrain_16bpc },
     { "ipred_16bpc", checkasm_check_ipred_16bpc },
     { "itx_16bpc", checkasm_check_itx_16bpc },
     { "loopfilter_16bpc", checkasm_check_loopfilter_16bpc },

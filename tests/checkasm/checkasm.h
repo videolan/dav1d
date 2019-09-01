@@ -60,6 +60,7 @@ name##_16bpc(void)
 
 void checkasm_check_msac(void);
 decl_check_bitfns(void checkasm_check_cdef);
+decl_check_bitfns(void checkasm_check_filmgrain);
 decl_check_bitfns(void checkasm_check_ipred);
 decl_check_bitfns(void checkasm_check_itx);
 decl_check_bitfns(void checkasm_check_loopfilter);
