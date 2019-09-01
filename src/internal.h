@@ -42,6 +42,7 @@ typedef struct Dav1dTileContext Dav1dTileContext;
 #include "src/cdf.h"
 #include "src/data.h"
 #include "src/env.h"
+#include "src/film_grain.h"
 #include "src/intra_edge.h"
 #include "src/ipred.h"
 #include "src/itx.h"
@@ -57,6 +58,7 @@ typedef struct Dav1dTileContext Dav1dTileContext;
 #include "src/thread.h"
 
 typedef struct Dav1dDSPContext {
+    Dav1dFilmGrainDSPContext fg;
     Dav1dIntraPredDSPContext ipred;
     Dav1dMCDSPContext mc;
     Dav1dInvTxfmDSPContext itx;

@@ -37,6 +37,7 @@
 #include "common/mem.h"
 #include "common/validate.h"
 
+#include "src/fg_apply.h"
 #include "src/internal.h"
 #include "src/log.h"
 #include "src/obu.h"
@@ -44,7 +45,6 @@
 #include "src/ref.h"
 #include "src/thread_task.h"
 #include "src/wedge.h"
-#include "src/film_grain.h"
 
 static COLD void init_internal(void) {
     dav1d_init_wedge_masks();
@@ -290,13 +290,13 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
     switch (out->p.bpc) {
 #if CONFIG_8BPC
     case 8:
-        dav1d_apply_grain_8bpc(out, in);
+        dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
         break;
 #endif
 #if CONFIG_16BPC
     case 10:
     case 12:
-        dav1d_apply_grain_16bpc(out, in);
+        dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
         break;
 #endif
     default:

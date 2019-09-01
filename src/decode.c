@@ -42,6 +42,7 @@
 #include "src/decode.h"
 #include "src/dequant_tables.h"
 #include "src/env.h"
+#include "src/film_grain.h"
 #include "src/log.h"
 #include "src/qm.h"
 #include "src/recon.h"
@@ -3190,6 +3191,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             dav1d_loop_filter_dsp_init_##bd##bpc(&dsp->lf); \
             dav1d_loop_restoration_dsp_init_##bd##bpc(&dsp->lr); \
             dav1d_mc_dsp_init_##bd##bpc(&dsp->mc); \
+            dav1d_film_grain_dsp_init_##bd##bpc(&dsp->fg); \
             break
 #if CONFIG_8BPC
         case 8:

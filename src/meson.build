@@ -55,6 +55,7 @@ libdav1d_sources = files(
 libdav1d_tmpl_sources = files(
     'cdef_apply_tmpl.c',
     'cdef_tmpl.c',
+    'fg_apply_tmpl.c',
     'film_grain_tmpl.c',
     'ipred_prepare_tmpl.c',
     'ipred_tmpl.c',
