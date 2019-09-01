@@ -302,14 +302,6 @@ struct Dav1dTileContext {
             };
         };
         struct {
-            uint8_t interintra_8bpc[64 * 64];
-            uint8_t edge_8bpc[257];
-        };
-        struct {
-            uint16_t interintra_16bpc[64 * 64];
-            uint16_t edge_16bpc[257];
-        };
-        struct {
             union {
                 uint8_t levels[32 * 34];
                 struct {
@@ -317,10 +309,20 @@ struct Dav1dTileContext {
                     uint8_t pal_ctx[64];
                 };
             };
+            int16_t ac[32 * 32];
             uint8_t pal_idx[2 * 64 * 64];
             uint16_t pal[3 /* plane */][8 /* palette_idx */];
+            ALIGN(union, 32) {
+                struct {
+                    uint8_t interintra_8bpc[64 * 64];
+                    uint8_t edge_8bpc[257];
+                };
+                struct {
+                    uint16_t interintra_16bpc[64 * 64];
+                    uint16_t edge_16bpc[257];
+                };
+            };
         };
-        int16_t ac[32 * 32];
     } scratch;
 
     Dav1dWarpedMotionParams warpmv;
