@@ -92,7 +92,7 @@
 #define NOINLINE __attribute__((noinline))
 #endif /* !_MSC_VER */
 
-#if defined(NDEBUG) && defined(__GNUC__)
+#if defined(NDEBUG) && (defined(__GNUC__) || defined(__clang__))
 #define assert(x) do { if (!(x)) __builtin_unreachable(); } while (0)
 #elif defined(NDEBUG) && defined(_MSC_VER)
 #define assert __assume
