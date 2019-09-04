@@ -647,7 +647,7 @@ static void read_vartx_tree(Dav1dTileContext *const t,
         }
         b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.layout];
     } else {
-        assert(imin(bw4, bh4) <= 16 || b->max_ytx == TX_64X64);
+        assert(bw4 <= 16 || bh4 <= 16 || b->max_ytx == TX_64X64);
         int y, x, y_off, x_off;
         const TxfmInfo *const ytx = &dav1d_txfm_dimensions[b->max_ytx];
         for (y = 0, y_off = 0; y < bh4; y += ytx->h, y_off++) {
