@@ -77,18 +77,23 @@ static inline unsigned get_skip_ctx(const TxfmInfo *const t_dim,
         break
 
         switch (t_dim->lw) {
+        /* For some reason the MSVC CRT _wassert() function is not flagged as
+         * __declspec(noreturn), so when using those headers the compiler will
+         * expect execution to continue after an assertion has been triggered
+         * and will therefore complain about the use of uninitialized variables
+         * when compiled in debug mode if we put the default case at the end. */
+        default: assert(0); /* fall-through */
         case TX_4X4:   MERGE_CTX(a, uint8_t,  0x3F);
         case TX_8X8:   MERGE_CTX(a, uint16_t, 0x3F3F);
         case TX_16X16: MERGE_CTX(a, uint32_t, 0x3F3F3F3FU);
         case TX_32X32: MERGE_CTX(a, uint64_t, 0x3F3F3F3F3F3F3F3FULL);
-        default: assert(0);
         }
         switch (t_dim->lh) {
+        default: assert(0); /* fall-through */
         case TX_4X4:   MERGE_CTX(l, uint8_t,  0x3F);
         case TX_8X8:   MERGE_CTX(l, uint16_t, 0x3F3F);
         case TX_16X16: MERGE_CTX(l, uint32_t, 0x3F3F3F3FU);
         case TX_32X32: MERGE_CTX(l, uint64_t, 0x3F3F3F3F3F3F3F3FULL);
-        default: assert(0);
         }
 #undef MERGE_CTX
 
@@ -111,20 +116,20 @@ static inline unsigned get_skip_ctx(const TxfmInfo *const t_dim,
         break
 
         switch (t_dim->lw) {
+        default: assert(0); /* fall-through */
         case TX_4X4:   MERGE_CTX(a, uint8_t,  TX_4X4);
         case TX_8X8:   MERGE_CTX(a, uint16_t, TX_8X8);
         case TX_16X16: MERGE_CTX(a, uint32_t, TX_16X16);
         case TX_32X32: MERGE_CTX(a, uint32_t, TX_32X32);
         case TX_64X64: MERGE_CTX(a, uint32_t, TX_64X64);
-        default: assert(0);
         }
         switch (t_dim->lh) {
+        default: assert(0); /* fall-through */
         case TX_4X4:   MERGE_CTX(l, uint8_t,  TX_4X4);
         case TX_8X8:   MERGE_CTX(l, uint16_t, TX_8X8);
         case TX_16X16: MERGE_CTX(l, uint32_t, TX_16X16);
         case TX_32X32: MERGE_CTX(l, uint32_t, TX_32X32);
         case TX_64X64: MERGE_CTX(l, uint32_t, TX_64X64);
-        default: assert(0);
         }
 #undef MERGE_CTX
 
@@ -146,6 +151,7 @@ static inline unsigned get_dc_sign_ctx(const int /*enum RectTxfmSize*/ tx,
 #endif
 
     switch(tx) {
+    default: assert(0); /* fall-through */
     case TX_4X4: {
         int t = *(const uint8_t *) a >> 6;
         t    += *(const uint8_t *) l >> 6;
@@ -284,7 +290,6 @@ static inline unsigned get_dc_sign_ctx(const int /*enum RectTxfmSize*/ tx,
         s = (int) (t >> 56) - 16 - 4;
         break;
     }
-    default: assert(0);
     }
 
     return (s != 0) + (s > 0);
