@@ -346,7 +346,7 @@ fguv_32x32xn_c(pixel *const dst_row, const pixel *const src_row,
             const int ly = y << sy;                                                  \
             const pixel *const luma = luma_row + ly * PXSTRIDE(luma_stride) + lx;    \
             pixel avg = luma[0];                                                     \
-            if (sx && lx + 1 < pw)                                                   \
+            if (sx)                                                                  \
                 avg = (avg + luma[1] + 1) >> 1;                                      \
             const pixel *const src = src_row + (y) * PXSTRIDE(stride) + (bx + (x));  \
             pixel *const dst = dst_row + (y) * PXSTRIDE(stride) + (bx + (x));        \
