@@ -36,9 +36,9 @@
 
 static void check_gen_grny(const Dav1dFilmGrainDSPContext *const dsp) {
     entry grain_lut_c[GRAIN_HEIGHT][GRAIN_WIDTH];
-    entry grain_lut_a[GRAIN_HEIGHT][GRAIN_WIDTH];
+    entry grain_lut_a[GRAIN_HEIGHT + 1][GRAIN_WIDTH];
 
-    declare_func(void, entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH],
+    declare_func(void, entry grain_lut[][GRAIN_WIDTH],
                  const Dav1dFilmGrainData *data HIGHBD_DECL_SUFFIX);
 
     for (int i = 0; i < 4; i++) {
@@ -59,7 +59,11 @@ static void check_gen_grny(const Dav1dFilmGrainDSPContext *const dsp) {
 
             call_ref(grain_lut_c, &fg_data HIGHBD_TAIL_SUFFIX);
             call_new(grain_lut_a, &fg_data HIGHBD_TAIL_SUFFIX);
-            if (memcmp(grain_lut_c, grain_lut_a, sizeof(grain_lut_c))) fail();
+            if (memcmp(grain_lut_c, grain_lut_a,
+                       GRAIN_WIDTH * GRAIN_HEIGHT * sizeof(entry)))
+            {
+                fail();
+            }
 
             bench_new(grain_lut_a, &fg_data HIGHBD_TAIL_SUFFIX);
         }
@@ -75,9 +79,9 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
     const ptrdiff_t stride = 128 * sizeof(pixel);
 
     declare_func(void, pixel *dst_row, const pixel *src_row, ptrdiff_t stride,
-                 const Dav1dFilmGrainData *data, int pw,
+                 const Dav1dFilmGrainData *data, size_t pw,
                  const uint8_t scaling[SCALING_SIZE],
-                 const entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH],
+                 const entry grain_lut[][GRAIN_WIDTH],
                  int bh, int row_num HIGHBD_DECL_SUFFIX);
 
     if (check_func(dsp->fgy_32x32xn, "fgy_32x32xn_%dbpc", BITDEPTH)) {
@@ -91,7 +95,7 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
 #endif
 
         uint8_t scaling[SCALING_SIZE];
-        entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH];
+        entry grain_lut[GRAIN_HEIGHT + 1][GRAIN_WIDTH];
         fg_data.grain_scale_shift = rnd() & 3;
         fg_data.ar_coeff_shift = (rnd() & 3) + 6;
         fg_data.ar_coeff_lag = rnd() & 3;

@@ -44,21 +44,21 @@ typedef int16_t entry;
 #endif
 
 #define decl_generate_grain_y_fn(name) \
-void (name)(entry buf[GRAIN_HEIGHT][GRAIN_WIDTH], \
+void (name)(entry buf[][GRAIN_WIDTH], \
             const Dav1dFilmGrainData *const data HIGHBD_DECL_SUFFIX)
 typedef decl_generate_grain_y_fn(*generate_grain_y_fn);
 
 #define decl_generate_grain_uv_fn(name) \
-void (name)(entry buf[GRAIN_HEIGHT][GRAIN_WIDTH], \
-            const entry buf_y[GRAIN_HEIGHT][GRAIN_WIDTH], \
+void (name)(entry buf[][GRAIN_WIDTH], \
+            const entry buf_y[][GRAIN_WIDTH], \
             const Dav1dFilmGrainData *const data, const int uv HIGHBD_DECL_SUFFIX)
 typedef decl_generate_grain_uv_fn(*generate_grain_uv_fn);
 
 #define decl_fgy_32x32xn_fn(name) \
 void (name)(pixel *dst_row, const pixel *src_row, ptrdiff_t stride, \
             const Dav1dFilmGrainData *data, \
-            int pw, const uint8_t scaling[SCALING_SIZE], \
-            const entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH], \
+            size_t pw, const uint8_t scaling[SCALING_SIZE], \
+            const entry grain_lut[][GRAIN_WIDTH], \
             int bh, int row_num HIGHBD_DECL_SUFFIX)
 typedef decl_fgy_32x32xn_fn(*fgy_32x32xn_fn);
 
@@ -66,7 +66,7 @@ typedef decl_fgy_32x32xn_fn(*fgy_32x32xn_fn);
 void (name)(pixel *dst_row, const pixel *src_row, ptrdiff_t stride, \
             const pixel *luma_row, ptrdiff_t luma_stride, int pw, int bh, \
             const Dav1dFilmGrainData *data, \
-            const entry grain_lut[GRAIN_HEIGHT][GRAIN_WIDTH], \
+            const entry grain_lut[][GRAIN_WIDTH], \
             const uint8_t scaling[SCALING_SIZE], \
             int uv_pl, int row_num, int is_id HIGHBD_DECL_SUFFIX)
 typedef decl_fguv_32x32xn_fn(*fguv_32x32xn_fn);
@@ -80,5 +80,6 @@ typedef struct Dav1dFilmGrainDSPContext {
 } Dav1dFilmGrainDSPContext;
 
 bitfn_decls(void dav1d_film_grain_dsp_init, Dav1dFilmGrainDSPContext *c);
+bitfn_decls(void dav1d_film_grain_dsp_init_x86, Dav1dFilmGrainDSPContext *c);
 
 #endif /* DAV1D_SRC_FILM_GRAIN_H */
