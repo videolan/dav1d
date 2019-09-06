@@ -298,9 +298,10 @@ static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
                 Dav1dThreadPicture *const ref =
                     &c->refs[c->frame_hdr->refidx[i]].p;
                 if (!ref->p.data[0]) return -1;
-                // FIXME render_* may be wrong
-                hdr->render_width = hdr->width[1] = ref->p.p.w;
-                hdr->render_height = hdr->height = ref->p.p.h;
+                hdr->width[1] = ref->p.p.w;
+                hdr->height = ref->p.p.h;
+                hdr->render_width = ref->p.frame_hdr->render_width;
+                hdr->render_height = ref->p.frame_hdr->render_height;
                 hdr->super_res.enabled = seqhdr->super_res && dav1d_get_bits(gb, 1);
                 if (hdr->super_res.enabled) {
                     const int d = hdr->super_res.width_scale_denominator =
