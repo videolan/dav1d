@@ -120,9 +120,7 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
                 src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
-        memcpy(a_dst, src, stride * h);
-        memcpy(c_dst, src, stride * h);
-        const int row_num = rnd() & 0x7ff;
+        const int row_num = rnd() & 1 ? rnd() & 0x7ff : 0;
 
         fg_data.clip_to_restricted_range = rnd() & 1;
         fg_data.scaling_shift = (rnd() & 3) + 8;
@@ -144,6 +142,122 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
     report("fgy_32x32xn");
 }
 
+static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
+    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
+    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
+    ALIGN_STK_32(pixel, src, 128 * 32,);
+    ALIGN_STK_32(pixel, luma_src, 128 * 32,);
+    const ptrdiff_t lstride = 128 * sizeof(pixel);
+
+    declare_func(void, pixel *dst_row, const pixel *src_row, ptrdiff_t stride,
+                 const Dav1dFilmGrainData *data, size_t pw,
+                 const uint8_t scaling[SCALING_SIZE],
+                 const entry grain_lut[][GRAIN_WIDTH], int bh, int row_num,
+                 const pixel *luma_row, ptrdiff_t luma_stride, int uv_pl,
+                 int is_identity HIGHBD_DECL_SUFFIX);
+
+    for (int layout_idx = 0; layout_idx < 3; layout_idx++) {
+        const char ss_name[][4] = {
+            [DAV1D_PIXEL_LAYOUT_I420 - 1] = "420",
+            [DAV1D_PIXEL_LAYOUT_I422 - 1] = "422",
+            [DAV1D_PIXEL_LAYOUT_I444 - 1] = "444",
+        };
+        const enum Dav1dPixelLayout layout = layout_idx + 1;
+        const int ss_x = layout != DAV1D_PIXEL_LAYOUT_I444;
+        const int ss_y = layout == DAV1D_PIXEL_LAYOUT_I420;
+        const ptrdiff_t stride = (ss_x ? 96 : 128) * sizeof(pixel);
+
+        for (int csfl = 0; csfl <= 1; csfl++) {
+            if (check_func(dsp->fguv_32x32xn[layout_idx],
+                           "fguv_32x32xn_%dbpc_%s_csfl%d",
+                           BITDEPTH, ss_name[layout_idx], csfl))
+            {
+                Dav1dFilmGrainData fg_data;
+
+                fg_data.seed = rnd() & 0xFFFF;
+
+#if BITDEPTH == 16
+                const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
+#else
+                const int bitdepth_max = 0xff;
+#endif
+                const int uv_pl = rnd() & 1;
+                const int is_identity = rnd() & 1;
+
+                uint8_t scaling[SCALING_SIZE];
+                entry grain_lut[2][GRAIN_HEIGHT + 1][GRAIN_WIDTH];
+                fg_data.grain_scale_shift = rnd() & 3;
+                fg_data.ar_coeff_shift = (rnd() & 3) + 6;
+                fg_data.ar_coeff_lag = rnd() & 3;
+                const int num_y_pos = 2 * fg_data.ar_coeff_lag * (fg_data.ar_coeff_lag + 1);
+                for (int n = 0; n < num_y_pos; n++)
+                    fg_data.ar_coeffs_y[n] = (rnd() & 0xff) - 128;
+                dsp->generate_grain_y(grain_lut[0], &fg_data HIGHBD_TAIL_SUFFIX);
+                dsp->generate_grain_uv[layout_idx](grain_lut[1], grain_lut[0],
+                                                   &fg_data, uv_pl HIGHBD_TAIL_SUFFIX);
+
+                const int w = 1 + (rnd() & (127 >> ss_x));
+                const int h = 1 + (rnd() & (31 >> ss_y));
+                const int lw = w << ss_x, lh = h << ss_y;
+
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
+                for (int y = 0; y < lh; y++)
+                    for (int x = 0; x < lw; x++)
+                        luma_src[y * PXSTRIDE(lstride) + x] = rnd() & bitdepth_max;
+                const int row_num = rnd() & 1 ? rnd() & 0x7ff : 0;
+
+                if (csfl) {
+                    fg_data.num_y_points = 2 + (rnd() % 13);
+                    const int pad = 0xff / fg_data.num_y_points;
+                    for (int n = 0; n < fg_data.num_y_points; n++) {
+                        fg_data.y_points[n][0] = 0xff * n / fg_data.num_y_points;
+                        fg_data.y_points[n][0] += rnd() % pad;
+                        fg_data.y_points[n][1] = rnd() & 0xff;
+                    }
+                    generate_scaling(bitdepth_from_max(bitdepth_max), fg_data.y_points,
+                                     fg_data.num_y_points, scaling);
+                } else {
+                    fg_data.num_uv_points[uv_pl] = 2 + (rnd() % 9);
+                    const int pad = 0xff / fg_data.num_uv_points[uv_pl];
+                    for (int n = 0; n < fg_data.num_uv_points[uv_pl]; n++) {
+                        fg_data.uv_points[uv_pl][n][0] = 0xff * n / fg_data.num_uv_points[uv_pl];
+                        fg_data.uv_points[uv_pl][n][0] += rnd() % pad;
+                        fg_data.uv_points[uv_pl][n][1] = rnd() & 0xff;
+                    }
+                    generate_scaling(bitdepth_from_max(bitdepth_max), fg_data.uv_points[uv_pl],
+                                     fg_data.num_uv_points[uv_pl], scaling);
+
+                    fg_data.uv_mult[uv_pl] = (rnd() & 0xff) - 128;
+                    fg_data.uv_luma_mult[uv_pl] = (rnd() & 0xff) - 128;
+                    fg_data.uv_offset[uv_pl] = (rnd() & 0x1ff) - 256;
+                }
+
+                fg_data.clip_to_restricted_range = rnd() & 1;
+                fg_data.scaling_shift = (rnd() & 3) + 8;
+                fg_data.chroma_scaling_from_luma = csfl;
+                for (fg_data.overlap_flag = 0; fg_data.overlap_flag <= 1;
+                     fg_data.overlap_flag++)
+                {
+                    call_ref(c_dst, src, stride, &fg_data, w, scaling, grain_lut[1], h,
+                             row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+                    call_new(a_dst, src, stride, &fg_data, w, scaling, grain_lut[1], h,
+                             row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+
+                    checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst");
+                }
+
+                fg_data.overlap_flag = 1;
+                bench_new(a_dst, src, stride, &fg_data, 32, scaling, grain_lut[1], 16,
+                          row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+            }
+        }
+    }
+
+    report("fguv_32x32xn");
+}
+
 void bitfn(checkasm_check_filmgrain)(void) {
     Dav1dFilmGrainDSPContext c;
 
@@ -151,4 +265,5 @@ void bitfn(checkasm_check_filmgrain)(void) {
 
     check_gen_grny(&c);
     check_fgy_sbrow(&c);
+    check_fguv_sbrow(&c);
 }

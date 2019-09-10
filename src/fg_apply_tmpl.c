@@ -136,6 +136,8 @@ void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
     // Synthesize grain for the affected planes
     const int rows = (out->p.h + 31) >> 5;
     const int ss_y = in->p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    const int ss_x = in->p.layout != DAV1D_PIXEL_LAYOUT_I444;
+    const int cpw = (out->p.w + ss_x) >> ss_x;
     const int is_id = out->seq_hdr->mtrx == DAV1D_MC_IDENTITY;
     for (int row = 0; row < rows; row++) {
         const pixel *const luma_src =
@@ -144,7 +146,7 @@ void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
         if (data->num_y_points) {
             const int bh = imin(out->p.h - row * BLOCK_SIZE, BLOCK_SIZE);
             dsp->fgy_32x32xn(((pixel *) out->data[0]) + row * BLOCK_SIZE * PXSTRIDE(out->stride[0]),
-                             luma_src, out->stride[0], &out->frame_hdr->film_grain.data,
+                             luma_src, out->stride[0], data,
                              out->p.w, scaling[0], grain_lut[0], bh, row HIGHBD_TAIL_SUFFIX);
         }
 
@@ -154,22 +156,19 @@ void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
             for (int pl = 0; pl < 2; pl++)
                 dsp->fguv_32x32xn[in->p.layout - 1](((pixel *) out->data[1 + pl]) + uv_off,
                                                     ((const pixel *) in->data[1 + pl]) + uv_off,
-                                                    in->stride[1], luma_src,
-                                                    in->stride[0], out->p.w, bh,
-                                                    &out->frame_hdr->film_grain.data,
-                                                    grain_lut[1 + pl], scaling[0],
-                                                    pl, row, is_id HIGHBD_TAIL_SUFFIX);
+                                                    in->stride[1], data, cpw,
+                                                    scaling[0], grain_lut[1 + pl],
+                                                    bh, row, luma_src, in->stride[0],
+                                                    pl, is_id HIGHBD_TAIL_SUFFIX);
         } else {
             for (int pl = 0; pl < 2; pl++)
                 if (data->num_uv_points[pl])
                     dsp->fguv_32x32xn[in->p.layout - 1](((pixel *) out->data[1 + pl]) + uv_off,
                                                         ((const pixel *) in->data[1 + pl]) + uv_off,
-                                                        in->stride[1], luma_src,
-                                                        in->stride[0], out->p.w, bh,
-                                                        &out->frame_hdr->film_grain.data,
-                                                        grain_lut[1 + pl],
-                                                        scaling[1 + pl], pl, row, is_id
-                                                        HIGHBD_TAIL_SUFFIX);
+                                                        in->stride[1], data, cpw,
+                                                        scaling[1 + pl], grain_lut[1 + pl],
+                                                        bh, row, luma_src, in->stride[0],
+                                                        pl, is_id HIGHBD_TAIL_SUFFIX);
         }
     }
 }

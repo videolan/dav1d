@@ -64,11 +64,11 @@ typedef decl_fgy_32x32xn_fn(*fgy_32x32xn_fn);
 
 #define decl_fguv_32x32xn_fn(name) \
 void (name)(pixel *dst_row, const pixel *src_row, ptrdiff_t stride, \
-            const pixel *luma_row, ptrdiff_t luma_stride, int pw, int bh, \
-            const Dav1dFilmGrainData *data, \
-            const entry grain_lut[][GRAIN_WIDTH], \
+            const Dav1dFilmGrainData *data, int pw, \
             const uint8_t scaling[SCALING_SIZE], \
-            int uv_pl, int row_num, int is_id HIGHBD_DECL_SUFFIX)
+            const entry grain_lut[][GRAIN_WIDTH], int bh, int row_num, \
+            const pixel *luma_row, ptrdiff_t luma_stride, \
+            int uv_pl, int is_id HIGHBD_DECL_SUFFIX)
 typedef decl_fguv_32x32xn_fn(*fguv_32x32xn_fn);
 
 typedef struct Dav1dFilmGrainDSPContext {
