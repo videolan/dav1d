@@ -50,6 +50,7 @@
 typedef struct {
     const char *inputfile;
     int highquality;
+    int untimed;
 } Dav1dPlaySettings;
 
 #define WINDOW_WIDTH  910
@@ -650,6 +651,7 @@ static void dp_settings_print_usage(const char *const app,
     fprintf(stderr, "Usage: %s [options]\n\n", app);
     fprintf(stderr, "Supported options:\n"
             " --input/-i  $file:    input file\n"
+            " --untimed/-u:         ignore PTS, render as fast as possible\n"
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --highquality:        enable high quality rendering\n"
@@ -676,7 +678,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     Dav1dSettings *lib_settings = &rd_ctx->lib_settings;
 
     // Short options
-    static const char short_opts[] = "i:v";
+    static const char short_opts[] = "i:vu";
 
     enum {
         ARG_FRAME_THREADS = 256,
@@ -688,6 +690,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     static const struct option long_opts[] = {
         { "input",          1, NULL, 'i' },
         { "version",        0, NULL, 'v' },
+        { "untimed",        0, NULL, 'u' },
         { "framethreads",   1, NULL, ARG_FRAME_THREADS },
         { "tilethreads",    1, NULL, ARG_TILE_THREADS },
         { "highquality",    0, NULL, ARG_HIGH_QUALITY },
@@ -702,6 +705,9 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
             case 'v':
                 fprintf(stderr, "%s\n", dav1d_version());
                 exit(0);
+            case 'u':
+                settings->untimed = true;
+                break;
             case ARG_HIGH_QUALITY:
                 settings->highquality = true;
 #ifndef HAVE_PLACEBO_VULKAN
@@ -865,10 +871,14 @@ static void dp_rd_ctx_render(Dav1dPlayRenderContext *rd_ctx)
     int32_t wait_time = (pts_diff * rd_ctx->timebase) * 1000 - ticks_diff;
     rd_ctx->last_pts = rd_ctx->current_pts;
 
+    // In untimed mode, simply don't wait
+    if (rd_ctx->settings.untimed)
+        wait_time = 0;
+
     // This way of timing the playback is not accurate, as there is no guarantee
     // that SDL_Delay will wait for exactly the requested amount of time so in a
     // accurate player this would need to be done in a better way.
-    if (wait_time >= 0) {
+    if (wait_time > 0) {
         SDL_Delay(wait_time);
     } else if (wait_time < -10) { // Do not warn for minor time drifts
         fprintf(stderr, "Frame displayed %f seconds too late\n", wait_time/(float)1000);
