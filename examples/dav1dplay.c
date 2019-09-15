@@ -28,6 +28,7 @@
 #include "vcs_version.h"
 
 #include <getopt.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,6 +49,7 @@
  */
 typedef struct {
     const char *inputfile;
+    int highquality;
 } Dav1dPlaySettings;
 
 #define WINDOW_WIDTH  910
@@ -156,7 +158,7 @@ typedef struct rdr_info
     // Callback to destroy the renderer
     void (*destroy_renderer)(void *cookie);
     // Callback to the render function that renders a prevously sent frame
-    void (*render)(void *cookie);
+    void (*render)(void *cookie, const Dav1dPlaySettings *settings);
     // Callback to the send frame function
     int (*update_frame)(void *cookie, Dav1dPicture *dav1d_pic);
 } Dav1dPlayRenderInfo;
@@ -325,7 +327,7 @@ static void placebo_renderer_destroy(void *cookie)
     pl_context_destroy(&(rd_priv_ctx->ctx));
 }
 
-static void placebo_render(void *cookie)
+static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
 {
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = cookie;
     assert(rd_priv_ctx != NULL);
@@ -358,8 +360,9 @@ static void placebo_render(void *cookie)
         .height     = img->params.h,
     };
 
-    struct pl_render_params render_params = pl_render_default_params;
-    //render_params.upscaler = &pl_filter_ewa_lanczos;
+    struct pl_render_params render_params = {0};
+    if (settings->highquality)
+        render_params = pl_render_default_params;
 
     struct pl_render_target target;
     pl_render_target_from_swapchain(&target, &frame);
@@ -516,7 +519,7 @@ static void sdl_renderer_destroy(void *cookie)
     free(rd_priv_ctx);
 }
 
-static void sdl_render(void *cookie)
+static void sdl_render(void *cookie, const Dav1dPlaySettings *settings)
 {
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = cookie;
     assert(rd_priv_ctx != NULL);
@@ -649,6 +652,7 @@ static void dp_settings_print_usage(const char *const app,
             " --input/-i  $file:    input file\n"
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
+            " --highquality:        enable high quality rendering\n"
             " --version/-v:         print version and exit\n");
     exit(1);
 }
@@ -677,6 +681,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     enum {
         ARG_FRAME_THREADS = 256,
         ARG_TILE_THREADS,
+        ARG_HIGH_QUALITY,
     };
 
     // Long options
@@ -685,6 +690,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
         { "version",        0, NULL, 'v' },
         { "framethreads",   1, NULL, ARG_FRAME_THREADS },
         { "tilethreads",    1, NULL, ARG_TILE_THREADS },
+        { "highquality",    0, NULL, ARG_HIGH_QUALITY },
         { NULL,             0, NULL, 0 },
     };
 
@@ -696,6 +702,12 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
             case 'v':
                 fprintf(stderr, "%s\n", dav1d_version());
                 exit(0);
+            case ARG_HIGH_QUALITY:
+                settings->highquality = true;
+#ifndef HAVE_PLACEBO_VULKAN
+                fprintf(stderr, "warning: --highquality requires libplacebo\n");
+#endif
+                break;
             case ARG_FRAME_THREADS:
                 lib_settings->n_frame_threads =
                     parse_unsigned(optarg, ARG_FRAME_THREADS, argv[0]);
@@ -862,7 +874,7 @@ static void dp_rd_ctx_render(Dav1dPlayRenderContext *rd_ctx)
         fprintf(stderr, "Frame displayed %f seconds too late\n", wait_time/(float)1000);
     }
 
-    renderer_info.render(rd_ctx->rd_priv);
+    renderer_info.render(rd_ctx->rd_priv, &rd_ctx->settings);
 
     rd_ctx->last_ticks = SDL_GetTicks();
 }
