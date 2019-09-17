@@ -751,7 +751,11 @@ COLD void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
 
     c->pal_pred = pal_pred_c;
 
-#if HAVE_ASM && ARCH_X86
+#if HAVE_ASM
+#if ARCH_AARCH64 || ARCH_ARM
+    bitfn(dav1d_intra_pred_dsp_init_arm)(c);
+#elif ARCH_X86
     bitfn(dav1d_intra_pred_dsp_init_x86)(c);
+#endif
 #endif
 }
