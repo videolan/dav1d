@@ -33,6 +33,7 @@ decl_angular_ipred_fn(dav1d_ipred_dc_top_neon);
 decl_angular_ipred_fn(dav1d_ipred_dc_left_neon);
 decl_angular_ipred_fn(dav1d_ipred_h_neon);
 decl_angular_ipred_fn(dav1d_ipred_v_neon);
+decl_angular_ipred_fn(dav1d_ipred_paeth_neon);
 
 COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -46,5 +47,6 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c
     c->intra_pred[LEFT_DC_PRED]  = dav1d_ipred_dc_left_neon;
     c->intra_pred[HOR_PRED]      = dav1d_ipred_h_neon;
     c->intra_pred[VERT_PRED]     = dav1d_ipred_v_neon;
+    c->intra_pred[PAETH_PRED]    = dav1d_ipred_paeth_neon;
 #endif
 }
