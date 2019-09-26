@@ -597,6 +597,22 @@ static void ipred_z3_c(pixel *dst, const ptrdiff_t stride,
     }
 }
 
+#if ARCH_X86
+#define FILTER(flt_ptr, p0, p1, p2, p3, p4, p5, p6) \
+    flt_ptr[ 0] * p0 + flt_ptr[ 1] * p1 +           \
+    flt_ptr[16] * p2 + flt_ptr[17] * p3 +           \
+    flt_ptr[32] * p4 + flt_ptr[33] * p5 +           \
+    flt_ptr[48] * p6
+#define FLT_INCR 2
+#else
+#define FILTER(flt_ptr, p0, p1, p2, p3, p4, p5, p6) \
+    flt_ptr[ 0] * p0 + flt_ptr[ 8] * p1 +           \
+    flt_ptr[16] * p2 + flt_ptr[24] * p3 +           \
+    flt_ptr[32] * p4 + flt_ptr[40] * p5 +           \
+    flt_ptr[48] * p6
+#define FLT_INCR 1
+#endif
+
 /* Up to 32x32 only */
 static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
                            const pixel *const topleft_in,
@@ -625,11 +641,8 @@ static void ipred_filter_c(pixel *dst, const ptrdiff_t stride,
             const int8_t *flt_ptr = filter;
 
             for (int yy = 0; yy < 2; yy++) {
-                for (int xx = 0; xx < 4; xx++, flt_ptr += 2) {
-                    int acc = flt_ptr[ 0] * p0 + flt_ptr[ 1] * p1 +
-                              flt_ptr[16] * p2 + flt_ptr[17] * p3 +
-                              flt_ptr[32] * p4 + flt_ptr[33] * p5 +
-                              flt_ptr[48] * p6;
+                for (int xx = 0; xx < 4; xx++, flt_ptr += FLT_INCR) {
+                    int acc = FILTER(flt_ptr, p0, p1, p2, p3, p4, p5, p6);
                     ptr[xx] = iclip_pixel((acc + 8) >> 4);
                 }
                 ptr += PXSTRIDE(stride);
