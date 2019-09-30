@@ -156,8 +156,8 @@ gnuv_ss_fn(444, 0, 0);
 // samples from the correct block of a grain LUT, while taking into account the
 // offsets provided by the offsets cache
 static inline entry sample_lut(const entry grain_lut[][GRAIN_WIDTH],
-                               int offsets[2][2], int subx, int suby,
-                               int bx, int by, int x, int y)
+                               const int offsets[2][2], const int subx, const int suby,
+                               const int bx, const int by, const int x, const int y)
 {
     const int randval = offsets[bx][by];
     const int offx = 3 + (2 >> subx) * (3 + (randval >> 4));
