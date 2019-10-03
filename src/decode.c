@@ -2339,7 +2339,7 @@ static void setup_tile(Dav1dTileState *const ts,
                    ((ts->tiling.col_start & 16) >> 4);
     }
     for (int p = 0; p < 3; p++) {
-        if (f->frame_hdr->restoration.type[p] == DAV1D_RESTORATION_NONE)
+        if (!((f->lf.restore_planes >> p) & 1U))
             continue;
 
         if (f->frame_hdr->super_res.enabled) {
@@ -2503,7 +2503,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
         }
         // Restoration filter
         for (int p = 0; p < 3; p++) {
-            if (f->frame_hdr->restoration.type[p] == DAV1D_RESTORATION_NONE)
+            if (!((f->lf.restore_planes >> p) & 1U))
                 continue;
 
             const int ss_ver = p && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
@@ -2817,6 +2817,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
         f->lf.lr_mask_sz = lr_mask_sz;
     }
+    f->lf.restore_planes =
+        ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
+        ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +
+        ((f->frame_hdr->restoration.type[2] != DAV1D_RESTORATION_NONE) << 2);
     if (f->frame_hdr->loopfilter.sharpness != f->lf.last_sharpness) {
         dav1d_calc_eih(&f->lf.lim_lut, f->frame_hdr->loopfilter.sharpness);
         f->lf.last_sharpness = f->frame_hdr->loopfilter.sharpness;

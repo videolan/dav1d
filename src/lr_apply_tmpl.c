@@ -112,10 +112,7 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
     const ptrdiff_t lr_stride = ((f->sr_cur.p.p.w + 31) & ~31) * sizeof(pixel);
 
     // TODO Also check block level restore type to reduce copying.
-    const int restore_planes =
-        ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
-        ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +
-        ((f->frame_hdr->restoration.type[2] != DAV1D_RESTORATION_NONE) << 2);
+    const int restore_planes = f->lf.restore_planes;
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->cur.p.h;
@@ -279,11 +276,7 @@ void bytefn(dav1d_lr_sbrow)(Dav1dFrameContext *const f, pixel *const dst[3],
 {
     const int offset_y = 8 * !!sby;
     const ptrdiff_t *const dst_stride = f->sr_cur.p.stride;
-
-    const int restore_planes =
-        ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
-        ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +
-        ((f->frame_hdr->restoration.type[2] != DAV1D_RESTORATION_NONE) << 2);
+    const int restore_planes = f->lf.restore_planes;
 
     if (restore_planes & LR_RESTORE_Y) {
         const int h = f->sr_cur.p.p.h;
