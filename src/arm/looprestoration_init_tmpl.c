@@ -122,7 +122,7 @@ static void dav1d_sgr_filter1_neon(coef *tmp,
     dav1d_sgr_box3_h_neon(sumsq, sum, left, src, stride, w, h, edges);
     if (edges & LR_HAVE_TOP)
         dav1d_sgr_box3_h_neon(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
-                              NULL, lpf, lpf_stride, w, 1, edges);
+                              NULL, lpf, lpf_stride, w, 2, edges);
 
     if (edges & LR_HAVE_BOTTOM)
         dav1d_sgr_box3_h_neon(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
