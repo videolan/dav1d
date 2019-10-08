@@ -177,12 +177,8 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     }
 
     while (y + stripe_h <= row_h) {
-        // TODO Look into getting rid of the this if
-        if (y + stripe_h == row_h) {
-            edges &= ~LR_HAVE_BOTTOM;
-        } else {
-            edges |= LR_HAVE_BOTTOM;
-        }
+        // Change HAVE_BOTTOM bit in edges to (y + stripe_h != row_h)
+        edges ^= (-(y + stripe_h != row_h) ^ edges) & LR_HAVE_BOTTOM;
         if (lr->type == DAV1D_RESTORATION_WIENER) {
             dsp->lr.wiener(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                            filterh, filterv, edges HIGHBD_CALL_SUFFIX);
