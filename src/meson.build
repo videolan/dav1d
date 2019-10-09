@@ -170,6 +170,7 @@ if is_asm_enabled
         )
         libdav1d_arch_tmpl_sources += files(
             'ppc/cdef_init_tmpl.c',
+            'ppc/looprestoration_init_tmpl.c',
         )
     endif
 endif
