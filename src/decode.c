@@ -1176,14 +1176,18 @@ static int decode_b(Dav1dTileContext *const t,
             f->bd_fn.recon_b_intra(t, bs, intra_edge_flags, b);
         }
 
-        dav1d_create_lf_mask_intra(t->lf_mask, f->lf.level, f->b4_stride,
-                                   f->frame_hdr, (const uint8_t (*)[8][2])
-                                   &ts->lflvl[b->seg_id][0][0][0],
-                                   t->bx, t->by, f->w4, f->h4, bs,
-                                   b->tx, b->uvtx, f->cur.p.layout,
-                                   &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
-                                   has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
-                                   has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
+        if (f->frame_hdr->loopfilter.level_y[0] ||
+            f->frame_hdr->loopfilter.level_y[1])
+        {
+            dav1d_create_lf_mask_intra(t->lf_mask, f->lf.level, f->b4_stride,
+                                       (const uint8_t (*)[8][2])
+                                       &ts->lflvl[b->seg_id][0][0][0],
+                                       t->bx, t->by, f->w4, f->h4, bs,
+                                       b->tx, b->uvtx, f->cur.p.layout,
+                                       &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
+                                       has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
+                                       has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
+        }
 
         // update contexts
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
@@ -1859,17 +1863,21 @@ static int decode_b(Dav1dTileContext *const t,
             if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
         }
 
-        const int is_globalmv =
-            b->inter_mode == (is_comp ? GLOBALMV_GLOBALMV : GLOBALMV);
-        const uint8_t (*const lf_lvls)[8][2] = (const uint8_t (*)[8][2])
-            &ts->lflvl[b->seg_id][0][b->ref[0] + 1][!is_globalmv];
-        dav1d_create_lf_mask_inter(t->lf_mask, f->lf.level, f->b4_stride,
-                                   f->frame_hdr, lf_lvls, t->bx, t->by,
-                                   f->w4, f->h4, b->skip, bs, b->tx_split,
-                                   b->uvtx, f->cur.p.layout,
-                                   &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
-                                   has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
-                                   has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
+        if (f->frame_hdr->loopfilter.level_y[0] ||
+            f->frame_hdr->loopfilter.level_y[1])
+        {
+            const int is_globalmv =
+                b->inter_mode == (is_comp ? GLOBALMV_GLOBALMV : GLOBALMV);
+            const uint8_t (*const lf_lvls)[8][2] = (const uint8_t (*)[8][2])
+                &ts->lflvl[b->seg_id][0][b->ref[0] + 1][!is_globalmv];
+            dav1d_create_lf_mask_inter(t->lf_mask, f->lf.level, f->b4_stride,
+                                       lf_lvls, t->bx, t->by, f->w4, f->h4,
+                                       b->skip, bs, b->tx_split, b->uvtx,
+                                       f->cur.p.layout,
+                                       &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
+                                       has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
+                                       has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
+        }
 
         // context updates
         if (is_comp) {
