@@ -88,7 +88,7 @@ static void generate_grain_y_c(entry buf[][GRAIN_WIDTH],
 static NOINLINE void
 generate_grain_uv_c(entry buf[][GRAIN_WIDTH],
                     const entry buf_y[][GRAIN_WIDTH],
-                    const Dav1dFilmGrainData *const data, const int uv,
+                    const Dav1dFilmGrainData *const data, const intptr_t uv,
                     const int subx, const int suby HIGHBD_DECL_SUFFIX)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;

@@ -85,7 +85,7 @@ static void check_gen_grnuv(const Dav1dFilmGrainDSPContext *const dsp) {
 
     declare_func(void, entry grain_lut[][GRAIN_WIDTH],
                  const entry grain_lut_y[][GRAIN_WIDTH],
-                 const Dav1dFilmGrainData *data, int uv HIGHBD_DECL_SUFFIX);
+                 const Dav1dFilmGrainData *data, intptr_t uv HIGHBD_DECL_SUFFIX);
 
     for (int layout_idx = 0; layout_idx < 3; layout_idx++) {
         const enum Dav1dPixelLayout layout = layout_idx + 1;
