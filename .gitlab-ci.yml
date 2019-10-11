@@ -178,7 +178,7 @@ build-debian-aarch64:
         - aarch64
         - debian
     script:
-        - meson build --buildtype release --werror
+        - meson build --buildtype debugoptimized --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -219,7 +219,7 @@ build-debian-armv7:
         - armv7
         - debian
     script:
-        - meson build --buildtype release --werror
+        - meson build --buildtype debugoptimized --werror
         - ninja -C build
         - cd build && meson test -v
 
