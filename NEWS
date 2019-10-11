@@ -6,16 +6,18 @@ and improving speed significantly:
  - Export ITU T.35 metadata
  - Speed improvements on blend_ on ARM
  - Speed improvements on decode_coef and MSAC
- - NEON optimizations for blend*, w_mask_, ipred_dc|h|v functions for ARM64
+ - NEON optimizations for blend*, w_mask_, ipred functions for ARM64
  - NEON optimizations for CDEF and warp on ARM32
  - SSE2 optimizations for MSAC hi_tok decoding
  - SSSE3 optimizations for deblocking loopfilters and warp_affine
- - AVX-2 optimizations for film grain
+ - AVX-2 optimizations for film grain and ipred_z2
  - SSE4 optimizations for warp_affine
+ - VSX optimizations for wiener
  - Fix inverse transform overflows in x86 and NEON asm
  - Fix integer overflows with large frames
  - Improve film grain generation to match reference code
  - Improve compatibility with older binutils for ARM
+ - More advanced Player example in tools
 
 
 Changes for 0.4.0 'Cheetah':
@@ -31,6 +33,7 @@ Changes for 0.4.0 'Cheetah':
  - NEON optimizations for blend functions on ARM
  - NEON optimizations for w_mask functions on ARM
  - NEON optimizations for inverse transforms on ARM64
+ - VSX optimizations for CDEF filter
  - Improve handling of malloc failures
  - Simple Player example in tools
 
