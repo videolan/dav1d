@@ -215,6 +215,12 @@ if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
     optional_arguments += '-ffast-math'
 endif
 
+if (host_machine.system() == 'darwin' and cc.get_id() == 'clang' and
+    cc.version().startswith('11'))
+    # Workaround for Xcode 11 -fstack-check bug, see #301
+    optional_arguments += '-fno-stack-check'
+endif
+
 add_project_arguments(cc.get_supported_arguments(optional_arguments), language : 'c')
 
 # libFuzzer related things
