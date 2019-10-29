@@ -146,6 +146,9 @@ static struct {
     int bench_c;
     int verbose;
     int function_listing;
+#if ARCH_X86_64
+    void (*simd_warmup)(void);
+#endif
 } state;
 
 /* float compare support code */
@@ -565,14 +568,26 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
 
+    dav1d_init_cpu();
+#if ARCH_X86_64
+    void checkasm_warmup_avx2(void);
+    void checkasm_warmup_avx512(void);
+    unsigned cpu_flags = dav1d_get_cpu_flags();
+    if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX512ICL)
+        state.simd_warmup = checkasm_warmup_avx512;
+    else if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX2)
+        state.simd_warmup = checkasm_warmup_avx2;
+    else
+        state.simd_warmup = NULL;
+    checkasm_simd_warmup();
+#endif
     check_cpu_flag(NULL, 0);
+
     if (state.function_listing) {
         print_functions(state.funcs);
     } else {
-        dav1d_init_cpu();
         for (int i = 0; cpus[i].flag; i++)
             check_cpu_flag(cpus[i].name, cpus[i].flag);
-
         if (!state.num_checked) {
             fprintf(stderr, "checkasm: no tests to perform\n");
         } else if (state.num_failed) {
@@ -771,3 +786,11 @@ DEF_CHECKASM_CHECK_FUNC(uint8_t,  "%02x")
 DEF_CHECKASM_CHECK_FUNC(uint16_t, "%04x")
 DEF_CHECKASM_CHECK_FUNC(int16_t,  "%6d")
 DEF_CHECKASM_CHECK_FUNC(int32_t,  "%9d")
+
+#if ARCH_X86_64
+void checkasm_simd_warmup(void)
+{
+    if (state.simd_warmup)
+        state.simd_warmup();
+}
+#endif
