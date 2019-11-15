@@ -27,36 +27,19 @@
 
 #include "config.h"
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "input/demuxer.h"
+#include "input/parse.h"
 
 typedef struct DemuxerPriv {
     FILE *f;
     size_t temporal_unit_size;
     size_t frame_unit_size;
 } AnnexbInputContext;
-
-static int leb128(AnnexbInputContext *const c, size_t *const len) {
-    unsigned more, i = 0;
-    uint8_t byte;
-    *len = 0;
-    do {
-        if (fread(&byte, 1, 1, c->f) < 1)
-            return -1;
-        more = byte & 0x80;
-        unsigned bits = byte & 0x7f;
-        if (i <= 3 || (i == 4 && bits < (1 << 4)))
-            *len |= bits << (i * 7);
-        else if (bits) return -1;
-        if (++i == 8 && more) return -1;
-    } while (more);
-    return i;
-}
 
 static int annexb_open(AnnexbInputContext *const c, const char *const file,
                        unsigned fps[2], unsigned *const num_frames, unsigned timebase[2])
@@ -75,7 +58,7 @@ static int annexb_open(AnnexbInputContext *const c, const char *const file,
     timebase[0] = 25;
     timebase[1] = 1;
     for (*num_frames = 0;; (*num_frames)++) {
-        res = leb128(c, &len);
+        res = leb128(c->f, &len);
         if (res < 0)
             break;
         fseeko(c->f, len, SEEK_CUR);
@@ -90,15 +73,15 @@ static int annexb_read(AnnexbInputContext *const c, Dav1dData *const data) {
     int res;
 
     if (!c->temporal_unit_size) {
-        res = leb128(c, &c->temporal_unit_size);
+        res = leb128(c->f, &c->temporal_unit_size);
         if (res < 0) return -1;
     }
     if (!c->frame_unit_size) {
-        res = leb128(c, &c->frame_unit_size);
+        res = leb128(c->f, &c->frame_unit_size);
         if (res < 0 || (c->frame_unit_size + res) > c->temporal_unit_size) return -1;
         c->temporal_unit_size -= res;
     }
-    res = leb128(c, &len);
+    res = leb128(c->f, &len);
     if (res < 0 || (len + res) > c->frame_unit_size) return -1;
     uint8_t *ptr = dav1d_data_create(data, len);
     if (!ptr) return -1;

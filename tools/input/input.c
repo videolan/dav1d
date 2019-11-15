@@ -42,7 +42,7 @@ struct DemuxerContext {
     const Demuxer *impl;
 };
 
-#define MAX_NUM_DEMUXERS 2
+#define MAX_NUM_DEMUXERS 3
 static const Demuxer *demuxers[MAX_NUM_DEMUXERS];
 static int num_demuxers = 0;
 
@@ -55,6 +55,7 @@ static int num_demuxers = 0;
 void init_demuxers(void) {
     register_demuxer(ivf_demuxer);
     register_demuxer(annexb_demuxer);
+    register_demuxer(section5_demuxer);
 }
 
 static const char *find_extension(const char *const f) {
