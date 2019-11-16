@@ -48,4 +48,60 @@ static int leb128(FILE *const f, size_t *const len) {
     return i;
 }
 
+// these functions are based on an implementation from FFmpeg, and relicensed
+// with author's permission
+
+static int leb(const uint8_t *ptr, int sz, size_t *const len) {
+    unsigned i = 0, more;
+    *len = 0;
+    do {
+        if (!sz--) return -1;
+        const int byte = *ptr++;
+        more = byte & 0x80;
+        const unsigned bits = byte & 0x7f;
+        if (i <= 3 || (i == 4 && bits < (1 << 4)))
+            *len |= bits << (i * 7);
+        else if (bits) return -1;
+        if (++i == 8 && more) return -1;
+    } while (more);
+    return i;
+}
+
+static inline int parse_obu_header(const uint8_t *buf, int buf_size,
+                                   size_t *const obu_size,
+                                   enum Dav1dObuType *const type,
+                                   const int allow_implicit_size)
+{
+    int ret, extension_flag, has_size_flag;
+
+    if (!buf_size)
+        return -1;
+    if (*buf & 0x80) // obu_forbidden_bit
+        return -1;
+
+    *type = (*buf & 0x78) >> 3;
+    extension_flag = (*buf & 0x4) >> 2;
+    has_size_flag  = (*buf & 0x2) >> 1;
+    // ignore obu_reserved_1bit
+    buf++;
+    buf_size--;
+
+    if (extension_flag) {
+        buf++;
+        buf_size--;
+        // ignore fields
+    }
+
+    if (has_size_flag) {
+        ret = leb(buf, buf_size, obu_size);
+        if (ret < 0)
+            return -1;
+        return (int) *obu_size + ret + 1 + extension_flag;
+    } else if (!allow_implicit_size)
+        return -1;
+
+    *obu_size = buf_size;
+    return buf_size + 1 + extension_flag;
+}
+
 #endif /* DAV1D_INPUT_PARSE_H */

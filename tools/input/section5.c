@@ -1,6 +1,7 @@
 /*
  * Copyright © 2019, VideoLAN and dav1d authors
  * Copyright © 2019, Two Orioles, LLC
+ * Copyright © 2019, James Almer <jamrial@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +33,51 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "dav1d/headers.h"
+
 #include "input/demuxer.h"
 #include "input/parse.h"
+
+#define PROBE_SIZE 1024
+
+static int section5_probe(const uint8_t *data) {
+    int ret, cnt = 0;
+
+    // Check that the first OBU is a Temporal Delimiter.
+    size_t obu_size;
+    enum Dav1dObuType type;
+    ret = parse_obu_header(data + cnt, PROBE_SIZE - cnt,
+                           &obu_size, &type, 0);
+    if (ret < 0 || type != DAV1D_OBU_TD || obu_size > 0)
+        return 0;
+    cnt += ret;
+
+    // look for first frame and accompanying sequence header
+    int seq = 0;
+    while (cnt < PROBE_SIZE) {
+        ret = parse_obu_header(data + cnt, PROBE_SIZE - cnt,
+                               &obu_size, &type, 0);
+        if (ret < 0)
+            return 0;
+        cnt += ret;
+
+        switch (type) {
+        case DAV1D_OBU_SEQ_HDR:
+            seq = 1;
+            break;
+        case DAV1D_OBU_FRAME:
+        case DAV1D_OBU_FRAME_HDR:
+            return seq;
+        case DAV1D_OBU_TD:
+        case DAV1D_OBU_TILE_GRP:
+            return 0;
+        default:
+            break;
+        }
+    }
+
+    return 0;
+}
 
 typedef struct DemuxerPriv {
     FILE *f;
@@ -132,7 +176,8 @@ static void section5_close(Section5InputContext *const c) {
 const Demuxer section5_demuxer = {
     .priv_data_size = sizeof(Section5InputContext),
     .name = "section5",
-    .extension = "obu",
+    .probe = section5_probe,
+    .probe_sz = PROBE_SIZE,
     .open = section5_open,
     .read = section5_read,
     .close = section5_close,
