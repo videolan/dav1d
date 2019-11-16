@@ -1390,7 +1390,7 @@ static int decode_b(Dav1dTileContext *const t,
             b->ref[1] = f->frame_hdr->skip_mode_refs[1];
             b->comp_type = COMP_INTER_AVG;
             b->inter_mode = NEARESTMV_NEARESTMV;
-            b->drl_idx = 0;
+            b->drl_idx = NEAREST_DRL;
             has_subpel_filter = 0;
 
             candidate_mv mvstack[8];
@@ -1490,13 +1490,13 @@ static int decode_b(Dav1dTileContext *const t,
                        b->inter_mode, ctx, n_mvs, ts->msac.rng);
 
             const uint8_t *const im = dav1d_comp_inter_pred_modes[b->inter_mode];
-            b->drl_idx = 0;
+            b->drl_idx = NEAREST_DRL;
             if (b->inter_mode == NEWMV_NEWMV) {
-                if (n_mvs > 1) {
+                if (n_mvs > 1) { // NEARER, NEAR or NEARISH
                     const int drl_ctx_v1 = get_drl_context(mvstack, 0);
                     b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                       ts->cdf.m.drl_bit[drl_ctx_v1]);
-                    if (b->drl_idx == 1 && n_mvs > 2) {
+                    if (b->drl_idx == NEARER_DRL && n_mvs > 2) {
                         const int drl_ctx_v2 = get_drl_context(mvstack, 1);
                         b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                           ts->cdf.m.drl_bit[drl_ctx_v2]);
@@ -1506,12 +1506,12 @@ static int decode_b(Dav1dTileContext *const t,
                                b->drl_idx, n_mvs, ts->msac.rng);
                 }
             } else if (im[0] == NEARMV || im[1] == NEARMV) {
-                b->drl_idx = 1;
-                if (n_mvs > 2) {
+                b->drl_idx = NEARER_DRL;
+                if (n_mvs > 2) { // NEAR or NEARISH
                     const int drl_ctx_v2 = get_drl_context(mvstack, 1);
                     b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                       ts->cdf.m.drl_bit[drl_ctx_v2]);
-                    if (b->drl_idx == 2 && n_mvs > 3) {
+                    if (b->drl_idx == NEAR_DRL && n_mvs > 3) {
                         const int drl_ctx_v3 = get_drl_context(mvstack, 2);
                         b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                           ts->cdf.m.drl_bit[drl_ctx_v3]);
@@ -1521,6 +1521,7 @@ static int decode_b(Dav1dTileContext *const t,
                                b->drl_idx, n_mvs, ts->msac.rng);
                 }
             }
+            assert(b->drl_idx >= NEAREST_DRL && b->drl_idx <= NEARISH_DRL);
 
 #define assign_comp_mv(idx, pfx) \
             switch (im[idx]) { \
@@ -1678,14 +1679,14 @@ static int decode_b(Dav1dTileContext *const t,
                     has_subpel_filter = 1;
                     if (dav1d_msac_decode_bool_adapt(&ts->msac,
                             ts->cdf.m.refmv_mode[(ctx >> 4) & 15]))
-                    {
+                    { // NEAREST, NEARER, NEAR or NEARISH
                         b->inter_mode = NEARMV;
-                        b->drl_idx = 1;
-                        if (n_mvs > 2) {
+                        b->drl_idx = NEARER_DRL;
+                        if (n_mvs > 2) { // NEARER, NEAR or NEARISH
                             const int drl_ctx_v2 = get_drl_context(mvstack, 1);
                             b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                               ts->cdf.m.drl_bit[drl_ctx_v2]);
-                            if (b->drl_idx == 2 && n_mvs > 3) {
+                            if (b->drl_idx == NEAR_DRL && n_mvs > 3) { // NEAR or NEARISH
                                 const int drl_ctx_v3 =
                                     get_drl_context(mvstack, 2);
                                 b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
@@ -1694,9 +1695,10 @@ static int decode_b(Dav1dTileContext *const t,
                         }
                     } else {
                         b->inter_mode = NEARESTMV;
-                        b->drl_idx = 0;
+                        b->drl_idx = NEAREST_DRL;
                     }
-                    if (b->drl_idx >= 2) {
+                    assert(b->drl_idx >= NEAREST_DRL && b->drl_idx <= NEARISH_DRL);
+                    if (b->drl_idx >= NEAR_DRL) {
                         b->mv[0] = mvstack[b->drl_idx].this_mv;
                     } else {
                         b->mv[0] = mvlist[0][b->drl_idx];
@@ -1711,20 +1713,22 @@ static int decode_b(Dav1dTileContext *const t,
             } else {
                 has_subpel_filter = 1;
                 b->inter_mode = NEWMV;
-                b->drl_idx = 0;
-                if (n_mvs > 1) {
+                b->drl_idx = NEAREST_DRL;
+                if (n_mvs > 1) { // NEARER, NEAR or NEARISH
                     const int drl_ctx_v1 = get_drl_context(mvstack, 0);
                     b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                       ts->cdf.m.drl_bit[drl_ctx_v1]);
-                    if (b->drl_idx == 1 && n_mvs > 2) {
+                    if (b->drl_idx == NEARER_DRL && n_mvs > 2) { // NEAR or NEARISH
                         const int drl_ctx_v2 = get_drl_context(mvstack, 1);
                         b->drl_idx += dav1d_msac_decode_bool_adapt(&ts->msac,
                                           ts->cdf.m.drl_bit[drl_ctx_v2]);
                     }
                 }
+                assert(b->drl_idx >= NEAREST_DRL && b->drl_idx <= NEARISH_DRL);
                 if (n_mvs > 1) {
                     b->mv[0] = mvstack[b->drl_idx].this_mv;
                 } else {
+                    assert(!b->drl_idx);
                     b->mv[0] = mvlist[0][0];
                     fix_mv_precision(f->frame_hdr, &b->mv[0]);
                 }

@@ -221,6 +221,13 @@ enum InterPredMode {
     N_INTER_PRED_MODES,
 };
 
+enum DRL_PROXIMITY {
+    NEAREST_DRL,
+    NEARER_DRL,
+    NEAR_DRL,
+    NEARISH_DRL
+};
+
 enum CompInterPredMode {
     NEARESTMV_NEARESTMV,
     NEARMV_NEARMV,
