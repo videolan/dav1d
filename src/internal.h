@@ -157,6 +157,7 @@ struct Dav1dContext {
     int all_layers;
     unsigned frame_size_limit;
     int strict_std_compliance;
+    int output_invisible_frames;
     int drain;
     enum PictureFlags frame_flags;
     enum Dav1dEventFlags event_flags;

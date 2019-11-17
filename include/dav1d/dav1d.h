@@ -70,7 +70,11 @@ typedef struct Dav1dSettings {
     int strict_std_compliance; ///< whether to abort decoding on standard compliance violations
                                ///< that don't affect actual bitstream decoding (e.g. inconsistent
                                ///< or invalid metadata)
-    uint8_t reserved[28]; ///< reserved for future use
+    int output_invisible_frames; ///< output invisibly coded frames (in coding order) in addition
+                                 ///< to all visible frames. Because of show-existing-frame, this
+                                 ///< means some frames may appear twice (once when coded,
+                                 ///< once when shown)
+    uint8_t reserved[24]; ///< reserved for future use
 } Dav1dSettings;
 
 /**

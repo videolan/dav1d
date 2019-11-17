@@ -75,6 +75,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->all_layers = 1; // just until the tests are adjusted
     s->frame_size_limit = 0;
     s->strict_std_compliance = 0;
+    s->output_invisible_frames = 0;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -129,6 +130,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->all_layers = s->all_layers;
     c->frame_size_limit = s->frame_size_limit;
     c->strict_std_compliance = s->strict_std_compliance;
+    c->output_invisible_frames = s->output_invisible_frames;
 
     if (dav1d_mem_pool_init(&c->seq_hdr_pool) ||
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||
@@ -354,7 +356,9 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
             const unsigned progress =
                 atomic_load_explicit(&out_delayed->progress[1],
                                      memory_order_relaxed);
-            if (out_delayed->visible && progress != FRAME_ERROR) {
+            if ((out_delayed->visible || c->output_invisible_frames) &&
+                progress != FRAME_ERROR)
+            {
                 dav1d_picture_ref(&c->out, &out_delayed->p);
                 c->event_flags |= dav1d_picture_get_event_flags(out_delayed);
             }

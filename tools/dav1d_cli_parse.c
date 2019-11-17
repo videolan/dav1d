@@ -60,31 +60,33 @@ enum {
     ARG_STRICT_STD_COMPLIANCE,
     ARG_CPU_MASK,
     ARG_NEG_STRIDE,
+    ARG_OUTPUT_INVISIBLE,
 };
 
 static const struct option long_opts[] = {
-    { "input",          1, NULL, 'i' },
-    { "output",         1, NULL, 'o' },
-    { "quiet",          0, NULL, 'q' },
-    { "demuxer",        1, NULL, ARG_DEMUXER },
-    { "muxer",          1, NULL, ARG_MUXER },
-    { "version",        0, NULL, 'v' },
-    { "frametimes",     1, NULL, ARG_FRAME_TIMES },
-    { "limit",          1, NULL, 'l' },
-    { "skip",           1, NULL, 's' },
-    { "realtime",       2, NULL, ARG_REALTIME },
-    { "realtimecache",  1, NULL, ARG_REALTIME_CACHE },
-    { "threads",        1, NULL, ARG_THREADS },
-    { "framedelay",     1, NULL, ARG_FRAME_DELAY },
-    { "verify",         1, NULL, ARG_VERIFY },
-    { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
-    { "oppoint",        1, NULL, ARG_OPPOINT },
-    { "alllayers",      1, NULL, ARG_ALL_LAYERS },
-    { "sizelimit",      1, NULL, ARG_SIZE_LIMIT },
-    { "strict",         1, NULL, ARG_STRICT_STD_COMPLIANCE },
-    { "cpumask",        1, NULL, ARG_CPU_MASK },
-    { "negstride",      0, NULL, ARG_NEG_STRIDE },
-    { NULL,             0, NULL, 0 },
+    { "input",           1, NULL, 'i' },
+    { "output",          1, NULL, 'o' },
+    { "quiet",           0, NULL, 'q' },
+    { "demuxer",         1, NULL, ARG_DEMUXER },
+    { "muxer",           1, NULL, ARG_MUXER },
+    { "version",         0, NULL, 'v' },
+    { "frametimes",      1, NULL, ARG_FRAME_TIMES },
+    { "limit",           1, NULL, 'l' },
+    { "skip",            1, NULL, 's' },
+    { "realtime",        2, NULL, ARG_REALTIME },
+    { "realtimecache",   1, NULL, ARG_REALTIME_CACHE },
+    { "threads",         1, NULL, ARG_THREADS },
+    { "framedelay",      1, NULL, ARG_FRAME_DELAY },
+    { "verify",          1, NULL, ARG_VERIFY },
+    { "filmgrain",       1, NULL, ARG_FILM_GRAIN },
+    { "oppoint",         1, NULL, ARG_OPPOINT },
+    { "alllayers",       1, NULL, ARG_ALL_LAYERS },
+    { "sizelimit",       1, NULL, ARG_SIZE_LIMIT },
+    { "strict",          1, NULL, ARG_STRICT_STD_COMPLIANCE },
+    { "cpumask",         1, NULL, ARG_CPU_MASK },
+    { "negstride",       0, NULL, ARG_NEG_STRIDE },
+    { "outputinvisible", 1, NULL, ARG_OUTPUT_INVISIBLE },
+    { NULL,              0, NULL, 0 },
 };
 
 #if HAVE_XXHASH_H
@@ -138,7 +140,8 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
             " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n"
             " --negstride:          use negative picture strides\n"
-            "                       this is mostly meant as a developer option\n");
+            "                       this is mostly meant as a developer option\n"
+            " --outputinvisible $num: whether to output invisible (alt-ref) frames (default: 0)\n");
     exit(1);
 }
 
@@ -353,6 +356,10 @@ void parse(const int argc, char *const *const argv,
             break;
         case ARG_NEG_STRIDE:
             cli_settings->neg_stride = 1;
+                break;
+        case ARG_OUTPUT_INVISIBLE:
+            lib_settings->output_invisible_frames =
+                !!parse_unsigned(optarg, ARG_OUTPUT_INVISIBLE, argv[0]);
             break;
         default:
             usage(argv[0], NULL);
