@@ -116,9 +116,9 @@ static void usage(const char *const app, const char *const reason, ...) {
     fprintf(stderr, "Usage: %s [options]\n\n", app);
     fprintf(stderr, "Supported options:\n"
             " --input/-i $file:     input file\n"
-            " --output/-o $file:    output file\n"
+            " --output/-o $file:    output file (%%n, %%w or %%h will be filled in for per-frame files)\n"
             " --demuxer $name:      force demuxer type ('ivf', 'section5' or 'annexb'; default: detect from content)\n"
-            " --muxer $name:        force muxer type (" AVAILABLE_MUXERS "; default: detect from extension)\n"
+            " --muxer $name:        force muxer type (" AVAILABLE_MUXERS "; use 'frame' as prefix to write per-frame files; default: detect from extension; if filename contains %%n, will default to writing per-frame files)\n"
             " --quiet/-q:           disable status messages\n"
             " --frametimes $file:   dump frame times to file\n"
             " --limit/-l $num:      stop decoding after $num frames\n"
