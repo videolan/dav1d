@@ -61,6 +61,7 @@ enum {
     ARG_CPU_MASK,
     ARG_NEG_STRIDE,
     ARG_OUTPUT_INVISIBLE,
+    ARG_INLOOP_FILTERS,
 };
 
 static const struct option long_opts[] = {
@@ -86,6 +87,7 @@ static const struct option long_opts[] = {
     { "cpumask",         1, NULL, ARG_CPU_MASK },
     { "negstride",       0, NULL, ARG_NEG_STRIDE },
     { "outputinvisible", 1, NULL, ARG_OUTPUT_INVISIBLE },
+    { "inloopfilters",   1, NULL, ARG_INLOOP_FILTERS },
     { NULL,              0, NULL, 0 },
 };
 
@@ -142,7 +144,8 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n"
             " --negstride:          use negative picture strides\n"
             "                       this is mostly meant as a developer option\n"
-            " --outputinvisible $num: whether to output invisible (alt-ref) frames (default: 0)\n");
+            " --outputinvisible $num: whether to output invisible (alt-ref) frames (default: 0)\n"
+            " --inloopfilters $str: which in-loop filters to enable (none, (no)deblock, (no)cdef, (no)restoration or all; default: all)\n");
     exit(1);
 }
 
@@ -219,6 +222,18 @@ static const EnumParseTable cpu_mask_tbl[] = {
     { "avx512icl", X86_CPU_MASK_AVX512ICL },
 #endif
     { "none",      0 },
+};
+
+static const EnumParseTable inloop_filters_tbl[] = {
+    { "none",          DAV1D_INLOOPFILTER_NONE },
+    { "deblock",       DAV1D_INLOOPFILTER_DEBLOCK },
+    { "nodeblock",     DAV1D_INLOOPFILTER_ALL - DAV1D_INLOOPFILTER_DEBLOCK },
+    { "cdef",          DAV1D_INLOOPFILTER_CDEF },
+    { "nocdef",        DAV1D_INLOOPFILTER_ALL - DAV1D_INLOOPFILTER_CDEF },
+    { "restoration",   DAV1D_INLOOPFILTER_RESTORATION },
+    { "norestoration", DAV1D_INLOOPFILTER_ALL - DAV1D_INLOOPFILTER_RESTORATION },
+    { "all",           DAV1D_INLOOPFILTER_ALL },
+    { 0 },
 };
 
 #define ARRAY_SIZE(n) (sizeof(n)/sizeof(*(n)))
@@ -361,6 +376,11 @@ void parse(const int argc, char *const *const argv,
         case ARG_OUTPUT_INVISIBLE:
             lib_settings->output_invisible_frames =
                 !!parse_unsigned(optarg, ARG_OUTPUT_INVISIBLE, argv[0]);
+            break;
+        case ARG_INLOOP_FILTERS:
+            lib_settings->inloop_filters =
+                parse_enum(optarg, inloop_filters_tbl,
+                           ARRAY_SIZE(inloop_filters_tbl),ARG_INLOOP_FILTERS, argv[0]);
             break;
         default:
             usage(argv[0], NULL);

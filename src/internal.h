@@ -158,6 +158,7 @@ struct Dav1dContext {
     unsigned frame_size_limit;
     int strict_std_compliance;
     int output_invisible_frames;
+    enum Dav1dInloopFilterType inloop_filters;
     int drain;
     enum PictureFlags frame_flags;
     enum Dav1dEventFlags event_flags;

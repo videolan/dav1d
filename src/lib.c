@@ -76,6 +76,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->frame_size_limit = 0;
     s->strict_std_compliance = 0;
     s->output_invisible_frames = 0;
+    s->inloop_filters = DAV1D_INLOOPFILTER_ALL;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -131,6 +132,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->frame_size_limit = s->frame_size_limit;
     c->strict_std_compliance = s->strict_std_compliance;
     c->output_invisible_frames = s->output_invisible_frames;
+    c->inloop_filters = s->inloop_filters;
 
     if (dav1d_mem_pool_init(&c->seq_hdr_pool) ||
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||
