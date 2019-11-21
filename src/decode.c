@@ -1976,7 +1976,7 @@ static int checked_decode_b(Dav1dTileContext *const t,
         for (int p = 0; p < 1 + 2 * has_chroma; p++) {
             const int ss_ver = p && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
             const int ss_hor = p && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
-            const int stride = f->cur.stride[!!p];
+            const ptrdiff_t stride = f->cur.stride[!!p];
             const int bx = t->bx & ~ss_hor;
             const int by = t->by & ~ss_ver;
             const int width  = w4 << (2 - ss_hor + (bw4 == ss_hor));
