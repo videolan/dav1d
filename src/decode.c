@@ -524,6 +524,7 @@ static void order_palette(const uint8_t *pal_idx, const ptrdiff_t stride,
 {
     int have_top = i > first;
 
+    assert(pal_idx);
     pal_idx += first + (i - first) * stride;
     for (int j = first, n = 0; j >= last; have_top = 1, j--, n++, pal_idx += stride - 1) {
         const int have_left = j > 0;
@@ -586,6 +587,7 @@ static void read_pal_indices(Dav1dTileContext *const t,
 {
     Dav1dTileState *const ts = t->ts;
     const ptrdiff_t stride = bw4 * 4;
+    assert(pal_idx);
     pal_idx[0] = dav1d_msac_decode_uniform(&ts->msac, b->pal_sz[pl]);
     uint16_t (*const color_map_cdf)[8] =
         ts->cdf.m.color_map[pl][b->pal_sz[pl] - 2];
@@ -1125,6 +1127,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (b->pal_sz[0]) {
             uint8_t *pal_idx;
             if (f->frame_thread.pass) {
+                assert(ts->frame_thread.pal_idx);
                 pal_idx = ts->frame_thread.pal_idx;
                 ts->frame_thread.pal_idx += bw4 * bh4 * 16;
             } else
@@ -1137,6 +1140,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (has_chroma && b->pal_sz[1]) {
             uint8_t *pal_idx;
             if (f->frame_thread.pass) {
+                assert(ts->frame_thread.pal_idx);
                 pal_idx = ts->frame_thread.pal_idx;
                 ts->frame_thread.pal_idx += cbw4 * cbh4 * 16;
             } else
@@ -2322,10 +2326,15 @@ static void setup_tile(Dav1dTileState *const ts,
     const int sb_shift = f->sb_shift;
 
     const uint8_t *const size_mul = ss_size_mul[f->cur.p.layout];
-    ts->frame_thread.pal_idx =
-        &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 4];
-    ts->frame_thread.cf = (uint8_t*)f->frame_thread.cf +
-        (((size_t)tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd);
+    ts->frame_thread.pal_idx = f->frame_thread.pal_idx ?
+        &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 4] :
+        NULL;
+
+    ts->frame_thread.cf = f->frame_thread.cf ?
+        (uint8_t*)f->frame_thread.cf +
+            (((size_t)tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd) :
+        NULL;
+
     dav1d_cdf_thread_copy(&ts->cdf, &f->in_cdf);
     ts->last_qidx = f->frame_hdr->quant.yac;
     memset(ts->last_delta_lf, 0, sizeof(ts->last_delta_lf));
@@ -3110,12 +3119,18 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                  tile_idx++)
             {
                 Dav1dTileState *const ts = &f->ts[tile_idx];
-                const int tile_start_off = f->frame_thread.tile_start_off[tile_idx];
-                ts->frame_thread.pal_idx = &f->frame_thread.pal_idx[tile_start_off * size_mul[1] / 4];
-                ts->frame_thread.cf = (uint8_t*)f->frame_thread.cf +
-                    ((tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd);
+                const size_t tile_start_off =
+                    (size_t) f->frame_thread.tile_start_off[tile_idx];
+                ts->frame_thread.pal_idx = f->frame_thread.pal_idx ?
+                    &f->frame_thread.pal_idx[tile_start_off * size_mul[1] / 4] :
+                    NULL;
+                ts->frame_thread.cf = f->frame_thread.cf ?
+                    (uint8_t*)f->frame_thread.cf +
+                        ((tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd) :
+                    NULL;
                 if (f->n_tc > 0) {
-                    unsigned row_sb_start = f->frame_hdr->tiling.row_start_sb[ts->tiling.row];
+                    const unsigned row_sb_start =
+                        f->frame_hdr->tiling.row_start_sb[ts->tiling.row];
                     atomic_init(&ts->progress, row_sb_start);
                 }
             }
