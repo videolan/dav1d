@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "dav1d/headers.h"
 
@@ -157,7 +158,7 @@ static int section5_read(Section5InputContext *const c, Dav1dData *const data) {
         fseeko(c->f, len, SEEK_CUR); // skip packet, we'll read it below
     }
 
-    fseeko(c->f, -total_bytes, SEEK_CUR);
+    fseeko(c->f, -(off_t)total_bytes, SEEK_CUR);
     uint8_t *ptr = dav1d_data_create(data, total_bytes);
     if (!ptr) return -1;
     if (fread(ptr, total_bytes, 1, c->f) != 1) {

@@ -98,6 +98,7 @@ if host_machine.system() == 'windows'
     cdata.set('UNICODE',                1) # Define to 1 for Unicode (Wide Chars) APIs
     cdata.set('_UNICODE',               1) # Define to 1 for Unicode (Wide Chars) APIs
     cdata.set('__USE_MINGW_ANSI_STDIO', 1) # Define to force use of MinGW printf
+    cdata.set('_CRT_DECLARE_NONSTDC_NAMES', 1) # Define to get off_t from sys/types.h on MSVC
     if cc.has_function('fseeko', prefix : '#include <stdio.h>', args : test_args)
         cdata.set('_FILE_OFFSET_BITS', 64) # Not set by default by Meson on Windows
     else
