@@ -324,7 +324,9 @@ static void ipred_smooth_h_c(pixel *dst, const ptrdiff_t stride,
     }
 }
 
-static int get_filter_strength(const int wh, const int angle, const int is_sm) {
+static NOINLINE int get_filter_strength(const int wh, const int angle,
+                                        const int is_sm)
+{
     if (is_sm) {
         if (wh <= 8) {
             if (angle >= 64) return 2;
@@ -357,10 +359,10 @@ static int get_filter_strength(const int wh, const int angle, const int is_sm) {
     return 0;
 }
 
-static void filter_edge(pixel *const out, const int sz,
-                        const int lim_from, const int lim_to,
-                        const pixel *const in,
-                        const int from, const int to, const unsigned strength)
+static NOINLINE void filter_edge(pixel *const out, const int sz,
+                                 const int lim_from, const int lim_to,
+                                 const pixel *const in, const int from,
+                                 const int to, const int strength)
 {
     static const uint8_t kernel[3][5] = {
         { 0, 4, 8, 4, 0 },
@@ -382,14 +384,13 @@ static void filter_edge(pixel *const out, const int sz,
         out[i] = in[iclip(i, from, to - 1)];
 }
 
-static int get_upsample(const int blk_wh, const unsigned d, const int type) {
-    if (d >= 40) return 0;
-    return type ? (blk_wh <= 8) : (blk_wh <= 16);
+static inline int get_upsample(const int wh, const int angle, const int is_sm) {
+    return angle < 40 && wh <= 16 >> is_sm;
 }
 
-static void upsample_edge(pixel *const out, const int hsz,
-                          const pixel *const in, const int from, const int to
-                          HIGHBD_DECL_SUFFIX)
+static NOINLINE void upsample_edge(pixel *const out, const int hsz,
+                                   const pixel *const in, const int from,
+                                   const int to HIGHBD_DECL_SUFFIX)
 {
     static const int8_t kernel[4] = { -1, 9, 9, -1 };
     int i;
