@@ -44,7 +44,7 @@
 #ifdef _WIN32
 # include <windows.h>
 #endif
-#if defined(HAVE_MACH_ABSOLUTE_TIME)
+#ifdef __APPLE__
 #include <mach/mach_time.h>
 #endif
 
@@ -67,7 +67,7 @@ static uint64_t get_time_nanos(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return 1000000000ULL * ts.tv_sec + ts.tv_nsec;
-#elif defined(HAVE_MACH_ABSOLUTE_TIME)
+#elif defined(__APPLE__)
     mach_timebase_info_data_t info;
     mach_timebase_info(&info);
     return mach_absolute_time() * info.numer / info.denom;

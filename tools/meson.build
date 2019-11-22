@@ -73,8 +73,6 @@ rt_dependency = []
 if host_machine.system() != 'windows'
     if cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
         cli_cdata.set('HAVE_CLOCK_GETTIME', 1)
-    elif host_machine.system() == 'darwin'
-        cli_cdata.set('HAVE_MACH_ABSOLUTE_TIME', 1)
     else
         rt_dependency = cc.find_library('rt', required: false)
         if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
