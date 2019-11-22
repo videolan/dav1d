@@ -78,7 +78,7 @@ static int annexb_probe(const uint8_t *data) {
                            &obu_size, &type, 1);
     if (ret < 0 || type != DAV1D_OBU_TD || obu_size > 0)
         return 0;
-    cnt += obu_unit_size;
+    cnt += (int)obu_unit_size;
 
     // look for first frame and accompanying sequence header
     int seq = 0;
@@ -94,7 +94,7 @@ static int annexb_probe(const uint8_t *data) {
                                &obu_size, &type, 1);
         if (ret < 0)
             return 0;
-        cnt += obu_unit_size;
+        cnt += (int)obu_unit_size;
 
         switch (type) {
         case DAV1D_OBU_SEQ_HDR:
