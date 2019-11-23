@@ -55,9 +55,7 @@ static unsigned get_seed(void) {
 
 static unsigned get_seed(void) {
 #ifdef __APPLE__
-    mach_timebase_info_data_t info;
-    mach_timebase_info(&info);
-    return (unsigned) (mach_absolute_time() * info.numer / info.denom);
+    return (unsigned) mach_absolute_time();
 #elif defined(HAVE_CLOCK_GETTIME)
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
