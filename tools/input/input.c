@@ -93,7 +93,7 @@ int input_open(DemuxerContext **const c_out,
         if (!res) {
             free(probe_data);
             fprintf(stderr, "Failed to read probe data\n");
-            return errno ? DAV1D_ERR(errno) : DAV1D_ERR(ENODATA);
+            return errno ? DAV1D_ERR(errno) : DAV1D_ERR(EIO);
         }
 
         for (i = 0; i < num_demuxers; i++) {
