@@ -122,7 +122,7 @@ else
     rt_dependency = []
     if cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
         cdata.set('HAVE_CLOCK_GETTIME', 1)
-    else
+    elif host_machine.system() != 'darwin'
         rt_dependency = cc.find_library('rt', required: false)
         if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
             error('clock_gettime not found')

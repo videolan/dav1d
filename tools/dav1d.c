@@ -64,14 +64,14 @@ static uint64_t get_time_nanos(void) {
     LARGE_INTEGER t;
     QueryPerformanceCounter(&t);
     return 1000000000 * t.QuadPart / frequency.QuadPart;
-#elif defined(__APPLE__)
-    mach_timebase_info_data_t info;
-    mach_timebase_info(&info);
-    return mach_absolute_time() * info.numer / info.denom;
 #elif defined(HAVE_CLOCK_GETTIME)
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return 1000000000ULL * ts.tv_sec + ts.tv_nsec;
+#elif defined(__APPLE__)
+    mach_timebase_info_data_t info;
+    mach_timebase_info(&info);
+    return mach_absolute_time() * info.numer / info.denom;
 #endif
 }
 
