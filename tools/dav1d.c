@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -145,7 +146,7 @@ int main(const int argc, char *const *const argv) {
     if (strcmp(version, DAV1D_VERSION)) {
         fprintf(stderr, "Version mismatch (library: %s, executable: %s)\n",
                 version, DAV1D_VERSION);
-        return -1;
+        return EXIT_FAILURE;
     }
 
     init_demuxers();
@@ -156,12 +157,12 @@ int main(const int argc, char *const *const argv) {
                           cli_settings.inputfile,
                           fps, &total, timebase)) < 0)
     {
-        return res;
+        return EXIT_FAILURE;
     }
     for (unsigned i = 0; i <= cli_settings.skip; i++) {
         if ((res = input_read(in, &data)) < 0) {
             input_close(in);
-            return res;
+            return EXIT_FAILURE;
         }
         if (i < cli_settings.skip) dav1d_data_unref(&data);
     }
@@ -176,7 +177,7 @@ int main(const int argc, char *const *const argv) {
         while (dav1d_parse_sequence_header(&seq, data.data, data.sz)) {
             if ((res = input_read(in, &data)) < 0) {
                 input_close(in);
-                return res;
+                return EXIT_FAILURE;
             }
             seq_skip++;
         }
@@ -191,7 +192,7 @@ int main(const int argc, char *const *const argv) {
         total = cli_settings.limit;
 
     if ((res = dav1d_open(&c, &lib_settings)))
-        return res;
+        return EXIT_FAILURE;
 
     if (cli_settings.frametimes)
         frametimes = fopen(cli_settings.frametimes, "w");
@@ -234,7 +235,7 @@ int main(const int argc, char *const *const argv) {
                                        &p.p, fps)) < 0)
                 {
                     if (frametimes) fclose(frametimes);
-                    return res;
+                    return EXIT_FAILURE;
                 }
             }
             if ((res = output_write(out, &p)) < 0)
@@ -271,7 +272,7 @@ int main(const int argc, char *const *const argv) {
                                        &p.p, fps)) < 0)
                 {
                     if (frametimes) fclose(frametimes);
-                    return res;
+                    return EXIT_FAILURE;
                 }
             }
             if ((res = output_write(out, &p)) < 0)
@@ -302,5 +303,5 @@ int main(const int argc, char *const *const argv) {
     }
     dav1d_close(&c);
 
-    return res;
+    return (res == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
