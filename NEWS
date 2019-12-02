@@ -1,3 +1,13 @@
+Changes for 0.5.2 'Asiatic Cheetah':
+------------------------------------
+
+0.5.2 is a small release improving speed for ARM32 and adding minor features:
+ - ARM32 optimizations for loopfilter, ipred_dc|h|v
+ - Add section-5 raw OBU demuxer
+ - Improve the speed by reducing the L2 cache collisions
+ - Fix minor issues
+
+
 Changes for 0.5.1 'Asiatic Cheetah':
 ------------------------------------
 
