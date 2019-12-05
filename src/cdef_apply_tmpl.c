@@ -105,7 +105,6 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
     const int damping = f->frame_hdr->cdef.damping + bitdepth_min_8;
     const enum Dav1dPixelLayout layout = f->cur.p.layout;
     const int uv_idx = DAV1D_PIXEL_LAYOUT_I444 - layout;
-    const int has_chroma = layout != DAV1D_PIXEL_LAYOUT_I400;
     const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
 
@@ -141,6 +140,16 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
             const int uv_lvl = f->frame_hdr->cdef.uv_strength[cdef_idx];
             const enum Backup2x8Flags flag = !!y_lvl + (!!uv_lvl << 1);
 
+            const int y_pri_lvl = (y_lvl >> 2) << bitdepth_min_8;
+            int y_sec_lvl = y_lvl & 3;
+            y_sec_lvl += y_sec_lvl == 3;
+            y_sec_lvl <<= bitdepth_min_8;
+
+            const int uv_pri_lvl = (uv_lvl >> 2) << bitdepth_min_8;
+            int uv_sec_lvl = uv_lvl & 3;
+            uv_sec_lvl += uv_sec_lvl == 3;
+            uv_sec_lvl <<= bitdepth_min_8;
+
             pixel *bptrs[3] = { iptrs[0], iptrs[1], iptrs[2] };
             for (int bx = sbx * sbsz; bx < imin((sbx + 1) * sbsz, f->bw);
                  bx += 2, edges |= CDEF_HAVE_LEFT)
@@ -169,15 +178,6 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
                     backup2x8(lr_bak[!bit], bptrs, f->cur.stride, 8, layout, flag);
                 }
 
-                // the actual filter
-                const int y_pri_lvl = (y_lvl >> 2) << bitdepth_min_8;
-                int y_sec_lvl = y_lvl & 3;
-                y_sec_lvl += y_sec_lvl == 3;
-                y_sec_lvl <<= bitdepth_min_8;
-                const int uv_pri_lvl = (uv_lvl >> 2) << bitdepth_min_8;
-                int uv_sec_lvl = uv_lvl & 3;
-                uv_sec_lvl += uv_sec_lvl == 3;
-                uv_sec_lvl <<= bitdepth_min_8;
                 unsigned variance;
                 const int dir = dsp->cdef.dir(bptrs[0], f->cur.stride[0],
                                               &variance HIGHBD_CALL_SUFFIX);
@@ -191,10 +191,10 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
                                     y_sec_lvl, y_pri_lvl ? dir : 0,
                                     damping, edges HIGHBD_CALL_SUFFIX);
                 }
-                if (uv_lvl && has_chroma) {
-                    const int uvdir =
-                        f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I422 ? dir :
-                        ((uint8_t[]) { 7, 0, 2, 4, 5, 6, 6, 6 })[dir];
+                if (uv_lvl) {
+                    assert(layout != DAV1D_PIXEL_LAYOUT_I400);
+                    const int uvdir = layout != DAV1D_PIXEL_LAYOUT_I422 ?
+                        dir : ((uint8_t[]) { 7, 0, 2, 4, 5, 6, 6, 6 })[dir];
                     for (int pl = 1; pl <= 2; pl++) {
                         dsp->cdef.fb[uv_idx](bptrs[pl], f->cur.stride[1],
                                              lr_bak[bit][pl],
