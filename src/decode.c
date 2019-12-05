@@ -2944,14 +2944,19 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
     }
 
-    // init loopfilter pointers
+    /* Init loopfilter pointers. Increasing NULL pointers is technically UB,
+     * so just point the chroma pointers in 4:0:0 to the luma plane here to
+     * avoid having additional in-loop branches in various places. We never
+     * dereference those pointers so it doesn't really matter what they
+     * point at, as long as the pointers are valid. */
+    const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
     f->lf.mask_ptr = f->lf.mask;
     f->lf.p[0] = f->cur.data[0];
-    f->lf.p[1] = f->cur.data[1];
-    f->lf.p[2] = f->cur.data[2];
+    f->lf.p[1] = f->cur.data[has_chroma ? 1 : 0];
+    f->lf.p[2] = f->cur.data[has_chroma ? 2 : 0];
     f->lf.sr_p[0] = f->sr_cur.p.data[0];
-    f->lf.sr_p[1] = f->sr_cur.p.data[1];
-    f->lf.sr_p[2] = f->sr_cur.p.data[2];
+    f->lf.sr_p[1] = f->sr_cur.p.data[has_chroma ? 1 : 0];
+    f->lf.sr_p[2] = f->sr_cur.p.data[has_chroma ? 2 : 0];
     f->lf.tile_row = 1;
 
     dav1d_cdf_thread_wait(&f->in_cdf);
