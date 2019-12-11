@@ -49,22 +49,31 @@ decl_mc_fn(dav1d_put_8tap_sharp_smooth_ssse3);
 decl_mc_fn(dav1d_put_bilin_avx2);
 decl_mc_fn(dav1d_put_bilin_ssse3);
 
+decl_mct_fn(dav1d_prep_8tap_regular_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_regular_avx2);
 decl_mct_fn(dav1d_prep_8tap_regular_ssse3);
+decl_mct_fn(dav1d_prep_8tap_regular_smooth_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_regular_smooth_avx2);
 decl_mct_fn(dav1d_prep_8tap_regular_smooth_ssse3);
+decl_mct_fn(dav1d_prep_8tap_regular_sharp_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_regular_sharp_avx2);
 decl_mct_fn(dav1d_prep_8tap_regular_sharp_ssse3);
+decl_mct_fn(dav1d_prep_8tap_smooth_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_smooth_avx2);
 decl_mct_fn(dav1d_prep_8tap_smooth_ssse3);
+decl_mct_fn(dav1d_prep_8tap_smooth_regular_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_smooth_regular_avx2);
 decl_mct_fn(dav1d_prep_8tap_smooth_regular_ssse3);
+decl_mct_fn(dav1d_prep_8tap_smooth_sharp_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_smooth_sharp_avx2);
 decl_mct_fn(dav1d_prep_8tap_smooth_sharp_ssse3);
+decl_mct_fn(dav1d_prep_8tap_sharp_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_sharp_avx2);
 decl_mct_fn(dav1d_prep_8tap_sharp_ssse3);
+decl_mct_fn(dav1d_prep_8tap_sharp_regular_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_sharp_regular_avx2);
 decl_mct_fn(dav1d_prep_8tap_sharp_regular_ssse3);
+decl_mct_fn(dav1d_prep_8tap_sharp_smooth_avx512icl);
 decl_mct_fn(dav1d_prep_8tap_sharp_smooth_avx2);
 decl_mct_fn(dav1d_prep_8tap_sharp_smooth_ssse3);
 decl_mct_fn(dav1d_prep_bilin_avx512icl);
@@ -209,6 +218,15 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
         return;
 
 #if BITDEPTH == 8 && ARCH_X86_64
+    init_mct_fn(FILTER_2D_8TAP_REGULAR,        8tap_regular,        avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH_REGULAR, 8tap_smooth_regular, avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH,         8tap_smooth,         avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH_SHARP,   8tap_smooth_sharp,   avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SHARP_REGULAR,  8tap_sharp_regular,  avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   avx512icl);
+    init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          avx512icl);
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               avx512icl);
 #endif
 }
