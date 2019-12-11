@@ -67,6 +67,7 @@ decl_mct_fn(dav1d_prep_8tap_sharp_regular_avx2);
 decl_mct_fn(dav1d_prep_8tap_sharp_regular_ssse3);
 decl_mct_fn(dav1d_prep_8tap_sharp_smooth_avx2);
 decl_mct_fn(dav1d_prep_8tap_sharp_smooth_ssse3);
+decl_mct_fn(dav1d_prep_bilin_avx512icl);
 decl_mct_fn(dav1d_prep_bilin_avx2);
 decl_mct_fn(dav1d_prep_bilin_ssse3);
 
@@ -202,5 +203,12 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->warp8x8t = dav1d_warp_affine_8x8t_avx2;
 
     c->emu_edge = dav1d_emu_edge_avx2;
+#endif
+
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
+        return;
+
+#if BITDEPTH == 8 && ARCH_X86_64
+    init_mct_fn(FILTER_2D_BILINEAR,            bilin,               avx512icl);
 #endif
 }

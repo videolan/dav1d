@@ -268,12 +268,12 @@ if host_machine.cpu_family().startswith('x86')
     if get_option('stack_alignment') > 0
         stack_alignment = get_option('stack_alignment')
     elif host_machine.cpu_family() == 'x86_64'
-        if cc.has_argument('-mpreferred-stack-boundary=5')
-            stackalign_flag = ['-mpreferred-stack-boundary=5']
+        if cc.has_argument('-mpreferred-stack-boundary=6')
+            stackalign_flag = ['-mpreferred-stack-boundary=6']
             stackrealign_flag = ['-mincoming-stack-boundary=4']
             stack_alignment = 32
-        elif cc.has_argument('-mstack-alignment=32')
-            stackalign_flag = ['-mstack-alignment=32']
+        elif cc.has_argument('-mstack-alignment=64')
+            stackalign_flag = ['-mstack-alignment=64']
             stackrealign_flag = ['-mstackrealign']
             stack_alignment = 32
         else

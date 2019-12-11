@@ -288,7 +288,7 @@ struct Dav1dTileContext {
     uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
     uint8_t txtp_map[32 * 32]; // inter-only
-    ALIGN(union, 32) {
+    ALIGN(union, 64) {
         struct {
             union {
                 uint8_t  lap_8bpc [128 * 32];

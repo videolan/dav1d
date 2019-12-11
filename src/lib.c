@@ -152,7 +152,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         f->c = c;
         f->lf.last_sharpness = -1;
         f->n_tc = s->n_tile_threads;
-        f->tc = dav1d_alloc_aligned(sizeof(*f->tc) * s->n_tile_threads, 32);
+        f->tc = dav1d_alloc_aligned(sizeof(*f->tc) * s->n_tile_threads, 64);
         if (!f->tc) goto error;
         memset(f->tc, 0, sizeof(*f->tc) * s->n_tile_threads);
         if (f->n_tc > 1) {
