@@ -31,7 +31,12 @@
 #include "src/cpu.h"
 
 static unsigned flags = 0;
+#if ARCH_X86
+/* Disable AVX-512 by default for the time being */
+static unsigned flags_mask = ~DAV1D_X86_CPU_FLAG_AVX512ICL;
+#else
 static unsigned flags_mask = -1;
+#endif
 
 COLD void dav1d_init_cpu(void) {
 #if HAVE_ASM
