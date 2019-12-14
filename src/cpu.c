@@ -30,24 +30,22 @@
 
 #include "src/cpu.h"
 
+static unsigned flags = 0;
 static unsigned flags_mask = -1;
 
-COLD unsigned dav1d_get_cpu_flags(void) {
-    static unsigned flags;
-    static uint8_t checked = 0;
-
-    if (!checked) {
-#if (ARCH_AARCH64 || ARCH_ARM) && HAVE_ASM
-        flags = dav1d_get_cpu_flags_arm();
-#elif ARCH_PPC64LE && HAVE_ASM
-        flags = dav1d_get_cpu_flags_ppc();
-#elif ARCH_X86 && HAVE_ASM
-        flags = dav1d_get_cpu_flags_x86();
-#else
-        flags = 0;
+COLD void dav1d_init_cpu(void) {
+#if HAVE_ASM
+#if ARCH_AARCH64 || ARCH_ARM
+    flags = dav1d_get_cpu_flags_arm();
+#elif ARCH_PPC64LE
+    flags = dav1d_get_cpu_flags_ppc();
+#elif ARCH_X86
+    flags = dav1d_get_cpu_flags_x86();
 #endif
-        checked = 1;
-    }
+#endif
+}
+
+COLD unsigned dav1d_get_cpu_flags(void) {
     return flags & flags_mask;
 }
 

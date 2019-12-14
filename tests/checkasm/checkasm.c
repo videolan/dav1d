@@ -569,6 +569,7 @@ int main(int argc, char *argv[]) {
     if (state.function_listing) {
         print_functions(state.funcs);
     } else {
+        dav1d_init_cpu();
         for (int i = 0; cpus[i].flag; i++)
             check_cpu_flag(cpus[i].name, cpus[i].flag);
 
