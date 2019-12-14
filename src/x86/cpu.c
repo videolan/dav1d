@@ -64,6 +64,11 @@ COLD unsigned dav1d_get_cpu_flags_x86(void) {
                     if ((xcr & 0x000000e0) == 0x000000e0) /* ZMM/OPMASK */ {
                         if ((info[1] & 0xd0030000) == 0xd0030000)
                             flags |= DAV1D_X86_CPU_FLAG_AVX512;
+                        if ((info[1] & 0xd0230000) == 0xd0230000 &&
+                            (info[2] & 0x00005f42) == 0x00005f42)
+                        {
+                            flags |= DAV1D_X86_CPU_FLAG_AVX512ICL;
+                        }
                     }
                 }
             }

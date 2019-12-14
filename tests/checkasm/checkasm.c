@@ -98,15 +98,16 @@ static const struct {
     unsigned flag;
 } cpus[] = {
 #if ARCH_X86
-    { "SSE",     "sse",    DAV1D_X86_CPU_FLAG_SSE },
-    { "SSE2",    "sse2",   DAV1D_X86_CPU_FLAG_SSE2 },
-    { "SSE3",    "sse3",   DAV1D_X86_CPU_FLAG_SSE3 },
-    { "SSSE3",   "ssse3",  DAV1D_X86_CPU_FLAG_SSSE3 },
-    { "SSE4.1",  "sse4",   DAV1D_X86_CPU_FLAG_SSE41 },
-    { "SSE4.2",  "sse42",  DAV1D_X86_CPU_FLAG_SSE42 },
-    { "AVX",     "avx",    DAV1D_X86_CPU_FLAG_AVX },
-    { "AVX2",    "avx2",   DAV1D_X86_CPU_FLAG_AVX2 },
-    { "AVX-512", "avx512", DAV1D_X86_CPU_FLAG_AVX512 },
+    { "SSE",                "sse",       DAV1D_X86_CPU_FLAG_SSE },
+    { "SSE2",               "sse2",      DAV1D_X86_CPU_FLAG_SSE2 },
+    { "SSE3",               "sse3",      DAV1D_X86_CPU_FLAG_SSE3 },
+    { "SSSE3",              "ssse3",     DAV1D_X86_CPU_FLAG_SSSE3 },
+    { "SSE4.1",             "sse4",      DAV1D_X86_CPU_FLAG_SSE41 },
+    { "SSE4.2",             "sse42",     DAV1D_X86_CPU_FLAG_SSE42 },
+    { "AVX",                "avx",       DAV1D_X86_CPU_FLAG_AVX },
+    { "AVX2",               "avx2",      DAV1D_X86_CPU_FLAG_AVX2 },
+    { "AVX-512",            "avx512",    DAV1D_X86_CPU_FLAG_AVX512 },
+    { "AVX-512 (Ice Lake)", "avx512icl", DAV1D_X86_CPU_FLAG_AVX512ICL },
 #elif ARCH_AARCH64 || ARCH_ARM
     { "NEON",    "neon",   DAV1D_ARM_CPU_FLAG_NEON },
 #elif ARCH_PPC64LE

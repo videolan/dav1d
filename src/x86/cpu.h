@@ -37,7 +37,9 @@ enum CpuFlags {
     DAV1D_X86_CPU_FLAG_SSE42 = 1 << 5,
     DAV1D_X86_CPU_FLAG_AVX = 1 << 6,
     DAV1D_X86_CPU_FLAG_AVX2 = 1 << 7,
-    DAV1D_X86_CPU_FLAG_AVX512 = 1 << 8, /* F + CD + BW + DQ + VL */
+    DAV1D_X86_CPU_FLAG_AVX512 = 1 << 8,    /* F/CD/BW/DQ/VL */
+    DAV1D_X86_CPU_FLAG_AVX512ICL = 1 << 9, /* F/CD/BW/DQ/VL/VNNI/IFMA/VBMI/VBMI2/
+                                            * VPOPCNTDQ/BITALG/GFNI/VAES/VPCLMULQDQ */
 };
 
 unsigned dav1d_get_cpu_flags_x86(void);
