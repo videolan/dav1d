@@ -99,7 +99,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
     size_t stack_size = 1024 * 1024;
-#ifdef __linux__
+#if defined(__linux__) && defined(HAVE_DLSYM)
     /* glibc has an issue where the size of the TLS is subtracted from the stack
      * size instead of allocated separately. As a result the specified stack
      * size may be insufficient when used in an application with large amounts

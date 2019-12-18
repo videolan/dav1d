@@ -136,6 +136,9 @@ endif
 libdl_dependency = []
 if host_machine.system() == 'linux'
     libdl_dependency = cc.find_library('dl', required : false)
+    if cc.has_function('dlsym', prefix : '#include <dlfcn.h>', args : test_args, dependencies : libdl_dependency)
+        cdata.set('HAVE_DLSYM', 1)
+    endif
 endif
 
 
