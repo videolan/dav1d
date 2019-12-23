@@ -627,8 +627,8 @@ static void read_vartx_tree(Dav1dTileContext *const t,
     // var-tx tree coding
     b->tx_split[0] = b->tx_split[1] = 0;
     b->max_ytx = dav1d_max_txfm_size_for_bs[bs][0];
-    if (f->frame_hdr->segmentation.lossless[b->seg_id] ||
-        b->max_ytx == TX_4X4)
+    if (!b->skip && (f->frame_hdr->segmentation.lossless[b->seg_id] ||
+                     b->max_ytx == TX_4X4))
     {
         b->max_ytx = b->uvtx = TX_4X4;
         if (f->frame_hdr->txfm_mode == DAV1D_TX_SWITCHABLE) {
@@ -645,8 +645,6 @@ static void read_vartx_tree(Dav1dTileContext *const t,
             case_set(bh4, l., 1, by4);
             case_set(bw4, a->, 0, bx4);
 #undef set_ctx
-        } else {
-            assert(f->frame_hdr->txfm_mode == DAV1D_TX_LARGEST);
         }
         b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.layout];
     } else {
