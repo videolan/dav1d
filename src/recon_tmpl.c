@@ -1993,7 +1993,7 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
         bytefn(dav1d_cdef_brow)(f, f->lf.p, f->lf.mask_ptr, sby * sbsz,
                                 imin(sby * sbsz + n_blks, f->bh));
     }
-    if (f->frame_hdr->super_res.enabled) {
+    if (f->frame_hdr->width[0] != f->frame_hdr->width[1]) {
         const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
         for (int pl = 0; pl < 1 + 2 * has_chroma; pl++) {
             const int ss_ver = pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
