@@ -352,13 +352,17 @@ static int decode_coefs(Dav1dTileContext *const t,
     if (lossless) {
         assert(t_dim->max == TX_4X4);
         *txtp = WHT_WHT;
-    } else if (!f->frame_hdr->segmentation.qidx[b->seg_id] ||
-               t_dim->max + intra >= TX_64X64)
-    {
+    } else if (t_dim->max + intra >= TX_64X64) {
         *txtp = DCT_DCT;
     } else if (chroma) {
+        // inferred from either the luma txtp (inter) or a LUT (intra)
         *txtp = intra ? dav1d_txtp_from_uvmode[b->uv_mode] :
                         get_uv_inter_txtp(t_dim, *txtp);
+    } else if (!f->frame_hdr->segmentation.qidx[b->seg_id]) {
+        // In libaom, lossless is checked by a literal qidx == 0, but not all
+        // such blocks are actually lossless. The remainder gets an implicit
+        // transform type (for luma)
+        *txtp = DCT_DCT;
     } else {
         unsigned idx;
         if (intra) {
