@@ -933,19 +933,20 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                     off_after = refpoc;
                     off_after_idx = i;
                 }
-            } else if (diff < 0) {
-                if (off_before[0] == 0xFFFFFFFFU ||
-                    get_poc_diff(seqhdr->order_hint_n_bits,
-                                 refpoc, off_before[0]) > 0)
-                {
-                    off_before[1] = off_before[0];
-                    off_before[0] = refpoc;
-                    off_before_idx[1] = off_before_idx[0];
-                    off_before_idx[0] = i;
-                } else if (refpoc != off_before[0] &&
-                           (off_before[1] == 0xFFFFFFFFU ||
-                            get_poc_diff(seqhdr->order_hint_n_bits,
-                                         refpoc, off_before[1]) > 0))
+            } else if (diff < 0 && (off_before[0] == 0xFFFFFFFFU ||
+                                    get_poc_diff(seqhdr->order_hint_n_bits,
+                                                 refpoc, off_before[0]) > 0))
+            {
+                off_before[1] = off_before[0];
+                off_before[0] = refpoc;
+                off_before_idx[1] = off_before_idx[0];
+                off_before_idx[0] = i;
+            } else if (off_before[0] != 0xFFFFFFFFU) {
+                const int diff = get_poc_diff(seqhdr->order_hint_n_bits,
+                                              refpoc, off_before[0]);
+                if (diff < 0 && (off_before[1] == 0xFFFFFFFFU ||
+                                 get_poc_diff(seqhdr->order_hint_n_bits,
+                                              refpoc, off_before[1]) > 0))
                 {
                     off_before[1] = refpoc;
                     off_before_idx[1] = i;
