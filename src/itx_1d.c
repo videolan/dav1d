@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018-2019, VideoLAN and dav1d authors
+ * Copyright © 2018-2019, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "common/attributes.h"
+#include "common/intops.h"
+
+#include "src/itx_1d.h"
 
 #define CLIP(a) iclip(a, min, max)
 
@@ -60,9 +62,9 @@
  * wrap around.
  */
 
-static void NOINLINE
-inv_dct4_1d(const coef *const in, const ptrdiff_t in_s,
-            coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_dct4_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                         int32_t *const out, const ptrdiff_t out_s,
+                         const int max)
 {
     const int min = -max - 1;
     const int in0 = in[0 * in_s], in1 = in[1 * in_s];
@@ -79,14 +81,14 @@ inv_dct4_1d(const coef *const in, const ptrdiff_t in_s,
     out[3 * out_s] = CLIP(t0 - t3);
 }
 
-static void NOINLINE
-inv_dct8_1d(const coef *const in, const ptrdiff_t in_s,
-            coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_dct8_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                         int32_t *const out, const ptrdiff_t out_s,
+                         const int max)
 {
     const int min = -max - 1;
-    coef tmp[4];
+    int32_t tmp[4];
 
-    inv_dct4_1d(in, in_s * 2, tmp, 1, max);
+    dav1d_inv_dct4_1d_c(in, in_s * 2, tmp, 1, max);
 
     const int in1 = in[1 * in_s], in3 = in[3 * in_s];
     const int in5 = in[5 * in_s], in7 = in[7 * in_s];
@@ -114,14 +116,14 @@ inv_dct8_1d(const coef *const in, const ptrdiff_t in_s,
     out[7 * out_s] = CLIP(tmp[0] - t7);
 }
 
-static void NOINLINE
-inv_dct16_1d(const coef *const in, const ptrdiff_t in_s,
-             coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_dct16_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                          int32_t *const out, const ptrdiff_t out_s,
+                          const int max)
 {
     const int min = -max - 1;
-    coef tmp[8];
+    int32_t tmp[8];
 
-    inv_dct8_1d(in, in_s * 2, tmp, 1, max);
+    dav1d_inv_dct8_1d_c(in, in_s * 2, tmp, 1, max);
 
     const int in1  = in[ 1 * in_s], in3  = in[ 3 * in_s];
     const int in5  = in[ 5 * in_s], in7  = in[ 7 * in_s];
@@ -183,14 +185,14 @@ inv_dct16_1d(const coef *const in, const ptrdiff_t in_s,
     out[15 * out_s] = CLIP(tmp[0] - t15a);
 }
 
-static void NOINLINE
-inv_dct32_1d(const coef *const in, const ptrdiff_t in_s,
-             coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_dct32_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                          int32_t *const out, const ptrdiff_t out_s,
+                          const int max)
 {
     const int min = -max - 1;
-    coef tmp[16];
+    int32_t tmp[16];
 
-    inv_dct16_1d(in, in_s * 2, tmp, 1, max);
+    dav1d_inv_dct16_1d_c(in, in_s * 2, tmp, 1, max);
 
     const int in1  = in[ 1 * in_s], in3  = in[ 3 * in_s];
     const int in5  = in[ 5 * in_s], in7  = in[ 7 * in_s];
@@ -330,14 +332,14 @@ inv_dct32_1d(const coef *const in, const ptrdiff_t in_s,
     out[31 * out_s] = CLIP(tmp[ 0] - t31);
 }
 
-static void NOINLINE
-inv_dct64_1d(const coef *const in, const ptrdiff_t in_s,
-             coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_dct64_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                          int32_t *const out, const ptrdiff_t out_s,
+                          const int max)
 {
     const int min = -max - 1;
-    coef tmp[32];
+    int32_t tmp[32];
 
-    inv_dct32_1d(in, in_s * 2, tmp, 1, max);
+    dav1d_inv_dct32_1d_c(in, in_s * 2, tmp, 1, max);
 
     const int in1  = in[ 1 * in_s], in3  = in[ 3 * in_s];
     const int in5  = in[ 5 * in_s], in7  = in[ 7 * in_s];
@@ -655,9 +657,9 @@ inv_dct64_1d(const coef *const in, const ptrdiff_t in_s,
     out[63 * out_s] = CLIP(tmp[ 0] - t63a);
 }
 
-static void NOINLINE
-inv_adst4_1d(const coef *const in, const ptrdiff_t in_s,
-             coef *const out, const ptrdiff_t out_s, const int range)
+void dav1d_inv_adst4_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                          int32_t *const out, const ptrdiff_t out_s,
+                          const int range)
 {
     const int in0 = in[0 * in_s], in1 = in[1 * in_s];
     const int in2 = in[2 * in_s], in3 = in[3 * in_s];
@@ -674,9 +676,9 @@ inv_adst4_1d(const coef *const in, const ptrdiff_t in_s,
                      in0 + in2 - in1;
 }
 
-static void NOINLINE
-inv_adst8_1d(const coef *const in, const ptrdiff_t in_s,
-             coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_adst8_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                          int32_t *const out, const ptrdiff_t out_s,
+                          const int max)
 {
     const int min = -max - 1;
     const int in0 = in[0 * in_s], in1 = in[1 * in_s];
@@ -723,9 +725,9 @@ inv_adst8_1d(const coef *const in, const ptrdiff_t in_s,
     out[5 * out_s] = -(((t6 - t7) * 181 + 128) >> 8);
 }
 
-static void NOINLINE
-inv_adst16_1d(const coef *const in, const ptrdiff_t in_s,
-              coef *const out, const ptrdiff_t out_s, const int max)
+void dav1d_inv_adst16_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                           int32_t *const out, const ptrdiff_t out_s,
+                           const int max)
 {
     const int min = -max - 1;
     const int in0  = in[ 0 * in_s], in1  = in[ 1 * in_s];
@@ -834,10 +836,11 @@ inv_adst16_1d(const coef *const in, const ptrdiff_t in_s,
 }
 
 #define flip_inv_adst(sz) \
-static void inv_flipadst##sz##_1d(const coef *const in, const ptrdiff_t in_s, \
-                                  coef *const out, const ptrdiff_t out_s, const int range) \
+void dav1d_inv_flipadst##sz##_1d_c(const int32_t *const in, const ptrdiff_t in_s, \
+                                   int32_t *const out, const ptrdiff_t out_s, \
+                                   const int range) \
 { \
-    inv_adst##sz##_1d(in, in_s, &out[(sz - 1) * out_s], -out_s, range); \
+    dav1d_inv_adst##sz##_1d_c(in, in_s, &out[(sz - 1) * out_s], -out_s, range); \
 }
 
 flip_inv_adst(4)
@@ -846,42 +849,41 @@ flip_inv_adst(16)
 
 #undef flip_inv_adst
 
-static void NOINLINE
-inv_identity4_1d(const coef *const in, const ptrdiff_t in_s,
-                 coef *const out, const ptrdiff_t out_s, const int range)
+void dav1d_inv_identity4_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                              int32_t *const out, const ptrdiff_t out_s,
+                              const int range)
 {
     for (int i = 0; i < 4; i++)
         out[out_s * i] = in[in_s * i] + ((in[in_s * i] * 1697 + 2048) >> 12);
 }
 
-static void NOINLINE
-inv_identity8_1d(const coef *const in, const ptrdiff_t in_s,
-                 coef *const out, const ptrdiff_t out_s, const int range)
+void dav1d_inv_identity8_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                              int32_t *const out, const ptrdiff_t out_s,
+                              const int range)
 {
     for (int i = 0; i < 8; i++)
         out[out_s * i] = in[in_s * i] * 2;
 }
 
-static void NOINLINE
-inv_identity16_1d(const coef *const in, const ptrdiff_t in_s,
-                  coef *const out, const ptrdiff_t out_s, const int range)
+void dav1d_inv_identity16_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                               int32_t *const out, const ptrdiff_t out_s,
+                               const int range)
 {
     for (int i = 0; i < 16; i++)
         out[out_s * i] = 2 * in[in_s * i] + ((in[in_s * i] * 1697 + 1024) >> 11);
 }
 
-static void NOINLINE
-inv_identity32_1d(const coef *const in, const ptrdiff_t in_s,
-                  coef *const out, const ptrdiff_t out_s, const int range)
+void dav1d_inv_identity32_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                               int32_t *const out, const ptrdiff_t out_s,
+                               const int range)
 {
     for (int i = 0; i < 32; i++)
         out[out_s * i] = in[in_s * i] * 4;
 }
 
-static void NOINLINE
-inv_wht4_1d(const coef *const in, const ptrdiff_t in_s,
-            coef *const out, const ptrdiff_t out_s,
-            const int pass)
+void dav1d_inv_wht4_1d_c(const int32_t *const in, const ptrdiff_t in_s,
+                         int32_t *const out, const ptrdiff_t out_s,
+                         const int pass)
 {
     const int sh = 2 * !pass;
     const int in0 = in[0 * in_s] >> sh, in1 = in[1 * in_s] >> sh;

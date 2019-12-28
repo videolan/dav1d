@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018-2019, VideoLAN and dav1d authors
+ * Copyright © 2018-2019, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,7 @@
 #include "common/intops.h"
 
 #include "src/itx.h"
-
-#include "src/itx_1d.c"
-
-typedef void (*itx_1d_fn)(const coef *in, ptrdiff_t in_s,
-                          coef *out, ptrdiff_t out_s, const int range);
+#include "src/itx_1d.h"
 
 static void NOINLINE
 inv_txfm_add_c(pixel *dst, const ptrdiff_t stride,
@@ -73,29 +69,21 @@ inv_txfm_add_c(pixel *dst, const ptrdiff_t stride,
 
     const ptrdiff_t sh = imin(h, 32), sw = imin(w, 32);
     // Maximum value for h and w is 64
-    coef tmp[4096 /* w * h */], out[64 /* h */], in_mem[64 /* w */];
+    int32_t tmp[4096 /* w * h */], out[64 /* h */], in_mem[64 /* w */];
     const int row_clip_max = (1 << (bitdepth + 8 - 1)) - 1;
-    const int col_clip_max = (1 << (imax(bitdepth + 6, 16) - 1)) -1;
+    const int col_clip_max = (1 << (imax(bitdepth + 6, 16) - 1)) - 1;
 
     if (w != sw) memset(&in_mem[sw], 0, (w - sw) * sizeof(*in_mem));
     for (i = 0; i < sh; i++) {
-        if (w != sw || is_rect2) {
-            for (j = 0; j < sw; j++) {
-                in_mem[j] = coeff[i + j * sh];
-                if (is_rect2)
-                    in_mem[j] = (in_mem[j] * 2896 + 2048) >> 12;
-            }
-            first_1d_fn(in_mem, 1, &tmp[i * w], 1, row_clip_max);
-        } else {
-            first_1d_fn(&coeff[i], sh, &tmp[i * w], 1, row_clip_max);
+        for (j = 0; j < sw; j++) {
+            in_mem[j] = coeff[i + j * sh];
+            if (is_rect2)
+                in_mem[j] = (in_mem[j] * 2896 + 2048) >> 12;
         }
+        first_1d_fn(in_mem, 1, &tmp[i * w], 1, row_clip_max);
         for (j = 0; j < w; j++)
-#if BITDEPTH == 8
-            tmp[i * w + j] = (tmp[i * w + j] + rnd) >> shift;
-#else
             tmp[i * w + j] = iclip((tmp[i * w + j] + rnd) >> shift,
                                    -col_clip_max - 1, col_clip_max);
-#endif
     }
 
     if (h != sh) memset(&tmp[sh * w], 0, w * (h - sh) * sizeof(*tmp));
@@ -118,8 +106,8 @@ inv_txfm_add_##type1##_##type2##_##w##x##h##_c(pixel *dst, \
                                                HIGHBD_DECL_SUFFIX) \
 { \
     inv_txfm_add_c(dst, stride, coeff, eob, w, h, shift, \
-                   inv_##type1##w##_1d, inv_##type2##h##_1d, has_dconly \
-                   HIGHBD_TAIL_SUFFIX); \
+                   dav1d_inv_##type1##w##_1d_c, dav1d_inv_##type2##h##_1d_c, \
+                   has_dconly HIGHBD_TAIL_SUFFIX); \
 }
 
 #define inv_txfm_fn64(w, h, shift) \
@@ -176,15 +164,18 @@ static void inv_txfm_add_wht_wht_4x4_c(pixel *dst, const ptrdiff_t stride,
     const int bitdepth = bitdepth_from_max(bitdepth_max);
     const int col_clip_max = (1 << (imax(bitdepth + 6, 16) - 1)) -1;
     const int col_clip_min = -col_clip_max - 1;
-    coef tmp[4 * 4], out[4];
+    int32_t tmp[4 * 4], out[4], in_mem[4];
 
-    for (int i = 0; i < 4; i++)
-        inv_wht4_1d(&coeff[i], 4, &tmp[i * 4], 1, 0);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++)
+            in_mem[j] = coeff[i + j * 4];
+        dav1d_inv_wht4_1d_c(in_mem, 1, &tmp[i * 4], 1, 0);
+    }
     for (int k = 0; k < 4 * 4; k++)
         tmp[k] = iclip(tmp[k], col_clip_min, col_clip_max);
 
     for (int i = 0; i < 4; i++) {
-        inv_wht4_1d(&tmp[i], 4, out, 1, 1);
+        dav1d_inv_wht4_1d_c(&tmp[i], 4, out, 1, 1);
         for (int j = 0; j < 4; j++)
             dst[i + j * PXSTRIDE(stride)] =
                 iclip_pixel(dst[i + j * PXSTRIDE(stride)] + out[j]);

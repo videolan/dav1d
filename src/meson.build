@@ -35,6 +35,7 @@ libdav1d_sources = files(
     'dequant_tables.c',
     'getbits.c',
     'intra_edge.c',
+    'itx_1d.c',
     'lf_mask.c',
     'log.c',
     'msac.c',
