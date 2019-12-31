@@ -287,6 +287,10 @@ libdav1d = library('dav1d',
     install : true,
 )
 
+dav1d_dep = declare_dependency(link_with: libdav1d,
+    include_directories : include_directories('../include/dav1d')
+)
+
 #
 # Generate pkg-config .pc file
 #
