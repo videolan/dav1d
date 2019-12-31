@@ -70,10 +70,10 @@ static inline unsigned get_skip_ctx(const TxfmInfo *const t_dim,
         const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
         const int not_one_blk = b_dim[2] - (!!b_dim[2] && ss_hor) > t_dim->lw ||
                                 b_dim[3] - (!!b_dim[3] && ss_ver) > t_dim->lh;
-        int ca, cl;
+        unsigned ca, cl;
 
-#define MERGE_CTX(dir, type, mask) \
-        c##dir = !!((*(const type *) dir) & mask); \
+#define MERGE_CTX(dir, type, no_val) \
+        c##dir = *(const type *) dir != no_val; \
         break
 
         switch (t_dim->lw) {
@@ -83,17 +83,17 @@ static inline unsigned get_skip_ctx(const TxfmInfo *const t_dim,
          * and will therefore complain about the use of uninitialized variables
          * when compiled in debug mode if we put the default case at the end. */
         default: assert(0); /* fall-through */
-        case TX_4X4:   MERGE_CTX(a, uint8_t,  0x3F);
-        case TX_8X8:   MERGE_CTX(a, uint16_t, 0x3F3F);
-        case TX_16X16: MERGE_CTX(a, uint32_t, 0x3F3F3F3FU);
-        case TX_32X32: MERGE_CTX(a, uint64_t, 0x3F3F3F3F3F3F3F3FULL);
+        case TX_4X4:   MERGE_CTX(a, uint8_t,  0x40);
+        case TX_8X8:   MERGE_CTX(a, uint16_t, 0x4040);
+        case TX_16X16: MERGE_CTX(a, uint32_t, 0x40404040U);
+        case TX_32X32: MERGE_CTX(a, uint64_t, 0x4040404040404040ULL);
         }
         switch (t_dim->lh) {
         default: assert(0); /* fall-through */
-        case TX_4X4:   MERGE_CTX(l, uint8_t,  0x3F);
-        case TX_8X8:   MERGE_CTX(l, uint16_t, 0x3F3F);
-        case TX_16X16: MERGE_CTX(l, uint32_t, 0x3F3F3F3FU);
-        case TX_32X32: MERGE_CTX(l, uint64_t, 0x3F3F3F3F3F3F3F3FULL);
+        case TX_4X4:   MERGE_CTX(l, uint8_t,  0x40);
+        case TX_8X8:   MERGE_CTX(l, uint16_t, 0x4040);
+        case TX_16X16: MERGE_CTX(l, uint32_t, 0x40404040U);
+        case TX_32X32: MERGE_CTX(l, uint64_t, 0x4040404040404040ULL);
         }
 #undef MERGE_CTX
 
