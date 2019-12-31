@@ -709,15 +709,14 @@ void dav1d_inv_adst8_1d_c(const int32_t *const in, const ptrdiff_t in_s,
     t6a = (((3784 - 4096) * t7 -  1567         * t6 + 2048) >> 12) + t7;
     t7a = (( 1567         * t7 + (3784 - 4096) * t6 + 2048) >> 12) + t6;
 
-    out[0 * out_s] = CLIP(  t0 + t2);
-    out[7 * out_s] = CLIP(-(t1 + t3));
-    t2             = CLIP(  t0 - t2);
-    t3             = CLIP(  t1 - t3);
-
-    out[1 * out_s] = CLIP(-(t4a + t6a));
-    out[6 * out_s] = CLIP(  t5a + t7a );
-    t6             = CLIP(  t4a - t6a );
-    t7             = CLIP(  t5a - t7a );
+    out[0 * out_s] =  CLIP(t0  + t2 );
+    out[7 * out_s] = -CLIP(t1  + t3 );
+    t2             =  CLIP(t0  - t2 );
+    t3             =  CLIP(t1  - t3 );
+    out[1 * out_s] = -CLIP(t4a + t6a);
+    out[6 * out_s] =  CLIP(t5a + t7a);
+    t6             =  CLIP(t4a - t6a);
+    t7             =  CLIP(t5a - t7a);
 
     out[3 * out_s] = -(((t2 + t3) * 181 + 128) >> 8);
     out[4 * out_s] =   ((t2 - t3) * 181 + 128) >> 8;
@@ -808,22 +807,22 @@ void dav1d_inv_adst16_1d_c(const int32_t *const in, const ptrdiff_t in_s,
     t14  = ((t15a * (3784 - 4096) - t14a *  1567         + 2048) >> 12) + t15a;
     t15  = ((t15a *  1567         + t14a * (3784 - 4096) + 2048) >> 12) + t14a;
 
-    out[ 0 * out_s] = CLIP(  t0  + t2   );
-    out[15 * out_s] = CLIP(-(t1  + t3)  );
-    t2a             = CLIP(  t0  - t2   );
-    t3a             = CLIP(  t1  - t3   );
-    out[ 3 * out_s] = CLIP(-(t4a + t6a) );
-    out[12 * out_s] = CLIP(  t5a + t7a  );
-    t6              = CLIP(  t4a - t6a  );
-    t7              = CLIP(  t5a - t7a  );
-    out[ 1 * out_s] = CLIP(-(t8a + t10a));
-    out[14 * out_s] = CLIP(  t9a + t11a );
-    t10             = CLIP(  t8a - t10a );
-    t11             = CLIP(  t9a - t11a );
-    out[ 2 * out_s] = CLIP(  t12 + t14  );
-    out[13 * out_s] = CLIP(-(t13 + t15) );
-    t14a            = CLIP(  t12 - t14  );
-    t15a            = CLIP(  t13 - t15  );
+    out[ 0 * out_s] =  CLIP(t0  + t2  );
+    out[15 * out_s] = -CLIP(t1  + t3  );
+    t2a             =  CLIP(t0  - t2  );
+    t3a             =  CLIP(t1  - t3  );
+    out[ 3 * out_s] = -CLIP(t4a + t6a );
+    out[12 * out_s] =  CLIP(t5a + t7a );
+    t6              =  CLIP(t4a - t6a );
+    t7              =  CLIP(t5a - t7a );
+    out[ 1 * out_s] = -CLIP(t8a + t10a);
+    out[14 * out_s] =  CLIP(t9a + t11a);
+    t10             =  CLIP(t8a - t10a);
+    t11             =  CLIP(t9a - t11a);
+    out[ 2 * out_s] =  CLIP(t12 + t14 );
+    out[13 * out_s] = -CLIP(t13 + t15 );
+    t14a            =  CLIP(t12 - t14 );
+    t15a            =  CLIP(t13 - t15 );
 
     out[ 7 * out_s] = -(((t2a  + t3a)  * 181 + 128) >> 8);
     out[ 8 * out_s] =   ((t2a  - t3a)  * 181 + 128) >> 8;
