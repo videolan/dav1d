@@ -350,6 +350,7 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
                                 const int bx, const int by,
                                 const int iw, const int ih,
                                 const int skip, const enum BlockSize bs,
+                                const enum RectTxfmSize max_ytx,
                                 const uint16_t *const tx_masks,
                                 const enum RectTxfmSize uvtx,
                                 const enum Dav1dPixelLayout layout,
@@ -373,7 +374,7 @@ void dav1d_create_lf_mask_inter(Av1Filter *const lflvl,
         }
 
         mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
-                         dav1d_max_txfm_size_for_bs[bs][0], tx_masks, ay, ly);
+                         max_ytx, tx_masks, ay, ly);
     }
 
     if (!auv) return;
