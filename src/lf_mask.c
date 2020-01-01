@@ -43,8 +43,8 @@ static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /*
                       const uint16_t *const tx_masks)
 {
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[from];
-    const int is_split =
-        depth > 1 ? 0 : (tx_masks[depth] >> (y_off * 4 + x_off)) & 1;
+    const int is_split = (from == (int) TX_4X4 || depth > 1) ? 0 :
+        (tx_masks[depth] >> (y_off * 4 + x_off)) & 1;
 
     if (is_split) {
         const enum RectTxfmSize sub = t_dim->sub;
