@@ -161,9 +161,6 @@ static void inv_txfm_add_wht_wht_4x4_c(pixel *dst, const ptrdiff_t stride,
                                        coef *const coeff, const int eob
                                        HIGHBD_DECL_SUFFIX)
 {
-    const int bitdepth = bitdepth_from_max(bitdepth_max);
-    const int col_clip_max = (1 << (imax(bitdepth + 6, 16) - 1)) -1;
-    const int col_clip_min = -col_clip_max - 1;
     int32_t tmp[4 * 4], out[4], in_mem[4];
 
     for (int i = 0; i < 4; i++) {
@@ -171,8 +168,6 @@ static void inv_txfm_add_wht_wht_4x4_c(pixel *dst, const ptrdiff_t stride,
             in_mem[j] = coeff[i + j * 4];
         dav1d_inv_wht4_1d_c(in_mem, 1, &tmp[i * 4], 1, 0);
     }
-    for (int k = 0; k < 4 * 4; k++)
-        tmp[k] = iclip(tmp[k], col_clip_min, col_clip_max);
 
     for (int i = 0; i < 4; i++) {
         dav1d_inv_wht4_1d_c(&tmp[i], 4, out, 1, 1);
