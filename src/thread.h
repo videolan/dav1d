@@ -30,6 +30,7 @@
 
 #if defined(_WIN32)
 
+#include <limits.h>
 #include <windows.h>
 
 #define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
