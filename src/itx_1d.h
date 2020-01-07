@@ -32,8 +32,7 @@
 #define DAV1D_SRC_ITX_1D_H
 
 #define decl_itx_1d_fn(name) \
-void (name)(const int32_t *in, ptrdiff_t in_s, \
-            int32_t *out, ptrdiff_t out_s, const int range)
+void (name)(int32_t *c, ptrdiff_t stride, int min, int max)
 typedef decl_itx_1d_fn(*itx_1d_fn);
 
 decl_itx_1d_fn(dav1d_inv_dct4_1d_c);
@@ -55,6 +54,6 @@ decl_itx_1d_fn(dav1d_inv_identity8_1d_c);
 decl_itx_1d_fn(dav1d_inv_identity16_1d_c);
 decl_itx_1d_fn(dav1d_inv_identity32_1d_c);
 
-decl_itx_1d_fn(dav1d_inv_wht4_1d_c);
+void dav1d_inv_wht4_1d_c(int32_t *c, ptrdiff_t stride);
 
 #endif /* DAV1D_SRC_ITX_1D_H */
