@@ -79,6 +79,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
 
 static void close_internal(Dav1dContext **const c_out, int flush);
 
+NO_SANITIZE("cfi-icall") // CFI is broken with dlsym()
 COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);

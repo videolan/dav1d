@@ -92,6 +92,12 @@
 #define NOINLINE __attribute__((noinline))
 #endif /* !_MSC_VER */
 
+#ifdef __clang__
+#define NO_SANITIZE(x) __attribute__((no_sanitize(x)))
+#else
+#define NO_SANITIZE(x)
+#endif
+
 #if defined(NDEBUG) && (defined(__GNUC__) || defined(__clang__))
 #define assert(x) do { if (!(x)) __builtin_unreachable(); } while (0)
 #elif defined(NDEBUG) && defined(_MSC_VER)
