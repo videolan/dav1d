@@ -80,6 +80,21 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
 static void close_internal(Dav1dContext **const c_out, int flush);
 
 NO_SANITIZE("cfi-icall") // CFI is broken with dlsym()
+static COLD size_t get_stack_size_internal(const pthread_attr_t *const thread_attr) {
+#if defined(__linux__) && defined(HAVE_DLSYM)
+    /* glibc has an issue where the size of the TLS is subtracted from the stack
+     * size instead of allocated separately. As a result the specified stack
+     * size may be insufficient when used in an application with large amounts
+     * of TLS data. The following is a workaround to compensate for that.
+     * See https://sourceware.org/bugzilla/show_bug.cgi?id=11787 */
+    size_t (*const get_minstack)(const pthread_attr_t*) =
+        dlsym(RTLD_DEFAULT, "__pthread_get_minstack");
+    if (get_minstack)
+        return get_minstack(thread_attr) - PTHREAD_STACK_MIN;
+#endif
+    return 0;
+}
+
 COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
@@ -99,18 +114,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
-    size_t stack_size = 1024 * 1024;
-#if defined(__linux__) && defined(HAVE_DLSYM)
-    /* glibc has an issue where the size of the TLS is subtracted from the stack
-     * size instead of allocated separately. As a result the specified stack
-     * size may be insufficient when used in an application with large amounts
-     * of TLS data. The following is a workaround to compensate for that.
-     * See https://sourceware.org/bugzilla/show_bug.cgi?id=11787 */
-    size_t (*const get_minstack)(const pthread_attr_t*) =
-        dlsym(RTLD_DEFAULT, "__pthread_get_minstack");
-    if (get_minstack)
-        stack_size += get_minstack(&thread_attr) - PTHREAD_STACK_MIN;
-#endif
+    size_t stack_size = 1024 * 1024 + get_stack_size_internal(&thread_attr);
+
     pthread_attr_setstacksize(&thread_attr, stack_size);
 
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
