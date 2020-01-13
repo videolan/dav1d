@@ -42,12 +42,17 @@ unsigned dav1d_msac_decode_hi_tok_sse2(MsacContext *s, uint16_t *cdf);
 #if ARCH_X86_64 || defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #define dav1d_msac_decode_symbol_adapt4  dav1d_msac_decode_symbol_adapt4_sse2
 #define dav1d_msac_decode_symbol_adapt8  dav1d_msac_decode_symbol_adapt8_sse2
-#define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt16_sse2
 #define dav1d_msac_decode_hi_tok         dav1d_msac_decode_hi_tok_sse2
 #endif
 
 #define dav1d_msac_decode_bool_adapt     dav1d_msac_decode_bool_adapt_sse2
 #define dav1d_msac_decode_bool_equi      dav1d_msac_decode_bool_equi_sse2
 #define dav1d_msac_decode_bool           dav1d_msac_decode_bool_sse2
+
+#if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#define dav1d_msac_decode_symbol_adapt16 dav1d_msac_decode_symbol_adapt16_sse2
+#endif
+
+void dav1d_msac_init_x86(MsacContext *const s);
 
 #endif /* DAV1D_SRC_X86_MSAC_H */

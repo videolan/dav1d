@@ -146,6 +146,12 @@ if is_asm_enabled
             'x86/cpu.c',
         )
 
+        if host_machine.cpu_family() == 'x86_64'
+            libdav1d_sources += files(
+                'x86/msac_init.c',
+            )
+        endif
+
         libdav1d_tmpl_sources += files(
             'x86/cdef_init_tmpl.c',
             'x86/film_grain_init_tmpl.c',
