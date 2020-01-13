@@ -28,14 +28,15 @@
 #include "src/msac.h"
 #include "src/x86/msac.h"
 
-unsigned dav1d_msac_decode_symbol_adapt16_avx2(MsacContext *s, uint16_t *cdf,
-                                               size_t n_symbols);
-
 void dav1d_msac_init_x86(MsacContext *const s) {
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (flags & DAV1D_X86_CPU_FLAG_SSE2) {
         s->symbol_adapt16 = dav1d_msac_decode_symbol_adapt16_sse2;
+    }
+
+    if (flags & DAV1D_X86_CPU_FLAG_AVX2) {
+        s->symbol_adapt16 = dav1d_msac_decode_symbol_adapt16_avx2;
     }
 }
 
