@@ -236,7 +236,7 @@ build-debian-armv7-clang-5:
 
 build-ubuntu-snap:
     stage: build
-    image: registry.videolan.org:5000/dav1d-ubuntu-bionic:20190221154127
+    image: registry.videolan.org/dav1d-ubuntu-bionic:20200121182340
     tags:
         - debian
         - amd64
