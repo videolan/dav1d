@@ -137,9 +137,9 @@ static void check_gen_grnuv(const Dav1dFilmGrainDSPContext *const dsp) {
 }
 
 static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
-    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
-    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
-    ALIGN_STK_32(pixel, src, 128 * 32,);
+    ALIGN_STK_64(pixel, c_dst, 128 * 32,);
+    ALIGN_STK_64(pixel, a_dst, 128 * 32,);
+    ALIGN_STK_64(pixel, src, 128 * 32,);
     const ptrdiff_t stride = 128 * sizeof(pixel);
 
     declare_func(void, pixel *dst_row, const pixel *src_row, ptrdiff_t stride,
@@ -207,10 +207,10 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
 }
 
 static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
-    ALIGN_STK_32(pixel, c_dst, 128 * 32,);
-    ALIGN_STK_32(pixel, a_dst, 128 * 32,);
-    ALIGN_STK_32(pixel, src, 128 * 32,);
-    ALIGN_STK_32(pixel, luma_src, 128 * 32,);
+    ALIGN_STK_64(pixel, c_dst, 128 * 32,);
+    ALIGN_STK_64(pixel, a_dst, 128 * 32,);
+    ALIGN_STK_64(pixel, src, 128 * 32,);
+    ALIGN_STK_64(pixel, luma_src, 128 * 32,);
     const ptrdiff_t lstride = 128 * sizeof(pixel);
 
     declare_func(void, pixel *dst_row, const pixel *src_row, ptrdiff_t stride,

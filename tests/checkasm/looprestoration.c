@@ -44,9 +44,9 @@ static void init_tmp(pixel *buf, const ptrdiff_t stride,
 }
 
 static void check_wiener(Dav1dLoopRestorationDSPContext *const c) {
-    ALIGN_STK_32(pixel, c_dst, 448 * 64,);
-    ALIGN_STK_32(pixel, a_dst, 448 * 64,);
-    ALIGN_STK_32(pixel, h_edge, 448 * 8,);
+    ALIGN_STK_64(pixel, c_dst, 448 * 64,);
+    ALIGN_STK_64(pixel, a_dst, 448 * 64,);
+    ALIGN_STK_64(pixel, h_edge, 448 * 8,);
     pixel left[64][4];
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride,
@@ -116,9 +116,9 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c) {
 }
 
 static void check_sgr(Dav1dLoopRestorationDSPContext *const c) {
-    ALIGN_STK_32(pixel, c_dst, 448 * 64,);
-    ALIGN_STK_32(pixel, a_dst, 448 * 64,);
-    ALIGN_STK_32(pixel, h_edge, 448 * 8,);
+    ALIGN_STK_64(pixel, c_dst, 448 * 64,);
+    ALIGN_STK_64(pixel, a_dst, 448 * 64,);
+    ALIGN_STK_64(pixel, h_edge, 448 * 8,);
     pixel left[64][4];
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride,

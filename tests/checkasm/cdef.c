@@ -45,9 +45,9 @@ static void init_tmp(pixel *buf, int n, const int bitdepth_max) {
 }
 
 static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
-    ALIGN_STK_32(pixel, c_src, 10 * 16 + 8, ), *const c_dst = c_src + 8;
-    ALIGN_STK_32(pixel, a_src, 10 * 16 + 8, ), *const a_dst = a_src + 8;
-    ALIGN_STK_32(pixel, top, 16 * 2 + 8, );
+    ALIGN_STK_64(pixel, c_src, 10 * 16 + 8, ), *const c_dst = c_src + 8;
+    ALIGN_STK_64(pixel, a_src, 10 * 16 + 8, ), *const a_dst = a_src + 8;
+    ALIGN_STK_64(pixel, top, 16 * 2 + 8, );
     pixel left[8][2];
     pixel *const top_ptrs[2] = { top + 8, top + 24 };
     const ptrdiff_t stride = 16 * sizeof(pixel);
@@ -103,7 +103,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
 }
 
 static void check_cdef_direction(const cdef_dir_fn fn) {
-    ALIGN_STK_32(pixel, src, 8 * 8,);
+    ALIGN_STK_64(pixel, src, 8 * 8,);
 
     declare_func(int, pixel *src, ptrdiff_t dst_stride, unsigned *var
                  HIGHBD_DECL_SUFFIX);
