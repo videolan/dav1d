@@ -178,23 +178,34 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
                     backup2x8(lr_bak[!bit], bptrs, f->cur.stride, 8, layout, flag);
                 }
 
+                int dir;
                 unsigned variance;
-                const int dir = dsp->cdef.dir(bptrs[0], f->cur.stride[0],
-                                              &variance HIGHBD_CALL_SUFFIX);
-                if (y_lvl) {
+                if (y_pri_lvl || uv_pri_lvl)
+                    dir = dsp->cdef.dir(bptrs[0], f->cur.stride[0],
+                                        &variance HIGHBD_CALL_SUFFIX);
+
+                if (y_pri_lvl) {
+                    const int adj_y_pri_lvl = adjust_strength(y_pri_lvl, variance);
+                    if (adj_y_pri_lvl || y_sec_lvl)
+                        dsp->cdef.fb[0](bptrs[0], f->cur.stride[0], lr_bak[bit][0],
+                                        (pixel *const [2]) {
+                                            &f->lf.cdef_line[tf][0][0][bx * 4],
+                                            &f->lf.cdef_line[tf][0][1][bx * 4],
+                                        },
+                                        adj_y_pri_lvl, y_sec_lvl, dir,
+                                        damping, edges HIGHBD_CALL_SUFFIX);
+                } else if (y_sec_lvl)
                     dsp->cdef.fb[0](bptrs[0], f->cur.stride[0], lr_bak[bit][0],
                                     (pixel *const [2]) {
                                         &f->lf.cdef_line[tf][0][0][bx * 4],
                                         &f->lf.cdef_line[tf][0][1][bx * 4],
                                     },
-                                    adjust_strength(y_pri_lvl, variance),
-                                    y_sec_lvl, y_pri_lvl ? dir : 0,
+                                    0, y_sec_lvl, 0,
                                     damping, edges HIGHBD_CALL_SUFFIX);
-                }
                 if (uv_lvl) {
                     assert(layout != DAV1D_PIXEL_LAYOUT_I400);
-                    const int uvdir = layout != DAV1D_PIXEL_LAYOUT_I422 ?
-                        dir : ((uint8_t[]) { 7, 0, 2, 4, 5, 6, 6, 6 })[dir];
+                    const int uvdir = uv_pri_lvl ? layout == DAV1D_PIXEL_LAYOUT_I422 ?
+                        ((const uint8_t[]) { 7, 0, 2, 4, 5, 6, 6, 6 })[dir] : dir : 0;
                     for (int pl = 1; pl <= 2; pl++) {
                         dsp->cdef.fb[uv_idx](bptrs[pl], f->cur.stride[1],
                                              lr_bak[bit][pl],
@@ -202,8 +213,7 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
                                                  &f->lf.cdef_line[tf][pl][0][bx * 4 >> ss_hor],
                                                  &f->lf.cdef_line[tf][pl][1][bx * 4 >> ss_hor],
                                              },
-                                             uv_pri_lvl, uv_sec_lvl,
-                                             uv_pri_lvl ? uvdir : 0,
+                                             uv_pri_lvl, uv_sec_lvl, uvdir,
                                              damping - 1, edges HIGHBD_CALL_SUFFIX);
                     }
                 }
