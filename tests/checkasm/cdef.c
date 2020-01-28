@@ -48,7 +48,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
     ALIGN_STK_64(pixel, c_src,   16 * 10 + 16, ), *const c_dst = c_src + 8;
     ALIGN_STK_64(pixel, a_src,   16 * 10 + 16, ), *const a_dst = a_src + 8;
     ALIGN_STK_64(pixel, top_buf, 16 *  2 + 16, ), *const top = top_buf + 8;
-    pixel left[8][2];
+    ALIGN_STK_16(pixel, left, 8,[2]);
     const ptrdiff_t stride = 16 * sizeof(pixel);
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel (*left)[2],

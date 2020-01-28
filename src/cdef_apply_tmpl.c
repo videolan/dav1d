@@ -120,7 +120,7 @@ void bytefn(dav1d_cdef_brow)(Dav1dFrameContext *const f,
         if (edges & CDEF_HAVE_BOTTOM) // backup pre-filter data for next iteration
             backup2lines(f->lf.cdef_line[!tf], ptrs, f->cur.stride, layout);
 
-        pixel lr_bak[2 /* idx */][3 /* plane */][8 /* y */][2 /* x */];
+        ALIGN_STK_16(pixel, lr_bak, 2 /* idx */, [3 /* plane */][8 /* y */][2 /* x */]);
         pixel *iptrs[3] = { ptrs[0], ptrs[1], ptrs[2] };
         edges &= ~CDEF_HAVE_LEFT;
         edges |= CDEF_HAVE_RIGHT;
