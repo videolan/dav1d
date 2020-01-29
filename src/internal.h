@@ -216,12 +216,14 @@ struct Dav1dFrameContext {
         Av1Filter *mask;
         Av1Restoration *lr_mask;
         int top_pre_cdef_toggle;
-        int mask_sz /* w*h */, lr_mask_sz, line_sz /* w */, lr_line_sz, re_sz /* h */;
+        int mask_sz /* w*h */, lr_mask_sz, cdef_line_sz[2] /* stride */;
+        int lr_line_sz, re_sz /* h */;
         ALIGN(Av1FilterLUT lim_lut, 16);
         int last_sharpness;
         uint8_t lvl[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
         uint8_t *tx_lpf_right_edge[2];
-        pixel *cdef_line[2 /* pre, post */][3 /* plane */][2 /* y */];
+        uint8_t *cdef_line_buf;
+        pixel *cdef_line[2 /* pre, post */][3 /* plane */];
         pixel *lr_lpf_line[3 /* plane */];
 
         // in-loop filter per-frame state keeping

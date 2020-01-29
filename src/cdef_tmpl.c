@@ -55,7 +55,7 @@ static inline void fill(int16_t *tmp, const ptrdiff_t stride,
 
 static void padding(int16_t *tmp, const ptrdiff_t tmp_stride,
                     const pixel *src, const ptrdiff_t src_stride,
-                    const pixel (*left)[2], pixel *const top[2],
+                    const pixel (*left)[2], const pixel *top,
                     const int w, const int h,
                     const enum CdefEdgeFlags edges)
 {
@@ -78,9 +78,11 @@ static void padding(int16_t *tmp, const ptrdiff_t tmp_stride,
         x_end -= 2;
     }
 
-    for (int y = y_start; y < 0; y++)
+    for (int y = y_start; y < 0; y++) {
         for (int x = x_start; x < x_end; x++)
-            tmp[x + y * tmp_stride] = top[y & 1][x];
+            tmp[x + y * tmp_stride] = top[x];
+        top += PXSTRIDE(src_stride);
+    }
     for (int y = 0; y < h; y++)
         for (int x = x_start; x < 0; x++)
             tmp[x + y * tmp_stride] = left[y][2 + x];
@@ -94,7 +96,7 @@ static void padding(int16_t *tmp, const ptrdiff_t tmp_stride,
 
 static NOINLINE void
 cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
-                    const pixel (*left)[2], /*const*/ pixel *const top[2],
+                    const pixel (*left)[2], const pixel *const top,
                     const int pri_strength, const int sec_strength,
                     const int dir, const int damping, const int w, int h,
                     const enum CdefEdgeFlags edges HIGHBD_DECL_SUFFIX)
@@ -208,7 +210,7 @@ cdef_filter_block_c(pixel *dst, const ptrdiff_t dst_stride,
 static void cdef_filter_block_##w##x##h##_c(pixel *const dst, \
                                             const ptrdiff_t stride, \
                                             const pixel (*left)[2], \
-                                            /*const*/ pixel *const top[2], \
+                                            const pixel *const top, \
                                             const int pri_strength, \
                                             const int sec_strength, \
                                             const int dir, \

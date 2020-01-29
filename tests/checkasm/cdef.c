@@ -45,15 +45,14 @@ static void init_tmp(pixel *buf, int n, const int bitdepth_max) {
 }
 
 static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
-    ALIGN_STK_64(pixel, c_src, 10 * 16 + 8, ), *const c_dst = c_src + 8;
-    ALIGN_STK_64(pixel, a_src, 10 * 16 + 8, ), *const a_dst = a_src + 8;
-    ALIGN_STK_64(pixel, top, 16 * 2 + 8, );
+    ALIGN_STK_64(pixel, c_src,   16 * 10 + 16, ), *const c_dst = c_src + 8;
+    ALIGN_STK_64(pixel, a_src,   16 * 10 + 16, ), *const a_dst = a_src + 8;
+    ALIGN_STK_64(pixel, top_buf, 16 *  2 + 16, ), *const top = top_buf + 8;
     pixel left[8][2];
-    pixel *const top_ptrs[2] = { top + 8, top + 24 };
     const ptrdiff_t stride = 16 * sizeof(pixel);
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride, const pixel (*left)[2],
-                 pixel *const top[2], int pri_strength, int sec_strength,
+                 const pixel *top, int pri_strength, int sec_strength,
                  int dir, int damping, enum CdefEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
     if (check_func(fn, "cdef_filter_%dx%d_%dbpc", w, h, BITDEPTH)) {
@@ -66,10 +65,10 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
 #endif
                 const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
 
-                init_tmp(c_src, 10 * 16 + 8, bitdepth_max);
-                init_tmp(top, 16 * 2 + 8, bitdepth_max);
+                init_tmp(c_src, 16 * 10 + 16, bitdepth_max);
+                init_tmp(top_buf, 16 * 2 + 16, bitdepth_max);
                 init_tmp((pixel *) left, 8 * 2, bitdepth_max);
-                memcpy(a_src, c_src, (10 * 16 + 8) * sizeof(pixel));
+                memcpy(a_src, c_src, (16 * 10 + 16) * sizeof(pixel));
 
                 const int lvl = 1 + (rnd() % 62);
                 const int damping = 3 + (rnd() & 3) + bitdepth_min_8 - (w == 4 || (rnd() & 1));
@@ -77,9 +76,9 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
                 int sec_strength = lvl & 3;
                 sec_strength += sec_strength == 3;
                 sec_strength <<= bitdepth_min_8;
-                call_ref(c_dst, stride, left, top_ptrs, pri_strength, sec_strength,
+                call_ref(c_dst, stride, left, top, pri_strength, sec_strength,
                          dir, damping, edges HIGHBD_TAIL_SUFFIX);
-                call_new(a_dst, stride, left, top_ptrs, pri_strength, sec_strength,
+                call_new(a_dst, stride, left, top, pri_strength, sec_strength,
                          dir, damping, edges HIGHBD_TAIL_SUFFIX);
                 if (checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst")) {
                     fprintf(stderr, "strength = %d:%d, dir = %d, damping = %d, edges = %04d\n",
@@ -94,7 +93,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
                      */
                     pri_strength = (edges & 1) << bitdepth_min_8;
                     sec_strength = (edges & 2) << bitdepth_min_8;
-                    bench_new(a_dst, stride, left, top_ptrs, pri_strength, sec_strength,
+                    bench_new(a_dst, stride, left, top, pri_strength, sec_strength,
                               dir, damping, edges HIGHBD_TAIL_SUFFIX);
                 }
             }

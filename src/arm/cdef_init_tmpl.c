@@ -32,11 +32,11 @@ decl_cdef_dir_fn(dav1d_cdef_find_dir_neon);
 
 void dav1d_cdef_padding4_neon(uint16_t *tmp, const pixel *src,
                               ptrdiff_t src_stride, const pixel (*left)[2],
-                              /*const*/ pixel *const top[2], int h,
+                              const pixel *const top, int h,
                               enum CdefEdgeFlags edges);
 void dav1d_cdef_padding8_neon(uint16_t *tmp, const pixel *src,
                               ptrdiff_t src_stride, const pixel (*left)[2],
-                              /*const*/ pixel *const top[2], int h,
+                              const pixel *const top, int h,
                               enum CdefEdgeFlags edges);
 
 void dav1d_cdef_filter4_neon(pixel *dst, ptrdiff_t dst_stride,
@@ -48,17 +48,13 @@ void dav1d_cdef_filter8_neon(pixel *dst, ptrdiff_t dst_stride,
 
 #define DEFINE_FILTER(w, h, tmp_stride)                                      \
 static void                                                                  \
-cdef_filter_##w##x##h##_neon(pixel *dst,                                     \
-                             const ptrdiff_t stride,                         \
-                             const pixel (*left)[2],                         \
-                             /*const*/ pixel *const top[2],                  \
-                             const int pri_strength,                         \
-                             const int sec_strength,                         \
-                             const int dir,                                  \
-                             const int damping,                              \
+cdef_filter_##w##x##h##_neon(pixel *const dst, const ptrdiff_t stride,       \
+                             const pixel (*left)[2], const pixel *const top, \
+                             const int pri_strength, const int sec_strength, \
+                             const int dir, const int damping,               \
                              const enum CdefEdgeFlags edges)                 \
 {                                                                            \
-    ALIGN_STK_16(uint16_t, tmp_buf, 12*tmp_stride + 8,);                     \
+    ALIGN_STK_16(uint16_t, tmp_buf, 12 * tmp_stride + 8,);                   \
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 8;                            \
     dav1d_cdef_padding##w##_neon(tmp, dst, stride, left, top, h, edges);     \
     dav1d_cdef_filter##w##_neon(dst, stride, tmp, pri_strength,              \

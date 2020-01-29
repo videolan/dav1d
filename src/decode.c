@@ -2762,24 +2762,42 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     }
 
     // update allocation of block contexts for above
-    const int line_sz = (int)f->b4_stride << hbd;
-    if (line_sz != f->lf.line_sz) {
-        dav1d_freep_aligned(&f->lf.cdef_line[0][0][0]);
-        uint8_t *ptr = dav1d_alloc_aligned(line_sz * 4 * 12, 32);
+    const ptrdiff_t y_stride = f->cur.stride[0], uv_stride = f->cur.stride[1];
+    if (y_stride != f->lf.cdef_line_sz[0] || uv_stride != f->lf.cdef_line_sz[1]) {
+        dav1d_free_aligned(f->lf.cdef_line_buf);
+        size_t alloc_sz = 64;
+        alloc_sz += (y_stride  < 0 ? -y_stride  : y_stride ) * 4;
+        alloc_sz += (uv_stride < 0 ? -uv_stride : uv_stride) * 8;
+        uint8_t *ptr = f->lf.cdef_line_buf = dav1d_alloc_aligned(alloc_sz, 32);
         if (!ptr) {
-            f->lf.line_sz = 0;
+            f->lf.cdef_line_sz[0] = f->lf.cdef_line_sz[1] = 0;
             goto error;
         }
 
-        for (int pl = 0; pl <= 2; pl++) {
-            f->lf.cdef_line[0][pl][0] = ptr + line_sz * 4 * 0;
-            f->lf.cdef_line[0][pl][1] = ptr + line_sz * 4 * 1;
-            f->lf.cdef_line[1][pl][0] = ptr + line_sz * 4 * 2;
-            f->lf.cdef_line[1][pl][1] = ptr + line_sz * 4 * 3;
-            ptr += line_sz * 4 * 4;
+        ptr += 32;
+        if (y_stride < 0) {
+            f->lf.cdef_line[0][0] = ptr - y_stride * 1;
+            f->lf.cdef_line[1][0] = ptr - y_stride * 3;
+            ptr -= y_stride * 4;
+        } else {
+            f->lf.cdef_line[0][0] = ptr + y_stride * 0;
+            f->lf.cdef_line[1][0] = ptr + y_stride * 2;
+            ptr += y_stride * 4;
+        }
+        if (uv_stride < 0) {
+            f->lf.cdef_line[0][1] = ptr - uv_stride * 1;
+            f->lf.cdef_line[0][2] = ptr - uv_stride * 3;
+            f->lf.cdef_line[1][1] = ptr - uv_stride * 5;
+            f->lf.cdef_line[1][2] = ptr - uv_stride * 7;
+        } else {
+            f->lf.cdef_line[0][1] = ptr + uv_stride * 0;
+            f->lf.cdef_line[0][2] = ptr + uv_stride * 2;
+            f->lf.cdef_line[1][1] = ptr + uv_stride * 4;
+            f->lf.cdef_line[1][2] = ptr + uv_stride * 6;
         }
 
-        f->lf.line_sz = line_sz;
+        f->lf.cdef_line_sz[0] = (int) y_stride;
+        f->lf.cdef_line_sz[1] = (int) uv_stride;
     }
 
     const int lr_line_sz = ((f->sr_cur.p.p.w + 31) & ~31) << hbd;
