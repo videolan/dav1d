@@ -93,7 +93,7 @@ static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
                      *  3) all edges and both pri_strength and sec_strength
                      */
                     pri_strength = (edges & 1) << bitdepth_min_8;
-                    sec_strength = edges & 2;
+                    sec_strength = (edges & 2) << bitdepth_min_8;
                     bench_new(a_dst, stride, left, top_ptrs, pri_strength, sec_strength,
                               dir, damping, edges HIGHBD_TAIL_SUFFIX);
                 }
