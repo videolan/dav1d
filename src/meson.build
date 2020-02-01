@@ -102,22 +102,42 @@ if is_asm_enabled
         )
         if host_machine.cpu_family() == 'aarch64'
             libdav1d_sources += files(
-                'arm/64/cdef.S',
-                'arm/64/ipred.S',
-                'arm/64/itx.S',
-                'arm/64/loopfilter.S',
-                'arm/64/looprestoration.S',
-                'arm/64/mc.S',
                 'arm/64/msac.S',
             )
+
+            if dav1d_bitdepths.contains('8')
+                libdav1d_sources += files(
+                    'arm/64/cdef.S',
+                    'arm/64/ipred.S',
+                    'arm/64/itx.S',
+                    'arm/64/loopfilter.S',
+                    'arm/64/looprestoration.S',
+                    'arm/64/mc.S',
+                )
+            endif
+
+            if dav1d_bitdepths.contains('16')
+                libdav1d_sources += files(
+                )
+            endif
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_sources += files(
-                'arm/32/cdef.S',
-                'arm/32/ipred.S',
-                'arm/32/loopfilter.S',
-                'arm/32/looprestoration.S',
-                'arm/32/mc.S',
             )
+
+            if dav1d_bitdepths.contains('8')
+                libdav1d_sources += files(
+                    'arm/32/cdef.S',
+                    'arm/32/ipred.S',
+                    'arm/32/loopfilter.S',
+                    'arm/32/looprestoration.S',
+                    'arm/32/mc.S',
+                )
+            endif
+
+            if dav1d_bitdepths.contains('16')
+                libdav1d_sources += files(
+                )
+            endif
         endif
     elif host_machine.cpu_family().startswith('x86')
 
