@@ -50,13 +50,13 @@ typedef union refmvs_refpair {
     uint16_t pair;
 } refmvs_refpair;
 
-// would be nice to have a mvpair also, so double mv comparisons in
-// add_{spatial,temporal}_candidate() can be done in a single comparison,
-// but that would extend the size of refmvs_block to 16 byte (from 12)
-// (on x86-64) which we probably don't want to do.
+typedef union refmvs_mvpair {
+    mv mv[2];
+    uint64_t n;
+} refmvs_mvpair;
 
 typedef struct refmvs_block {
-    mv mv[2];
+    refmvs_mvpair mv;
     refmvs_refpair ref;
     uint8_t bs, mf; // 1 = globalmv+affine, 2 = newmv
 } refmvs_block;
@@ -93,7 +93,7 @@ typedef struct refmvs_tile {
 } refmvs_tile;
 
 typedef struct refmvs_candidate {
-    mv mv[2];
+    refmvs_mvpair mv;
     int weight;
 } refmvs_candidate;
 
@@ -150,7 +150,7 @@ static inline void splat_oneref_mv(refmvs_tile *const rt,
 
     const refmvs_block tmpl = (refmvs_block) {
         .ref.ref = { ref + 1, is_interintra ? 0 : -1 },
-        .mv = { mv },
+        .mv.mv[0] = mv,
         .bs = bs,
         .mf = (mode == GLOBALMV && imin(bw4, bh4) >= 2) | ((mode == NEWMV) * 2),
     };
@@ -171,7 +171,7 @@ static inline void splat_intrabc_mv(refmvs_tile *const rt,
 
     const refmvs_block tmpl = (refmvs_block) {
         .ref.ref = { 0, -1 },
-        .mv = { mv },
+        .mv.mv[0] = mv,
         .bs = bs,
         .mf = 0,
     };
@@ -187,8 +187,8 @@ static inline void splat_tworef_mv(refmvs_tile *const rt,
                                    const int by4, const int bx4,
                                    const enum BlockSize bs,
                                    const enum CompInterPredMode mode,
-                                   const int ref1, const int ref2,
-                                   const mv mv[2])
+                                   const refmvs_refpair ref,
+                                   const refmvs_mvpair mv)
 {
     const int bw4 = dav1d_block_dimensions[bs][0];
     int bh4 = dav1d_block_dimensions[bs][1];
@@ -196,8 +196,8 @@ static inline void splat_tworef_mv(refmvs_tile *const rt,
 
     assert(bw4 >= 2 && bh4 >= 2);
     const refmvs_block tmpl = (refmvs_block) {
-        .ref.ref = { ref1 + 1, ref2 + 1 },
-        .mv = { mv[0], mv[1] },
+        .ref.pair = ref.pair + 0x0101,
+        .mv = mv,
         .bs = bs,
         .mf = (mode == GLOBALMV_GLOBALMV) | !!((1 << mode) & (0xbc)) * 2,
     };
@@ -218,7 +218,7 @@ static inline void splat_intraref(refmvs_tile *const rt,
 
     const refmvs_block tmpl = (refmvs_block) {
         .ref.ref = { 0, -1 },
-        .mv = { [0] = { .n = INVALID_MV } },
+        .mv.mv[0].n = INVALID_MV,
         .bs = bs,
         .mf = 0,
     };

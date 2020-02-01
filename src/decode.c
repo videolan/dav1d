@@ -300,8 +300,8 @@ static void derive_warpmv(const Dav1dTileContext *const t,
 #define add_sample(dx, dy, sx, sy, rp) do { \
     pts[np][0][0] = 16 * (2 * dx + sx * bs(rp)[0]) - 8; \
     pts[np][0][1] = 16 * (2 * dy + sy * bs(rp)[1]) - 8; \
-    pts[np][1][0] = pts[np][0][0] + (rp)->mv[0].x; \
-    pts[np][1][1] = pts[np][0][1] + (rp)->mv[0].y; \
+    pts[np][1][0] = pts[np][0][0] + (rp)->mv.mv[0].x; \
+    pts[np][1][1] = pts[np][0][1] + (rp)->mv.mv[0].y; \
     np++; \
 } while (0)
 
@@ -796,13 +796,13 @@ static int decode_b(Dav1dTileContext *const t,
                 refmvs_block *const r = &t->rt.r[(t->by & 31) + 5 + bh4 - 1][t->bx];
                 for (int x = 0; x < bw4; x++) {
                     r[x].ref.ref[0] = b->ref[0] + 1;
-                    r[x].mv[0] = b->mv[0];
+                    r[x].mv.mv[0] = b->mv[0];
                     r[x].bs = bs;
                 }
                 refmvs_block *const *rr = &t->rt.r[(t->by & 31) + 5];
                 for (int y = 0; y < bh4 - 1; y++) {
                     rr[y][t->bx + bw4 - 1].ref.ref[0] = b->ref[0] + 1;
-                    rr[y][t->bx + bw4 - 1].mv[0] = b->mv[0];
+                    rr[y][t->bx + bw4 - 1].mv.mv[0] = b->mv[0];
                     rr[y][t->bx + bw4 - 1].bs = bs;
                 }
             }
@@ -1305,10 +1305,10 @@ static int decode_b(Dav1dTileContext *const t,
                           (union refmvs_refpair) { .ref = { 0, -1 }},
                           bs, intra_edge_flags, t->by, t->bx);
 
-        if (mvstack[0].mv[0].n)
-            b->mv[0] = mvstack[0].mv[0];
-        else if (mvstack[1].mv[0].n)
-            b->mv[0] = mvstack[1].mv[0];
+        if (mvstack[0].mv.mv[0].n)
+            b->mv[0] = mvstack[0].mv.mv[0];
+        else if (mvstack[1].mv.mv[0].n)
+            b->mv[0] = mvstack[1].mv.mv[0];
         else {
             if (t->by - (16 << f->seq_hdr->sb128) < ts->tiling.row_start) {
                 b->mv[0].y = 0;
@@ -1381,7 +1381,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (DEBUG_BLOCK_INFO)
             printf("Post-dmv[%d/%d,ref=%d/%d|%d/%d]: r=%d\n",
                    b->mv[0].y, b->mv[0].x, ref.y, ref.x,
-                   mvstack[0].mv[0].y, mvstack[0].mv[0].x, ts->msac.rng);
+                   mvstack[0].mv.mv[0].y, mvstack[0].mv.mv[0].x, ts->msac.rng);
         read_vartx_tree(t, b, bs, bx4, by4);
 
         // reconstruction
@@ -1448,8 +1448,8 @@ static int decode_b(Dav1dTileContext *const t,
                                     b->ref[0] + 1, b->ref[1] + 1 }},
                               bs, intra_edge_flags, t->by, t->bx);
 
-            b->mv[0] = mvstack[0].mv[0];
-            b->mv[1] = mvstack[0].mv[1];
+            b->mv[0] = mvstack[0].mv.mv[0];
+            b->mv[1] = mvstack[0].mv.mv[1];
             fix_mv_precision(f->frame_hdr, &b->mv[0]);
             fix_mv_precision(f->frame_hdr, &b->mv[1]);
             if (DEBUG_BLOCK_INFO)
@@ -1571,7 +1571,7 @@ static int decode_b(Dav1dTileContext *const t,
             switch (im[idx]) { \
             case NEARMV: \
             case NEARESTMV: \
-                b->mv[idx] = mvstack[b->drl_idx].mv[idx]; \
+                b->mv[idx] = mvstack[b->drl_idx].mv.mv[idx]; \
                 fix_mv_precision(f->frame_hdr, &b->mv[idx]); \
                 break; \
             case GLOBALMV: \
@@ -1582,7 +1582,7 @@ static int decode_b(Dav1dTileContext *const t,
                 fix_mv_precision(f->frame_hdr, &b->mv[idx]); \
                 break; \
             case NEWMV: \
-                b->mv[idx] = mvstack[b->drl_idx].mv[idx]; \
+                b->mv[idx] = mvstack[b->drl_idx].mv.mv[idx]; \
                 read_mv_residual(t, &b->mv[idx], &ts->cdf.mv, \
                                  !f->frame_hdr->force_integer_mv); \
                 break; \
@@ -1739,7 +1739,7 @@ static int decode_b(Dav1dTileContext *const t,
                         b->drl_idx = NEAREST_DRL;
                     }
                     assert(b->drl_idx >= NEAREST_DRL && b->drl_idx <= NEARISH_DRL);
-                    b->mv[0] = mvstack[b->drl_idx].mv[0];
+                    b->mv[0] = mvstack[b->drl_idx].mv.mv[0];
                     if (b->drl_idx < NEAR_DRL)
                         fix_mv_precision(f->frame_hdr, &b->mv[0]);
                 }
@@ -1764,10 +1764,10 @@ static int decode_b(Dav1dTileContext *const t,
                 }
                 assert(b->drl_idx >= NEAREST_DRL && b->drl_idx <= NEARISH_DRL);
                 if (n_mvs > 1) {
-                    b->mv[0] = mvstack[b->drl_idx].mv[0];
+                    b->mv[0] = mvstack[b->drl_idx].mv.mv[0];
                 } else {
                     assert(!b->drl_idx);
-                    b->mv[0] = mvstack[0].mv[0];
+                    b->mv[0] = mvstack[0].mv.mv[0];
                     fix_mv_precision(f->frame_hdr, &b->mv[0]);
                 }
                 if (DEBUG_BLOCK_INFO)
@@ -1938,7 +1938,8 @@ static int decode_b(Dav1dTileContext *const t,
         // context updates
         if (is_comp) {
             splat_tworef_mv(&t->rt, t->by, t->bx, bs, b->inter_mode,
-                            b->ref[0], b->ref[1], b->mv);
+                            (refmvs_refpair) { .ref = { b->ref[0], b->ref[1] }},
+                            (refmvs_mvpair) { .mv = { [0] = b->mv[0], [1] = b->mv[1] }});
         } else {
             splat_oneref_mv(&t->rt, t->by, t->bx, bs, b->inter_mode,
                             b->ref[0], b->mv[0], b->interintra_type);

@@ -43,17 +43,17 @@ static void add_spatial_candidate(refmvs_candidate *const mvstack, int *const cn
                                   int *const have_newmv_match,
                                   int *const have_refmv_match)
 {
-    if (b->mv[0].n == INVALID_MV) return; // intra block, no intrabc
+    if (b->mv.mv[0].n == INVALID_MV) return; // intra block, no intrabc
 
     if (ref.ref[1] == -1) {
         for (int n = 0; n < 2; n++) {
             if (b->ref.ref[n] == ref.ref[0]) {
                 const mv cand_mv = ((b->mf & 1) && gmv[0].n != INVALID_MV) ?
-                                   gmv[0] : b->mv[n];
+                                   gmv[0] : b->mv.mv[n];
 
                 const int last = *cnt;
                 for (int m = 0; m < last; m++)
-                    if (mvstack[m].mv[0].n == cand_mv.n) {
+                    if (mvstack[m].mv.mv[0].n == cand_mv.n) {
                         mvstack[m].weight += weight;
                         *have_refmv_match = 1;
                         *have_newmv_match |= b->mf >> 1;
@@ -61,7 +61,7 @@ static void add_spatial_candidate(refmvs_candidate *const mvstack, int *const cn
                     }
 
                 if (last < 8) {
-                    mvstack[last].mv[0] = cand_mv;
+                    mvstack[last].mv.mv[0] = cand_mv;
                     mvstack[last].weight = weight;
                     *cnt = last + 1;
                 }
@@ -71,16 +71,14 @@ static void add_spatial_candidate(refmvs_candidate *const mvstack, int *const cn
             }
         }
     } else if (b->ref.pair == ref.pair) {
-        const mv cand_mv[2] = {
-            [0] = ((b->mf & 1) && gmv[0].n != INVALID_MV) ? gmv[0] : b->mv[0],
-            [1] = ((b->mf & 1) && gmv[1].n != INVALID_MV) ? gmv[1] : b->mv[1],
-        };
+        const refmvs_mvpair cand_mv = { .mv = {
+            [0] = ((b->mf & 1) && gmv[0].n != INVALID_MV) ? gmv[0] : b->mv.mv[0],
+            [1] = ((b->mf & 1) && gmv[1].n != INVALID_MV) ? gmv[1] : b->mv.mv[1],
+        }};
 
         const int last = *cnt;
         for (int n = 0; n < last; n++)
-            if (mvstack[n].mv[0].n == cand_mv[0].n &&
-                mvstack[n].mv[1].n == cand_mv[1].n)
-            {
+            if (mvstack[n].mv.n == cand_mv.n) {
                 mvstack[n].weight += weight;
                 *have_refmv_match = 1;
                 *have_newmv_match |= b->mf >> 1;
@@ -88,8 +86,7 @@ static void add_spatial_candidate(refmvs_candidate *const mvstack, int *const cn
             }
 
         if (last < 8) {
-            mvstack[last].mv[0] = cand_mv[0];
-            mvstack[last].mv[1] = cand_mv[1];
+            mvstack[last].mv = cand_mv;
             mvstack[last].weight = weight;
             *cnt = last + 1;
         }
@@ -208,27 +205,29 @@ static void add_temporal_candidate(const refmvs_frame *const rf,
             *globalmv_ctx = (abs(mv.x - gmv[0].x) | abs(mv.y - gmv[0].y)) >= 16;
 
         for (int n = 0; n < last; n++)
-            if (mvstack[n].mv[0].n == mv.n) {
+            if (mvstack[n].mv.mv[0].n == mv.n) {
                 mvstack[n].weight += 2;
                 return;
             }
         if (last < 8) {
-            mvstack[last].mv[0] = mv;
+            mvstack[last].mv.mv[0] = mv;
             mvstack[last].weight = 2;
             *cnt = last + 1;
         }
     } else {
-        union mv mv2 = mv_projection(rb->mv, rf->pocdiff[ref.ref[1] - 1], rb->ref);
-        fix_mv_precision(rf->frm_hdr, &mv2);
+        refmvs_mvpair mvp = { .mv = {
+            [0] = mv,
+            [1] = mv_projection(rb->mv, rf->pocdiff[ref.ref[1] - 1], rb->ref),
+        }};
+        fix_mv_precision(rf->frm_hdr, &mvp.mv[1]);
 
         for (int n = 0; n < last; n++)
-            if (mvstack[n].mv[0].n == mv.n && mvstack[n].mv[1].n == mv2.n) {
+            if (mvstack[n].mv.n == mvp.n) {
                 mvstack[n].weight += 2;
                 return;
             }
         if (last < 8) {
-            mvstack[last].mv[0] = mv;
-            mvstack[last].mv[1] = mv2;
+            mvstack[last].mv = mvp;
             mvstack[last].weight = 2;
             *cnt = last + 1;
         }
@@ -250,26 +249,26 @@ static void add_compound_extended_candidate(refmvs_candidate *const same,
 
         if (cand_ref <= 0) break;
 
-        mv cand_mv = cand_b->mv[n];
+        mv cand_mv = cand_b->mv.mv[n];
         if (cand_ref == ref.ref[0]) {
             if (same_count[0] < 2)
-                same[same_count[0]++].mv[0] = cand_mv;
+                same[same_count[0]++].mv.mv[0] = cand_mv;
             if (diff_count[1] < 2) {
                 if (sign1 ^ sign_bias[cand_ref - 1]) {
                     cand_mv.y = -cand_mv.y;
                     cand_mv.x = -cand_mv.x;
                 }
-                diff[diff_count[1]++].mv[1] = cand_mv;
+                diff[diff_count[1]++].mv.mv[1] = cand_mv;
             }
         } else if (cand_ref == ref.ref[1]) {
             if (same_count[1] < 2)
-                same[same_count[1]++].mv[1] = cand_mv;
+                same[same_count[1]++].mv.mv[1] = cand_mv;
             if (diff_count[0] < 2) {
                 if (sign0 ^ sign_bias[cand_ref - 1]) {
                     cand_mv.y = -cand_mv.y;
                     cand_mv.x = -cand_mv.x;
                 }
-                diff[diff_count[0]++].mv[0] = cand_mv;
+                diff[diff_count[0]++].mv.mv[0] = cand_mv;
             }
         } else {
             mv i_cand_mv = (union mv) {
@@ -278,13 +277,13 @@ static void add_compound_extended_candidate(refmvs_candidate *const same,
             };
 
             if (diff_count[0] < 2) {
-                diff[diff_count[0]++].mv[0] =
+                diff[diff_count[0]++].mv.mv[0] =
                     sign0 ^ sign_bias[cand_ref - 1] ?
                     i_cand_mv : cand_mv;
             }
 
             if (diff_count[1] < 2) {
-                diff[diff_count[1]++].mv[1] =
+                diff[diff_count[1]++].mv.mv[1] =
                     sign1 ^ sign_bias[cand_ref - 1] ?
                     i_cand_mv : cand_mv;
             }
@@ -306,7 +305,7 @@ static void add_single_extended_candidate(refmvs_candidate mvstack[8], int *cons
         // FIXME if scan_{row,col}() returned a mask for the nearest
         // edge, we could skip the appropriate ones here
 
-        mv cand_mv = cand_b->mv[n];
+        mv cand_mv = cand_b->mv.mv[n];
         if (sign ^ sign_bias[cand_ref - 1]) {
             cand_mv.y = -cand_mv.y;
             cand_mv.x = -cand_mv.x;
@@ -315,10 +314,10 @@ static void add_single_extended_candidate(refmvs_candidate mvstack[8], int *cons
         int m;
         const int last = *cnt;
         for (m = 0; m < last; m++)
-            if (cand_mv.n == mvstack[m].mv[0].n)
+            if (cand_mv.n == mvstack[m].mv.mv[0].n)
                 break;
         if (m == last) {
-            mvstack[m].mv[0] = cand_mv;
+            mvstack[m].mv.mv[0] = cand_mv;
             mvstack[m].weight = 2; // "minimal"
             *cnt = last + 1;
         }
@@ -561,27 +560,23 @@ void dav1d_refmvs_find(const refmvs_tile *const rt,
 
                 const int l = diff_count[n];
                 if (l) {
-                    same[m].mv[n] = diff[0].mv[n];
+                    same[m].mv.mv[n] = diff[0].mv.mv[n];
                     if (++m == 2) continue;
                     if (l == 2) {
-                        same[1].mv[n] = diff[1].mv[n];
+                        same[1].mv.mv[n] = diff[1].mv.mv[n];
                         continue;
                     }
                 }
                 do {
-                    same[m].mv[n] = tgmv[n];
+                    same[m].mv.mv[n] = tgmv[n];
                 } while (++m < 2);
             }
 
             // if the first extended was the same as the non-extended one,
             // then replace it with the second extended one
             int n = *cnt;
-            if (n == 1 && mvstack[0].mv[0].n == same[0].mv[0].n &&
-                mvstack[0].mv[1].n == same[0].mv[1].n)
-            {
-                mvstack[1].mv[0] = mvstack[2].mv[0];
-                mvstack[1].mv[1] = mvstack[2].mv[1];
-            }
+            if (n == 1 && mvstack[0].mv.n == same[0].mv.n)
+                mvstack[1].mv = mvstack[2].mv;
             do {
                 mvstack[n].weight = 2;
             } while (++n < 2);
@@ -597,10 +592,10 @@ void dav1d_refmvs_find(const refmvs_tile *const rt,
         const int n_refmvs = *cnt;
         int n = 0;
         do {
-            mvstack[n].mv[0].x = iclip(mvstack[n].mv[0].x, left, right);
-            mvstack[n].mv[0].y = iclip(mvstack[n].mv[0].y, top, bottom);
-            mvstack[n].mv[1].x = iclip(mvstack[n].mv[1].x, left, right);
-            mvstack[n].mv[1].y = iclip(mvstack[n].mv[1].y, top, bottom);
+            mvstack[n].mv.mv[0].x = iclip(mvstack[n].mv.mv[0].x, left, right);
+            mvstack[n].mv.mv[0].y = iclip(mvstack[n].mv.mv[0].y, top, bottom);
+            mvstack[n].mv.mv[1].x = iclip(mvstack[n].mv.mv[1].x, left, right);
+            mvstack[n].mv.mv[1].y = iclip(mvstack[n].mv.mv[1].y, top, bottom);
         } while (++n < n_refmvs);
 
         switch (refmv_ctx >> 1) {
@@ -646,13 +641,13 @@ void dav1d_refmvs_find(const refmvs_tile *const rt,
 
         int n = 0;
         do {
-            mvstack[n].mv[0].x = iclip(mvstack[n].mv[0].x, left, right);
-            mvstack[n].mv[0].y = iclip(mvstack[n].mv[0].y, top, bottom);
+            mvstack[n].mv.mv[0].x = iclip(mvstack[n].mv.mv[0].x, left, right);
+            mvstack[n].mv.mv[0].y = iclip(mvstack[n].mv.mv[0].y, top, bottom);
         } while (++n < n_refmvs);
     }
 
     for (int n = *cnt; n < 2; n++)
-        mvstack[n].mv[0] = tgmv[0];
+        mvstack[n].mv.mv[0] = tgmv[0];
 
     *ctx = (refmv_ctx << 4) | (globalmv_ctx << 3) | newmv_ctx;
 }
@@ -786,16 +781,16 @@ void dav1d_refmvs_save_tmvs(const refmvs_tile *const rt,
             const int bw8 = (dav1d_block_dimensions[cand_b->bs][0] + 1) >> 1;
 
             if (cand_b->ref.ref[1] > 0 && ref_sign[cand_b->ref.ref[1] - 1] &&
-                (abs(cand_b->mv[1].y) | abs(cand_b->mv[1].x)) < 4096)
+                (abs(cand_b->mv.mv[1].y) | abs(cand_b->mv.mv[1].x)) < 4096)
             {
                 for (int n = 0; n < bw8; n++, x++)
-                    rp[x] = (refmvs_temporal_block) { .mv = cand_b->mv[1],
+                    rp[x] = (refmvs_temporal_block) { .mv = cand_b->mv.mv[1],
                                                       .ref = cand_b->ref.ref[1] };
             } else if (cand_b->ref.ref[0] > 0 && ref_sign[cand_b->ref.ref[0] - 1] &&
-                       (abs(cand_b->mv[0].y) | abs(cand_b->mv[0].x)) < 4096)
+                       (abs(cand_b->mv.mv[0].y) | abs(cand_b->mv.mv[0].x)) < 4096)
             {
                 for (int n = 0; n < bw8; n++, x++)
-                    rp[x] = (refmvs_temporal_block) { .mv = cand_b->mv[0],
+                    rp[x] = (refmvs_temporal_block) { .mv = cand_b->mv.mv[0],
                                                       .ref = cand_b->ref.ref[0] };
             } else {
                 for (int n = 0; n < bw8; n++, x++)

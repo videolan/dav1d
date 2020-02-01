@@ -1018,7 +1018,7 @@ static int obmc(Dav1dTileContext *const t,
                 const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
                 const int oh4 = imin(b_dim[1], 16) >> 1;
                 res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, (oh4 * 3 + 3) >> 2,
-                         t->bx + x, t->by, pl, a_r->mv[0],
+                         t->bx + x, t->by, pl, a_r->mv.mv[0],
                          &f->refp[a_r->ref.ref[0] - 1], a_r->ref.ref[0] - 1,
                          dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
                 if (res) return res;
@@ -1040,7 +1040,7 @@ static int obmc(Dav1dTileContext *const t,
                 const int ow4 = imin(b_dim[0], 16) >> 1;
                 const int oh4 = iclip(l_b_dim[1], 2, b_dim[1]);
                 res = mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
-                         t->bx, t->by + y, pl, l_r->mv[0],
+                         t->bx, t->by + y, pl, l_r->mv.mv[0],
                          &f->refp[l_r->ref.ref[0] - 1], l_r->ref.ref[0] - 1,
                          dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
                 if (res) return res;
@@ -1631,7 +1631,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff,
                              NULL, f->cur.stride[1],
                              bw4, bh4, t->bx - 1, t->by - 1, 1 + pl,
-                             r[-1][t->bx - 1].mv[0],
+                             r[-1][t->bx - 1].mv.mv[0],
                              &f->refp[r[-1][t->bx - 1].ref.ref[0] - 1],
                              r[-1][t->bx - 1].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? t->tl_4x4_filter :
@@ -1647,7 +1647,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 for (int pl = 0; pl < 2; pl++) {
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff + v_off, NULL,
                              f->cur.stride[1], bw4, bh4, t->bx - 1,
-                             t->by, 1 + pl, r[0][t->bx - 1].mv[0],
+                             t->by, 1 + pl, r[0][t->bx - 1].mv.mv[0],
                              &f->refp[r[0][t->bx - 1].ref.ref[0] - 1],
                              r[0][t->bx - 1].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? left_filter_2d :
@@ -1662,7 +1662,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 for (int pl = 0; pl < 2; pl++) {
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff + h_off, NULL,
                              f->cur.stride[1], bw4, bh4, t->bx, t->by - 1,
-                             1 + pl, r[-1][t->bx].mv[0],
+                             1 + pl, r[-1][t->bx].mv.mv[0],
                              &f->refp[r[-1][t->bx].ref.ref[0] - 1],
                              r[-1][t->bx].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? top_filter_2d :
