@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common/attributes.h"
+
 #if !defined(BITDEPTH)
 typedef void pixel;
 typedef void coef;
@@ -47,7 +49,7 @@ typedef int16_t coef;
 #define iclip_pixel iclip_u8
 #define PIX_HEX_FMT "%02x"
 #define bitfn(x) x##_8bpc
-#define PXSTRIDE(x) x
+#define PXSTRIDE(x) (x)
 #define highbd_only(x)
 #define HIGHBD_DECL_SUFFIX /* nothing */
 #define HIGHBD_CALL_SUFFIX /* nothing */
@@ -70,7 +72,10 @@ static inline void pixel_set(pixel *const dst, const int val, const int num) {
 #define HIGHBD_TAIL_SUFFIX , bitdepth_max
 #define bitdepth_from_max(bitdepth_max) (32 - clz(bitdepth_max))
 #define bitfn(x) x##_16bpc
-#define PXSTRIDE(x) (x >> 1)
+static inline ptrdiff_t PXSTRIDE(const ptrdiff_t x) {
+    assert(!(x & 1));
+    return x >> 1;
+}
 #define highbd_only(x) x
 #else
 #error invalid value for bitdepth
