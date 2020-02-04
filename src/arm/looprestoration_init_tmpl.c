@@ -270,7 +270,7 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
 }
 #endif // BITDEPTH == 8
 
-COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPContext *const c) {
+COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPContext *const c, int bpc) {
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
