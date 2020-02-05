@@ -35,9 +35,12 @@
 // int16_t sum = 0;
 // for (int i = 0; i < 7; i++)
 //     sum += src[idx] * fh[i];
-// int16_t sum2 = (src[x] << 7) - (1 << (BITDEPTH + 6)) + rounding_off_h;
+// int16_t sum2 = (src[x] << 7) - (1 << (bitdepth + 6)) + rounding_off_h;
 // sum = iclip(sum + sum2, INT16_MIN, INT16_MAX) >> round_bits_h;
-// sum += 2048;
+// sum += 1 << (bitdepth + 6 - round_bits_h);
+// Compared to the reference C version, this is the output of the first pass
+// _subtracted_ by 1 << (bitdepth + 6 - round_bits_h) = 2048, i.e.
+// with round_offset precompensated.
 void dav1d_wiener_filter_h_neon(int16_t *dst, const pixel (*left)[4],
                                 const pixel *src, ptrdiff_t stride,
                                 const int16_t fh[7], const intptr_t w,
