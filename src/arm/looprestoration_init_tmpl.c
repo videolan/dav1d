@@ -44,7 +44,8 @@
 void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
                                      const pixel *src, ptrdiff_t stride,
                                      const int16_t fh[7], const intptr_t w,
-                                     int h, enum LrEdgeFlags edges);
+                                     int h, enum LrEdgeFlags edges
+                                     HIGHBD_DECL_SUFFIX);
 // This calculates things slightly differently than the reference C version.
 // This version calculates roughly this:
 // fv[3] += 128;
@@ -56,7 +57,7 @@ void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
 void BF(dav1d_wiener_filter_v, neon)(pixel *dst, ptrdiff_t stride,
                                      const int16_t *mid, int w, int h,
                                      const int16_t fv[7], enum LrEdgeFlags edges,
-                                     ptrdiff_t mid_stride);
+                                     ptrdiff_t mid_stride HIGHBD_DECL_SUFFIX);
 void BF(dav1d_copy_narrow, neon)(pixel *dst, ptrdiff_t stride,
                                  const pixel *src, int w, int h);
 
@@ -64,34 +65,39 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                const pixel (*const left)[4],
                                const pixel *lpf, const ptrdiff_t lpf_stride,
                                const int w, const int h, const int16_t fh[7],
-                               const int16_t fv[7], const enum LrEdgeFlags edges)
+                               const int16_t fv[7], const enum LrEdgeFlags edges
+                               HIGHBD_DECL_SUFFIX)
 {
     ALIGN_STK_16(int16_t, mid, 68 * 384,);
     int mid_stride = (w + 7) & ~7;
 
     // Horizontal filter
     BF(dav1d_wiener_filter_h, neon)(&mid[2 * mid_stride], left, dst, dst_stride,
-                                    fh, w, h, edges);
+                                    fh, w, h, edges HIGHBD_TAIL_SUFFIX);
     if (edges & LR_HAVE_TOP)
         BF(dav1d_wiener_filter_h, neon)(mid, NULL, lpf, lpf_stride,
-                                        fh, w, 2, edges);
+                                        fh, w, 2, edges HIGHBD_TAIL_SUFFIX);
     if (edges & LR_HAVE_BOTTOM)
         BF(dav1d_wiener_filter_h, neon)(&mid[(2 + h) * mid_stride], NULL,
                                         lpf + 6 * PXSTRIDE(lpf_stride),
-                                        lpf_stride, fh, w, 2, edges);
+                                        lpf_stride, fh, w, 2, edges
+                                        HIGHBD_TAIL_SUFFIX);
 
     // Vertical filter
     if (w >= 8)
         BF(dav1d_wiener_filter_v, neon)(dst, dst_stride, &mid[2*mid_stride],
                                         w & ~7, h, fv, edges,
-                                        mid_stride * sizeof(*mid));
+                                        mid_stride * sizeof(*mid)
+                                        HIGHBD_TAIL_SUFFIX);
     if (w & 7) {
         // For uneven widths, do a full 8 pixel wide filtering into a temp
         // buffer and copy out the narrow slice of pixels separately into dest.
         ALIGN_STK_16(pixel, tmp, 64 * 8,);
-        BF(dav1d_wiener_filter_v, neon)(tmp, w & 7, &mid[2*mid_stride + (w & ~7)],
+        BF(dav1d_wiener_filter_v, neon)(tmp, (w & 7) * sizeof(pixel),
+                                        &mid[2*mid_stride + (w & ~7)],
                                         w & 7, h, fv, edges,
-                                        mid_stride * sizeof(*mid));
+                                        mid_stride * sizeof(*mid)
+                                        HIGHBD_TAIL_SUFFIX);
         BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, tmp, w & 7, h);
     }
 }
