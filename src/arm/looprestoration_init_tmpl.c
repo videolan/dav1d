@@ -29,9 +29,9 @@
 #include "src/looprestoration.h"
 #include "src/tables.h"
 
-#if BITDEPTH == 8
-// This calculates things slightly differently than the reference C version.
-// This version calculates roughly this:
+#if BITDEPTH == 8 || ARCH_AARCH64
+// The 8bpc version calculates things slightly differently than the reference
+// C version. That version calculates roughly this:
 // int16_t sum = 0;
 // for (int i = 0; i < 7; i++)
 //     sum += src[idx] * fh[i];
@@ -41,6 +41,9 @@
 // Compared to the reference C version, this is the output of the first pass
 // _subtracted_ by 1 << (bitdepth + 6 - round_bits_h) = 2048, i.e.
 // with round_offset precompensated.
+// The 16bpc version calculates things pretty much the same way as the
+// reference C version, but with the end result subtracted by
+// 1 << (bitdepth + 6 - round_bits_h).
 void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
                                      const pixel *src, ptrdiff_t stride,
                                      const int16_t fh[7], const intptr_t w,
@@ -101,7 +104,9 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
         BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, tmp, w & 7, h);
     }
 }
+#endif
 
+#if BITDEPTH == 8
 void dav1d_sgr_box3_h_neon(int32_t *sumsq, int16_t *sum,
                            const pixel (*left)[4],
                            const pixel *src, const ptrdiff_t stride,
@@ -270,8 +275,10 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPCont
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8
+#if BITDEPTH == 8 || ARCH_AARCH64
     c->wiener = wiener_filter_neon;
+#endif
+#if BITDEPTH == 8
     c->selfguided = sgr_filter_neon;
 #endif
 }
