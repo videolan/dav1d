@@ -117,13 +117,13 @@ void dav1d_sgr_box3_v_neon(int32_t *sumsq, int16_t *sum,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab1_neon(int32_t *a, int16_t *b,
                              const int w, const int h, const int strength);
-void dav1d_sgr_finish_filter1_neon(coef *tmp,
+void dav1d_sgr_finish_filter1_neon(int16_t *tmp,
                                    const pixel *src, const ptrdiff_t stride,
                                    const int32_t *a, const int16_t *b,
                                    const int w, const int h);
 
 /* filter with a 3x3 box (radius=1) */
-static void dav1d_sgr_filter1_neon(coef *tmp,
+static void dav1d_sgr_filter1_neon(int16_t *tmp,
                                    const pixel *src, const ptrdiff_t stride,
                                    const pixel (*left)[4],
                                    const pixel *lpf, const ptrdiff_t lpf_stride,
@@ -160,13 +160,13 @@ void dav1d_sgr_box5_v_neon(int32_t *sumsq, int16_t *sum,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab2_neon(int32_t *a, int16_t *b,
                              const int w, const int h, const int strength);
-void dav1d_sgr_finish_filter2_neon(coef *tmp,
+void dav1d_sgr_finish_filter2_neon(int16_t *tmp,
                                    const pixel *src, const ptrdiff_t stride,
                                    const int32_t *a, const int16_t *b,
                                    const int w, const int h);
 
 /* filter with a 5x5 box (radius=2) */
-static void dav1d_sgr_filter2_neon(coef *tmp,
+static void dav1d_sgr_filter2_neon(int16_t *tmp,
                                    const pixel *src, const ptrdiff_t stride,
                                    const pixel (*left)[4],
                                    const pixel *lpf, const ptrdiff_t lpf_stride,
@@ -195,11 +195,11 @@ static void dav1d_sgr_filter2_neon(coef *tmp,
 
 void dav1d_sgr_weighted1_neon(pixel *dst, const ptrdiff_t dst_stride,
                               const pixel *src, const ptrdiff_t src_stride,
-                              const coef *t1, const int w, const int h,
+                              const int16_t *t1, const int w, const int h,
                               const int wt);
 void dav1d_sgr_weighted2_neon(pixel *dst, const ptrdiff_t dst_stride,
                               const pixel *src, const ptrdiff_t src_stride,
-                              const coef *t1, const coef *t2,
+                              const int16_t *t1, const int16_t *t2,
                               const int w, const int h,
                               const int16_t wt[2]);
 
@@ -210,7 +210,7 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                              const int16_t sgr_wt[7], const enum LrEdgeFlags edges)
 {
     if (!dav1d_sgr_params[sgr_idx][0]) {
-        ALIGN_STK_16(coef, tmp, 64 * 384,);
+        ALIGN_STK_16(int16_t, tmp, 64 * 384,);
         dav1d_sgr_filter1_neon(tmp, dst, dst_stride, left, lpf, lpf_stride,
                                w, h, dav1d_sgr_params[sgr_idx][3], edges);
         if (w >= 8)
@@ -228,7 +228,7 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                         w & 7, h);
         }
     } else if (!dav1d_sgr_params[sgr_idx][1]) {
-        ALIGN_STK_16(coef, tmp, 64 * 384,);
+        ALIGN_STK_16(int16_t, tmp, 64 * 384,);
         dav1d_sgr_filter2_neon(tmp, dst, dst_stride, left, lpf, lpf_stride,
                                w, h, dav1d_sgr_params[sgr_idx][2], edges);
         if (w >= 8)
@@ -245,8 +245,8 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                         w & 7, h);
         }
     } else {
-        ALIGN_STK_16(coef, tmp1, 64 * 384,);
-        ALIGN_STK_16(coef, tmp2, 64 * 384,);
+        ALIGN_STK_16(int16_t, tmp1, 64 * 384,);
+        ALIGN_STK_16(int16_t, tmp2, 64 * 384,);
         dav1d_sgr_filter2_neon(tmp1, dst, dst_stride, left, lpf, lpf_stride,
                                w, h, dav1d_sgr_params[sgr_idx][2], edges);
         dav1d_sgr_filter1_neon(tmp2, dst, dst_stride, left, lpf, lpf_stride,
