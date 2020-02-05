@@ -41,10 +41,10 @@
 // Compared to the reference C version, this is the output of the first pass
 // _subtracted_ by 1 << (bitdepth + 6 - round_bits_h) = 2048, i.e.
 // with round_offset precompensated.
-void dav1d_wiener_filter_h_neon(int16_t *dst, const pixel (*left)[4],
-                                const pixel *src, ptrdiff_t stride,
-                                const int16_t fh[7], const intptr_t w,
-                                int h, enum LrEdgeFlags edges);
+void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
+                                     const pixel *src, ptrdiff_t stride,
+                                     const int16_t fh[7], const intptr_t w,
+                                     int h, enum LrEdgeFlags edges);
 // This calculates things slightly differently than the reference C version.
 // This version calculates roughly this:
 // fv[3] += 128;
@@ -53,12 +53,12 @@ void dav1d_wiener_filter_h_neon(int16_t *dst, const pixel (*left)[4],
 //     sum += mid[idx] * fv[i];
 // sum = (sum + rounding_off_v) >> round_bits_v;
 // This function assumes that the width is a multiple of 8.
-void dav1d_wiener_filter_v_neon(pixel *dst, ptrdiff_t stride,
-                                const int16_t *mid, int w, int h,
-                                const int16_t fv[7], enum LrEdgeFlags edges,
-                                ptrdiff_t mid_stride);
-void dav1d_copy_narrow_neon(pixel *dst, ptrdiff_t stride,
-                            const pixel *src, int w, int h);
+void BF(dav1d_wiener_filter_v, neon)(pixel *dst, ptrdiff_t stride,
+                                     const int16_t *mid, int w, int h,
+                                     const int16_t fv[7], enum LrEdgeFlags edges,
+                                     ptrdiff_t mid_stride);
+void BF(dav1d_copy_narrow, neon)(pixel *dst, ptrdiff_t stride,
+                                 const pixel *src, int w, int h);
 
 static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                const pixel (*const left)[4],
@@ -70,27 +70,29 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
     int mid_stride = (w + 7) & ~7;
 
     // Horizontal filter
-    dav1d_wiener_filter_h_neon(&mid[2 * mid_stride], left, dst, dst_stride,
-                               fh, w, h, edges);
+    BF(dav1d_wiener_filter_h, neon)(&mid[2 * mid_stride], left, dst, dst_stride,
+                                    fh, w, h, edges);
     if (edges & LR_HAVE_TOP)
-        dav1d_wiener_filter_h_neon(mid, NULL, lpf, lpf_stride,
-                                   fh, w, 2, edges);
+        BF(dav1d_wiener_filter_h, neon)(mid, NULL, lpf, lpf_stride,
+                                        fh, w, 2, edges);
     if (edges & LR_HAVE_BOTTOM)
-        dav1d_wiener_filter_h_neon(&mid[(2 + h) * mid_stride], NULL,
-                                   lpf + 6 * PXSTRIDE(lpf_stride), lpf_stride,
-                                   fh, w, 2, edges);
+        BF(dav1d_wiener_filter_h, neon)(&mid[(2 + h) * mid_stride], NULL,
+                                        lpf + 6 * PXSTRIDE(lpf_stride),
+                                        lpf_stride, fh, w, 2, edges);
 
     // Vertical filter
     if (w >= 8)
-        dav1d_wiener_filter_v_neon(dst, dst_stride, &mid[2*mid_stride],
-                                   w & ~7, h, fv, edges, mid_stride * sizeof(*mid));
+        BF(dav1d_wiener_filter_v, neon)(dst, dst_stride, &mid[2*mid_stride],
+                                        w & ~7, h, fv, edges,
+                                        mid_stride * sizeof(*mid));
     if (w & 7) {
         // For uneven widths, do a full 8 pixel wide filtering into a temp
         // buffer and copy out the narrow slice of pixels separately into dest.
         ALIGN_STK_16(pixel, tmp, 64 * 8,);
-        dav1d_wiener_filter_v_neon(tmp, w & 7, &mid[2*mid_stride + (w & ~7)],
-                                   w & 7, h, fv, edges, mid_stride * sizeof(*mid));
-        dav1d_copy_narrow_neon(dst + (w & ~7), dst_stride, tmp, w & 7, h);
+        BF(dav1d_wiener_filter_v, neon)(tmp, w & 7, &mid[2*mid_stride + (w & ~7)],
+                                        w & 7, h, fv, edges,
+                                        mid_stride * sizeof(*mid));
+        BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, tmp, w & 7, h);
     }
 }
 
@@ -211,8 +213,8 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
             dav1d_sgr_weighted1_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
                                      tmp + (w & ~7), w & 7, h,
                                      (1 << 7) - sgr_wt[1]);
-            dav1d_copy_narrow_neon(dst + (w & ~7), dst_stride, stripe,
-                                   w & 7, h);
+            BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
+                                        w & 7, h);
         }
     } else if (!dav1d_sgr_params[sgr_idx][1]) {
         ALIGN_STK_16(coef, tmp, 64 * 384,);
@@ -228,8 +230,8 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
             ALIGN_STK_16(pixel, stripe, 64 * 8,);
             dav1d_sgr_weighted1_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
                                      tmp + (w & ~7), w & 7, h, sgr_wt[0]);
-            dav1d_copy_narrow_neon(dst + (w & ~7), dst_stride, stripe,
-                                   w & 7, h);
+            BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
+                                        w & 7, h);
         }
     } else {
         ALIGN_STK_16(coef, tmp1, 64 * 384,);
@@ -250,8 +252,8 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
             dav1d_sgr_weighted2_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
                                      tmp1 + (w & ~7), tmp2 + (w & ~7),
                                      w & 7, h, wt);
-            dav1d_copy_narrow_neon(dst + (w & ~7), dst_stride, stripe,
-                                   w & 7, h);
+            BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
+                                        w & 7, h);
         }
     }
 }
