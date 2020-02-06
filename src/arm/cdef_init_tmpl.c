@@ -27,7 +27,7 @@
 #include "src/cpu.h"
 #include "src/cdef.h"
 
-#if BITDEPTH == 8
+#if BITDEPTH == 8 || ARCH_AARCH64
 decl_cdef_dir_fn(BF(dav1d_cdef_find_dir, neon));
 
 void BF(dav1d_cdef_padding4, neon)(uint16_t *tmp, const pixel *src,
@@ -77,7 +77,7 @@ COLD void bitfn(dav1d_cdef_dsp_init_arm)(Dav1dCdefDSPContext *const c) {
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8
+#if BITDEPTH == 8 || ARCH_AARCH64
     c->dir = BF(dav1d_cdef_find_dir, neon);
     c->fb[0] = cdef_filter_8x8_neon;
     c->fb[1] = cdef_filter_4x8_neon;
