@@ -329,13 +329,13 @@ typedef struct Dav1dFilmGrainData {
 } Dav1dFilmGrainData;
 
 typedef struct Dav1dFrameHeader {
+    struct {
+        Dav1dFilmGrainData data;
+        int present, update;
+    } film_grain; ///< film grain parameters
     enum Dav1dFrameType frame_type; ///< type of the picture
     int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
     int frame_offset; ///< frame number
-    struct {
-        int present, update;
-        Dav1dFilmGrainData data;
-    } film_grain; ///< film grain parameters
     int temporal_id, spatial_id; ///< spatial and temporal id of the frame for SVC
 
     int show_existing_frame;
