@@ -102,6 +102,7 @@ if is_asm_enabled
         )
         if host_machine.cpu_family() == 'aarch64'
             libdav1d_sources += files(
+                'arm/64/looprestoration_common.S',
                 'arm/64/msac.S',
             )
 
