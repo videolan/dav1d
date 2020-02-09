@@ -1,3 +1,21 @@
+Changes for 0.6.0 'Gyrfalcon':
+------------------------------
+
+0.6.0 is a major release for dav1d:
+ - New ARM64 optimizations for the 10/12bit depth:
+    - mc_avg, mc_w_avg, mc_mask
+    - mc_put/mc_prep 8tap/bilin
+    - mc_warp_8x8
+    - wiener
+    - cdef
+ - New AVX-512 optimizations for prep_bilin, prep_8tap, cdef_filter
+ - New SSSE3 optimizations for film grain
+ - New AVX2 optimizations for msac_adapt16
+ - Fix rare mismatches against the reference decoder, notably because of clipping
+ - Improvements on ARM64 on msac, cdef optimizations
+ - Improvements in the C version for itxfm, cdef_filter
+
+
 Changes for 0.5.2 'Asiatic Cheetah':
 ------------------------------------
 
