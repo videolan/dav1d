@@ -104,9 +104,7 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
         BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, tmp, w & 7, h);
     }
 }
-#endif
 
-#if BITDEPTH == 8
 void BF(dav1d_sgr_box3_h, neon)(int32_t *sumsq, int16_t *sum,
                                 const pixel (*left)[4],
                                 const pixel *src, const ptrdiff_t stride,
@@ -116,7 +114,8 @@ void dav1d_sgr_box3_v_neon(int32_t *sumsq, int16_t *sum,
                            const int w, const int h,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab1_neon(int32_t *a, int16_t *b,
-                             const int w, const int h, const int strength);
+                             const int w, const int h, const int strength,
+                             const int bitdepth_max);
 void BF(dav1d_sgr_finish_filter1, neon)(int16_t *tmp,
                                         const pixel *src, const ptrdiff_t stride,
                                         const int32_t *a, const int16_t *b,
@@ -147,7 +146,7 @@ static void dav1d_sgr_filter1_neon(int16_t *tmp,
                                    lpf_stride, w, 2, edges);
 
     dav1d_sgr_box3_v_neon(sumsq, sum, w, h, edges);
-    dav1d_sgr_calc_ab1_neon(a, b, w, h, strength);
+    dav1d_sgr_calc_ab1_neon(a, b, w, h, strength, BITDEPTH_MAX);
     BF(dav1d_sgr_finish_filter1, neon)(tmp, src, stride, a, b, w, h);
 }
 
@@ -160,7 +159,8 @@ void dav1d_sgr_box5_v_neon(int32_t *sumsq, int16_t *sum,
                            const int w, const int h,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab2_neon(int32_t *a, int16_t *b,
-                             const int w, const int h, const int strength);
+                             const int w, const int h, const int strength,
+                             const int bitdepth_max);
 void BF(dav1d_sgr_finish_filter2, neon)(int16_t *tmp,
                                         const pixel *src, const ptrdiff_t stride,
                                         const int32_t *a, const int16_t *b,
@@ -191,7 +191,7 @@ static void dav1d_sgr_filter2_neon(int16_t *tmp,
                                    lpf_stride, w, 2, edges);
 
     dav1d_sgr_box5_v_neon(sumsq, sum, w, h, edges);
-    dav1d_sgr_calc_ab2_neon(a, b, w, h, strength);
+    dav1d_sgr_calc_ab2_neon(a, b, w, h, strength, BITDEPTH_MAX);
     BF(dav1d_sgr_finish_filter2, neon)(tmp, src, stride, a, b, w, h);
 }
 
@@ -292,8 +292,7 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPCont
 
 #if BITDEPTH == 8 || ARCH_AARCH64
     c->wiener = wiener_filter_neon;
-#endif
-#if BITDEPTH == 8
-    c->selfguided = sgr_filter_neon;
+    if (bpc <= 10)
+        c->selfguided = sgr_filter_neon;
 #endif
 }

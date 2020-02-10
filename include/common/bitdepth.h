@@ -56,6 +56,7 @@ typedef int16_t coef;
 #define HIGHBD_CALL_SUFFIX /* nothing */
 #define HIGHBD_TAIL_SUFFIX /* nothing */
 #define bitdepth_from_max(x) 8
+#define BITDEPTH_MAX 0xff
 #elif BITDEPTH == 16
 typedef uint16_t pixel;
 typedef int32_t coef;
@@ -72,6 +73,7 @@ static inline void pixel_set(pixel *const dst, const int val, const int num) {
 #define HIGHBD_CALL_SUFFIX , f->bitdepth_max
 #define HIGHBD_TAIL_SUFFIX , bitdepth_max
 #define bitdepth_from_max(bitdepth_max) (32 - clz(bitdepth_max))
+#define BITDEPTH_MAX bitdepth_max
 #define bitfn(x) x##_16bpc
 #define BF(x, suffix) x##_16bpc_##suffix
 static inline ptrdiff_t PXSTRIDE(const ptrdiff_t x) {
