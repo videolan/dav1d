@@ -107,20 +107,20 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
 #endif
 
 #if BITDEPTH == 8
-void dav1d_sgr_box3_h_neon(int32_t *sumsq, int16_t *sum,
-                           const pixel (*left)[4],
-                           const pixel *src, const ptrdiff_t stride,
-                           const int w, const int h,
-                           const enum LrEdgeFlags edges);
+void BF(dav1d_sgr_box3_h, neon)(int32_t *sumsq, int16_t *sum,
+                                const pixel (*left)[4],
+                                const pixel *src, const ptrdiff_t stride,
+                                const int w, const int h,
+                                const enum LrEdgeFlags edges);
 void dav1d_sgr_box3_v_neon(int32_t *sumsq, int16_t *sum,
                            const int w, const int h,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab1_neon(int32_t *a, int16_t *b,
                              const int w, const int h, const int strength);
-void dav1d_sgr_finish_filter1_neon(int16_t *tmp,
-                                   const pixel *src, const ptrdiff_t stride,
-                                   const int32_t *a, const int16_t *b,
-                                   const int w, const int h);
+void BF(dav1d_sgr_finish_filter1, neon)(int16_t *tmp,
+                                        const pixel *src, const ptrdiff_t stride,
+                                        const int32_t *a, const int16_t *b,
+                                        const int w, const int h);
 
 /* filter with a 3x3 box (radius=1) */
 static void dav1d_sgr_filter1_neon(int16_t *tmp,
@@ -128,42 +128,43 @@ static void dav1d_sgr_filter1_neon(int16_t *tmp,
                                    const pixel (*left)[4],
                                    const pixel *lpf, const ptrdiff_t lpf_stride,
                                    const int w, const int h, const int strength,
-                                   const enum LrEdgeFlags edges)
+                                   const enum LrEdgeFlags edges
+                                   HIGHBD_DECL_SUFFIX)
 {
     ALIGN_STK_16(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
     int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
     ALIGN_STK_16(int16_t, sum_mem, (384 + 16) * 68 + 16,);
     int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
 
-    dav1d_sgr_box3_h_neon(sumsq, sum, left, src, stride, w, h, edges);
+    BF(dav1d_sgr_box3_h, neon)(sumsq, sum, left, src, stride, w, h, edges);
     if (edges & LR_HAVE_TOP)
-        dav1d_sgr_box3_h_neon(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
-                              NULL, lpf, lpf_stride, w, 2, edges);
+        BF(dav1d_sgr_box3_h, neon)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
+                                   NULL, lpf, lpf_stride, w, 2, edges);
 
     if (edges & LR_HAVE_BOTTOM)
-        dav1d_sgr_box3_h_neon(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
-                              NULL, lpf + 6 * PXSTRIDE(lpf_stride),
-                              lpf_stride, w, 2, edges);
+        BF(dav1d_sgr_box3_h, neon)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
+                                   NULL, lpf + 6 * PXSTRIDE(lpf_stride),
+                                   lpf_stride, w, 2, edges);
 
     dav1d_sgr_box3_v_neon(sumsq, sum, w, h, edges);
     dav1d_sgr_calc_ab1_neon(a, b, w, h, strength);
-    dav1d_sgr_finish_filter1_neon(tmp, src, stride, a, b, w, h);
+    BF(dav1d_sgr_finish_filter1, neon)(tmp, src, stride, a, b, w, h);
 }
 
-void dav1d_sgr_box5_h_neon(int32_t *sumsq, int16_t *sum,
-                           const pixel (*left)[4],
-                           const pixel *src, const ptrdiff_t stride,
-                           const int w, const int h,
-                           const enum LrEdgeFlags edges);
+void BF(dav1d_sgr_box5_h, neon)(int32_t *sumsq, int16_t *sum,
+                                const pixel (*left)[4],
+                                const pixel *src, const ptrdiff_t stride,
+                                const int w, const int h,
+                                const enum LrEdgeFlags edges);
 void dav1d_sgr_box5_v_neon(int32_t *sumsq, int16_t *sum,
                            const int w, const int h,
                            const enum LrEdgeFlags edges);
 void dav1d_sgr_calc_ab2_neon(int32_t *a, int16_t *b,
                              const int w, const int h, const int strength);
-void dav1d_sgr_finish_filter2_neon(int16_t *tmp,
-                                   const pixel *src, const ptrdiff_t stride,
-                                   const int32_t *a, const int16_t *b,
-                                   const int w, const int h);
+void BF(dav1d_sgr_finish_filter2, neon)(int16_t *tmp,
+                                        const pixel *src, const ptrdiff_t stride,
+                                        const int32_t *a, const int16_t *b,
+                                        const int w, const int h);
 
 /* filter with a 5x5 box (radius=2) */
 static void dav1d_sgr_filter2_neon(int16_t *tmp,
@@ -171,76 +172,86 @@ static void dav1d_sgr_filter2_neon(int16_t *tmp,
                                    const pixel (*left)[4],
                                    const pixel *lpf, const ptrdiff_t lpf_stride,
                                    const int w, const int h, const int strength,
-                                   const enum LrEdgeFlags edges)
+                                   const enum LrEdgeFlags edges
+                                   HIGHBD_DECL_SUFFIX)
 {
     ALIGN_STK_16(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
     int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
     ALIGN_STK_16(int16_t, sum_mem, (384 + 16) * 68 + 16,);
     int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
 
-    dav1d_sgr_box5_h_neon(sumsq, sum, left, src, stride, w, h, edges);
+    BF(dav1d_sgr_box5_h, neon)(sumsq, sum, left, src, stride, w, h, edges);
     if (edges & LR_HAVE_TOP)
-        dav1d_sgr_box5_h_neon(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
-                              NULL, lpf, lpf_stride, w, 2, edges);
+        BF(dav1d_sgr_box5_h, neon)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
+                                   NULL, lpf, lpf_stride, w, 2, edges);
 
     if (edges & LR_HAVE_BOTTOM)
-        dav1d_sgr_box5_h_neon(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
-                              NULL, lpf + 6 * PXSTRIDE(lpf_stride),
-                              lpf_stride, w, 2, edges);
+        BF(dav1d_sgr_box5_h, neon)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
+                                   NULL, lpf + 6 * PXSTRIDE(lpf_stride),
+                                   lpf_stride, w, 2, edges);
 
     dav1d_sgr_box5_v_neon(sumsq, sum, w, h, edges);
     dav1d_sgr_calc_ab2_neon(a, b, w, h, strength);
-    dav1d_sgr_finish_filter2_neon(tmp, src, stride, a, b, w, h);
+    BF(dav1d_sgr_finish_filter2, neon)(tmp, src, stride, a, b, w, h);
 }
 
-void dav1d_sgr_weighted1_neon(pixel *dst, const ptrdiff_t dst_stride,
-                              const pixel *src, const ptrdiff_t src_stride,
-                              const int16_t *t1, const int w, const int h,
-                              const int wt);
-void dav1d_sgr_weighted2_neon(pixel *dst, const ptrdiff_t dst_stride,
-                              const pixel *src, const ptrdiff_t src_stride,
-                              const int16_t *t1, const int16_t *t2,
-                              const int w, const int h,
-                              const int16_t wt[2]);
+void BF(dav1d_sgr_weighted1, neon)(pixel *dst, const ptrdiff_t dst_stride,
+                                   const pixel *src, const ptrdiff_t src_stride,
+                                   const int16_t *t1, const int w, const int h,
+                                   const int wt HIGHBD_DECL_SUFFIX);
+void BF(dav1d_sgr_weighted2, neon)(pixel *dst, const ptrdiff_t dst_stride,
+                                   const pixel *src, const ptrdiff_t src_stride,
+                                   const int16_t *t1, const int16_t *t2,
+                                   const int w, const int h,
+                                   const int16_t wt[2] HIGHBD_DECL_SUFFIX);
 
 static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                              const pixel (*const left)[4],
                              const pixel *lpf, const ptrdiff_t lpf_stride,
                              const int w, const int h, const int sgr_idx,
-                             const int16_t sgr_wt[7], const enum LrEdgeFlags edges)
+                             const int16_t sgr_wt[7], const enum LrEdgeFlags edges
+                             HIGHBD_DECL_SUFFIX)
 {
     if (!dav1d_sgr_params[sgr_idx][0]) {
         ALIGN_STK_16(int16_t, tmp, 64 * 384,);
         dav1d_sgr_filter1_neon(tmp, dst, dst_stride, left, lpf, lpf_stride,
-                               w, h, dav1d_sgr_params[sgr_idx][3], edges);
+                               w, h, dav1d_sgr_params[sgr_idx][3], edges
+                               HIGHBD_TAIL_SUFFIX);
         if (w >= 8)
-            dav1d_sgr_weighted1_neon(dst, dst_stride, dst, dst_stride,
-                                     tmp, w & ~7, h, (1 << 7) - sgr_wt[1]);
+            BF(dav1d_sgr_weighted1, neon)(dst, dst_stride, dst, dst_stride,
+                                          tmp, w & ~7, h, (1 << 7) - sgr_wt[1]
+                                          HIGHBD_TAIL_SUFFIX);
         if (w & 7) {
             // For uneven widths, do a full 8 pixel wide filtering into a temp
             // buffer and copy out the narrow slice of pixels separately into
             // dest.
             ALIGN_STK_16(pixel, stripe, 64 * 8,);
-            dav1d_sgr_weighted1_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
-                                     tmp + (w & ~7), w & 7, h,
-                                     (1 << 7) - sgr_wt[1]);
+            BF(dav1d_sgr_weighted1, neon)(stripe, (w & 7) * sizeof(pixel),
+                                          dst + (w & ~7), dst_stride,
+                                          tmp + (w & ~7), w & 7, h,
+                                          (1 << 7) - sgr_wt[1]
+                                          HIGHBD_TAIL_SUFFIX);
             BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
                                         w & 7, h);
         }
     } else if (!dav1d_sgr_params[sgr_idx][1]) {
         ALIGN_STK_16(int16_t, tmp, 64 * 384,);
         dav1d_sgr_filter2_neon(tmp, dst, dst_stride, left, lpf, lpf_stride,
-                               w, h, dav1d_sgr_params[sgr_idx][2], edges);
+                               w, h, dav1d_sgr_params[sgr_idx][2], edges
+                               HIGHBD_TAIL_SUFFIX);
         if (w >= 8)
-            dav1d_sgr_weighted1_neon(dst, dst_stride, dst, dst_stride,
-                                     tmp, w & ~7, h, sgr_wt[0]);
+            BF(dav1d_sgr_weighted1, neon)(dst, dst_stride, dst, dst_stride,
+                                          tmp, w & ~7, h, sgr_wt[0]
+                                          HIGHBD_TAIL_SUFFIX);
         if (w & 7) {
             // For uneven widths, do a full 8 pixel wide filtering into a temp
             // buffer and copy out the narrow slice of pixels separately into
             // dest.
             ALIGN_STK_16(pixel, stripe, 64 * 8,);
-            dav1d_sgr_weighted1_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
-                                     tmp + (w & ~7), w & 7, h, sgr_wt[0]);
+            BF(dav1d_sgr_weighted1, neon)(stripe, (w & 7) * sizeof(pixel),
+                                          dst + (w & ~7), dst_stride,
+                                          tmp + (w & ~7), w & 7, h, sgr_wt[0]
+                                          HIGHBD_TAIL_SUFFIX);
             BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
                                         w & 7, h);
         }
@@ -248,21 +259,25 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
         ALIGN_STK_16(int16_t, tmp1, 64 * 384,);
         ALIGN_STK_16(int16_t, tmp2, 64 * 384,);
         dav1d_sgr_filter2_neon(tmp1, dst, dst_stride, left, lpf, lpf_stride,
-                               w, h, dav1d_sgr_params[sgr_idx][2], edges);
+                               w, h, dav1d_sgr_params[sgr_idx][2], edges
+                               HIGHBD_TAIL_SUFFIX);
         dav1d_sgr_filter1_neon(tmp2, dst, dst_stride, left, lpf, lpf_stride,
-                               w, h, dav1d_sgr_params[sgr_idx][3], edges);
+                               w, h, dav1d_sgr_params[sgr_idx][3], edges
+                               HIGHBD_TAIL_SUFFIX);
         const int16_t wt[2] = { sgr_wt[0], 128 - sgr_wt[0] - sgr_wt[1] };
         if (w >= 8)
-            dav1d_sgr_weighted2_neon(dst, dst_stride, dst, dst_stride,
-                                     tmp1, tmp2, w & ~7, h, wt);
+            BF(dav1d_sgr_weighted2, neon)(dst, dst_stride, dst, dst_stride,
+                                          tmp1, tmp2, w & ~7, h, wt
+                                          HIGHBD_TAIL_SUFFIX);
         if (w & 7) {
             // For uneven widths, do a full 8 pixel wide filtering into a temp
             // buffer and copy out the narrow slice of pixels separately into
             // dest.
             ALIGN_STK_16(pixel, stripe, 64 * 8,);
-            dav1d_sgr_weighted2_neon(stripe, w & 7, dst + (w & ~7), dst_stride,
-                                     tmp1 + (w & ~7), tmp2 + (w & ~7),
-                                     w & 7, h, wt);
+            BF(dav1d_sgr_weighted2, neon)(stripe, (w & 7) * sizeof(pixel),
+                                          dst + (w & ~7), dst_stride,
+                                          tmp1 + (w & ~7), tmp2 + (w & ~7),
+                                          w & 7, h, wt HIGHBD_TAIL_SUFFIX);
             BF(dav1d_copy_narrow, neon)(dst + (w & ~7), dst_stride, stripe,
                                         w & 7, h);
         }
