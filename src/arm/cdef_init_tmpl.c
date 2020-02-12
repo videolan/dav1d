@@ -39,14 +39,17 @@ void BF(dav1d_cdef_padding8, neon)(uint16_t *tmp, const pixel *src,
                                    const pixel *const top, int h,
                                    enum CdefEdgeFlags edges);
 
+// Passing edges to this function, to allow it to switch to a more
+// optimized version for fully edged cases. Using size_t for edges,
+// to avoid ABI differences for passing more than one argument on the stack.
 void BF(dav1d_cdef_filter4, neon)(pixel *dst, ptrdiff_t dst_stride,
                                   const uint16_t *tmp, int pri_strength,
-                                  int sec_strength, int dir, int damping, int h
-                                  HIGHBD_DECL_SUFFIX);
+                                  int sec_strength, int dir, int damping, int h,
+                                  size_t edges HIGHBD_DECL_SUFFIX);
 void BF(dav1d_cdef_filter8, neon)(pixel *dst, ptrdiff_t dst_stride,
                                   const uint16_t *tmp, int pri_strength,
-                                  int sec_strength, int dir, int damping, int h
-                                  HIGHBD_DECL_SUFFIX);
+                                  int sec_strength, int dir, int damping, int h,
+                                  size_t edges HIGHBD_DECL_SUFFIX);
 
 #define DEFINE_FILTER(w, h, tmp_stride)                                      \
 static void                                                                  \
@@ -62,7 +65,7 @@ cdef_filter_##w##x##h##_neon(pixel *dst,                                     \
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 8;                            \
     BF(dav1d_cdef_padding##w, neon)(tmp, dst, stride, left, top, h, edges);  \
     BF(dav1d_cdef_filter##w, neon)(dst, stride, tmp, pri_strength,           \
-                                   sec_strength, dir, damping, h             \
+                                   sec_strength, dir, damping, h, edges      \
                                    HIGHBD_TAIL_SUFFIX);                      \
 }
 
