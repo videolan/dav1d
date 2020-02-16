@@ -28,6 +28,7 @@
 
 dav1d_fuzzer_sources =  files('dav1d_fuzzer.c')
 fuzzer_ldflags = []
+fuzzer_link_lang = {}
 
 if get_option('fuzzer_ldflags') != ''
     fuzzer_ldflags += [get_option('fuzzer_ldflags')]
@@ -38,8 +39,9 @@ if fuzzing_engine == 'none'
 elif fuzzing_engine == 'libfuzzer'
     fuzzer_ldflags += ['-fsanitize=fuzzer']
 elif fuzzing_engine == 'oss-fuzz'
-    # libFuzzingEngine needs libc++
-    fuzzer_ldflags += ['-lc++']
+    # libFuzzingEngine needs c++
+    add_languages('cpp')
+    fuzzer_link_lang = {'link_language': 'cpp'}
 endif
 
 dav1d_fuzzer = executable('dav1d_fuzzer',
@@ -50,6 +52,7 @@ dav1d_fuzzer = executable('dav1d_fuzzer',
     link_with : libdav1d,
     build_by_default: true,
     dependencies : [thread_dependency],
+    kwargs: fuzzer_link_lang
     )
 
 dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
@@ -60,6 +63,7 @@ dav1d_fuzzer_mt = executable('dav1d_fuzzer_mt',
     link_with : libdav1d,
     build_by_default: true,
     dependencies : [thread_dependency],
+    kwargs: fuzzer_link_lang
     )
 
 objcopy = find_program('objcopy',
@@ -89,5 +93,6 @@ if (objcopy.found() and
         link_depends: libdav1d_af,
         build_by_default: false,
         dependencies : [thread_dependency],
+        kwargs: fuzzer_link_lang
         )
 endif

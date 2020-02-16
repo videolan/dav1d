@@ -102,7 +102,9 @@ if is_asm_enabled
 endif
 
 # fuzzing binaries
-subdir('libfuzzer')
+if meson.version().version_compare('>=0.49')
+    subdir('libfuzzer')
+endif
 
 # Include dav1d test data repository with additional tests
 if get_option('testdata_tests')
