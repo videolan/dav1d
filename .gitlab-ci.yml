@@ -173,7 +173,7 @@ build-win-arm64:
 
 build-debian-aarch64:
     stage: build
-    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
+    image: registry.videolan.org/dav1d-debian-buster-aarch64:20200218203017
     tags:
         - aarch64
         - debian
@@ -184,7 +184,7 @@ build-debian-aarch64:
 
 build-debian-aarch64-clang-5:
     stage: build
-    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
+    image: registry.videolan.org/dav1d-debian-buster-aarch64:20200218203017
     tags:
         - aarch64
         - debian
@@ -203,7 +203,7 @@ build-macos:
         - cd build && meson test -v
 
 build-debian-werror:
-    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
+    image: registry.videolan.org/dav1d-debian-buster-aarch64:20200218203017
     stage: build
     tags:
         - aarch64
@@ -403,7 +403,7 @@ test-win64:
     dependencies: []
 
 test-debian-aarch64:
-    image: registry.videolan.org:5000/dav1d-debian-unstable-aarch64:20181122182457
+    image: registry.videolan.org/dav1d-debian-buster-aarch64:20200218203017
     stage: test
     needs: ["build-debian-aarch64"]
     tags:
