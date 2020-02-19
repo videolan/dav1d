@@ -40,8 +40,16 @@ static int to_binary(int x) { /* 0-15 -> 0000-1111 */
 }
 
 static void init_tmp(pixel *buf, int n, const int bitdepth_max) {
-    while (n--)
-        *buf++ = rnd() & bitdepth_max;
+    const int fill_type = rnd() & 7;
+    if (fill_type == 0)
+        while (n--) /* check for cdef_filter underflows */
+            *buf++ = rnd() & 1;
+    else if (fill_type == 1)
+        while (n--) /* check for cdef_filter overflows */
+            *buf++ = bitdepth_max - (rnd() & 1);
+    else
+        while (n--)
+            *buf++ = rnd() & bitdepth_max;
 }
 
 static void check_cdef_filter(const cdef_fn fn, const int w, const int h) {
