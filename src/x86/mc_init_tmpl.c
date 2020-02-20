@@ -92,6 +92,7 @@ decl_mask_fn(dav1d_mask_ssse3);
 decl_w_mask_fn(dav1d_w_mask_420_avx512icl);
 decl_w_mask_fn(dav1d_w_mask_420_avx2);
 decl_w_mask_fn(dav1d_w_mask_420_ssse3);
+decl_w_mask_fn(dav1d_w_mask_422_avx512icl);
 decl_w_mask_fn(dav1d_w_mask_422_avx2);
 decl_w_mask_fn(dav1d_w_mask_444_avx2);
 decl_blend_fn(dav1d_blend_avx2);
@@ -237,6 +238,7 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->avg = dav1d_avg_avx512icl;
     c->w_avg = dav1d_w_avg_avx512icl;
     c->mask = dav1d_mask_avx512icl;
+    c->w_mask[1] = dav1d_w_mask_422_avx512icl;
     c->w_mask[2] = dav1d_w_mask_420_avx512icl;
 #endif
 #endif
