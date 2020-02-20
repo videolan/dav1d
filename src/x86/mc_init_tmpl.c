@@ -80,10 +80,13 @@ decl_mct_fn(dav1d_prep_bilin_avx512icl);
 decl_mct_fn(dav1d_prep_bilin_avx2);
 decl_mct_fn(dav1d_prep_bilin_ssse3);
 
+decl_avg_fn(dav1d_avg_avx512icl);
 decl_avg_fn(dav1d_avg_avx2);
 decl_avg_fn(dav1d_avg_ssse3);
+decl_w_avg_fn(dav1d_w_avg_avx512icl);
 decl_w_avg_fn(dav1d_w_avg_avx2);
 decl_w_avg_fn(dav1d_w_avg_ssse3);
+decl_mask_fn(dav1d_mask_avx512icl);
 decl_mask_fn(dav1d_mask_avx2);
 decl_mask_fn(dav1d_mask_ssse3);
 decl_w_mask_fn(dav1d_w_mask_420_avx2);
@@ -172,10 +175,11 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->warp8x8t = dav1d_warp_affine_8x8t_sse4;
 #endif
 
+#if ARCH_X86_64
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2))
         return;
 
-#if BITDEPTH == 8 && ARCH_X86_64
+#if BITDEPTH == 8
     init_mc_fn (FILTER_2D_8TAP_REGULAR,        8tap_regular,        avx2);
     init_mc_fn (FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, avx2);
     init_mc_fn (FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  avx2);
@@ -217,7 +221,7 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
         return;
 
-#if BITDEPTH == 8 && ARCH_X86_64
+#if BITDEPTH == 8
     init_mct_fn(FILTER_2D_8TAP_REGULAR,        8tap_regular,        avx512icl);
     init_mct_fn(FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, avx512icl);
     init_mct_fn(FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  avx512icl);
@@ -228,5 +232,10 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   avx512icl);
     init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          avx512icl);
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               avx512icl);
+
+    c->avg = dav1d_avg_avx512icl;
+    c->w_avg = dav1d_w_avg_avx512icl;
+    c->mask = dav1d_mask_avx512icl;
+#endif
 #endif
 }
