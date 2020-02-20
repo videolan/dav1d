@@ -148,10 +148,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     memset(c->fc, 0, sizeof(*c->fc) * s->n_frame_threads);
     if (c->n_fc > 1) {
         c->frame_thread.out_delayed =
-            malloc(sizeof(*c->frame_thread.out_delayed) * c->n_fc);
+            calloc(c->n_fc, sizeof(*c->frame_thread.out_delayed));
         if (!c->frame_thread.out_delayed) goto error;
-        memset(c->frame_thread.out_delayed, 0,
-               sizeof(*c->frame_thread.out_delayed) * c->n_fc);
     }
     for (int n = 0; n < s->n_frame_threads; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
