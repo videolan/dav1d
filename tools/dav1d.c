@@ -155,8 +155,6 @@ int main(const int argc, char *const *const argv) {
         return EXIT_FAILURE;
     }
 
-    init_demuxers();
-    init_muxers();
     parse(argc, argv, &cli_settings, &lib_settings);
 
     if ((res = input_open(&in, cli_settings.demuxer,
