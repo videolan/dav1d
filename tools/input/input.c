@@ -105,11 +105,10 @@ int input_open(DemuxerContext **const c_out,
         }
     }
 
-    if (!(c = malloc(sizeof(DemuxerContext) + impl->priv_data_size))) {
+    if (!(c = calloc(1, sizeof(DemuxerContext) + impl->priv_data_size))) {
         fprintf(stderr, "Failed to allocate memory\n");
         return DAV1D_ERR(ENOMEM);
     }
-    memset(c, 0, sizeof(DemuxerContext) + impl->priv_data_size);
     c->impl = impl;
     c->data = (DemuxerPriv *) &c[1];
     if ((res = impl->open(c->data, filename, fps, num_frames, timebase)) < 0) {
