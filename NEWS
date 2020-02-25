@@ -7,12 +7,15 @@ Changes for 0.6.0 'Gyrfalcon':
     - mc_put/mc_prep 8tap/bilin
     - mc_warp_8x8
     - wiener
+    - SGR
+    - loopfilter
     - cdef
- - New AVX-512 optimizations for prep_bilin, prep_8tap, cdef_filter
+ - New AVX-512 optimizations for prep_bilin, prep_8tap, cdef_filter, mc_avg/w_avg/mask
  - New SSSE3 optimizations for film grain
  - New AVX2 optimizations for msac_adapt16
  - Fix rare mismatches against the reference decoder, notably because of clipping
- - Improvements on ARM64 on msac, cdef optimizations
+ - Improvements on ARM64 on msac, cdef and looprestoration optimizations
+ - Improvements on AVX2 optimizations for cdef_filter
  - Improvements in the C version for itxfm, cdef_filter
 
 
