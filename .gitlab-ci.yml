@@ -219,7 +219,7 @@ build-debian-armv7:
         - armv7
         - debian
     script:
-        - meson build --buildtype debugoptimized --werror
+        - linux32 meson build --buildtype debugoptimized --werror
         - ninja -C build
         - cd build && meson test -v
 
@@ -230,7 +230,7 @@ build-debian-armv7-clang-5:
         - armv7
         - debian
     script:
-        - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
+        - env CC=clang-5.0 CFLAGS='-integrated-as' linux32 meson build --buildtype release
         - ninja -C build
         - cd build && meson test -v
 
@@ -464,7 +464,7 @@ test-debian-armv7-clang-5:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
-        - env CC=clang-5.0 CFLAGS='-integrated-as' meson build --buildtype release
+        - env CC=clang-5.0 CFLAGS='-integrated-as' linux32 meson build --buildtype release
                                                                -Dtestdata_tests=true
                                                                -Dlogging=false
         - ninja -C build
