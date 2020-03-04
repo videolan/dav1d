@@ -38,7 +38,7 @@ build-debian:
     image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
     stage: build
     tags:
-        - debian
+        - avx2
         - amd64
     script:
         - meson build --buildtype release --werror
@@ -292,7 +292,7 @@ test-debian-unaligned-stack:
     stage: test
     needs: ["build-debian"]
     tags:
-        - debian
+        - avx2
         - amd64
     cache:
         key: testdata.git-20190215
@@ -382,7 +382,7 @@ test-win64:
     stage: test
     needs: ["build-win64"]
     tags:
-        - debian
+        - avx2
         - amd64
     cache:
         key: testdata.git-20190215
