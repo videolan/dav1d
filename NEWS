@@ -6,6 +6,8 @@ Changes for 0.6.0 'Gyrfalcon':
     - mc_avg, mc_w_avg, mc_mask
     - mc_put/mc_prep 8tap/bilin
     - mc_warp_8x8
+    - mc_w_mask
+    - mc_blend
     - wiener
     - SGR
     - loopfilter
