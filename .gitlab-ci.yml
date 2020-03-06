@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org:5000/dav1d-debian-unstable:20190215130514
+    image: registry.videolan.org/dav1d-debian-unstable:20200306141107
     stage: build
     tags:
         - docker
@@ -416,3 +416,17 @@ test-debian-armv7-clang-5:
                               -Dlogging=false
         - ninja -C build
         - cd build && time meson test -v
+
+pages:
+    extends: build-debian
+    script:
+        - meson build --buildtype release
+                      --werror
+        - ninja -C build doc/html
+        - mv build/doc/html public
+    artifacts:
+        paths:
+            - public
+    only:
+        changes:
+            - include/dav1d/*
