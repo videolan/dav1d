@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20200306141107
+    image: registry.videolan.org/dav1d-debian-unstable:20200306210534
     stage: build
     tags:
         - docker
@@ -103,6 +103,14 @@ build-debian32:
                       --cross-file /opt/crossfiles/linux32.meson
         - ninja -C build
         - cd build && meson test -v
+
+build-debian-examples:
+    extends: .debian-amd64-common
+    script:
+        - meson build --buildtype release
+                      --werror
+                      -Denable_examples=true
+        - ninja -C build
 
 build-win32:
     extends: .debian-amd64-common
