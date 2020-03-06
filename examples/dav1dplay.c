@@ -1026,9 +1026,6 @@ static int decoder_thread_main(void *cookie)
 
     Dav1dPlaySettings settings = rd_ctx->settings;
 
-    // Init dav1d tools demuxers
-    init_demuxers();
-
     if ((res = input_open(&in_ctx, "ivf",
                           settings.inputfile,
                           fps, &total, timebase)) < 0)
