@@ -23,8 +23,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 doxygen = find_program('doxygen', required: false)
+dot = find_program('dot', required: false)
 
-if doxygen.found()
+if doxygen.found() and dot.found()
     conf_data = configuration_data()
     conf_data.set('DOXYGEN_INPUT', join_paths(meson.source_root(), 'include/dav1d'))
     conf_data.set('DOXYGEN_STRIP', join_paths(meson.source_root(), 'include'))
