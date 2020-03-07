@@ -86,7 +86,7 @@ static const struct option long_opts[] = {
 #define ALLOWED_CPU_MASKS " or 'neon'"
 #elif ARCH_X86
 #define ALLOWED_CPU_MASKS \
-    ", 'sse2', 'ssse3', 'sse41', 'avx2', 'avx512' or 'avx512icl'"
+    ", 'sse2', 'ssse3', 'sse41', 'avx2' or 'avx512icl'"
 #else
 #define ALLOWED_CPU_MASKS "not yet implemented for this architecture"
 #endif
