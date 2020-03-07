@@ -425,8 +425,8 @@ test-debian-armv7-clang-5:
         - ninja -C build
         - cd build && time meson test -v
 
-pages:
-    extends: build-debian
+.pages-common:
+    extends: .debian-amd64-common
     script:
         - meson build --buildtype release
                       --werror
@@ -435,6 +435,17 @@ pages:
     artifacts:
         paths:
             - public
+
+build-pages:
+    extends: .pages-common
+    except:
+        refs:
+            - master
+
+pages:
+    extends: .pages-common
     only:
+        refs:
+            - master
         changes:
             - include/dav1d/*
