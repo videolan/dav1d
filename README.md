@@ -24,7 +24,7 @@ The reasoning behind this decision is the same as for libvorbis, see [RMS on vor
 
 # Roadmap
 
-The plan is the folllowing:
+The plan is the following:
 
 ### Reached
 1. Complete C implementation of the decoder,
