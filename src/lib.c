@@ -273,21 +273,6 @@ error:
     return res;
 }
 
-int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
-{
-    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
-
-    c->drain = 0;
-
-    if (c->in.data)
-        return DAV1D_ERR(EAGAIN);
-    dav1d_data_move_ref(&c->in, in);
-
-    return 0;
-}
-
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
                         Dav1dPicture *const in)
 {
@@ -374,21 +359,13 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
     return DAV1D_ERR(EAGAIN);
 }
 
-int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
+static int gen_picture(Dav1dContext *const c)
 {
     int res;
-
-    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
-
-    const int drain = c->drain;
-    c->drain = 1;
-
     Dav1dData *const in = &c->in;
-    if (!in->data) {
-        if (c->n_fc == 1) return DAV1D_ERR(EAGAIN);
-        return drain_picture(c, out);
-    }
+
+    if (output_picture_ready(c))
+        return 0;
 
     while (in->sz > 0) {
         res = dav1d_parse_obus(c, in, 0);
@@ -405,6 +382,40 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
         if (res < 0)
             return res;
     }
+
+    return 0;
+}
+
+int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
+{
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
+
+    if (in->data)
+        c->drain = 0;
+    if (c->in.data)
+        return DAV1D_ERR(EAGAIN);
+    dav1d_data_ref(&c->in, in);
+
+    int res = gen_picture(c);
+    if (!res)
+        dav1d_data_unref_internal(in);
+
+    return res;
+}
+
+int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
+{
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+
+    const int drain = c->drain;
+    c->drain = 1;
+
+    int res = gen_picture(c);
+    if (res < 0)
+        return res;
 
     if (output_picture_ready(c))
         return output_image(c, out, &c->out);
