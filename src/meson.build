@@ -120,6 +120,7 @@ if is_asm_enabled
             if dav1d_bitdepths.contains('16')
                 libdav1d_sources += files(
                     'arm/64/cdef16.S',
+                    'arm/64/ipred16.S',
                     'arm/64/loopfilter16.S',
                     'arm/64/looprestoration16.S',
                     'arm/64/mc16.S',

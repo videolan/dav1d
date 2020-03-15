@@ -54,7 +54,7 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8
+#if BITDEPTH == 8 || ARCH_AARCH64
     c->intra_pred[DC_PRED]       = BF(dav1d_ipred_dc, neon);
     c->intra_pred[DC_128_PRED]   = BF(dav1d_ipred_dc_128, neon);
     c->intra_pred[TOP_DC_PRED]   = BF(dav1d_ipred_dc_top, neon);
