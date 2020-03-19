@@ -774,6 +774,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
     assert(!b->skip);
     const TxfmInfo *const uv_t_dim = &dav1d_txfm_dimensions[b->uvtx];
     const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[b->intra ? b->tx : b->max_ytx];
+    const uint16_t tx_split[2] = { b->tx_split0, b->tx_split1 };
 
     for (int init_y = 0; init_y < h4; init_y += 16) {
         for (int init_x = 0; init_x < w4; init_x += 16) {
@@ -790,7 +791,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTileContext *const t,
                      x += t_dim->w, t->bx += t_dim->w, x_off++)
                 {
                     if (!b->intra) {
-                        read_coef_tree(t, bs, b, b->max_ytx, 0, b->tx_split,
+                        read_coef_tree(t, bs, b, b->max_ytx, 0, tx_split,
                                        x_off, y_off, NULL);
                     } else {
                         uint8_t cf_ctx = 0x40;
@@ -998,7 +999,7 @@ static int obmc(Dav1dTileContext *const t,
 {
     assert(!(t->bx & 1) && !(t->by & 1));
     const Dav1dFrameContext *const f = t->f;
-    const refmvs *const r = &f->mvs[t->by * f->b4_stride + t->bx];
+    /*const*/ refmvs_block **r = &t->rt.r[(t->by & 31) + 5];
     pixel *const lap = bitfn(t->scratch.lap);
     const int ss_ver = !!pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
     const int ss_hor = !!pl && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
@@ -1010,16 +1011,15 @@ static int obmc(Dav1dTileContext *const t,
     {
         for (int i = 0, x = 0; x < w4 && i < imin(b_dim[2], 4); ) {
             // only odd blocks are considered for overlap handling, hence +1
-            const refmvs *const a_r = &r[x - f->b4_stride + 1];
-            const uint8_t *const a_b_dim =
-                dav1d_block_dimensions[dav1d_sbtype_to_bs[a_r->sb_type]];
+            const refmvs_block *const a_r = &r[-1][t->bx + x + 1];
+            const uint8_t *const a_b_dim = dav1d_block_dimensions[a_r->bs];
 
-            if (a_r->ref[0] > 0) {
+            if (a_r->ref.ref[0] > 0) {
                 const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
                 const int oh4 = imin(b_dim[1], 16) >> 1;
                 res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, (oh4 * 3 + 3) >> 2,
                          t->bx + x, t->by, pl, a_r->mv[0],
-                         &f->refp[a_r->ref[0] - 1], a_r->ref[0] - 1,
+                         &f->refp[a_r->ref.ref[0] - 1], a_r->ref.ref[0] - 1,
                          dav1d_filter_2d[t->a->filter[1][bx4 + x + 1]][t->a->filter[0][bx4 + x + 1]]);
                 if (res) return res;
                 f->dsp->mc.blend_h(&dst[x * h_mul], dst_stride, lap,
@@ -1033,16 +1033,15 @@ static int obmc(Dav1dTileContext *const t,
     if (t->bx > t->ts->tiling.col_start)
         for (int i = 0, y = 0; y < h4 && i < imin(b_dim[3], 4); ) {
             // only odd blocks are considered for overlap handling, hence +1
-            const refmvs *const l_r = &r[(y + 1) * f->b4_stride - 1];
-            const uint8_t *const l_b_dim =
-                dav1d_block_dimensions[dav1d_sbtype_to_bs[l_r->sb_type]];
+            const refmvs_block *const l_r = &r[y + 1][t->bx - 1];
+            const uint8_t *const l_b_dim = dav1d_block_dimensions[l_r->bs];
 
-            if (l_r->ref[0] > 0) {
+            if (l_r->ref.ref[0] > 0) {
                 const int ow4 = imin(b_dim[0], 16) >> 1;
                 const int oh4 = iclip(l_b_dim[1], 2, b_dim[1]);
                 res = mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
                          t->bx, t->by + y, pl, l_r->mv[0],
-                         &f->refp[l_r->ref[0] - 1], l_r->ref[0] - 1,
+                         &f->refp[l_r->ref.ref[0] - 1], l_r->ref.ref[0] - 1,
                          dav1d_filter_2d[t->l.filter[1][by4 + y + 1]][t->l.filter[0][by4 + y + 1]]);
                 if (res) return res;
                 f->dsp->mc.blend_v(&dst[y * v_mul * PXSTRIDE(dst_stride)],
@@ -1613,14 +1612,14 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 
         // sub8x8 derivation
         int is_sub8x8 = bw4 == ss_hor || bh4 == ss_ver;
-        refmvs *r;
+        refmvs_block *const *r;
         if (is_sub8x8) {
             assert(ss_hor == 1);
-            r = &f->mvs[t->by * f->b4_stride + t->bx];
-            if (bw4 == 1) is_sub8x8 &= r[-1].ref[0] > 0;
-            if (bh4 == ss_ver) is_sub8x8 &= r[-f->b4_stride].ref[0] > 0;
+            r = &t->rt.r[(t->by & 31) + 5];
+            if (bw4 == 1) is_sub8x8 &= r[0][t->bx - 1].ref.ref[0] > 0;
+            if (bh4 == ss_ver) is_sub8x8 &= r[-1][t->bx].ref.ref[0] > 0;
             if (bw4 == 1 && bh4 == ss_ver)
-                is_sub8x8 &= r[-(1 + f->b4_stride)].ref[0] > 0;
+                is_sub8x8 &= r[-1][t->bx - 1].ref.ref[0] > 0;
         }
 
         // chroma prediction
@@ -1632,9 +1631,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff,
                              NULL, f->cur.stride[1],
                              bw4, bh4, t->bx - 1, t->by - 1, 1 + pl,
-                             r[-(f->b4_stride + 1)].mv[0],
-                             &f->refp[r[-(f->b4_stride + 1)].ref[0] - 1],
-                             r[-(f->b4_stride + 1)].ref[0] - 1,
+                             r[-1][t->bx - 1].mv[0],
+                             &f->refp[r[-1][t->bx - 1].ref.ref[0] - 1],
+                             r[-1][t->bx - 1].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? t->tl_4x4_filter :
                                  f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx - 1].filter2d);
                     if (res) return res;
@@ -1648,8 +1647,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 for (int pl = 0; pl < 2; pl++) {
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff + v_off, NULL,
                              f->cur.stride[1], bw4, bh4, t->bx - 1,
-                             t->by, 1 + pl, r[-1].mv[0], &f->refp[r[-1].ref[0] - 1],
-                             r[-1].ref[0] - 1,
+                             t->by, 1 + pl, r[0][t->bx - 1].mv[0],
+                             &f->refp[r[0][t->bx - 1].ref.ref[0] - 1],
+                             r[0][t->bx - 1].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? left_filter_2d :
                                  f->frame_thread.b[(t->by * f->b4_stride) + t->bx - 1].filter2d);
                     if (res) return res;
@@ -1662,9 +1662,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 for (int pl = 0; pl < 2; pl++) {
                     res = mc(t, ((pixel *) f->cur.data[1 + pl]) + uvdstoff + h_off, NULL,
                              f->cur.stride[1], bw4, bh4, t->bx, t->by - 1,
-                             1 + pl, r[-f->b4_stride].mv[0],
-                             &f->refp[r[-f->b4_stride].ref[0] - 1],
-                             r[-f->b4_stride].ref[0] - 1,
+                             1 + pl, r[-1][t->bx].mv[0],
+                             &f->refp[r[-1][t->bx].ref.ref[0] - 1],
+                             r[-1][t->bx].ref.ref[0] - 1,
                              f->frame_thread.pass != 2 ? top_filter_2d :
                                  f->frame_thread.b[((t->by - 1) * f->b4_stride) + t->bx].filter2d);
                     if (res) return res;
@@ -1870,6 +1870,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
 
     const TxfmInfo *const uvtx = &dav1d_txfm_dimensions[b->uvtx];
     const TxfmInfo *const ytx = &dav1d_txfm_dimensions[b->max_ytx];
+    const uint16_t tx_split[2] = { b->tx_split0, b->tx_split1 };
 
     for (int init_y = 0; init_y < bh4; init_y += 16) {
         for (int init_x = 0; init_x < bw4; init_x += 16) {
@@ -1883,7 +1884,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
                 for (x = init_x, t->bx += init_x; x < imin(w4, init_x + 16);
                      x += ytx->w, x_off++)
                 {
-                    read_coef_tree(t, bs, b, b->max_ytx, 0, b->tx_split,
+                    read_coef_tree(t, bs, b, b->max_ytx, 0, tx_split,
                                    x_off, y_off, &dst[x * 4]);
                     t->bx += ytx->w;
                 }

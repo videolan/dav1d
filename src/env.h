@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 #include "src/levels.h"
-#include "src/ref_mvs.h"
+#include "src/refmvs.h"
 #include "src/tables.h"
 
 typedef struct BlockContext {
@@ -428,7 +428,7 @@ static inline int av1_get_uni_p1_ctx(const BlockContext *const a,
     return cnt[0] == cnt[1] ? 1 : cnt[0] < cnt[1] ? 0 : 2;
 }
 
-static inline int get_drl_context(const candidate_mv *const ref_mv_stack,
+static inline int get_drl_context(const refmvs_candidate *const ref_mv_stack,
                                   const int ref_idx)
 {
     if (ref_mv_stack[ref_idx].weight >= 640)

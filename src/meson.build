@@ -43,7 +43,7 @@ libdav1d_sources = files(
     'picture.c',
     'qm.c',
     'ref.c',
-    'ref_mvs.c',
+    'refmvs.c',
     'scan.c',
     'tables.c',
     'warpmv.c',
