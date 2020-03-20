@@ -230,20 +230,4 @@ static inline void splat_intraref(refmvs_tile *const rt,
     } while (--bh4);
 }
 
-static inline void fix_int_mv_precision(mv *const mv) {
-    mv->x = (mv->x - (mv->x >> 15) + 3) & ~7U;
-    mv->y = (mv->y - (mv->y >> 15) + 3) & ~7U;
-}
-
-static inline void fix_mv_precision(const Dav1dFrameHeader *const hdr,
-                                    mv *const mv)
-{
-    if (hdr->force_integer_mv) {
-        fix_int_mv_precision(mv);
-    } else if (!hdr->hp) {
-        mv->x = (mv->x - (mv->x >> 15)) & ~1U;
-        mv->y = (mv->y - (mv->y >> 15)) & ~1U;
-    }
-}
-
 #endif /* DAV1D_SRC_REF_MVS_H */

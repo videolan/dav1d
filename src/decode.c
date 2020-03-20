@@ -1579,7 +1579,6 @@ static int decode_b(Dav1dTileContext *const t,
                     f->frame_hdr->gmv[b->ref[idx]].type == DAV1D_WM_TYPE_TRANSLATION; \
                 b->mv[idx] = get_gmv_2d(&f->frame_hdr->gmv[b->ref[idx]], \
                                         t->bx, t->by, bw4, bh4, f->frame_hdr); \
-                fix_mv_precision(f->frame_hdr, &b->mv[idx]); \
                 break; \
             case NEWMV: \
                 b->mv[idx] = mvstack[b->drl_idx].mv.mv[idx]; \
@@ -1713,7 +1712,6 @@ static int decode_b(Dav1dTileContext *const t,
                     b->inter_mode = GLOBALMV;
                     b->mv[0] = get_gmv_2d(&f->frame_hdr->gmv[b->ref[0]],
                                           t->bx, t->by, bw4, bh4, f->frame_hdr);
-                    fix_mv_precision(f->frame_hdr, &b->mv[0]);
                     has_subpel_filter = imin(bw4, bh4) == 1 ||
                         f->frame_hdr->gmv[b->ref[0]].type == DAV1D_WM_TYPE_TRANSLATION;
                 } else {

@@ -362,8 +362,6 @@ void dav1d_refmvs_find(const refmvs_tile *const rt,
     if (ref.ref[0] > 0) {
         tgmv[0] = get_gmv_2d(&rf->frm_hdr->gmv[ref.ref[0] - 1],
                              bx4, by4, bw4, bh4, rf->frm_hdr);
-        if (rf->frm_hdr->force_integer_mv)
-            fix_int_mv_precision(&tgmv[0]);
         gmv[0] = rf->frm_hdr->gmv[ref.ref[0] - 1].type > DAV1D_WM_TYPE_TRANSLATION ?
                  tgmv[0] : (mv) { .n = INVALID_MV };
     } else {
@@ -373,8 +371,6 @@ void dav1d_refmvs_find(const refmvs_tile *const rt,
     if (ref.ref[1] > 0) {
         tgmv[1] = get_gmv_2d(&rf->frm_hdr->gmv[ref.ref[1] - 1],
                              bx4, by4, bw4, bh4, rf->frm_hdr);
-        if (rf->frm_hdr->force_integer_mv)
-            fix_int_mv_precision(&tgmv[1]);
         gmv[1] = rf->frm_hdr->gmv[ref.ref[1] - 1].type > DAV1D_WM_TYPE_TRANSLATION ?
                  tgmv[1] : (mv) { .n = INVALID_MV };
     }
