@@ -133,6 +133,21 @@ else
     endif
 endif
 
+# check for fseeko on android. It is not always available if _FILE_OFFSET_BITS is defined to 64
+have_fseeko = true
+if host_machine.system() == 'android'
+    if not cc.has_function('fseeko', prefix : '#include <stdio.h>', args : test_args)
+        if cc.has_function('fseeko', prefix : '#include <stdio.h>', args : test_args + ['-U_FILE_OFFSET_BITS'])
+            warning('Files larger than 2 gigabytes might not be supported in the dav1d CLI tool.')
+            add_project_arguments('-U_FILE_OFFSET_BITS', language: 'c')
+        elif get_option('enable_tools')
+            error('dav1d CLI tool needs fseeko()')
+        else
+            have_fseeko = false
+        endif
+    endif
+endif
+
 libdl_dependency = []
 if host_machine.system() == 'linux'
     libdl_dependency = cc.find_library('dl', required : false)
