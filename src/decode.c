@@ -663,7 +663,7 @@ static void read_vartx_tree(Dav1dTileContext *const t,
         b->uvtx = dav1d_max_txfm_size_for_bs[bs][f->cur.p.layout];
     }
     assert(!(tx_split[0] & ~0x33));
-    b->tx_split0 = tx_split[0];
+    b->tx_split0 = (uint8_t)tx_split[0];
     b->tx_split1 = tx_split[1];
 }
 
