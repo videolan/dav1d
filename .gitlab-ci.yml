@@ -100,7 +100,7 @@ build-debian32:
     script:
         - meson build --buildtype release
                       --werror
-                      --cross-file /opt/crossfiles/linux32.meson
+                      --cross-file package/crossfiles/i686-linux32.meson
         - ninja -C build
         - cd build && meson test -v
 
@@ -120,7 +120,7 @@ build-win32:
                       --werror
                       --libdir lib
                       --prefix "$(pwd)/build/dav1d_install"
-                      --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+                      --cross-file package/crossfiles/i686-w64-mingw32.meson
                       -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
@@ -138,7 +138,7 @@ build-win32-unaligned-stack:
         - wineserver -p && wine wineboot
         - meson build --buildtype release
                       --werror
-                      --cross-file /opt/crossfiles/i686-w64-mingw32.meson
+                      --cross-file package/crossfiles/i686-w64-mingw32.meson
                       -Dstack_alignment=4
         - ninja -C build
         - cd build && meson test -v
@@ -151,7 +151,7 @@ build-win64:
                       --werror
                       --libdir lib
                       --prefix "$(pwd)/build/dav1d_install"
-                      --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
+                      --cross-file package/crossfiles/x86_64-w64-mingw32.meson
                       -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
@@ -382,7 +382,7 @@ test-win64:
         - meson build --buildtype release
                       -Dtestdata_tests=true
                       -Dlogging=false
-                      --cross-file /opt/crossfiles/x86_64-w64-mingw32.meson
+                      --cross-file package/crossfiles/x86_64-w64-mingw32.meson
         - ninja -C build
         - cd build && time meson test -v
 

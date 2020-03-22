@@ -78,6 +78,28 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this pr
 3. Run `meson ..` to configure meson, add `--default-library=static` if static linking is desired
 4. Run `ninja` to compile
 
+## Cross-Compilation for 32- or 64-bit Windows, 32-bit Linux
+
+If you're on a linux build machine trying to compile .exe for a Windows target/host machine, run
+
+```
+meson build --cross-file=package/crossfiles/x86_64-w64-mingw32.meson
+```
+
+or, for 32-bit:
+
+```
+meson build --cross-file=package/crossfiles/i686-w64-mingw32.meson
+```
+
+`mingw-w64` is a pre-requisite and should be installed on your linux machine via your preferred method or package manager. Note the binary name formats may differ between distributions. Verify the names, and use `alias` if certain binaries cannot be found.
+
+For 32-bit linux, run
+
+```
+meson build --cross-file=package/crossfiles/i686-linux32.meson
+```
+
 # Run tests
 
 1. In the root directory, run `git clone https://code.videolan.org/videolan/dav1d-test-data.git tests/dav1d-test-data` to fetch the test data repository
