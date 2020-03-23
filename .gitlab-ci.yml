@@ -211,21 +211,44 @@ build-win-arm64:
                       -Ddefault_library=both
         - ninja -C build
         - ninja -C build install
+
+build-android-armv7:
+    extends: .build-android-common
+    variables:
+        CROSSFILE: package/crossfiles/arm-android.meson
+    except:
+        - tags
+
+build-android-aarch64:
+    extends: .build-android-common
+    variables:
+        CROSSFILE: package/crossfiles/aarch64-android.meson
+    except:
+        - tags
+
+build-android-armv7-release:
+    extends: build-android-armv7
+    except:
+    only:
+        refs:
+            - tags@videolan/dav1d
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
             - build/dav1d_install/
         expire_in: 1 week
 
-build-android-armv7:
-    extends: .build-android-common
-    variables:
-        CROSSFILE: package/crossfiles/arm-android.meson
-
-build-android-aarch64:
-    extends: .build-android-common
-    variables:
-        CROSSFILE: package/crossfiles/aarch64-android.meson
+build-android-aarch64-release:
+    extends: build-android-aarch64
+    except:
+    only:
+        refs:
+            - tags@videolan/dav1d
+    artifacts:
+        name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+        paths:
+            - build/dav1d_install/
+        expire_in: 1 week
 
 build-debian-aarch64:
     extends: .debian-aarch64-common
