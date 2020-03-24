@@ -10,8 +10,6 @@ windres = 'arm-linux-androideabi-windres'
 
 [properties]
 needs_exe_wrapper = true
-c_args = ['-g', '-O2', '-fPIC', '-fdata-sections', '-ffunction-sections', '-funwind-tables', '-fstack-protector-strong', '-no-canonical-prefixes']
-cpp_args = ['-g', '-O2', '-fPIC', '-fdata-sections', '-ffunction-sections', '-funwind-tables', '-fstack-protector-strong', '-no-canonical-prefixes', '-fexceptions', '-frtti']
 
 [host_machine]
 system = 'android'
