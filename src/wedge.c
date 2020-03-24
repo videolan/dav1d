@@ -115,7 +115,7 @@ static uint8_t ALIGN(wedge_masks_420_4x4  [2 * 16 *  4 *  4], 32);
 
 const uint8_t *dav1d_wedge_masks[N_BS_SIZES][3][2][16];
 
-static void insert_border(uint8_t *const dst, const uint8_t *src,
+static void insert_border(uint8_t *const dst, const uint8_t *const src,
                           const int ctr)
 {
     if (ctr > 4) memset(dst, 0, ctr - 4);
@@ -156,7 +156,8 @@ static void copy2d(uint8_t *dst, const uint8_t *src,
 }
 
 static COLD void init_chroma(uint8_t *chroma, const uint8_t *luma,
-                        const int sign, const int w, const int h, const int ss_ver)
+                             const int sign, const int w, const int h,
+                             const int ss_ver)
 {
     for (int y = 0; y < h; y += 1 + ss_ver) {
         for (int x = 0; x < w; x += 2) {
