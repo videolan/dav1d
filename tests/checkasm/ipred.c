@@ -142,14 +142,21 @@ static void check_cfl_ac(Dav1dIntraPredDSPContext *const c) {
     for (int layout = 1; layout <= DAV1D_PIXEL_LAYOUT_I444; layout++) {
         const int ss_ver = layout == DAV1D_PIXEL_LAYOUT_I420;
         const int ss_hor = layout != DAV1D_PIXEL_LAYOUT_I444;
+        const int h_step = 2 >> ss_hor, v_step = 2 >> ss_ver;
         for (int w = 4; w <= (32 >> ss_hor); w <<= 1)
             if (check_func(c->cfl_ac[layout - 1], "cfl_ac_%s_w%d_%dbpc",
                 cfl_ac_names[layout - 1], w, BITDEPTH))
             {
-                for (int h = imax(w / 4, 4); h <= imin(w * 4, (32 >> ss_ver)); h <<= 1) {
+                for (int h = imax(w / 4, 4);
+                     h <= imin(w * 4, (32 >> ss_ver)); h <<= 1)
+                {
                     const ptrdiff_t stride = 32 * sizeof(pixel);
-                    for (int w_pad = (w >> 2) - 1; w_pad >= 0; w_pad--) {
-                        for (int h_pad = (h >> 2) - 1; h_pad >= 0; h_pad--) {
+                    for (int w_pad = imax((w >> 2) - h_step, 0);
+                         w_pad >= 0; w_pad -= h_step)
+                    {
+                        for (int h_pad = imax((h >> 2) - v_step, 0);
+                             h_pad >= 0; h_pad -= v_step)
+                        {
 #if BITDEPTH == 16
                             const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
 #else
