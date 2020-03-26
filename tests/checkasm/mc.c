@@ -573,6 +573,60 @@ static void check_emuedge(Dav1dMCDSPContext *const c) {
     report("emu_edge");
 }
 
+static int get_upscale_x0(const int in_w, const int out_w, const int step) {
+    const int err = out_w * step - (in_w << 14);
+    const int x0 = (-((out_w - in_w) << 13) + (out_w >> 1)) / out_w + 128 - (err >> 1);
+    return x0 & 0x3fff;
+}
+
+static void check_resize(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_64(pixel, c_dst, 1024 * 64,);
+    ALIGN_STK_64(pixel, a_dst, 1024 * 64,);
+    ALIGN_STK_64(pixel, src,   512 * 64,);
+
+    const int height = 64;
+    const int max_src_width = 512;
+    const ptrdiff_t dst_stride = 1024 * sizeof(pixel);
+    const ptrdiff_t src_stride = 512 * sizeof(pixel);
+
+    declare_func(void, pixel *dst, ptrdiff_t dst_stride,
+                 const pixel *src, ptrdiff_t src_stride,
+                 int dst_w, int src_w, int h, int dx, int mx0
+                 HIGHBD_DECL_SUFFIX);
+
+    if (check_func(c->resize, "resize_%dbpc", BITDEPTH)) {
+#if BITDEPTH == 16
+        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
+#else
+        const int bitdepth_max = 0xff;
+#endif
+
+        for (int i = 0; i < max_src_width * height; i++)
+            src[i] = rnd() & bitdepth_max;
+
+        const int w_den = 9 + (rnd() & 7);
+        const int src_w = 16 + (rnd() % (max_src_width - 16 + 1));
+        const int dst_w = w_den * src_w >> 3;
+#define scale_fac(ref_sz, this_sz) \
+    ((((ref_sz) << 14) + ((this_sz) >> 1)) / (this_sz))
+        const int dx = scale_fac(src_w, dst_w);
+#undef scale_fac
+        const int mx0 = get_upscale_x0(src_w, dst_w, dx);
+
+        call_ref(c_dst, dst_stride, src, src_stride,
+                 dst_w, height, src_w, dx, mx0 HIGHBD_TAIL_SUFFIX);
+        call_new(a_dst, dst_stride, src, src_stride,
+                 dst_w, height, src_w, dx, mx0 HIGHBD_TAIL_SUFFIX);
+        checkasm_check_pixel(c_dst, dst_stride, a_dst, dst_stride,
+                             dst_w, height, "dst");
+
+        bench_new(a_dst, dst_stride, src, src_stride,
+                  512, height, 512 * 8 / w_den, dx, mx0 HIGHBD_TAIL_SUFFIX);
+    }
+
+    report("resize");
+}
+
 void bitfn(checkasm_check_mc)(void) {
     Dav1dMCDSPContext c;
     bitfn(dav1d_mc_dsp_init)(&c);
@@ -589,4 +643,5 @@ void bitfn(checkasm_check_mc)(void) {
     check_warp8x8(&c);
     check_warp8x8t(&c);
     check_emuedge(&c);
+    check_resize(&c);
 }
