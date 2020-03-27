@@ -891,15 +891,15 @@ static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
     do {
         int mx = mx0, src_x = -1;
         for (int x = 0; x < dst_w; x++) {
-            const int16_t *const F = dav1d_resize_filter[mx >> 8];
-            dst[x] = iclip_pixel((F[0] * src[iclip(src_x - 3, 0, src_w - 1)] +
-                                  F[1] * src[iclip(src_x - 2, 0, src_w - 1)] +
-                                  F[2] * src[iclip(src_x - 1, 0, src_w - 1)] +
-                                  F[3] * src[iclip(src_x + 0, 0, src_w - 1)] +
-                                  F[4] * src[iclip(src_x + 1, 0, src_w - 1)] +
-                                  F[5] * src[iclip(src_x + 2, 0, src_w - 1)] +
-                                  F[6] * src[iclip(src_x + 3, 0, src_w - 1)] +
-                                  F[7] * src[iclip(src_x + 4, 0, src_w - 1)] +
+            const int8_t *const F = dav1d_resize_filter[mx >> 8];
+            dst[x] = iclip_pixel((-(F[0] * src[iclip(src_x - 3, 0, src_w - 1)] +
+                                    F[1] * src[iclip(src_x - 2, 0, src_w - 1)] +
+                                    F[2] * src[iclip(src_x - 1, 0, src_w - 1)] +
+                                    F[3] * src[iclip(src_x + 0, 0, src_w - 1)] +
+                                    F[4] * src[iclip(src_x + 1, 0, src_w - 1)] +
+                                    F[5] * src[iclip(src_x + 2, 0, src_w - 1)] +
+                                    F[6] * src[iclip(src_x + 3, 0, src_w - 1)] +
+                                    F[7] * src[iclip(src_x + 4, 0, src_w - 1)]) +
                                   64) >> 7);
             mx += dx;
             src_x += mx >> 14;
