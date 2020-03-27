@@ -2013,9 +2013,10 @@ void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
             const int src_w = (4 * f->bw + ss_hor) >> ss_hor;
             const int img_h = (f->cur.p.h - sbsz * 4 * sby + ss_ver) >> ss_ver;
 
-            f->dsp->mc.resize(dst, dst_stride, src, src_stride, dst_w, src_w,
-                              imin(img_h, h_end) + h_start, f->resize_step[!!pl],
-                              f->resize_start[!!pl] HIGHBD_CALL_SUFFIX);
+            f->dsp->mc.resize(dst, dst_stride, src, src_stride, dst_w,
+                              imin(img_h, h_end) + h_start, src_w,
+                              f->resize_step[!!pl], f->resize_start[!!pl]
+                              HIGHBD_CALL_SUFFIX);
         }
     }
     if (f->lf.restore_planes) {

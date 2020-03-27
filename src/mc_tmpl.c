@@ -885,7 +885,7 @@ static void emu_edge_c(const intptr_t bw, const intptr_t bh,
 
 static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
                      const pixel *src, const ptrdiff_t src_stride,
-                     const int dst_w, const int src_w, int h,
+                     const int dst_w, int h, const int src_w,
                      const int dx, const int mx0 HIGHBD_DECL_SUFFIX)
 {
     do {
