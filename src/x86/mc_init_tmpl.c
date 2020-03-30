@@ -116,6 +116,7 @@ decl_emu_edge_fn(dav1d_emu_edge_avx2);
 decl_emu_edge_fn(dav1d_emu_edge_ssse3);
 
 decl_resize_fn(dav1d_resize_avx2);
+decl_resize_fn(dav1d_resize_ssse3);
 
 COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 #define init_mc_fn(type, name, suffix) \
@@ -170,6 +171,7 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->warp8x8t = dav1d_warp_affine_8x8t_ssse3;
 
     c->emu_edge = dav1d_emu_edge_ssse3;
+    c->resize = dav1d_resize_ssse3;
 #endif
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSE41))
