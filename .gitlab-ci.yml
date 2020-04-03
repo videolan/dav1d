@@ -56,8 +56,8 @@ style-check:
     extends: .debian-amd64-common
     stage: style
     script:
-        - git grep -I -n -P "\t|\r| $" -- . ':(exclude)*/compat/*' && exit 1
-        - git grep -I -n -i "david" -- . ':(exclude)THANKS.md' ':(exclude).gitlab-ci.yml' && exit 1
+        - git grep -I -n -P "\t|\r| $" -- . ':(exclude)*/compat/*' && echo "Trailing whitespace" && exit 1
+        - git grep -I -n -i "david" -- . ':(exclude)THANKS.md' ':(exclude).gitlab-ci.yml' && echo "Misspelled dav1d" && exit 1
         - git grep -I -l -z "" -- . ':(exclude)*/compat/*' | while IFS= read -r -d '' i; do
               if [ -n "$(tail -c 1 "$i")" ]; then
                   echo "No newline at end of $i";
