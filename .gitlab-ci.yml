@@ -11,7 +11,7 @@ stages:
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org:5000/vlc-debian-llvm-mingw:20190218133533
+    image: registry.videolan.org/vlc-debian-llvm-mingw:20190218133533
     stage: build
     tags:
         - docker
@@ -25,7 +25,7 @@ stages:
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org:5000/dav1d-debian-unstable-armv7:20190202101732
+    image: registry.videolan.org/dav1d-debian-unstable-armv7:20190202101732
     stage: build
     tags:
         - docker
