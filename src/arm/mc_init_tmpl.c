@@ -112,7 +112,7 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     c->warp8x8 = BF(dav1d_warp_affine_8x8, neon);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, neon);
 #endif
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if ARCH_AARCH64
     c->emu_edge = BF(dav1d_emu_edge, neon);
 #endif
 }
