@@ -52,6 +52,7 @@ stages:
         - docker
         - amd64
 
+
 style-check:
     extends: .debian-amd64-common
     stage: style
@@ -79,6 +80,7 @@ style-check:
                   exit 1;
               fi;
           done
+
 
 build-debian:
     extends: .debian-amd64-common
@@ -331,6 +333,7 @@ build-debian-ppc64le:
         - ninja -C build
         - cd build && meson test -v
 
+
 .test-common:
     stage: test
     cache:
@@ -355,6 +358,18 @@ build-debian-ppc64le:
                       -Dlogging=false
         - ninja -C build
         - cd build && time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask $ASM"
+
+.test-debian-mt:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian"]
+    script:
+        - meson build --buildtype release
+                      -Dtestdata_tests=true
+                      -Dlogging=false
+        - ninja -C build
+        - cd build && time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --wrapper ../tests/dav1d-test-data/wrap_mt.sh
 
 test-debian:
     extends:
@@ -396,6 +411,24 @@ test-debian-c:
     extends: .test-debian-asm
     variables:
         ASM: 0
+
+test-debian-1tt-2ft:
+    extends: .test-debian-mt
+    variables:
+        TILETHREADS: 1
+        FRAMETHREADS: 2
+
+test-debian-2tt-1ft:
+    extends: .test-debian-mt
+    variables:
+        TILETHREADS: 2
+        FRAMETHREADS: 1
+
+test-debian-2tt-2ft:
+    extends: .test-debian-mt
+    variables:
+        TILETHREADS: 2
+        FRAMETHREADS: 2
 
 test-debian-unaligned-stack:
     extends:
@@ -522,6 +555,7 @@ test-debian-armv7-clang-5:
                               -Dlogging=false
         - ninja -C build
         - cd build && time meson test -v
+
 
 .pages-common:
     extends: .debian-amd64-common
