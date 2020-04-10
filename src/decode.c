@@ -1998,7 +1998,6 @@ static int decode_b(Dav1dTileContext *const t,
     return 0;
 }
 
-#if defined(__has_feature)
 #if __has_feature(memory_sanitizer)
 
 #include <sanitizer/msan_interface.h>
@@ -2051,7 +2050,6 @@ static int checked_decode_b(Dav1dTileContext *const t,
 #define decode_b checked_decode_b
 
 #endif /* defined(__has_feature) */
-#endif /* __has_feature(memory_sanitizer) */
 
 static int decode_sb(Dav1dTileContext *const t, const enum BlockLevel bl,
                      const EdgeNode *const node)
