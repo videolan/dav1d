@@ -117,7 +117,9 @@ COLD void bitfn(dav1d_itx_dsp_init_arm)(Dav1dInvTxfmDSPContext *const c, int bpc
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+    if (bpc > 10) return;
+
+#if ARCH_AARCH64
     assign_itx17_fn( ,  4,  4, neon);
     assign_itx16_fn(R,  4,  8, neon);
     assign_itx16_fn(R,  4, 16, neon);

@@ -102,6 +102,8 @@ if is_asm_enabled
         )
         if host_machine.cpu_family() == 'aarch64'
             libdav1d_sources += files(
+                # itx.S is used for both 8 and 16 bpc.
+                'arm/64/itx.S',
                 'arm/64/looprestoration_common.S',
                 'arm/64/msac.S',
             )
@@ -110,7 +112,6 @@ if is_asm_enabled
                 libdav1d_sources += files(
                     'arm/64/cdef.S',
                     'arm/64/ipred.S',
-                    'arm/64/itx.S',
                     'arm/64/loopfilter.S',
                     'arm/64/looprestoration.S',
                     'arm/64/mc.S',
@@ -121,6 +122,7 @@ if is_asm_enabled
                 libdav1d_sources += files(
                     'arm/64/cdef16.S',
                     'arm/64/ipred16.S',
+                    'arm/64/itx16.S',
                     'arm/64/loopfilter16.S',
                     'arm/64/looprestoration16.S',
                     'arm/64/mc16.S',
