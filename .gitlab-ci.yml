@@ -93,6 +93,10 @@ build-debian:
                       --werror
         - ninja -C build
         - cd build && meson test -v
+    artifacts:
+        paths:
+            - build/
+        expire_in: 1 day
 
 build-debian-static:
     extends: .debian-amd64-common
@@ -347,28 +351,14 @@ build-debian-ppc64le:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
     dependencies: []
 
-.test-debian-asm:
-    extends:
-        - .debian-amd64-common
-        - .test-common
-    needs: ["build-debian"]
-    script:
-        - meson build --buildtype release
-                      -Dtestdata_tests=true
-                      -Dlogging=false
-        - ninja -C build
-        - cd build && time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask $ASM"
-
 .test-debian-mt:
     extends:
         - .debian-amd64-common
         - .test-common
     needs: ["build-debian"]
+    dependencies: ["build-debian"]
     script:
-        - meson build --buildtype release
-                      -Dtestdata_tests=true
-                      -Dlogging=false
-        - ninja -C build
+        - meson configure build -Dtestdata_tests=true
         - cd build && time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --wrapper ../tests/dav1d-test-data/wrap_mt.sh
 
 test-debian:
@@ -383,34 +373,26 @@ test-debian:
         - ninja -C build
         - cd build && time meson test -v
 
-test-debian-sse2:
-    extends: .test-debian-asm
-    variables:
-        ASM: sse2
-
-test-debian-ssse3:
-    extends: .test-debian-asm
-    variables:
-        ASM: ssse3
-
-test-debian-sse41:
-    extends: .test-debian-asm
-    variables:
-        ASM: sse41
-
-test-debian-avx2:
-    extends: .test-debian-asm
-    variables:
-        ASM: avx2
+test-debian-asm:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian"]
+    dependencies: ["build-debian"]
     tags:
         - docker
         - amd64
         - avx2
-
-test-debian-c:
-    extends: .test-debian-asm
-    variables:
-        ASM: 0
+    script:
+        - meson configure build -Dtestdata_tests=true
+        - cd build
+        - exit_code=0
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0"     || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask sse2"  || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask ssse3" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask sse41" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx2"  || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-1tt-2ft:
     extends: .test-debian-mt
