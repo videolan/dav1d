@@ -83,35 +83,35 @@ static const wedge_code_type wedge_codebook_16_heqw[16] = {
     { WEDGE_OBLIQUE117, 2, 4 }, { WEDGE_OBLIQUE117, 6, 4 },
 };
 
-static uint8_t ALIGN(wedge_masks_444_32x32[2 * 16 * 32 * 32], 32);
-static uint8_t ALIGN(wedge_masks_444_32x16[2 * 16 * 32 * 16], 32);
-static uint8_t ALIGN(wedge_masks_444_32x8 [2 * 16 * 32 *  8], 32);
-static uint8_t ALIGN(wedge_masks_444_16x32[2 * 16 * 16 * 32], 32);
-static uint8_t ALIGN(wedge_masks_444_16x16[2 * 16 * 16 * 16], 32);
-static uint8_t ALIGN(wedge_masks_444_16x8 [2 * 16 * 16 *  8], 32);
-static uint8_t ALIGN(wedge_masks_444_8x32 [2 * 16 *  8 * 32], 32);
-static uint8_t ALIGN(wedge_masks_444_8x16 [2 * 16 *  8 * 16], 32);
-static uint8_t ALIGN(wedge_masks_444_8x8  [2 * 16 *  8 *  8], 32);
+static uint8_t ALIGN(wedge_masks_444_32x32[2 * 16 * 32 * 32], 64);
+static uint8_t ALIGN(wedge_masks_444_32x16[2 * 16 * 32 * 16], 64);
+static uint8_t ALIGN(wedge_masks_444_32x8 [2 * 16 * 32 *  8], 64);
+static uint8_t ALIGN(wedge_masks_444_16x32[2 * 16 * 16 * 32], 64);
+static uint8_t ALIGN(wedge_masks_444_16x16[2 * 16 * 16 * 16], 64);
+static uint8_t ALIGN(wedge_masks_444_16x8 [2 * 16 * 16 *  8], 64);
+static uint8_t ALIGN(wedge_masks_444_8x32 [2 * 16 *  8 * 32], 64);
+static uint8_t ALIGN(wedge_masks_444_8x16 [2 * 16 *  8 * 16], 64);
+static uint8_t ALIGN(wedge_masks_444_8x8  [2 * 16 *  8 *  8], 64);
 
-static uint8_t ALIGN(wedge_masks_422_16x32[2 * 16 * 16 * 32], 32);
-static uint8_t ALIGN(wedge_masks_422_16x16[2 * 16 * 16 * 16], 32);
-static uint8_t ALIGN(wedge_masks_422_16x8 [2 * 16 * 16 *  8], 32);
-static uint8_t ALIGN(wedge_masks_422_8x32 [2 * 16 *  8 * 32], 32);
-static uint8_t ALIGN(wedge_masks_422_8x16 [2 * 16 *  8 * 16], 32);
-static uint8_t ALIGN(wedge_masks_422_8x8  [2 * 16 *  8 *  8], 32);
-static uint8_t ALIGN(wedge_masks_422_4x32 [2 * 16 *  4 * 32], 32);
-static uint8_t ALIGN(wedge_masks_422_4x16 [2 * 16 *  4 * 16], 32);
+static uint8_t ALIGN(wedge_masks_422_16x32[2 * 16 * 16 * 32], 64);
+static uint8_t ALIGN(wedge_masks_422_16x16[2 * 16 * 16 * 16], 64);
+static uint8_t ALIGN(wedge_masks_422_16x8 [2 * 16 * 16 *  8], 64);
+static uint8_t ALIGN(wedge_masks_422_8x32 [2 * 16 *  8 * 32], 64);
+static uint8_t ALIGN(wedge_masks_422_8x16 [2 * 16 *  8 * 16], 64);
+static uint8_t ALIGN(wedge_masks_422_8x8  [2 * 16 *  8 *  8], 64);
+static uint8_t ALIGN(wedge_masks_422_4x32 [2 * 16 *  4 * 32], 64);
+static uint8_t ALIGN(wedge_masks_422_4x16 [2 * 16 *  4 * 16], 64);
 static uint8_t ALIGN(wedge_masks_422_4x8  [2 * 16 *  4 *  8], 32);
 
-static uint8_t ALIGN(wedge_masks_420_16x16[2 * 16 * 16 * 16], 32);
-static uint8_t ALIGN(wedge_masks_420_16x8 [2 * 16 * 16 *  8], 32);
-static uint8_t ALIGN(wedge_masks_420_16x4 [2 * 16 * 16 *  4], 32);
-static uint8_t ALIGN(wedge_masks_420_8x16 [2 * 16 *  8 * 16], 32);
-static uint8_t ALIGN(wedge_masks_420_8x8  [2 * 16 *  8 *  8], 32);
-static uint8_t ALIGN(wedge_masks_420_8x4  [2 * 16 *  8 *  4], 32);
-static uint8_t ALIGN(wedge_masks_420_4x16 [2 * 16 *  4 * 16], 32);
+static uint8_t ALIGN(wedge_masks_420_16x16[2 * 16 * 16 * 16], 64);
+static uint8_t ALIGN(wedge_masks_420_16x8 [2 * 16 * 16 *  8], 64);
+static uint8_t ALIGN(wedge_masks_420_16x4 [2 * 16 * 16 *  4], 64);
+static uint8_t ALIGN(wedge_masks_420_8x16 [2 * 16 *  8 * 16], 64);
+static uint8_t ALIGN(wedge_masks_420_8x8  [2 * 16 *  8 *  8], 64);
+static uint8_t ALIGN(wedge_masks_420_8x4  [2 * 16 *  8 *  4], 64);
+static uint8_t ALIGN(wedge_masks_420_4x16 [2 * 16 *  4 * 16], 64);
 static uint8_t ALIGN(wedge_masks_420_4x8  [2 * 16 *  4 *  8], 32);
-static uint8_t ALIGN(wedge_masks_420_4x4  [2 * 16 *  4 *  4], 32);
+static uint8_t ALIGN(wedge_masks_420_4x4  [2 * 16 *  4 *  4], 16);
 
 const uint8_t *dav1d_wedge_masks[N_BS_SIZES][3][2][16];
 
@@ -274,16 +274,16 @@ COLD void dav1d_init_wedge_masks(void) {
 }
 
 #define N_II_PRED_MODES (N_INTER_INTRA_PRED_MODES - 1)
-static uint8_t ALIGN(ii_dc_mask[32 * 32], 32);
-static uint8_t ALIGN(ii_nondc_mask_32x32[N_II_PRED_MODES][32 * 32], 32);
-static uint8_t ALIGN(ii_nondc_mask_16x32[N_II_PRED_MODES][16 * 32], 32);
-static uint8_t ALIGN(ii_nondc_mask_16x16[N_II_PRED_MODES][16 * 16], 32);
-static uint8_t ALIGN(ii_nondc_mask_8x32 [N_II_PRED_MODES][ 8 * 32], 32);
-static uint8_t ALIGN(ii_nondc_mask_8x16 [N_II_PRED_MODES][ 8 * 16], 32);
-static uint8_t ALIGN(ii_nondc_mask_8x8  [N_II_PRED_MODES][ 8 *  8], 32);
-static uint8_t ALIGN(ii_nondc_mask_4x16 [N_II_PRED_MODES][ 4 * 16], 32);
+static uint8_t ALIGN(ii_dc_mask[32 * 32], 64);
+static uint8_t ALIGN(ii_nondc_mask_32x32[N_II_PRED_MODES][32 * 32], 64);
+static uint8_t ALIGN(ii_nondc_mask_16x32[N_II_PRED_MODES][16 * 32], 64);
+static uint8_t ALIGN(ii_nondc_mask_16x16[N_II_PRED_MODES][16 * 16], 64);
+static uint8_t ALIGN(ii_nondc_mask_8x32 [N_II_PRED_MODES][ 8 * 32], 64);
+static uint8_t ALIGN(ii_nondc_mask_8x16 [N_II_PRED_MODES][ 8 * 16], 64);
+static uint8_t ALIGN(ii_nondc_mask_8x8  [N_II_PRED_MODES][ 8 *  8], 64);
+static uint8_t ALIGN(ii_nondc_mask_4x16 [N_II_PRED_MODES][ 4 * 16], 64);
 static uint8_t ALIGN(ii_nondc_mask_4x8  [N_II_PRED_MODES][ 4 *  8], 32);
-static uint8_t ALIGN(ii_nondc_mask_4x4  [N_II_PRED_MODES][ 4 *  4], 32);
+static uint8_t ALIGN(ii_nondc_mask_4x4  [N_II_PRED_MODES][ 4 *  4], 16);
 #undef N_II_PRED_MODES
 
 #define set1(sz) \
