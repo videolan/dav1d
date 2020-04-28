@@ -40,6 +40,7 @@
 #include "dav1d/dav1d.h"
 
 #include "tools/input/input.h"
+#include "dp_fifo.h"
 
 /**
  * Settings structure
@@ -60,93 +61,6 @@ typedef struct {
 #define DAV1D_EVENT_NEW_FRAME 1
 #define DAV1D_EVENT_DEC_QUIT  2
 
-/*
- * Fifo helper functions
- */
-typedef struct dp_fifo
-{
-    SDL_mutex *lock;
-    SDL_cond *cond_change;
-    size_t capacity;
-    size_t count;
-    void **entries;
-} Dav1dPlayPtrFifo;
-
-static void dp_fifo_destroy(Dav1dPlayPtrFifo *fifo)
-{
-    assert(fifo->count == 0);
-    SDL_DestroyMutex(fifo->lock);
-    SDL_DestroyCond(fifo->cond_change);
-    free(fifo->entries);
-    free(fifo);
-}
-
-static Dav1dPlayPtrFifo *dp_fifo_create(size_t capacity)
-{
-    Dav1dPlayPtrFifo *fifo;
-
-    assert(capacity > 0);
-    if (capacity <= 0)
-        return NULL;
-
-    fifo = malloc(sizeof(*fifo));
-    if (fifo == NULL)
-        return NULL;
-
-    fifo->capacity = capacity;
-    fifo->count = 0;
-
-    fifo->lock = SDL_CreateMutex();
-    if (fifo->lock == NULL) {
-        free(fifo);
-        return NULL;
-    }
-    fifo->cond_change = SDL_CreateCond();
-    if (fifo->cond_change == NULL) {
-        SDL_DestroyMutex(fifo->lock);
-        free(fifo);
-        return NULL;
-    }
-
-    fifo->entries = calloc(capacity, sizeof(void*));
-    if (fifo->entries == NULL) {
-        dp_fifo_destroy(fifo);
-        return NULL;
-    }
-
-    return fifo;
-}
-
-static void dp_fifo_push(Dav1dPlayPtrFifo *fifo, void *element)
-{
-    SDL_LockMutex(fifo->lock);
-    while (fifo->count == fifo->capacity)
-        SDL_CondWait(fifo->cond_change, fifo->lock);
-    fifo->entries[fifo->count++] = element;
-    if (fifo->count == 1)
-        SDL_CondSignal(fifo->cond_change);
-    SDL_UnlockMutex(fifo->lock);
-}
-
-static void *dp_fifo_array_shift(void **arr, size_t len)
-{
-    void *shifted_element = arr[0];
-    for (size_t i = 1; i < len; ++i)
-        arr[i-1] = arr[i];
-    return shifted_element;
-}
-
-static void *dp_fifo_shift(Dav1dPlayPtrFifo *fifo)
-{
-    SDL_LockMutex(fifo->lock);
-    while (fifo->count == 0)
-        SDL_CondWait(fifo->cond_change, fifo->lock);
-    void *res = dp_fifo_array_shift(fifo->entries, fifo->count--);
-    if (fifo->count == fifo->capacity - 1)
-        SDL_CondSignal(fifo->cond_change);
-    SDL_UnlockMutex(fifo->lock);
-    return res;
-}
 
 /**
  * Renderer info

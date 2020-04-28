@@ -35,6 +35,7 @@ endif
 # dav1d player sources
 dav1dplay_sources = files(
     'dav1dplay.c',
+    'dp_fifo.c',
 )
 
 sdl2_dependency = dependency('sdl2', version: '>= 2.0.1', required: true)
