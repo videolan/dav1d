@@ -44,11 +44,18 @@ if sdl2_dependency.found()
     placebo_dependency = dependency('libplacebo', version: '>= 1.18.0', required: false)
     vulkan_dependency = dependency('vulkan', required: false)
     sdl_has_vulkan = cc.has_header('SDL_vulkan.h', dependencies: [sdl2_dependency])
+    sdl_has_opengl = cc.has_header('SDL_opengl.h', dependencies: [sdl2_dependency])
     cflag_placebo = []
     deps_placebo = []
-    if placebo_dependency.found() and vulkan_dependency.found() and sdl_has_vulkan
-        cflag_placebo += '-DHAVE_PLACEBO_VULKAN=1'
-        deps_placebo = [vulkan_dependency, placebo_dependency]
+    if placebo_dependency.found()
+        deps_placebo += placebo_dependency
+        if vulkan_dependency.found() and sdl_has_vulkan
+            cflag_placebo += '-DHAVE_PLACEBO_VULKAN=1'
+            deps_placebo += vulkan_dependency
+        endif
+        if sdl_has_opengl
+            cflag_placebo += '-DHAVE_PLACEBO_OPENGL=1'
+        endif
     endif
     dav1dplay = executable('dav1dplay',
         dav1dplay_sources,

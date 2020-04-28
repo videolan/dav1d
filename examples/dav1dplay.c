@@ -83,12 +83,20 @@ typedef struct rdr_info
     void (*release_pic)(Dav1dPicture *pic, void *cookie);
 } Dav1dPlayRenderInfo;
 
-#ifdef HAVE_PLACEBO_VULKAN
+#if defined(HAVE_PLACEBO_VULKAN) || defined(HAVE_PLACEBO_OPENGL)
 
 #include <libplacebo/renderer.h>
 #include <libplacebo/utils/upload.h>
-#include <libplacebo/vulkan.h>
-#include <SDL_vulkan.h>
+
+#if defined(HAVE_PLACEBO_VULKAN)
+# include <libplacebo/vulkan.h>
+# include <SDL_vulkan.h>
+#elif defined(HAVE_PLACEBO_OPENGL)
+# include <libplacebo/opengl.h>
+# include <SDL_opengl.h>
+#else
+# error Placebo rendering only implemented for Vulkan or OpenGL!
+#endif
 
 
 /**
@@ -100,12 +108,19 @@ typedef struct renderer_priv_ctx
     struct pl_context *ctx;
     // Placebo renderer
     struct pl_renderer *renderer;
+#if defined(HAVE_PLACEBO_VULKAN)
     // Placebo Vulkan handle
     const struct pl_vulkan *vk;
     // Placebo Vulkan instance
     const struct pl_vk_inst *vk_inst;
     // Vulkan surface
     VkSurfaceKHR surf;
+#elif defined(HAVE_PLACEBO_OPENGL)
+    // Placebo OpenGL handle
+    const struct pl_opengl *gl;
+#endif
+    // Placebo GPU
+    const struct pl_gpu *gpu;
     // Placebo swapchain
     const struct pl_swapchain *swapchain;
     // Lock protecting access to the texture
@@ -122,6 +137,7 @@ typedef struct renderer_priv_ctx
 
 static void *placebo_renderer_create(void *data)
 {
+    fprintf(stderr, "Using placebo renderer\n");
     // Alloc
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
     if (rd_priv_ctx == NULL) {
@@ -151,6 +167,8 @@ static void *placebo_renderer_create(void *data)
         return NULL;
     }
 
+
+#if defined(HAVE_PLACEBO_VULKAN)
     // Init Vulkan
     struct pl_vk_inst_params iparams = pl_vk_inst_default_params;
 
@@ -219,6 +237,46 @@ static void *placebo_renderer_create(void *data)
         exit(2);
     }
 
+    rd_priv_ctx->gpu = rd_priv_ctx->vk->gpu;
+#elif defined(HAVE_PLACEBO_OPENGL)
+    // Init OpenGL
+    struct pl_opengl_params params = pl_opengl_default_params;
+# ifndef NDEBUG
+    params.debug = true;
+# endif
+
+    SDL_Window *sdlwin = data;
+    SDL_GLContext glcontext = SDL_GL_CreateContext(sdlwin);
+    SDL_GL_MakeCurrent(sdlwin, glcontext);
+
+    rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->ctx, &params);
+    if (!rd_priv_ctx->gl) {
+        fprintf(stderr, "Failed creating opengl device!\n");
+        exit(2);
+    }
+
+    rd_priv_ctx->swapchain = pl_opengl_create_swapchain(rd_priv_ctx->gl,
+        &(struct pl_opengl_swapchain_params) {
+            .swap_buffers = (void (*)(void *)) SDL_GL_SwapWindow,
+            .priv = sdlwin,
+        });
+
+    if (!rd_priv_ctx->swapchain) {
+        fprintf(stderr, "Failed creating opengl swapchain!\n");
+        exit(2);
+    }
+
+    int w = WINDOW_WIDTH, h = WINDOW_HEIGHT;
+    SDL_GL_GetDrawableSize(sdlwin, &w, &h);
+
+    if (!pl_swapchain_resize(rd_priv_ctx->swapchain, &w, &h)) {
+        fprintf(stderr, "Failed resizing vulkan swapchain!\n");
+        exit(2);
+    }
+
+    rd_priv_ctx->gpu = rd_priv_ctx->gl->gpu;
+#endif
+
     if (w != WINDOW_WIDTH || h != WINDOW_HEIGHT)
         printf("Note: window dimensions differ (got %dx%d)\n", w, h);
 
@@ -237,13 +295,19 @@ static void placebo_renderer_destroy(void *cookie)
     assert(rd_priv_ctx != NULL);
 
     pl_renderer_destroy(&(rd_priv_ctx->renderer));
-    pl_tex_destroy(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->y_tex));
-    pl_tex_destroy(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->u_tex));
-    pl_tex_destroy(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->v_tex));
+    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->y_tex));
+    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->u_tex));
+    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->v_tex));
     pl_swapchain_destroy(&(rd_priv_ctx->swapchain));
+
+#if defined(HAVE_PLACEBO_VULKAN)
     pl_vulkan_destroy(&(rd_priv_ctx->vk));
     vkDestroySurfaceKHR(rd_priv_ctx->vk_inst->instance, rd_priv_ctx->surf, NULL);
     pl_vk_inst_destroy(&(rd_priv_ctx->vk_inst));
+#elif defined(HAVE_PLACEBO_OPENGL)
+    pl_opengl_destroy(&(rd_priv_ctx->gl));
+#endif
+
     pl_context_destroy(&(rd_priv_ctx->ctx));
 }
 
@@ -260,7 +324,7 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
 
     // Prepare rendering
     if (rd_priv_ctx->renderer == NULL) {
-        rd_priv_ctx->renderer = pl_renderer_create(rd_priv_ctx->ctx, rd_priv_ctx->vk->gpu);
+        rd_priv_ctx->renderer = pl_renderer_create(rd_priv_ctx->ctx, rd_priv_ctx->gpu);
     }
 
     struct pl_swapchain_frame frame;
@@ -375,9 +439,9 @@ static int placebo_upload_planes(void *cookie, Dav1dPicture *dav1d_pic,
     }
 
     bool ok = true;
-    ok &= pl_upload_plane(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->y_plane), &(rd_priv_ctx->y_tex), &data_y);
-    ok &= pl_upload_plane(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->u_plane), &(rd_priv_ctx->u_tex), &data_u);
-    ok &= pl_upload_plane(rd_priv_ctx->vk->gpu, &(rd_priv_ctx->v_plane), &(rd_priv_ctx->v_tex), &data_v);
+    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->y_plane), &(rd_priv_ctx->y_tex), &data_y);
+    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->u_plane), &(rd_priv_ctx->u_tex), &data_u);
+    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->v_plane), &(rd_priv_ctx->v_tex), &data_v);
 
     pl_chroma_location_offset(PL_CHROMA_LEFT, &rd_priv_ctx->u_plane.shift_x, &rd_priv_ctx->u_plane.shift_y);
     pl_chroma_location_offset(PL_CHROMA_LEFT, &rd_priv_ctx->v_plane.shift_x, &rd_priv_ctx->v_plane.shift_y);
@@ -399,7 +463,7 @@ static int placebo_alloc_pic(Dav1dPicture *const p, void *cookie)
     assert(rd_priv_ctx != NULL);
     SDL_LockMutex(rd_priv_ctx->lock);
 
-    const struct pl_gpu *gpu = rd_priv_ctx->vk->gpu;
+    const struct pl_gpu *gpu = rd_priv_ctx->gpu;
     int ret = DAV1D_ERR(ENOMEM);
 
     // Copied from dav1d_default_picture_alloc
@@ -478,7 +542,7 @@ static void placebo_release_pic(Dav1dPicture *pic, void *cookie)
     assert(pic->allocator_data);
 
     SDL_LockMutex(rd_priv_ctx->lock);
-    const struct pl_gpu *gpu = rd_priv_ctx->vk->gpu;
+    const struct pl_gpu *gpu = rd_priv_ctx->gpu;
     pl_buf_destroy(gpu, (const struct pl_buf **) &pic->allocator_data);
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
@@ -738,13 +802,13 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 break;
             case ARG_HIGH_QUALITY:
                 settings->highquality = true;
-#ifndef HAVE_PLACEBO_VULKAN
+#if !defined(HAVE_PLACEBO_VULKAN) && !defined(HAVE_PLACEBO_OPENGL)
                 fprintf(stderr, "warning: --highquality requires libplacebo\n");
 #endif
                 break;
             case 'z':
                 settings->zerocopy = true;
-#ifndef HAVE_PLACEBO_VULKAN
+#if !defined(HAVE_PLACEBO_VULKAN) && !defined(HAVE_PLACEBO_OPENGL)
                 fprintf(stderr, "warning: --zerocopy requires libplacebo\n");
 #endif
                 break;
@@ -1082,8 +1146,13 @@ int main(int argc, char **argv)
 
     // Create Window and Renderer
     int window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
-#ifdef HAVE_PLACEBO_VULKAN
+#if defined(HAVE_PLACEBO_VULKAN)
     window_flags |= SDL_WINDOW_VULKAN;
+#elif defined(HAVE_PLACEBO_OPENGL)
+# ifndef NDEBUG
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+# endif
+    window_flags |= SDL_WINDOW_OPENGL;
 #endif
     win = SDL_CreateWindow("Dav1dPlay", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
@@ -1121,6 +1190,10 @@ int main(int argc, char **argv)
         if (SDL_WaitEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 dp_rd_ctx_request_shutdown(rd_ctx);
+            } else if (e.type == SDL_WINDOWEVENT) {
+                if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    // TODO: Handle window resizes
+                }
             } else if (e.type == rd_ctx->renderer_event_type) {
                 if (e.user.code == DAV1D_EVENT_NEW_FRAME) {
                     // Dequeue frame and update the render context with it
