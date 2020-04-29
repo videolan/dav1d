@@ -351,16 +351,6 @@ build-debian-ppc64le:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
     dependencies: []
 
-.test-debian-mt:
-    extends:
-        - .debian-amd64-common
-        - .test-common
-    needs: ["build-debian"]
-    dependencies: ["build-debian"]
-    script:
-        - meson configure build -Dtestdata_tests=true
-        - cd build && time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --wrapper ../tests/dav1d-test-data/wrap_mt.sh
-
 test-debian:
     extends:
         - .debian-amd64-common
@@ -394,23 +384,20 @@ test-debian-asm:
         - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx2"  || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
-test-debian-1tt-2ft:
-    extends: .test-debian-mt
-    variables:
-        TILETHREADS: 1
-        FRAMETHREADS: 2
-
-test-debian-2tt-1ft:
-    extends: .test-debian-mt
-    variables:
-        TILETHREADS: 2
-        FRAMETHREADS: 1
-
-test-debian-2tt-2ft:
-    extends: .test-debian-mt
-    variables:
-        TILETHREADS: 2
-        FRAMETHREADS: 2
+test-debian-mt:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian"]
+    dependencies: ["build-debian"]
+    script:
+        - meson configure build -Dtestdata_tests=true
+        - cd build
+        - exit_code=0
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 1 --framethreads 2" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2" || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-unaligned-stack:
     extends:
