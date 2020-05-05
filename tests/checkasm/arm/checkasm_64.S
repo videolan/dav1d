@@ -53,8 +53,10 @@ const register_init, align=4
 endconst
 
 
-const error_message
+const error_message_register
         .asciz "failed to preserve register"
+error_message_stack:
+        .asciz "stack clobbered"
 endconst
 
 
@@ -74,7 +76,8 @@ function stack_clobber, export=1
         ret
 endfunc
 
-#define ARG_STACK ((8*(MAX_ARGS - 8) + 15) & ~15)
+// + 16 for stack canary reference
+#define ARG_STACK ((8*(MAX_ARGS - 8) + 15) & ~15 + 16)
 
 function checked_call, export=1
         stp             x29, x30, [sp, #-16]!
@@ -109,14 +112,45 @@ function checked_call, export=1
 .equ pos, pos + 8
 .endr
 
+        // Fill x8-x17 with garbage. This doesn't have to be preserved,
+        // but avoids relying on them having any particular value.
+        movrel          x9, register_init
+        ldp             x10, x11, [x9], #32
+        ldp             x12, x13, [x9], #32
+        ldp             x14, x15, [x9], #32
+        ldp             x16, x17, [x9], #32
+        ldp             x8,  x9,  [x9]
+
+        // For stack overflows, we want to check the values immediately
+        // on the stack, which (may) come from arguments - so we can't
+        // place custom values there. Instead just check them as-is
+        // against a reference that is stored inverted (so that a stack
+        // overflow that overwrites everything with the same value will
+        // be noticed).
+        ldr             x2,  [sp]
+        mvn             x2,  x2
+        str             x2,  [sp, #ARG_STACK-16]
+
+        // Load the in-register arguments
         mov             x12, x0
         ldp             x0,  x1,  [x29, #16]
         ldp             x2,  x3,  [x29, #32]
         ldp             x4,  x5,  [x29, #48]
         ldp             x6,  x7,  [x29, #64]
+        // Call the target function
         blr             x12
+
+        // Load the stack canary and its reference
+        ldr             x2,  [sp]
+        ldr             x3,  [sp, #ARG_STACK-16]
+
         add             sp,  sp,  #ARG_STACK
         stp             x0,  x1,  [sp, #-16]!
+
+        mvn             x3,  x3
+        cmp             x2,  x3
+        b.ne            2f
+
         movrel          x9, register_init
         movi            v3.8h,  #0
 
@@ -148,7 +182,11 @@ function checked_call, export=1
 
         cbz             x3,  0f
 
-        movrel          x0, error_message
+        movrel          x0, error_message_register
+        b               1f
+2:
+        movrel          x0, error_message_stack
+1:
 #ifdef PREFIX
         bl              _checkasm_fail_func
 #else
