@@ -48,6 +48,8 @@ error_message_gpr:
         .asciz "failed to preserve register r%d"
 error_message_vfp:
         .asciz "failed to preserve register d%d"
+error_message_stack:
+        .asciz "failed to preserve stack"
 endconst
 
 @ max number of args used by any asm function.
@@ -55,8 +57,9 @@ endconst
 
 #define ARG_STACK 4*(MAX_ARGS - 4)
 
-@ align the used stack space to 8 to preserve the stack alignment
-#define ARG_STACK_A (((ARG_STACK + pushed + 7) & ~7) - pushed)
+@ Align the used stack space to 8 to preserve the stack alignment.
+@ +8 for stack canary reference.
+#define ARG_STACK_A (((ARG_STACK + pushed + 7) & ~7) - pushed + 8)
 
 .macro clobbercheck variant
 .equ pushed, 4*9
@@ -83,14 +86,34 @@ function checked_call_\variant, export=1
 .equ pos, pos + 4
 .endr
 
+        @ For stack overflows, we want to check the values immediately
+        @ on the stack, which (may) come from arguments - so we can't
+        @ place custom values there. Instead just check them as-is
+        @ against a reference that is stored inverted (so that a stack
+        @ overflow that overwrites everything with the same value will
+        @ be noticed).
+        ldr             r12, [sp]
+        mvn             r12, r12
+        str             r12, [sp, #ARG_STACK_A - 8]
+
         mov             r12, r0
         mov             r0,  r2
         mov             r1,  r3
         ldrd            r2,  r3,  [sp, #ARG_STACK_A + pushed]
+        @ Call the target function
         blx             r12
-        add             sp,  sp,  #ARG_STACK_A
 
+        @ Load the stack canary and its reference
+        ldr             r2,  [sp]
+        ldr             r3,  [sp, #ARG_STACK_A - 8]
+
+        add             sp,  sp,  #ARG_STACK_A
         push            {r0, r1}
+
+        mvn             r3,  r3
+        cmp             r2,  r3
+        bne             5f
+
         movrel          r12, register_init
 .ifc \variant, vfp
 .macro check_reg_vfp, dreg, offset
@@ -144,6 +167,9 @@ function checked_call_\variant, export=1
 .purgem check_reg
 
         b               0f
+5:
+        movrel          r0, error_message_stack
+        b               1f
 4:
         movrel          r0, error_message_vfp
         b               1f
