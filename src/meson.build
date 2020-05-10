@@ -151,13 +151,8 @@ if is_asm_enabled
 
         libdav1d_sources += files(
             'x86/cpu.c',
+            'x86/msac_init.c',
         )
-
-        if host_machine.cpu_family() == 'x86_64'
-            libdav1d_sources += files(
-                'x86/msac_init.c',
-            )
-        endif
 
         libdav1d_tmpl_sources += files(
             'x86/cdef_init_tmpl.c',
