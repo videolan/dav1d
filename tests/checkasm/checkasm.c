@@ -566,21 +566,22 @@ int main(int argc, char *argv[]) {
         argv++;
     }
 
-    fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
-
     dav1d_init_cpu();
+
+    if (!state.function_listing) {
+        fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
 #if ARCH_X86_64
-    void checkasm_warmup_avx2(void);
-    void checkasm_warmup_avx512(void);
-    unsigned cpu_flags = dav1d_get_cpu_flags();
-    if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX512ICL)
-        state.simd_warmup = checkasm_warmup_avx512;
-    else if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX2)
-        state.simd_warmup = checkasm_warmup_avx2;
-    else
-        state.simd_warmup = NULL;
-    checkasm_simd_warmup();
+        void checkasm_warmup_avx2(void);
+        void checkasm_warmup_avx512(void);
+        const unsigned cpu_flags = dav1d_get_cpu_flags();
+        if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX512ICL)
+            state.simd_warmup = checkasm_warmup_avx512;
+        else if (cpu_flags & DAV1D_X86_CPU_FLAG_AVX2)
+            state.simd_warmup = checkasm_warmup_avx2;
+        checkasm_simd_warmup();
 #endif
+    }
+
     check_cpu_flag(NULL, 0);
 
     if (state.function_listing) {
