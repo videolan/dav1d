@@ -270,8 +270,8 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
             checkasm_set_signal_handler_state(1);\
             func_type *tfunc = func_new;\
             uint64_t tsum = 0;\
-            int ti, tcount = 0;\
-            for (ti = 0; ti < BENCH_RUNS; ti++) {\
+            int tcount = 0;\
+            for (int ti = 0; ti < BENCH_RUNS; ti++) {\
                 uint64_t t = readtime();\
                 tfunc(__VA_ARGS__);\
                 tfunc(__VA_ARGS__);\
