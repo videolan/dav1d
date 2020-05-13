@@ -136,6 +136,7 @@ if is_asm_enabled
                 libdav1d_sources += files(
                     'arm/32/cdef.S',
                     'arm/32/ipred.S',
+                    'arm/32/itx.S',
                     'arm/32/loopfilter.S',
                     'arm/32/looprestoration.S',
                     'arm/32/mc.S',
