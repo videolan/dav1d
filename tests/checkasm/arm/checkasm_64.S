@@ -121,13 +121,15 @@ function checked_call, export=1
         ldp             x16, x17, [x9], #32
         ldp             x8,  x9,  [x9]
 
-        // For stack overflows, we want to check the values immediately
-        // on the stack, which (may) come from arguments - so we can't
-        // place custom values there. Instead just check them as-is
-        // against a reference that is stored inverted (so that a stack
-        // overflow that overwrites everything with the same value will
-        // be noticed).
-        ldr             x2,  [sp]
+        // For stack overflows, the callee is free to overwrite the parameters
+        // that were passed on the stack (if any), so we can only check after
+        // that point. First figure out how many parameters the function
+        // really took on the stack:
+        ldr             w2,  [x29, #16 + 8*8 + (MAX_ARGS-8)*8]
+        // Load the first non-parameter value from the stack, that should be
+        // left untouched by the function. Store a copy of it inverted, so that
+        // e.g. overwriting everything with zero would be noticed.
+        ldr             x2,  [sp, x2, lsl #3]
         mvn             x2,  x2
         str             x2,  [sp, #ARG_STACK-16]
 
@@ -140,8 +142,9 @@ function checked_call, export=1
         // Call the target function
         blr             x12
 
-        // Load the stack canary and its reference
-        ldr             x2,  [sp]
+        // Load the number of stack parameters, stack canary and its reference
+        ldr             w2,  [x29, #16 + 8*8 + (MAX_ARGS-8)*8]
+        ldr             x2,  [sp, x2, lsl #3]
         ldr             x3,  [sp, #ARG_STACK-16]
 
         add             sp,  sp,  #ARG_STACK
