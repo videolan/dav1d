@@ -86,13 +86,15 @@ function checked_call_\variant, export=1
 .equ pos, pos + 4
 .endr
 
-        @ For stack overflows, we want to check the values immediately
-        @ on the stack, which (may) come from arguments - so we can't
-        @ place custom values there. Instead just check them as-is
-        @ against a reference that is stored inverted (so that a stack
-        @ overflow that overwrites everything with the same value will
-        @ be noticed).
-        ldr             r12, [sp]
+        @ For stack overflows, the callee is free to overwrite the parameters
+        @ that were passed on the stack (if any), so we can only check after
+        @ that point. First figure out how many parameters the function
+        @ really took on the stack:
+        ldr             r12, [sp, #ARG_STACK_A + pushed + 8 + 4*(MAX_ARGS-4)]
+        @ Load the first non-parameter value from the stack, that should be
+        @ left untouched by the function. Store a copy of it inverted, so that
+        @ e.g. overwriting everything with zero would be noticed.
+        ldr             r12, [sp, r12, lsl #2]
         mvn             r12, r12
         str             r12, [sp, #ARG_STACK_A - 8]
 
@@ -103,8 +105,9 @@ function checked_call_\variant, export=1
         @ Call the target function
         blx             r12
 
-        @ Load the stack canary and its reference
-        ldr             r2,  [sp]
+        @ Load the number of stack parameters, stack canary and its reference
+        ldr             r12, [sp, #ARG_STACK_A + pushed + 8 + 4*(MAX_ARGS-4)]
+        ldr             r2,  [sp, r12, lsl #2]
         ldr             r3,  [sp, #ARG_STACK_A - 8]
 
         add             sp,  sp,  #ARG_STACK_A
