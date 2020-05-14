@@ -131,7 +131,7 @@ function checked_call, export=1
         // e.g. overwriting everything with zero would be noticed.
         ldr             x2,  [sp, x2, lsl #3]
         mvn             x2,  x2
-        str             x2,  [sp, #ARG_STACK-16]
+        str             x2,  [sp, #ARG_STACK-8]
 
         // Load the in-register arguments
         mov             x12, x0
@@ -145,7 +145,7 @@ function checked_call, export=1
         // Load the number of stack parameters, stack canary and its reference
         ldr             w2,  [x29, #16 + 8*8 + (MAX_ARGS-8)*8]
         ldr             x2,  [sp, x2, lsl #3]
-        ldr             x3,  [sp, #ARG_STACK-16]
+        ldr             x3,  [sp, #ARG_STACK-8]
 
         add             sp,  sp,  #ARG_STACK
         stp             x0,  x1,  [sp, #-16]!

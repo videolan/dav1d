@@ -96,7 +96,7 @@ function checked_call_\variant, export=1
         @ e.g. overwriting everything with zero would be noticed.
         ldr             r12, [sp, r12, lsl #2]
         mvn             r12, r12
-        str             r12, [sp, #ARG_STACK_A - 8]
+        str             r12, [sp, #ARG_STACK_A - 4]
 
         mov             r12, r0
         mov             r0,  r2
@@ -108,7 +108,7 @@ function checked_call_\variant, export=1
         @ Load the number of stack parameters, stack canary and its reference
         ldr             r12, [sp, #ARG_STACK_A + pushed + 8 + 4*(MAX_ARGS-4)]
         ldr             r2,  [sp, r12, lsl #2]
-        ldr             r3,  [sp, #ARG_STACK_A - 8]
+        ldr             r3,  [sp, #ARG_STACK_A - 4]
 
         add             sp,  sp,  #ARG_STACK_A
         push            {r0, r1}
