@@ -53,8 +53,6 @@ typedef struct render_context
     Dav1dPlaySettings settings;
     Dav1dSettings lib_settings;
 
-    // Renderer callbacks
-    Dav1dPlayRenderInfo *renderer_info;
     // Renderer private data (passed to callbacks)
     void *rd_priv;
 
