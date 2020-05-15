@@ -24,11 +24,57 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <inttypes.h>
+#include <string.h>
+
+#include "dav1d/dav1d.h"
+
+#include <SDL_config.h>
+#ifdef HAVE_PLACEBO
+# include <libplacebo/config.h>
+#endif
+
+// Check libplacebo Vulkan rendering
+#if defined(HAVE_VULKAN) && defined(SDL_VIDEO_VULKAN)
+# if defined(PL_HAVE_VULKAN) && PL_HAVE_VULKAN
+#  define HAVE_RENDERER_PLACEBO
+#  define HAVE_PLACEBO_VULKAN
+# endif
+#endif
+
+// Check libplacebo OpenGL rendering
+#if defined(PL_HAVE_OPENGL) && PL_HAVE_OPENGL
+# define HAVE_RENDERER_PLACEBO
+# define HAVE_PLACEBO_OPENGL
+#endif
+
+/**
+ * Settings structure
+ * Hold all settings available for the player,
+ * this is usually filled by parsing arguments
+ * from the console.
+ */
+typedef struct {
+    const char *inputfile;
+    const char *renderer_name;
+    int highquality;
+    int untimed;
+    int zerocopy;
+} Dav1dPlaySettings;
+
+#define WINDOW_WIDTH  910
+#define WINDOW_HEIGHT 512
+
+#define DAV1D_EVENT_NEW_FRAME 1
+#define DAV1D_EVENT_DEC_QUIT  2
+
 /**
  * Renderer info
  */
 typedef struct rdr_info
 {
+    // Renderer name
+    const char *name;
     // Cookie passed to the renderer implementation callbacks
     void *cookie;
     // Callback to create the renderer
@@ -45,8 +91,25 @@ typedef struct rdr_info
     void (*release_pic)(Dav1dPicture *pic, void *cookie);
 } Dav1dPlayRenderInfo;
 
-#ifdef HAVE_RENDERER_PLACEBO
-# include "dp_renderer_placebo.h"
-#else
-# include "dp_renderer_sdl.h"
-#endif
+extern const Dav1dPlayRenderInfo rdr_placebo;
+extern const Dav1dPlayRenderInfo rdr_sdl;
+
+// Available renderes ordered by priority
+static const Dav1dPlayRenderInfo* const dp_renderers[] = {
+    &rdr_placebo,
+    &rdr_sdl,
+};
+
+static inline const Dav1dPlayRenderInfo *dp_get_renderer(const char *name)
+{
+    for (size_t i = 0; i < (sizeof(dp_renderers)/sizeof(*dp_renderers)); ++i)
+    {
+        if (dp_renderers[i]->name == NULL)
+            continue;
+
+        if (name == NULL || strcmp(name, dp_renderers[i]->name) == 0) {
+            return dp_renderers[i];
+        }
+    }
+    return NULL;
+}

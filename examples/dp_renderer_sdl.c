@@ -24,6 +24,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "dp_renderer.h"
+
+#include <assert.h>
+
+#include <SDL.h>
+
 /**
  * Renderer context for SDL
  */
@@ -146,7 +152,8 @@ static int sdl_update_texture(void *cookie, Dav1dPicture *dav1d_pic,
     return 0;
 }
 
-static const Dav1dPlayRenderInfo renderer_info = {
+const Dav1dPlayRenderInfo rdr_sdl = {
+    .name = "sdl",
     .create_renderer = sdl_renderer_create,
     .destroy_renderer = sdl_renderer_destroy,
     .render = sdl_render,

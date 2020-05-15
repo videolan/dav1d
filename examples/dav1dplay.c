@@ -29,70 +29,18 @@
 
 #include <getopt.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 #include <SDL.h>
 
-#include "common/attributes.h"
-
 #include "dav1d/dav1d.h"
 
+#include "common/attributes.h"
 #include "tools/input/input.h"
 #include "dp_fifo.h"
-
-// Determine which renderer we are going to compile:
-// Selection order by preference:
-//  - libplacebo Vulkan renderer
-//  - libplacebo OpenGL renderer
-//  - SDL2 renderer
-#ifdef HAVE_PLACEBO
-# include <libplacebo/config.h>
-#endif
-
-// Check libplacebo Vulkan rendering
-#if defined(HAVE_VULKAN) && defined(SDL_VIDEO_VULKAN)
-# if defined(PL_HAVE_VULKAN) && PL_HAVE_VULKAN
-#  define HAVE_RENDERER_PLACEBO
-#  define HAVE_PLACEBO_VULKAN
-# endif
-#endif
-
-// Check libplacebo OpenGL rendering
-#ifndef HAVE_RENDERER_PLACEBO
-# if defined(PL_HAVE_OPENGL) && PL_HAVE_OPENGL
-#  define HAVE_RENDERER_PLACEBO
-#  define HAVE_PLACEBO_OPENGL
-# endif
-#endif
-
-// Fallback to SDL if we can't use placebo
-#ifndef HAVE_RENDERER_PLACEBO
-# define HAVE_RENDERER_SDL
-#endif
-
-
-/**
- * Settings structure
- * Hold all settings available for the player,
- * this is usually filled by parsing arguments
- * from the console.
- */
-typedef struct {
-    const char *inputfile;
-    int highquality;
-    int untimed;
-    int zerocopy;
-} Dav1dPlaySettings;
-
-#define WINDOW_WIDTH  910
-#define WINDOW_HEIGHT 512
-
-#define DAV1D_EVENT_NEW_FRAME 1
-#define DAV1D_EVENT_DEC_QUIT  2
-
 #include "dp_renderer.h"
+
+// Selected renderer callbacks and cookie
+static const Dav1dPlayRenderInfo *renderer_info = { NULL };
 
 /**
  * Render context structure
@@ -151,7 +99,8 @@ static void dp_settings_print_usage(const char *const app,
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --highquality:        enable high quality rendering\n"
             " --zerocopy/-z:        enable zero copy upload path\n"
-            " --version/-v:         print version and exit\n");
+            " --version/-v:         print version and exit\n"
+            " --renderer/-r:        select renderer backend (default: auto)\n");
     exit(1);
 }
 
@@ -174,7 +123,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     Dav1dSettings *lib_settings = &rd_ctx->lib_settings;
 
     // Short options
-    static const char short_opts[] = "i:vuz";
+    static const char short_opts[] = "i:vuzr:";
 
     enum {
         ARG_FRAME_THREADS = 256,
@@ -191,6 +140,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
         { "tilethreads",    1, NULL, ARG_TILE_THREADS },
         { "highquality",    0, NULL, ARG_HIGH_QUALITY },
         { "zerocopy",       0, NULL, 'z' },
+        { "renderer",       0, NULL, 'r'},
         { NULL,             0, NULL, 0 },
     };
 
@@ -217,6 +167,9 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 fprintf(stderr, "warning: --zerocopy requires libplacebo\n");
 #endif
                 break;
+            case 'r':
+                settings->renderer_name = optarg;
+                break;
             case ARG_FRAME_THREADS:
                 lib_settings->n_frame_threads =
                     parse_unsigned(optarg, ARG_FRAME_THREADS, argv[0]);
@@ -235,6 +188,8 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
             "Extra/unused arguments found, e.g. '%s'\n", argv[optind]);
     if (!settings->inputfile)
         dp_settings_print_usage(argv[0], "Input file (-i/--input) is required");
+    if (settings->renderer_name && strcmp(settings->renderer_name, "auto") == 0)
+        settings->renderer_name = NULL;
 }
 
 /**
@@ -244,7 +199,7 @@ static void dp_rd_ctx_destroy(Dav1dPlayRenderContext *rd_ctx)
 {
     assert(rd_ctx != NULL);
 
-    renderer_info.destroy_renderer(rd_ctx->rd_priv);
+    renderer_info->destroy_renderer(rd_ctx->rd_priv);
     dp_fifo_destroy(rd_ctx->fifo);
     SDL_DestroyMutex(rd_ctx->lock);
     free(rd_ctx);
@@ -256,7 +211,7 @@ static void dp_rd_ctx_destroy(Dav1dPlayRenderContext *rd_ctx)
  * \note  The Dav1dPlayRenderContext must be destroyed
  *        again by using dp_rd_ctx_destroy.
  */
-static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data)
+static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data, int argc, char **argv)
 {
     Dav1dPlayRenderContext *rd_ctx;
 
@@ -290,16 +245,28 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data)
         return NULL;
     }
 
-    rd_ctx->rd_priv = renderer_info.create_renderer(rd_data);
+    // Parse and validate arguments
+    dav1d_default_settings(&rd_ctx->lib_settings);
+    memset(&rd_ctx->settings, 0, sizeof(rd_ctx->settings));
+    dp_rd_ctx_parse_args(rd_ctx, argc, argv);
+
+    // Select renderer
+    renderer_info = dp_get_renderer(rd_ctx->settings.renderer_name);
+
+    if (renderer_info == NULL) {
+        printf("No suitable rendered matching %s found.\n",
+            (rd_ctx->settings.renderer_name) ? rd_ctx->settings.renderer_name : "auto");
+    } else {
+        printf("Using %s renderer\n", renderer_info->name);
+    }
+
+    rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer(rd_data) : NULL;
     if (rd_ctx->rd_priv == NULL) {
         SDL_DestroyMutex(rd_ctx->lock);
         dp_fifo_destroy(rd_ctx->fifo);
         free(rd_ctx);
         return NULL;
     }
-
-    dav1d_default_settings(&rd_ctx->lib_settings);
-    memset(&rd_ctx->settings, 0, sizeof(rd_ctx->settings));
 
     rd_ctx->last_pts = 0;
     rd_ctx->last_ticks = 0;
@@ -332,7 +299,7 @@ static void dp_rd_ctx_post_event(Dav1dPlayRenderContext *rd_ctx, uint32_t code)
 static void dp_rd_ctx_update_with_dav1d_picture(Dav1dPlayRenderContext *rd_ctx,
     Dav1dPicture *dav1d_pic)
 {
-    renderer_info.update_frame(rd_ctx->rd_priv, dav1d_pic, &rd_ctx->settings);
+    renderer_info->update_frame(rd_ctx->rd_priv, dav1d_pic, &rd_ctx->settings);
     rd_ctx->current_pts = dav1d_pic->m.timestamp;
 }
 
@@ -387,7 +354,7 @@ static void dp_rd_ctx_render(Dav1dPlayRenderContext *rd_ctx)
         fprintf(stderr, "Frame displayed %f seconds too late\n", wait_time/(float)1000);
     }
 
-    renderer_info.render(rd_ctx->rd_priv, &rd_ctx->settings);
+    renderer_info->render(rd_ctx->rd_priv, &rd_ctx->settings);
 
     rd_ctx->last_ticks = SDL_GetTicks();
 }
@@ -564,21 +531,18 @@ int main(int argc, char **argv)
     SDL_SetWindowResizable(win, SDL_TRUE);
 
     // Create render context
-    Dav1dPlayRenderContext *rd_ctx = dp_rd_ctx_create(win);
+    Dav1dPlayRenderContext *rd_ctx = dp_rd_ctx_create(win, argc, argv);
     if (rd_ctx == NULL) {
         fprintf(stderr, "Failed creating render context\n");
         return 5;
     }
 
-    // Parse and validate arguments
-    dp_rd_ctx_parse_args(rd_ctx, argc, argv);
-
     if (rd_ctx->settings.zerocopy) {
-        if (renderer_info.alloc_pic) {
+        if (renderer_info->alloc_pic) {
             rd_ctx->lib_settings.allocator = (Dav1dPicAllocator) {
                 .cookie = rd_ctx->rd_priv,
-                .alloc_picture_callback = renderer_info.alloc_pic,
-                .release_picture_callback = renderer_info.release_pic,
+                .alloc_picture_callback = renderer_info->alloc_pic,
+                .release_picture_callback = renderer_info->release_pic,
             };
         } else {
             fprintf(stderr, "--zerocopy unsupported by compiled renderer\n");

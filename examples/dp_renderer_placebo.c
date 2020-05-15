@@ -24,6 +24,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "dp_renderer.h"
+
+#ifdef HAVE_RENDERER_PLACEBO
+#include <assert.h>
+
+#include <SDL.h>
+
 #include <libplacebo/renderer.h>
 #include <libplacebo/utils/upload.h>
 
@@ -486,7 +493,8 @@ static void placebo_release_pic(Dav1dPicture *pic, void *cookie)
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
 
-static const Dav1dPlayRenderInfo renderer_info = {
+const Dav1dPlayRenderInfo rdr_placebo = {
+    .name = "placebo",
     .create_renderer = placebo_renderer_create,
     .destroy_renderer = placebo_renderer_destroy,
     .render = placebo_render,
@@ -494,3 +502,7 @@ static const Dav1dPlayRenderInfo renderer_info = {
     .alloc_pic = placebo_alloc_pic,
     .release_pic = placebo_release_pic,
 };
+
+#else
+const Dav1dPlayRenderInfo rdr_placebo = { NULL };
+#endif
