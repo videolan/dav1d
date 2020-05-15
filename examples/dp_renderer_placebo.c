@@ -83,7 +83,6 @@ typedef struct renderer_priv_ctx
 
 static void *placebo_renderer_create(void *data)
 {
-    fprintf(stderr, "Using placebo renderer\n");
     // Alloc
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
     if (rd_priv_ctx == NULL) {
