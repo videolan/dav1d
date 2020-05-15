@@ -29,7 +29,7 @@
 
 #include "dav1d/dav1d.h"
 
-#include <SDL_config.h>
+#include <SDL.h>
 #ifdef HAVE_PLACEBO
 # include <libplacebo/config.h>
 #endif
@@ -78,7 +78,7 @@ typedef struct rdr_info
     // Cookie passed to the renderer implementation callbacks
     void *cookie;
     // Callback to create the renderer
-    void* (*create_renderer)(void *data);
+    void* (*create_renderer)();
     // Callback to destroy the renderer
     void (*destroy_renderer)(void *cookie);
     // Callback to the render function that renders a prevously sent frame
@@ -91,12 +91,14 @@ typedef struct rdr_info
     void (*release_pic)(Dav1dPicture *pic, void *cookie);
 } Dav1dPlayRenderInfo;
 
-extern const Dav1dPlayRenderInfo rdr_placebo;
+extern const Dav1dPlayRenderInfo rdr_placebo_vk;
+extern const Dav1dPlayRenderInfo rdr_placebo_gl;
 extern const Dav1dPlayRenderInfo rdr_sdl;
 
 // Available renderes ordered by priority
 static const Dav1dPlayRenderInfo* const dp_renderers[] = {
-    &rdr_placebo,
+    &rdr_placebo_vk,
+    &rdr_placebo_gl,
     &rdr_sdl,
 };
 
@@ -112,4 +114,16 @@ static inline const Dav1dPlayRenderInfo *dp_get_renderer(const char *name)
         }
     }
     return NULL;
+}
+
+static inline SDL_Window *dp_create_sdl_window(int window_flags)
+{
+    SDL_Window *win;
+    window_flags |= SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
+
+    win = SDL_CreateWindow("Dav1dPlay", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
+    SDL_SetWindowResizable(win, SDL_TRUE);
+
+    return win;
 }

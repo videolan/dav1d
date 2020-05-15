@@ -155,15 +155,9 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 break;
             case ARG_HIGH_QUALITY:
                 settings->highquality = true;
-#ifndef HAVE_RENDERER_PLACEBO
-                fprintf(stderr, "warning: --highquality requires libplacebo\n");
-#endif
                 break;
             case 'z':
                 settings->zerocopy = true;
-#ifndef HAVE_RENDERER_PLACEBO
-                fprintf(stderr, "warning: --zerocopy requires libplacebo\n");
-#endif
                 break;
             case 'r':
                 settings->renderer_name = optarg;
@@ -209,7 +203,7 @@ static void dp_rd_ctx_destroy(Dav1dPlayRenderContext *rd_ctx)
  * \note  The Dav1dPlayRenderContext must be destroyed
  *        again by using dp_rd_ctx_destroy.
  */
-static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data, int argc, char **argv)
+static Dav1dPlayRenderContext *dp_rd_ctx_create(int argc, char **argv)
 {
     Dav1dPlayRenderContext *rd_ctx;
 
@@ -258,7 +252,7 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(void *rd_data, int argc, char **
         printf("Using %s renderer\n", renderer_info->name);
     }
 
-    rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer(rd_data) : NULL;
+    rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer() : NULL;
     if (rd_ctx->rd_priv == NULL) {
         SDL_DestroyMutex(rd_ctx->lock);
         dp_fifo_destroy(rd_ctx->fifo);
@@ -500,7 +494,6 @@ cleanup:
 int main(int argc, char **argv)
 {
     SDL_Thread *decoder_thread;
-    SDL_Window *win = NULL;
 
     // Check for version mismatch between library and tool
     const char *version = dav1d_version();
@@ -514,22 +507,8 @@ int main(int argc, char **argv)
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
         return 10;
 
-    // Create Window and Renderer
-    int window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
-#if defined(HAVE_PLACEBO_VULKAN)
-    window_flags |= SDL_WINDOW_VULKAN;
-#elif defined(HAVE_PLACEBO_OPENGL)
-# ifndef NDEBUG
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-# endif
-    window_flags |= SDL_WINDOW_OPENGL;
-#endif
-    win = SDL_CreateWindow("Dav1dPlay", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
-    SDL_SetWindowResizable(win, SDL_TRUE);
-
     // Create render context
-    Dav1dPlayRenderContext *rd_ctx = dp_rd_ctx_create(win, argc, argv);
+    Dav1dPlayRenderContext *rd_ctx = dp_rd_ctx_create(argc, argv);
     if (rd_ctx == NULL) {
         fprintf(stderr, "Failed creating render context\n");
         return 5;
@@ -586,7 +565,6 @@ int main(int argc, char **argv)
     SDL_WaitThread(decoder_thread, &decoder_ret);
 
     dp_rd_ctx_destroy(rd_ctx);
-    SDL_DestroyWindow(win);
 
     return decoder_ret;
 }

@@ -28,13 +28,13 @@
 
 #include <assert.h>
 
-#include <SDL.h>
-
 /**
  * Renderer context for SDL
  */
 typedef struct renderer_priv_ctx
 {
+    // SDL window
+    SDL_Window *win;
     // SDL renderer
     SDL_Renderer *renderer;
     // Lock protecting access to the texture
@@ -43,15 +43,18 @@ typedef struct renderer_priv_ctx
     SDL_Texture *tex;
 } Dav1dPlayRendererPrivateContext;
 
-static void *sdl_renderer_create(void *data)
+static void *sdl_renderer_create()
 {
-    SDL_Window *win = data;
+    SDL_Window *win = dp_create_sdl_window(0);
+    if (win == NULL)
+        return NULL;
 
     // Alloc
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
     if (rd_priv_ctx == NULL) {
         return NULL;
     }
+    rd_priv_ctx->win = win;
 
     // Create renderer
     rd_priv_ctx->renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
