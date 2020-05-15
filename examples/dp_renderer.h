@@ -45,7 +45,7 @@ typedef struct rdr_info
     void (*release_pic)(Dav1dPicture *pic, void *cookie);
 } Dav1dPlayRenderInfo;
 
-#if defined(HAVE_PLACEBO_VULKAN) || defined(HAVE_PLACEBO_OPENGL)
+#ifdef HAVE_RENDERER_PLACEBO
 # include "dp_renderer_placebo.h"
 #else
 # include "dp_renderer_sdl.h"

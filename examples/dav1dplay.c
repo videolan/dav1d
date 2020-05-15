@@ -42,6 +42,37 @@
 #include "tools/input/input.h"
 #include "dp_fifo.h"
 
+// Determine which renderer we are going to compile:
+// Selection order by preference:
+//  - libplacebo Vulkan renderer
+//  - libplacebo OpenGL renderer
+//  - SDL2 renderer
+#ifdef HAVE_PLACEBO
+# include <libplacebo/config.h>
+#endif
+
+// Check libplacebo Vulkan rendering
+#if defined(HAVE_VULKAN) && defined(SDL_VIDEO_VULKAN)
+# if defined(PL_HAVE_VULKAN) && PL_HAVE_VULKAN
+#  define HAVE_RENDERER_PLACEBO
+#  define HAVE_PLACEBO_VULKAN
+# endif
+#endif
+
+// Check libplacebo OpenGL rendering
+#ifndef HAVE_RENDERER_PLACEBO
+# if defined(PL_HAVE_OPENGL) && PL_HAVE_OPENGL
+#  define HAVE_RENDERER_PLACEBO
+#  define HAVE_PLACEBO_OPENGL
+# endif
+#endif
+
+// Fallback to SDL if we can't use placebo
+#ifndef HAVE_RENDERER_PLACEBO
+# define HAVE_RENDERER_SDL
+#endif
+
+
 /**
  * Settings structure
  * Hold all settings available for the player,
@@ -176,13 +207,13 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 break;
             case ARG_HIGH_QUALITY:
                 settings->highquality = true;
-#if !defined(HAVE_PLACEBO_VULKAN) && !defined(HAVE_PLACEBO_OPENGL)
+#ifndef HAVE_RENDERER_PLACEBO
                 fprintf(stderr, "warning: --highquality requires libplacebo\n");
 #endif
                 break;
             case 'z':
                 settings->zerocopy = true;
-#if !defined(HAVE_PLACEBO_VULKAN) && !defined(HAVE_PLACEBO_OPENGL)
+#ifndef HAVE_RENDERER_PLACEBO
                 fprintf(stderr, "warning: --zerocopy requires libplacebo\n");
 #endif
                 break;
