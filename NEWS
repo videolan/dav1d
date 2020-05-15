@@ -1,3 +1,20 @@
+Changes for 0.7.0 'Frigatebird':
+------------------------------
+
+0.7.0 is a major release for dav1d:
+ - Faster refmv implementation gaining up to 12% speed while -25% of RAM (Single Thread)
+ - 10b/12b ARM64 optimizations are mostly complete:
+   - ipred (paeth, smooth, dc, pal, filter, cfl)
+   - itxfm (only 10b)
+ - AVX2/SSSE3 for non-4:2:0 film grain and for mc.resize
+ - AVX2 for cfl4:4:4
+ - AVX-512 CDEF filter
+ - ARM64 8b improvements for cfl_ac and itxfm
+ - ARM64 implementation for emu_edge in 8b/10b/12b
+ - ARM32 implementation for emu_edge in 8b
+ - Improvements on the dav1dplay utility player
+
+
 Changes for 0.6.0 'Gyrfalcon':
 ------------------------------
 
