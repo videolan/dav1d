@@ -544,7 +544,7 @@ static void placebo_release_pic(Dav1dPicture *pic, void *cookie)
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
 
-#ifdef HAVE_PLACEBO_OPENGL
+#ifdef HAVE_PLACEBO_VULKAN
 const Dav1dPlayRenderInfo rdr_placebo_vk = {
     .name = "placebo-vk",
     .create_renderer = placebo_renderer_create_vk,
@@ -558,7 +558,7 @@ const Dav1dPlayRenderInfo rdr_placebo_vk = {
 const Dav1dPlayRenderInfo rdr_placebo_vk = { NULL };
 #endif
 
-#ifdef HAVE_PLACEBO_VULKAN
+#ifdef HAVE_PLACEBO_OPENGL
 const Dav1dPlayRenderInfo rdr_placebo_gl = {
     .name = "placebo-gl",
     .create_renderer = placebo_renderer_create_gl,
