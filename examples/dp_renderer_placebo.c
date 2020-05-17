@@ -358,58 +358,167 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
 
     int width = dav1d_pic->p.w;
     int height = dav1d_pic->p.h;
-
-    enum Dav1dPixelLayout dav1d_layout = dav1d_pic->p.layout;
-
-    if (DAV1D_PIXEL_LAYOUT_I420 != dav1d_layout || dav1d_pic->p.bpc != 8) {
-        fprintf(stderr, "Unsupported pixel format, only 8bit 420 supported so far.\n");
-        exit(50);
-    }
+    int sub_x = 0, sub_y = 0;
+    int bytes = (dav1d_pic->p.bpc + 7) / 8; // rounded up
+    enum pl_chroma_location chroma_loc = PL_CHROMA_UNKNOWN;
 
     struct pl_image *image = &rd_priv_ctx->image;
     *image = (struct pl_image) {
         .num_planes = 3,
-        .repr       = pl_color_repr_hdtv,
-        .color      = pl_color_space_unknown,
         .width      = width,
         .height     = height,
+
+        .repr = {
+            .bits = {
+                .sample_depth = bytes * 8,
+                .color_depth = dav1d_pic->p.bpc,
+            },
+        },
     };
 
+    // Figure out the correct plane dimensions/count
+    switch (dav1d_pic->p.layout) {
+    case DAV1D_PIXEL_LAYOUT_I400:
+        image->num_planes = 1;
+        break;
+    case DAV1D_PIXEL_LAYOUT_I420:
+        sub_x = sub_y = 1;
+        break;
+    case DAV1D_PIXEL_LAYOUT_I422:
+        sub_x = 1;
+        break;
+    case DAV1D_PIXEL_LAYOUT_I444:
+        break;
+    }
+
+    // Set the right colorspace metadata etc.
+    switch (dav1d_pic->seq_hdr->pri) {
+    case DAV1D_COLOR_PRI_UNKNOWN:   image->color.primaries = PL_COLOR_PRIM_UNKNOWN; break;
+    case DAV1D_COLOR_PRI_BT709:     image->color.primaries = PL_COLOR_PRIM_BT_709; break;
+    case DAV1D_COLOR_PRI_BT470M:    image->color.primaries = PL_COLOR_PRIM_BT_470M; break;
+    case DAV1D_COLOR_PRI_BT470BG:   image->color.primaries = PL_COLOR_PRIM_BT_601_625; break;
+    case DAV1D_COLOR_PRI_BT601:     image->color.primaries = PL_COLOR_PRIM_BT_601_625; break;
+    case DAV1D_COLOR_PRI_BT2020:    image->color.primaries = PL_COLOR_PRIM_BT_2020; break;
+
+    case DAV1D_COLOR_PRI_XYZ:
+        // Handled below
+        assert(dav1d_pic->seq_hdr->mtrx == DAV1D_MC_IDENTITY);
+        break;
+
+    default:
+        printf("warning: unknown dav1d color primaries %d.. ignoring, picture "
+               "may be very incorrect\n", dav1d_pic->seq_hdr->pri);
+        break;
+    }
+
+    switch (dav1d_pic->seq_hdr->trc) {
+    case DAV1D_TRC_BT709:
+    case DAV1D_TRC_BT470M:
+    case DAV1D_TRC_BT470BG:
+    case DAV1D_TRC_BT601:
+    case DAV1D_TRC_SMPTE240:
+    case DAV1D_TRC_BT2020_10BIT:
+    case DAV1D_TRC_BT2020_12BIT:
+        // These all map to the effective "SDR" CRT-based EOTF, BT.1886
+        image->color.transfer = PL_COLOR_TRC_BT_1886;
+        break;
+
+    case DAV1D_TRC_UNKNOWN:     image->color.transfer = PL_COLOR_TRC_UNKNOWN; break;
+    case DAV1D_TRC_LINEAR:      image->color.transfer = PL_COLOR_TRC_LINEAR; break;
+    case DAV1D_TRC_SRGB:        image->color.transfer = PL_COLOR_TRC_SRGB; break;
+    case DAV1D_TRC_SMPTE2084:   image->color.transfer = PL_COLOR_TRC_PQ; break;
+    case DAV1D_TRC_HLG:         image->color.transfer = PL_COLOR_TRC_HLG; break;
+
+    default:
+        printf("warning: unknown dav1d color transfer %d.. ignoring, picture "
+               "may be very incorrect\n", dav1d_pic->seq_hdr->trc);
+        break;
+    }
+
+    switch (dav1d_pic->seq_hdr->mtrx) {
+    case DAV1D_MC_IDENTITY:
+        // This is going to be either RGB or XYZ
+        if (dav1d_pic->seq_hdr->pri == DAV1D_COLOR_PRI_XYZ) {
+            image->repr.sys = PL_COLOR_SYSTEM_XYZ;
+        } else {
+            image->repr.sys = PL_COLOR_SYSTEM_RGB;
+        }
+        break;
+
+    case DAV1D_MC_UNKNOWN:
+        // PL_COLOR_SYSTEM_UNKNOWN maps to RGB, so hard-code this one
+        image->repr.sys = pl_color_system_guess_ycbcr(width, height);
+        break;
+
+    case DAV1D_MC_BT709:        image->repr.sys = PL_COLOR_SYSTEM_BT_709; break;
+    case DAV1D_MC_BT601:        image->repr.sys = PL_COLOR_SYSTEM_BT_601; break;
+    case DAV1D_MC_SMPTE240:     image->repr.sys = PL_COLOR_SYSTEM_SMPTE_240M; break;
+    case DAV1D_MC_SMPTE_YCGCO:  image->repr.sys = PL_COLOR_SYSTEM_YCGCO; break;
+    case DAV1D_MC_BT2020_NCL:   image->repr.sys = PL_COLOR_SYSTEM_BT_2020_NC; break;
+    case DAV1D_MC_BT2020_CL:    image->repr.sys = PL_COLOR_SYSTEM_BT_2020_C; break;
+
+    case DAV1D_MC_ICTCP:
+        // This one is split up based on the actual HDR curve in use
+        if (dav1d_pic->seq_hdr->trc == DAV1D_TRC_HLG) {
+            image->repr.sys = PL_COLOR_SYSTEM_BT_2100_HLG;
+        } else {
+            image->repr.sys = PL_COLOR_SYSTEM_BT_2100_PQ;
+        }
+        break;
+
+    default:
+        printf("warning: unknown dav1d color matrix %d.. ignoring, picture "
+               "may be very incorrect\n", dav1d_pic->seq_hdr->mtrx);
+        break;
+    }
+
+    if (dav1d_pic->seq_hdr->color_range) {
+        image->repr.levels = PL_COLOR_LEVELS_PC;
+    } else {
+        image->repr.levels = PL_COLOR_LEVELS_TV;
+    }
+
+    switch (dav1d_pic->seq_hdr->chr) {
+    case DAV1D_CHR_UNKNOWN:     chroma_loc = PL_CHROMA_UNKNOWN; break;
+    case DAV1D_CHR_VERTICAL:    chroma_loc = PL_CHROMA_LEFT; break;
+    case DAV1D_CHR_COLOCATED:   chroma_loc = PL_CHROMA_TOP_LEFT; break;
+    }
+
+    // Upload the actual planes
     struct pl_plane_data data[3] = {
         {
             // Y plane
             .type           = PL_FMT_UNORM,
             .width          = width,
             .height         = height,
-            .pixel_stride   = 1,
+            .pixel_stride   = bytes,
             .row_stride     = dav1d_pic->stride[0],
-            .component_size = {8},
+            .component_size = {bytes * 8},
             .component_map  = {0},
         }, {
             // U plane
             .type           = PL_FMT_UNORM,
-            .width          = width >> 1,
-            .height         = height >> 1,
-            .pixel_stride   = 1,
+            .width          = width >> sub_x,
+            .height         = height >> sub_y,
+            .pixel_stride   = bytes,
             .row_stride     = dav1d_pic->stride[1],
-            .component_size = {8},
+            .component_size = {bytes * 8},
             .component_map  = {1},
         }, {
             // V plane
             .type           = PL_FMT_UNORM,
-            .width          = width >> 1,
-            .height         = height >> 1,
-            .pixel_stride   = 1,
+            .width          = width >> sub_x,
+            .height         = height >> sub_y,
+            .pixel_stride   = bytes,
             .row_stride     = dav1d_pic->stride[1],
-            .component_size = {8},
+            .component_size = {bytes * 8},
             .component_map  = {2},
         },
     };
 
     bool ok = true;
 
-    // Upload the actual planes
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < image->num_planes; i++) {
         if (settings->zerocopy) {
             const struct pl_buf *buf = dav1d_pic->allocator_data;
             assert(buf);
@@ -422,16 +531,9 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
         ok &= pl_upload_plane(rd_priv_ctx->gpu, &image->planes[i], &rd_priv_ctx->plane_tex[i], &data[i]);
     }
 
-    // Set the right chroma shift based on the Dav1dPicture metadata
-    switch (dav1d_pic->seq_hdr->chr) {
-    case DAV1D_CHR_VERTICAL:
-        pl_chroma_location_offset(PL_CHROMA_LEFT, &image->planes[1].shift_x, &image->planes[1].shift_y);
-        pl_chroma_location_offset(PL_CHROMA_LEFT, &image->planes[2].shift_x, &image->planes[2].shift_y);
-        break;
-    case DAV1D_CHR_UNKNOWN:
-    case DAV1D_CHR_COLOCATED:
-        break; // no shift
-    }
+    // Apply the correct chroma plane shift. This has to be done after pl_upload_plane
+    pl_chroma_location_offset(chroma_loc, &image->planes[1].shift_x, &image->planes[1].shift_y);
+    pl_chroma_location_offset(chroma_loc, &image->planes[2].shift_x, &image->planes[2].shift_y);
 
     if (!ok) {
         fprintf(stderr, "Failed uploading planes!\n");
