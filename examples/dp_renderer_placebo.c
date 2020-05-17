@@ -71,14 +71,9 @@ typedef struct renderer_priv_ctx
     const struct pl_swapchain *swapchain;
     // Lock protecting access to the texture
     SDL_mutex *lock;
-    // Planes to render
-    struct pl_plane y_plane;
-    struct pl_plane u_plane;
-    struct pl_plane v_plane;
-    // Textures to render
-    const struct pl_tex *y_tex;
-    const struct pl_tex *u_tex;
-    const struct pl_tex *v_tex;
+    // Image to render, and planes backing them
+    struct pl_image image;
+    const struct pl_tex *plane_tex[3];
 } Dav1dPlayRendererPrivateContext;
 
 static Dav1dPlayRendererPrivateContext*
@@ -94,6 +89,8 @@ static Dav1dPlayRendererPrivateContext*
     if (rd_priv_ctx == NULL) {
         return NULL;
     }
+
+    *rd_priv_ctx = (Dav1dPlayRendererPrivateContext) {0};
     rd_priv_ctx->win = sdlwin;
 
     // Init libplacebo
@@ -118,19 +115,6 @@ static Dav1dPlayRendererPrivateContext*
         free(rd_priv_ctx);
         return NULL;
     }
-
-    rd_priv_ctx->y_tex = NULL;
-    rd_priv_ctx->u_tex = NULL;
-    rd_priv_ctx->v_tex = NULL;
-
-    rd_priv_ctx->renderer = NULL;
-
-#ifdef HAVE_PLACEBO_OPENGL
-    rd_priv_ctx->gl = NULL;
-#endif
-#ifdef HAVE_PLACEBO_VULKAN
-    rd_priv_ctx->vk = NULL;
-#endif
 
     return rd_priv_ctx;
 }
@@ -287,10 +271,9 @@ static void placebo_renderer_destroy(void *cookie)
     assert(rd_priv_ctx != NULL);
 
     pl_renderer_destroy(&(rd_priv_ctx->renderer));
-    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->y_tex));
-    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->u_tex));
-    pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->v_tex));
     pl_swapchain_destroy(&(rd_priv_ctx->swapchain));
+    for (int i = 0; i < 3; i++)
+        pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->plane_tex[i]));
 
 #ifdef HAVE_PLACEBO_VULKAN
     if (rd_priv_ctx->vk) {
@@ -315,7 +298,7 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
     assert(rd_priv_ctx != NULL);
 
     SDL_LockMutex(rd_priv_ctx->lock);
-    if (rd_priv_ctx->y_tex == NULL) {
+    if (!rd_priv_ctx->image.num_planes) {
         SDL_UnlockMutex(rd_priv_ctx->lock);
         return;
     }
@@ -332,16 +315,6 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
         return;
     }
 
-    const struct pl_tex *img = rd_priv_ctx->y_plane.texture;
-    struct pl_image image = {
-        .num_planes = 3,
-        .planes     = { rd_priv_ctx->y_plane, rd_priv_ctx->u_plane, rd_priv_ctx->v_plane },
-        .repr       = pl_color_repr_hdtv,
-        .color      = pl_color_space_unknown,
-        .width      = img->params.w,
-        .height     = img->params.h,
-    };
-
     struct pl_render_params render_params = {0};
     if (settings->highquality)
         render_params = pl_render_default_params;
@@ -353,7 +326,7 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
         .len = 0,
     };
 
-    if (!pl_render_image(rd_priv_ctx->renderer, &image, &target, &render_params)) {
+    if (!pl_render_image(rd_priv_ctx->renderer, &rd_priv_ctx->image, &target, &render_params)) {
         fprintf(stderr, "Failed rendering frame!\n");
         SDL_UnlockMutex(rd_priv_ctx->lock);
         return;
@@ -370,8 +343,8 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
 
-static int placebo_upload_planes(void *cookie, Dav1dPicture *dav1d_pic,
-                                 const Dav1dPlaySettings *settings)
+static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
+                                const Dav1dPlaySettings *settings)
 {
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = cookie;
     assert(rd_priv_ctx != NULL);
@@ -393,59 +366,76 @@ static int placebo_upload_planes(void *cookie, Dav1dPicture *dav1d_pic,
         exit(50);
     }
 
-    struct pl_plane_data data_y = {
-        .type           = PL_FMT_UNORM,
-        .width          = width,
-        .height         = height,
-        .pixel_stride   = 1,
-        .row_stride     = dav1d_pic->stride[0],
-        .component_size = {8},
-        .component_map  = {0},
+    struct pl_image *image = &rd_priv_ctx->image;
+    *image = (struct pl_image) {
+        .num_planes = 3,
+        .repr       = pl_color_repr_hdtv,
+        .color      = pl_color_space_unknown,
+        .width      = width,
+        .height     = height,
     };
 
-    struct pl_plane_data data_u = {
-        .type           = PL_FMT_UNORM,
-        .width          = width/2,
-        .height         = height/2,
-        .pixel_stride   = 1,
-        .row_stride     = dav1d_pic->stride[1],
-        .component_size = {8},
-        .component_map  = {1},
+    struct pl_plane_data data[3] = {
+        {
+            // Y plane
+            .type           = PL_FMT_UNORM,
+            .width          = width,
+            .height         = height,
+            .pixel_stride   = 1,
+            .row_stride     = dav1d_pic->stride[0],
+            .component_size = {8},
+            .component_map  = {0},
+        }, {
+            // U plane
+            .type           = PL_FMT_UNORM,
+            .width          = width >> 1,
+            .height         = height >> 1,
+            .pixel_stride   = 1,
+            .row_stride     = dav1d_pic->stride[1],
+            .component_size = {8},
+            .component_map  = {1},
+        }, {
+            // V plane
+            .type           = PL_FMT_UNORM,
+            .width          = width >> 1,
+            .height         = height >> 1,
+            .pixel_stride   = 1,
+            .row_stride     = dav1d_pic->stride[1],
+            .component_size = {8},
+            .component_map  = {2},
+        },
     };
-
-    struct pl_plane_data data_v = {
-        .type           = PL_FMT_UNORM,
-        .width          = width/2,
-        .height         = height/2,
-        .pixel_stride   = 1,
-        .row_stride     = dav1d_pic->stride[1],
-        .component_size = {8},
-        .component_map  = {2},
-    };
-
-    if (settings->zerocopy) {
-        const struct pl_buf *buf = dav1d_pic->allocator_data;
-        assert(buf);
-        data_y.buf = data_u.buf = data_v.buf = buf;
-        data_y.buf_offset = (uintptr_t) dav1d_pic->data[0] - (uintptr_t) buf->data;
-        data_u.buf_offset = (uintptr_t) dav1d_pic->data[1] - (uintptr_t) buf->data;
-        data_v.buf_offset = (uintptr_t) dav1d_pic->data[2] - (uintptr_t) buf->data;
-    } else {
-        data_y.pixels = dav1d_pic->data[0];
-        data_u.pixels = dav1d_pic->data[1];
-        data_v.pixels = dav1d_pic->data[2];
-    }
 
     bool ok = true;
-    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->y_plane), &(rd_priv_ctx->y_tex), &data_y);
-    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->u_plane), &(rd_priv_ctx->u_tex), &data_u);
-    ok &= pl_upload_plane(rd_priv_ctx->gpu, &(rd_priv_ctx->v_plane), &(rd_priv_ctx->v_tex), &data_v);
 
-    pl_chroma_location_offset(PL_CHROMA_LEFT, &rd_priv_ctx->u_plane.shift_x, &rd_priv_ctx->u_plane.shift_y);
-    pl_chroma_location_offset(PL_CHROMA_LEFT, &rd_priv_ctx->v_plane.shift_x, &rd_priv_ctx->v_plane.shift_y);
+    // Upload the actual planes
+    for (int i = 0; i < 3; i++) {
+        if (settings->zerocopy) {
+            const struct pl_buf *buf = dav1d_pic->allocator_data;
+            assert(buf);
+            data[i].buf = buf;
+            data[i].buf_offset = (uintptr_t) dav1d_pic->data[i] - (uintptr_t) buf->data;
+        } else {
+            data[i].pixels = dav1d_pic->data[i];
+        }
+
+        ok &= pl_upload_plane(rd_priv_ctx->gpu, &image->planes[i], &rd_priv_ctx->plane_tex[i], &data[i]);
+    }
+
+    // Set the right chroma shift based on the Dav1dPicture metadata
+    switch (dav1d_pic->seq_hdr->chr) {
+    case DAV1D_CHR_VERTICAL:
+        pl_chroma_location_offset(PL_CHROMA_LEFT, &image->planes[1].shift_x, &image->planes[1].shift_y);
+        pl_chroma_location_offset(PL_CHROMA_LEFT, &image->planes[2].shift_x, &image->planes[2].shift_y);
+        break;
+    case DAV1D_CHR_UNKNOWN:
+    case DAV1D_CHR_COLOCATED:
+        break; // no shift
+    }
 
     if (!ok) {
         fprintf(stderr, "Failed uploading planes!\n");
+        *image = (struct pl_image) {0};
     }
 
     SDL_UnlockMutex(rd_priv_ctx->lock);
@@ -551,7 +541,7 @@ const Dav1dPlayRenderInfo rdr_placebo_vk = {
     .create_renderer = placebo_renderer_create_vk,
     .destroy_renderer = placebo_renderer_destroy,
     .render = placebo_render,
-    .update_frame = placebo_upload_planes,
+    .update_frame = placebo_upload_image,
     .alloc_pic = placebo_alloc_pic,
     .release_pic = placebo_release_pic,
 };
@@ -565,7 +555,7 @@ const Dav1dPlayRenderInfo rdr_placebo_gl = {
     .create_renderer = placebo_renderer_create_gl,
     .destroy_renderer = placebo_renderer_destroy,
     .render = placebo_render,
-    .update_frame = placebo_upload_planes,
+    .update_frame = placebo_upload_image,
     .alloc_pic = placebo_alloc_pic,
     .release_pic = placebo_release_pic,
 };
