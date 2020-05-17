@@ -206,19 +206,16 @@ static void *placebo_renderer_create_vk()
     sdlwin = rd_priv_ctx->win;
 
     // Init Vulkan
-    struct pl_vk_inst_params iparams = pl_vk_inst_default_params;
-
     unsigned num = 0;
     if (!SDL_Vulkan_GetInstanceExtensions(sdlwin, &num, NULL)) {
         fprintf(stderr, "Failed enumerating Vulkan extensions: %s\n", SDL_GetError());
         exit(1);
     }
 
-    iparams.extensions = malloc(num * sizeof(const char *));
-    iparams.num_extensions = num;
-    assert(iparams.extensions);
+    const char **extensions = malloc(num * sizeof(const char *));
+    assert(extensions);
 
-    SDL_bool ok = SDL_Vulkan_GetInstanceExtensions(sdlwin, &num, iparams.extensions);
+    SDL_bool ok = SDL_Vulkan_GetInstanceExtensions(sdlwin, &num, extensions);
     if (!ok) {
         fprintf(stderr, "Failed getting Vk instance extensions\n");
         exit(1);
@@ -227,15 +224,19 @@ static void *placebo_renderer_create_vk()
     if (num > 0) {
         printf("Requesting %d additional Vulkan extensions:\n", num);
         for (unsigned i = 0; i < num; i++)
-            printf("    %s\n", iparams.extensions[i]);
+            printf("    %s\n", extensions[i]);
     }
+
+    struct pl_vk_inst_params iparams = pl_vk_inst_default_params;
+    iparams.extensions = extensions;
+    iparams.num_extensions = num;
 
     rd_priv_ctx->vk_inst = pl_vk_inst_create(rd_priv_ctx->ctx, &iparams);
     if (!rd_priv_ctx->vk_inst) {
         fprintf(stderr, "Failed creating Vulkan instance!\n");
         exit(1);
     }
-    free(iparams.extensions);
+    free(extensions);
 
     if (!SDL_Vulkan_CreateSurface(sdlwin, rd_priv_ctx->vk_inst->instance, &rd_priv_ctx->surf)) {
         fprintf(stderr, "Failed creating vulkan surface: %s\n", SDL_GetError());
