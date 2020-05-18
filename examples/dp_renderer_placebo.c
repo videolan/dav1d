@@ -484,6 +484,40 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
     case DAV1D_CHR_COLOCATED:   chroma_loc = PL_CHROMA_TOP_LEFT; break;
     }
 
+#if PL_API_VER >= 63
+    if (settings->gpugrain && dav1d_pic->frame_hdr->film_grain.present) {
+        Dav1dFilmGrainData *src = &dav1d_pic->frame_hdr->film_grain.data;
+        struct pl_av1_grain_data *dst = &image->av1_grain;
+        *dst = (struct pl_av1_grain_data) {
+            .grain_seed     = src->seed,
+            .num_points_y   = src->num_y_points,
+            .chroma_scaling_from_luma = src->chroma_scaling_from_luma,
+            .num_points_uv  = { src->num_uv_points[0], src->num_uv_points[1] },
+            .scaling_shift  = src->scaling_shift,
+            .ar_coeff_lag   = src->ar_coeff_lag,
+            .ar_coeff_shift = src->ar_coeff_shift,
+            .grain_scale_shift = src->grain_scale_shift,
+            .uv_mult        = { src->uv_mult[0], src->uv_mult[1] },
+            .uv_mult_luma   = { src->uv_luma_mult[0], src->uv_luma_mult[1] },
+            .uv_offset      = { src->uv_offset[0], src->uv_offset[1] },
+            .overlap        = src->overlap_flag,
+        };
+
+        assert(sizeof(dst->points_y) == sizeof(src->y_points));
+        assert(sizeof(dst->points_uv) == sizeof(src->uv_points));
+        assert(sizeof(dst->ar_coeffs_y) == sizeof(src->ar_coeffs_y));
+        memcpy(dst->points_y, src->y_points, sizeof(src->y_points));
+        memcpy(dst->points_uv, src->uv_points, sizeof(src->uv_points));
+        memcpy(dst->ar_coeffs_y, src->ar_coeffs_y, sizeof(src->ar_coeffs_y));
+
+        // this one has different row sizes for alignment
+        for (int c = 0; c < 2; c++) {
+            for (int i = 0; i < 25; i++)
+                dst->ar_coeffs_uv[c][i] = src->ar_coeffs_uv[c][i];
+        }
+    }
+#endif
+
     // Upload the actual planes
     struct pl_plane_data data[3] = {
         {
@@ -646,6 +680,10 @@ const Dav1dPlayRenderInfo rdr_placebo_vk = {
     .update_frame = placebo_upload_image,
     .alloc_pic = placebo_alloc_pic,
     .release_pic = placebo_release_pic,
+
+# if PL_API_VER >= 63
+    .supports_gpu_grain = 1,
+# endif
 };
 #else
 const Dav1dPlayRenderInfo rdr_placebo_vk = { NULL };
@@ -660,6 +698,10 @@ const Dav1dPlayRenderInfo rdr_placebo_gl = {
     .update_frame = placebo_upload_image,
     .alloc_pic = placebo_alloc_pic,
     .release_pic = placebo_release_pic,
+
+# if PL_API_VER >= 63
+    .supports_gpu_grain = 1,
+# endif
 };
 #else
 const Dav1dPlayRenderInfo rdr_placebo_gl = { NULL };

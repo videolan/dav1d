@@ -97,6 +97,7 @@ static void dp_settings_print_usage(const char *const app,
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --highquality:        enable high quality rendering\n"
             " --zerocopy/-z:        enable zero copy upload path\n"
+            " --gpugrain/-g:        enable GPU grain synthesis\n"
             " --version/-v:         print version and exit\n"
             " --renderer/-r:        select renderer backend (default: auto)\n");
     exit(1);
@@ -121,7 +122,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     Dav1dSettings *lib_settings = &rd_ctx->lib_settings;
 
     // Short options
-    static const char short_opts[] = "i:vuzr:";
+    static const char short_opts[] = "i:vuzgr:";
 
     enum {
         ARG_FRAME_THREADS = 256,
@@ -138,6 +139,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
         { "tilethreads",    1, NULL, ARG_TILE_THREADS },
         { "highquality",    0, NULL, ARG_HIGH_QUALITY },
         { "zerocopy",       0, NULL, 'z' },
+        { "gpugrain",       0, NULL, 'g' },
         { "renderer",       0, NULL, 'r'},
         { NULL,             0, NULL, 0 },
     };
@@ -158,6 +160,9 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 break;
             case 'z':
                 settings->zerocopy = true;
+                break;
+            case 'g':
+                settings->gpugrain = true;
                 break;
             case 'r':
                 settings->renderer_name = optarg;
@@ -522,7 +527,15 @@ int main(int argc, char **argv)
                 .release_picture_callback = renderer_info->release_pic,
             };
         } else {
-            fprintf(stderr, "--zerocopy unsupported by compiled renderer\n");
+            fprintf(stderr, "--zerocopy unsupported by selected renderer\n");
+        }
+    }
+
+    if (rd_ctx->settings.gpugrain) {
+        if (renderer_info->supports_gpu_grain) {
+            rd_ctx->lib_settings.apply_grain = 0;
+        } else {
+            fprintf(stderr, "--gpugrain unsupported by selected renderer\n");
         }
     }
 

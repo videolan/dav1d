@@ -60,6 +60,7 @@ typedef struct {
     int highquality;
     int untimed;
     int zerocopy;
+    int gpugrain;
 } Dav1dPlaySettings;
 
 #define WINDOW_WIDTH  910
@@ -89,6 +90,8 @@ typedef struct rdr_info
     // Callback for alloc/release pictures (optional)
     int (*alloc_pic)(Dav1dPicture *pic, void *cookie);
     void (*release_pic)(Dav1dPicture *pic, void *cookie);
+    // Whether or not this renderer can apply on-GPU film grain synthesis
+    int supports_gpu_grain;
 } Dav1dPlayRenderInfo;
 
 extern const Dav1dPlayRenderInfo rdr_placebo_vk;
