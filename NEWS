@@ -12,7 +12,8 @@ Changes for 0.7.0 'Frigatebird':
  - ARM64 8b improvements for cfl_ac and itxfm
  - ARM64 implementation for emu_edge in 8b/10b/12b
  - ARM32 implementation for emu_edge in 8b
- - Improvements on the dav1dplay utility player
+ - Improvements on the dav1dplay utility player to support 10 bit,
+   non-4:2:0 pixel formats and film grain on the GPU
 
 
 Changes for 0.6.0 'Gyrfalcon':
