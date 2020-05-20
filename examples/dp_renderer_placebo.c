@@ -328,8 +328,7 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
 
     if (!pl_render_image(rd_priv_ctx->renderer, &rd_priv_ctx->image, &target, &render_params)) {
         fprintf(stderr, "Failed rendering frame!\n");
-        SDL_UnlockMutex(rd_priv_ctx->lock);
-        return;
+        pl_tex_clear(rd_priv_ctx->gpu, target.fbo, (float[4]){ 1.0 });
     }
 
     ok = pl_swapchain_submit_frame(rd_priv_ctx->swapchain);
