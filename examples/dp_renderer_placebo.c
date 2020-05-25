@@ -80,7 +80,7 @@ static Dav1dPlayRendererPrivateContext*
     placebo_renderer_create_common(int window_flags)
 {
     // Create Window
-    SDL_Window *sdlwin = dp_create_sdl_window(window_flags);
+    SDL_Window *sdlwin = dp_create_sdl_window(window_flags | SDL_WINDOW_RESIZABLE);
     if (sdlwin == NULL)
         return NULL;
 
@@ -326,6 +326,12 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
         .len = 0,
     };
 
+#if PL_API_VER >= 66
+    pl_rect2df_aspect_copy(&target.dst_rect, &rd_priv_ctx->image.src_rect, 0.0);
+    if (pl_render_target_partial(&target))
+        pl_tex_clear(rd_priv_ctx->gpu, target.fbo, (float[4]){ 0.0 });
+#endif
+
     if (!pl_render_image(rd_priv_ctx->renderer, &rd_priv_ctx->image, &target, &render_params)) {
         fprintf(stderr, "Failed rendering frame!\n");
         pl_tex_clear(rd_priv_ctx->gpu, target.fbo, (float[4]){ 1.0 });
@@ -366,6 +372,7 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
         .num_planes = 3,
         .width      = width,
         .height     = height,
+        .src_rect   = {0, 0, width, height},
 
         .repr = {
             .bits = {
