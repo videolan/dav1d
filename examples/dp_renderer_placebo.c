@@ -572,8 +572,12 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
     }
 
     // Apply the correct chroma plane shift. This has to be done after pl_upload_plane
+#if PL_API_VER >= 67
+    pl_image_set_chroma_location(image, chroma_loc);
+#else
     pl_chroma_location_offset(chroma_loc, &image->planes[1].shift_x, &image->planes[1].shift_y);
     pl_chroma_location_offset(chroma_loc, &image->planes[2].shift_x, &image->planes[2].shift_y);
+#endif
 
     if (!ok) {
         fprintf(stderr, "Failed uploading planes!\n");
