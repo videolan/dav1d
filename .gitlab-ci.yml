@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20200306210534
+    image: registry.videolan.org/dav1d-debian-unstable:20200602183013
     stage: build
     tags:
         - docker
@@ -383,8 +383,21 @@ test-debian:
         - meson build --buildtype release
                       -Dtestdata_tests=true
                       -Dlogging=false
+                      -Db_coverage=true
         - ninja -C build
         - cd build && time meson test -v
+        - ninja coverage-html
+        - mv meson-logs/coveragereport ../coverage
+        - ninja coverage-xml
+        - grep -Eo 'line-rate="[^"]+"' meson-logs/coverage.xml | head -n 1 |
+          grep -Eo '[0-9.]+' | awk '{ print "coverage:", $1 * 100 } '
+    coverage: '/^coverage: (\d+.\d+)$/'
+    artifacts:
+        expose_as: 'Coverage HTML report'
+        paths:
+            - coverage/
+        reports:
+            cobertura: build/meson-logs/coverage.xml
 
 test-debian-asm:
     extends:
