@@ -196,10 +196,10 @@ else
     getopt_dependency = []
 endif
 
-if cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
-    cdata.set('HAVE_POSIX_MEMALIGN', 1)
-elif cc.has_function('_aligned_malloc', prefix : '#include <malloc.h>', args : test_args)
+if cc.has_function('_aligned_malloc', prefix : '#include <malloc.h>', args : test_args)
     cdata.set('HAVE_ALIGNED_MALLOC', 1)
+elif cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
+    cdata.set('HAVE_POSIX_MEMALIGN', 1)
 elif cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_args)
     cdata.set('HAVE_MEMALIGN', 1)
 endif
