@@ -118,7 +118,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5)\n"
-            " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 32)\n"
+            " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
