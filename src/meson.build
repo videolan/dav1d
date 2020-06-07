@@ -186,7 +186,7 @@ if is_asm_enabled
                 'x86/itx_ssse3.asm',
                 'x86/loopfilter_ssse3.asm',
                 'x86/looprestoration_ssse3.asm',
-                'x86/mc_ssse3.asm',
+                'x86/mc_sse.asm',
             )
         endif
 
