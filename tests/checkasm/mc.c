@@ -107,6 +107,61 @@ static void check_mc(Dav1dMCDSPContext *const c) {
     report("mc");
 }
 
+/* Generate worst case input in the topleft corner, randomize the rest */
+static void generate_mct_input(pixel *const buf, const int bitdepth_max) {
+    static const int8_t pattern[8] = { -1,  0, -1,  0,  0, -1,  0, -1 };
+    const int sign = -(rnd() & 1);
+
+    for (int y = 0; y < 135; y++)
+        for (int x = 0; x < 135; x++)
+            buf[135*y+x] = ((x | y) < 8 ? (pattern[x] ^ pattern[y] ^ sign)
+                                        : rnd()) & bitdepth_max;
+}
+
+static void check_mct(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_64(pixel, src_buf, 135 * 135,);
+    ALIGN_STK_64(int16_t, c_tmp, 128 * 128,);
+    ALIGN_STK_64(int16_t, a_tmp, 128 * 128,);
+    const pixel *src = src_buf + 135 * 3 + 3;
+    const ptrdiff_t src_stride = 135 * sizeof(pixel);
+
+    declare_func(void, int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
+                 int w, int h, int mx, int my HIGHBD_DECL_SUFFIX);
+
+    for (int filter = 0; filter < N_2D_FILTERS; filter++)
+        for (int w = 4; w <= 128; w <<= 1)
+            for (int mxy = 0; mxy < 4; mxy++)
+                if (check_func(c->mct[filter], "mct_%s_w%d_%s_%dbpc",
+                    filter_names[filter], w, mxy_names[mxy], BITDEPTH))
+                    for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
+                    {
+                        const int mx = (mxy & 1) ? rnd() % 15 + 1 : 0;
+                        const int my = (mxy & 2) ? rnd() % 15 + 1 : 0;
+#if BITDEPTH == 16
+                        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
+#else
+                        const int bitdepth_max = 0xff;
+#endif
+                        generate_mct_input(src_buf, bitdepth_max);
+
+                        call_ref(c_tmp, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
+                        call_new(a_tmp, src, src_stride, w, h,
+                                 mx, my HIGHBD_TAIL_SUFFIX);
+                        checkasm_check(int16_t, c_tmp, w * sizeof(*c_tmp),
+                                                a_tmp, w * sizeof(*a_tmp),
+                                                w, h, "tmp");
+
+                        if (filter == FILTER_2D_8TAP_REGULAR ||
+                            filter == FILTER_2D_BILINEAR)
+                        {
+                            bench_new(a_tmp, src, src_stride, w, h,
+                                      mx, my HIGHBD_TAIL_SUFFIX);
+                        }
+                    }
+    report("mct");
+}
+
 static void check_mc_scaled(Dav1dMCDSPContext *const c) {
     ALIGN_STK_64(pixel, src_buf, 263 * 263,);
     ALIGN_STK_64(pixel, c_dst,   128 * 128,);
@@ -161,59 +216,56 @@ static void check_mc_scaled(Dav1dMCDSPContext *const c) {
     report("mc_scaled");
 }
 
-/* Generate worst case input in the topleft corner, randomize the rest */
-static void generate_mct_input(pixel *const buf, const int bitdepth_max) {
-    static const int8_t pattern[8] = { -1,  0, -1,  0,  0, -1,  0, -1 };
-    const int sign = -(rnd() & 1);
-
-    for (int y = 0; y < 135; y++)
-        for (int x = 0; x < 135; x++)
-            buf[135*y+x] = ((x | y) < 8 ? (pattern[x] ^ pattern[y] ^ sign)
-                                        : rnd()) & bitdepth_max;
-}
-
-static void check_mct(Dav1dMCDSPContext *const c) {
-    ALIGN_STK_64(pixel, src_buf, 135 * 135,);
-    ALIGN_STK_64(int16_t, c_tmp, 128 * 128,);
-    ALIGN_STK_64(int16_t, a_tmp, 128 * 128,);
-    const pixel *src = src_buf + 135 * 3 + 3;
-    const ptrdiff_t src_stride = 135 * sizeof(pixel);
+static void check_mct_scaled(Dav1dMCDSPContext *const c) {
+    ALIGN_STK_64(pixel, src_buf, 263 * 263,);
+    ALIGN_STK_64(int16_t, c_tmp,   128 * 128,);
+    ALIGN_STK_64(int16_t, a_tmp,   128 * 128,);
+    const pixel *src = src_buf + 263 * 3 + 3;
+    const ptrdiff_t src_stride = 263 * sizeof(pixel);
+#if BITDEPTH == 16
+    const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
+#else
+    const int bitdepth_max = 0xff;
+#endif
 
     declare_func(void, int16_t *tmp, const pixel *src, ptrdiff_t src_stride,
-                 int w, int h, int mx, int my HIGHBD_DECL_SUFFIX);
+                 int w, int h, int mx, int my, int dx, int dy HIGHBD_DECL_SUFFIX);
 
     for (int filter = 0; filter < N_2D_FILTERS; filter++)
         for (int w = 4; w <= 128; w <<= 1)
-            for (int mxy = 0; mxy < 4; mxy++)
-                if (check_func(c->mct[filter], "mct_%s_w%d_%s_%dbpc",
-                    filter_names[filter], w, mxy_names[mxy], BITDEPTH))
-                    for (int h = imax(w / 4, 4); h <= imin(w * 4, 128); h <<= 1)
-                    {
-                        const int mx = (mxy & 1) ? rnd() % 15 + 1 : 0;
-                        const int my = (mxy & 2) ? rnd() % 15 + 1 : 0;
-#if BITDEPTH == 16
-                        const int bitdepth_max = rnd() & 1 ? 0x3ff : 0xfff;
-#else
-                        const int bitdepth_max = 0xff;
-#endif
-                        generate_mct_input(src_buf, bitdepth_max);
+            for (int p = 0; p < 3; ++p) {
+                if (check_func(c->mct_scaled[filter], "mct_scaled_%s_w%d%s_%dbpc",
+                               filter_names[filter], w, scaled_paths[p], BITDEPTH))
+                {
+                    const int h_min = imax(w / 4, 4);
+                    const int h_max = imin(w * 4, 128);
+                    for (int h = h_min; h <= h_max; h = mc_h_next(h)) {
+                        const int mx = rnd() % 1024;
+                        const int my = rnd() % 1024;
+                        const int dx = rnd() % 2048 + 1;
+                        const int dy = !p
+                            ? rnd() % 2048 + 1
+                            : p << 10; // ystep=1.0 and ystep=2.0 paths
 
-                        call_ref(c_tmp, src, src_stride, w, h,
-                                 mx, my HIGHBD_TAIL_SUFFIX);
-                        call_new(a_tmp, src, src_stride, w, h,
-                                 mx, my HIGHBD_TAIL_SUFFIX);
+                        for (int k = 0; k < 263 * 263; k++)
+                            src_buf[k] = rnd() & bitdepth_max;
+
+                        call_ref(c_tmp, src, src_stride,
+                                 w, h, mx, my, dx, dy HIGHBD_TAIL_SUFFIX);
+                        call_new(a_tmp, src, src_stride,
+                                 w, h, mx, my, dx, dy HIGHBD_TAIL_SUFFIX);
                         checkasm_check(int16_t, c_tmp, w * sizeof(*c_tmp),
                                                 a_tmp, w * sizeof(*a_tmp),
                                                 w, h, "tmp");
 
                         if (filter == FILTER_2D_8TAP_REGULAR ||
                             filter == FILTER_2D_BILINEAR)
-                        {
-                            bench_new(a_tmp, src, src_stride, w, h,
-                                      mx, my HIGHBD_TAIL_SUFFIX);
-                        }
+                            bench_new(a_tmp, src, src_stride,
+                                      w, h, mx, my, dx, dy HIGHBD_TAIL_SUFFIX);
                     }
-    report("mct");
+                }
+            }
+    report("mct_scaled");
 }
 
 static void init_tmp(Dav1dMCDSPContext *const c, pixel *const buf,
@@ -687,8 +739,9 @@ void bitfn(checkasm_check_mc)(void) {
     bitfn(dav1d_mc_dsp_init)(&c);
 
     check_mc(&c);
-    check_mc_scaled(&c);
     check_mct(&c);
+    check_mc_scaled(&c);
+    check_mct_scaled(&c);
     check_avg(&c);
     check_w_avg(&c);
     check_mask(&c);
