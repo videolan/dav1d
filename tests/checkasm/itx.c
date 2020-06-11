@@ -232,6 +232,7 @@ void bitfn(checkasm_check_itx)(void) {
     ALIGN_STK_64(coef, coeff, 2, [32 * 32]);
     ALIGN_STK_64(pixel, c_dst, 64 * 64,);
     ALIGN_STK_64(pixel, a_dst, 64 * 64,);
+    Dav1dInvTxfmDSPContext c = { { { 0 } } }; /* Zero unused function pointer elements. */
 
     static const uint8_t txfm_size_order[N_RECT_TX_SIZES] = {
         TX_4X4,   RTX_4X8,  RTX_4X16,
@@ -254,7 +255,6 @@ void bitfn(checkasm_check_itx)(void) {
                                                dav1d_txfm_dimensions[tx].lh)];
 
         for (int bpc = bpc_min; bpc <= bpc_max; bpc += 2) {
-            Dav1dInvTxfmDSPContext c;
             bitfn(dav1d_itx_dsp_init)(&c, bpc);
             for (enum TxfmType txtp = 0; txtp < N_TX_TYPES_PLUS_LL; txtp++)
                 for (int subsh = 0; subsh < subsh_max; subsh++)

@@ -224,8 +224,6 @@ COLD void bitfn(dav1d_itx_dsp_init)(Dav1dInvTxfmDSPContext *const c, int bpc) {
     c->itxfm_add[pfx##TX_##w##X##h][V_ADST] = \
         inv_txfm_add_identity_adst_##w##x##h##_c; \
 
-    memset(c, 0, sizeof(*c)); /* Zero unused function pointer elements. */
-
     c->itxfm_add[TX_4X4][WHT_WHT] = inv_txfm_add_wht_wht_4x4_c;
     assign_itx_all_fn84( 4,  4, );
     assign_itx_all_fn84( 4,  8, R);
