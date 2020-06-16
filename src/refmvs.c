@@ -182,8 +182,8 @@ static inline union mv mv_projection(const union mv mv, const int num, const int
     };
     assert(den > 0 && den < 32);
     assert(num > -32 && num < 32);
-    const int dm = div_mult[den];
-    const int y = mv.y * num * dm, x = mv.x * num * dm;
+    const int frac = num * div_mult[den];
+    const int y = mv.y * frac, x = mv.x * frac;
     // Round and clip according to AV1 spec section 7.9.3
     return (union mv) { // 0x3fff == (1 << 14) - 1
         .y = iclip((y + 8192 + (y >> 31)) >> 14, -0x3fff, 0x3fff),
