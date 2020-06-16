@@ -247,6 +247,7 @@ void checkasm_check_msac(void) {
         c.bool_adapt     = dav1d_msac_decode_bool_adapt_neon;
         c.bool_equi      = dav1d_msac_decode_bool_equi_neon;
         c.bool           = dav1d_msac_decode_bool_neon;
+        c.hi_tok         = dav1d_msac_decode_hi_tok_neon;
     }
 #elif ARCH_X86 && HAVE_ASM
     if (dav1d_get_cpu_flags() & DAV1D_X86_CPU_FLAG_SSE2) {
