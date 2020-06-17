@@ -130,6 +130,7 @@ if is_asm_enabled
             endif
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_sources += files(
+                'arm/32/msac.S',
             )
 
             if dav1d_bitdepths.contains('8')
