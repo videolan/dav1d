@@ -245,7 +245,7 @@ int main(const int argc, char *const *const argv) {
             if ((res = output_write(out, &p)) < 0)
                 break;
             n_out++;
-            if (nspf) {
+            if (nspf || !cli_settings.quiet) {
                 synchronize(cli_settings.realtime, cli_settings.realtime_cache,
                             n_out, nspf, tfirst, &elapsed, frametimes);
             }
@@ -282,7 +282,7 @@ int main(const int argc, char *const *const argv) {
             if ((res = output_write(out, &p)) < 0)
                 break;
             n_out++;
-            if (nspf) {
+            if (nspf || !cli_settings.quiet) {
                 synchronize(cli_settings.realtime, cli_settings.realtime_cache,
                             n_out, nspf, tfirst, &elapsed, frametimes);
             }
