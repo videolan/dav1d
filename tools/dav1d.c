@@ -63,7 +63,9 @@ static uint64_t get_time_nanos(void) {
     QueryPerformanceFrequency(&frequency);
     LARGE_INTEGER t;
     QueryPerformanceCounter(&t);
-    return 1000000000 * t.QuadPart / frequency.QuadPart;
+    uint64_t seconds = t.QuadPart / frequency.QuadPart;
+    uint64_t fractions = t.QuadPart % frequency.QuadPart;
+    return 1000000000 * seconds + 1000000000 * fractions / frequency.QuadPart;
 #elif defined(HAVE_CLOCK_GETTIME)
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
