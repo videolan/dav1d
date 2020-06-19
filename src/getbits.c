@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#include <limits.h>
+
 #include "common/intops.h"
 
 #include "src/getbits.h"
@@ -80,17 +82,17 @@ int dav1d_get_sbits(GetBits *const c, const unsigned n) {
 }
 
 unsigned dav1d_get_uleb128(GetBits *c) {
-    unsigned val = 0, more, i = 0;
+    unsigned val = 0, more, i = 0, max = UINT_MAX;
 
     do {
         more = dav1d_get_bits(c, 1);
         unsigned bits = dav1d_get_bits(c, 7);
-        if (i <= 3 || (i == 4 && bits < (1 << 4)))
-            val |= bits << (i * 7);
-        else if (bits) {
+        if (bits > max) {
             c->error = 1;
             return 0;
         }
+        val |= bits << (i * 7);
+        max >>= 7;
         if (more && ++i == 8) {
             c->error = 1;
             return 0;
