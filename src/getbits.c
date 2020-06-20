@@ -34,6 +34,8 @@
 void dav1d_init_get_bits(GetBits *const c, const uint8_t *const data,
                          const size_t sz)
 {
+    // If sz were 0, c->eof would need to be initialized to 1.
+    assert(sz);
     c->ptr = c->ptr_start = data;
     c->ptr_end = &c->ptr_start[sz];
     c->bits_left = 0;
