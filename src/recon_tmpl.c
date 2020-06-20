@@ -1071,15 +1071,15 @@ static int warp_affine(Dav1dTileContext *const t,
     const int height = (refp->p.p.h + ss_ver) >> ss_ver;
 
     for (int y = 0; y < b_dim[1] * v_mul; y += 8) {
+        const int src_y = t->by * 4 + ((y + 4) << ss_ver);
+        const int64_t mat3_y = (int64_t) mat[3] * src_y + mat[0];
+        const int64_t mat5_y = (int64_t) mat[5] * src_y + mat[1];
         for (int x = 0; x < b_dim[0] * h_mul; x += 8) {
             // calculate transformation relative to center of 8x8 block in
             // luma pixel units
             const int src_x = t->bx * 4 + ((x + 4) << ss_hor);
-            const int src_y = t->by * 4 + ((y + 4) << ss_ver);
-            const int64_t mvx = ((int64_t) mat[2] * src_x +
-                                 (int64_t) mat[3] * src_y + mat[0]) >> ss_hor;
-            const int64_t mvy = ((int64_t) mat[4] * src_x +
-                                 (int64_t) mat[5] * src_y + mat[1]) >> ss_ver;
+            const int64_t mvx = ((int64_t) mat[2] * src_x + mat3_y) >> ss_hor;
+            const int64_t mvy = ((int64_t) mat[4] * src_x + mat5_y) >> ss_ver;
 
             const int dx = (int) (mvx >> 16) - 4;
             const int mx = (((int) mvx & 0xffff) - wmp->alpha * 4 -
