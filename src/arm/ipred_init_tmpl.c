@@ -62,7 +62,6 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c
     c->intra_pred[LEFT_DC_PRED]  = BF(dav1d_ipred_dc_left, neon);
     c->intra_pred[HOR_PRED]      = BF(dav1d_ipred_h, neon);
     c->intra_pred[VERT_PRED]     = BF(dav1d_ipred_v, neon);
-#if ARCH_AARCH64
     c->intra_pred[PAETH_PRED]    = BF(dav1d_ipred_paeth, neon);
     c->intra_pred[SMOOTH_PRED]   = BF(dav1d_ipred_smooth, neon);
     c->intra_pred[SMOOTH_V_PRED] = BF(dav1d_ipred_smooth_v, neon);
@@ -79,6 +78,5 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1] = BF(dav1d_ipred_cfl_ac_444, neon);
 
     c->pal_pred                  = BF(dav1d_pal_pred, neon);
-#endif
 #endif
 }
