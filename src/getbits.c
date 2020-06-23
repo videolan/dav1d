@@ -81,25 +81,23 @@ int dav1d_get_sbits(GetBits *const c, const unsigned n) {
     return res >> shift;
 }
 
-unsigned dav1d_get_uleb128(GetBits *c) {
-    unsigned val = 0, more, i = 0, max = UINT_MAX;
+unsigned dav1d_get_uleb128(GetBits *const c) {
+    uint64_t val = 0;
+    unsigned i = 0, more;
 
     do {
-        more = dav1d_get_bits(c, 1);
-        unsigned bits = dav1d_get_bits(c, 7);
-        if (bits > max) {
-            c->error = 1;
-            return 0;
-        }
-        val |= bits << (i * 7);
-        max >>= 7;
-        if (more && ++i == 8) {
-            c->error = 1;
-            return 0;
-        }
-    } while (more);
+        const int v = dav1d_get_bits(c, 8);
+        more = v & 0x80;
+        val |= ((uint64_t) (v & 0x7F)) << i;
+        i += 7;
+    } while (more && i < 56);
 
-    return val;
+    if (val > UINT_MAX || more) {
+        c->error = 1;
+        return 0;
+    }
+
+    return (unsigned) val;
 }
 
 unsigned dav1d_get_uniform(GetBits *const c, const unsigned max) {
