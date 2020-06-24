@@ -5,7 +5,7 @@ ar = 'ar'
 strip = 'strip'
 
 [properties]
-c_link_args = ['-m32']
+c_link_args = ['-m32', '-Wl,-z,text']
 c_args = ['-m32']
 
 [host_machine]
