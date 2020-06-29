@@ -46,6 +46,7 @@ decl_cfl_pred_fn(BF(dav1d_ipred_cfl_left, neon));
 
 decl_cfl_ac_fn(BF(dav1d_ipred_cfl_ac_420, neon));
 decl_cfl_ac_fn(BF(dav1d_ipred_cfl_ac_422, neon));
+decl_cfl_ac_fn(BF(dav1d_ipred_cfl_ac_444, neon));
 
 decl_pal_pred_fn(BF(dav1d_pal_pred, neon));
 
@@ -75,6 +76,9 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_arm)(Dav1dIntraPredDSPContext *const c
 
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I420 - 1] = BF(dav1d_ipred_cfl_ac_420, neon);
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1] = BF(dav1d_ipred_cfl_ac_422, neon);
+#if BITDEPTH == 8
+    c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1] = BF(dav1d_ipred_cfl_ac_444, neon);
+#endif
 
     c->pal_pred                  = BF(dav1d_pal_pred, neon);
 #endif
