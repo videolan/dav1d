@@ -100,7 +100,8 @@ if is_asm_enabled
             'arm/looprestoration_init_tmpl.c',
             'arm/mc_init_tmpl.c',
         )
-        if host_machine.cpu_family() == 'aarch64'
+        if (host_machine.cpu_family() == 'aarch64' or
+            host_machine.cpu() == 'arm64')
             libdav1d_sources += files(
                 # itx.S is used for both 8 and 16 bpc.
                 'arm/64/itx.S',

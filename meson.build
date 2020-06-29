@@ -313,8 +313,8 @@ if host_machine.cpu_family().startswith('x86')
     cdata.set('STACK_ALIGNMENT', stack_alignment)
 endif
 
-cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64')
-cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm'))
+cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64')
+cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm') and host_machine.cpu() != 'arm64')
 if (is_asm_enabled and
     (host_machine.cpu_family() == 'aarch64' or
      host_machine.cpu_family().startswith('arm')))
