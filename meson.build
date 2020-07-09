@@ -62,7 +62,8 @@ endforeach
 
 # ASM option
 is_asm_enabled = (get_option('enable_asm') == true and
-    (host_machine.cpu_family().startswith('x86') or
+    (host_machine.cpu_family() == 'x86' or
+     (host_machine.cpu_family() == 'x86_64' and cc.get_define('__ILP32__') == '') or
      host_machine.cpu_family() == 'aarch64'      or
      host_machine.cpu_family().startswith('arm') or
      host_machine.cpu() == 'ppc64le'))
