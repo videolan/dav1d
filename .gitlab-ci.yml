@@ -81,6 +81,15 @@ style-check:
               fi;
           done
 
+x86inc-check:
+    extends: .debian-amd64-common
+    stage: style
+    script:
+        - git remote rm x86inc 2> /dev/null || true
+        - git remote add x86inc https://code.videolan.org/videolan/x86inc.asm.git
+        - git fetch -q x86inc master
+        - git diff --exit-code x86inc/master:x86inc.asm src/ext/x86/x86inc.asm
+    allow_failure: true
 
 build-debian:
     extends: .debian-amd64-common
