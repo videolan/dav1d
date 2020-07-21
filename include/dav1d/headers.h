@@ -95,9 +95,9 @@ typedef struct Dav1dWarpedMotionParams {
     union {
         struct {
             int16_t alpha, beta, gamma, delta;
-        };
+        } p;
         int16_t abcd[4];
-    };
+    } u;
 } Dav1dWarpedMotionParams;
 
 enum Dav1dPixelLayout {
