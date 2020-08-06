@@ -1374,7 +1374,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dContentLightLevel));
             if (!ref) return DAV1D_ERR(ENOMEM);
             Dav1dContentLightLevel *const content_light = ref->data;
-            memset(content_light, 0, sizeof(*content_light));
 
             content_light->max_content_light_level = dav1d_get_bits(&gb, 16);
             content_light->max_frame_average_light_level = dav1d_get_bits(&gb, 16);
@@ -1396,7 +1395,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dMasteringDisplay));
             if (!ref) return DAV1D_ERR(ENOMEM);
             Dav1dMasteringDisplay *const mastering_display = ref->data;
-            memset(mastering_display, 0, sizeof(*mastering_display));
 
             for (int i = 0; i < 3; i++) {
                 mastering_display->primaries[i][0] = dav1d_get_bits(&gb, 16);
