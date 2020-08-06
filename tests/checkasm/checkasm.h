@@ -86,8 +86,6 @@ int float_near_abs_eps_array(const float *a, const float *b, float eps,
 int float_near_abs_eps_array_ulp(const float *a, const float *b, float eps,
                                  unsigned max_ulp, int len);
 
-static void *func_ref, *func_new;
-
 #define BENCH_RUNS (1 << 12) /* Trade-off between accuracy and speed */
 
 /* Decide whether or not the specified function needs to be tested */
@@ -99,6 +97,7 @@ static void *func_ref, *func_new;
  * is optional. */
 #define declare_func(ret, ...)\
     declare_new(ret, __VA_ARGS__)\
+    void *func_ref, *func_new;\
     typedef ret func_type(__VA_ARGS__);\
     checkasm_save_context()
 

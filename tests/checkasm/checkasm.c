@@ -518,7 +518,6 @@ static void print_cpu_name(void) {
 }
 
 int main(int argc, char *argv[]) {
-    (void)func_new, (void)func_ref;
     state.seed = get_seed();
 
     while (argc > 1) {
