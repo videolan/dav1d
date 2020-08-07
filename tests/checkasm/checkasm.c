@@ -566,6 +566,7 @@ int main(int argc, char *argv[]) {
 
     dav1d_init_cpu();
 
+#ifdef readtime
     if (state.bench_pattern) {
         static int testing = 0;
         checkasm_save_context();
@@ -579,6 +580,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+#endif
 
     int ret = 0;
 
