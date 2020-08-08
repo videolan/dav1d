@@ -74,6 +74,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->operating_point = 0;
     s->all_layers = 1; // just until the tests are adjusted
     s->frame_size_limit = 0;
+    s->strict_std_compliance = 0;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -127,6 +128,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->operating_point = s->operating_point;
     c->all_layers = s->all_layers;
     c->frame_size_limit = s->frame_size_limit;
+    c->strict_std_compliance = s->strict_std_compliance;
 
     if (dav1d_mem_pool_init(&c->seq_hdr_pool) ||
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||

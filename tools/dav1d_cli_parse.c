@@ -57,6 +57,7 @@ enum {
     ARG_OPPOINT,
     ARG_ALL_LAYERS,
     ARG_SIZE_LIMIT,
+    ARG_STRICT_STD_COMPLIANCE,
     ARG_CPU_MASK,
     ARG_NEG_STRIDE,
 };
@@ -80,6 +81,7 @@ static const struct option long_opts[] = {
     { "oppoint",        1, NULL, ARG_OPPOINT },
     { "alllayers",      1, NULL, ARG_ALL_LAYERS },
     { "sizelimit",      1, NULL, ARG_SIZE_LIMIT },
+    { "strict",         1, NULL, ARG_STRICT_STD_COMPLIANCE },
     { "cpumask",        1, NULL, ARG_CPU_MASK },
     { "negstride",      0, NULL, ARG_NEG_STRIDE },
     { NULL,             0, NULL, 0 },
@@ -131,6 +133,8 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
+            " --strict $num:        whether to abort decoding on standard compliance violations\n"
+            "                       that don't affect bitstream decoding (default: 1)\n"
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
             " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n"
             " --negstride:          use negative picture strides\n"
@@ -257,6 +261,7 @@ void parse(const int argc, char *const *const argv,
 
     memset(cli_settings, 0, sizeof(*cli_settings));
     dav1d_default_settings(lib_settings);
+    lib_settings->strict_std_compliance = 1; // override library default
     int grain_specified = 0;
 
     while ((o = getopt_long(argc, argv, short_opts, long_opts, NULL)) != -1) {
@@ -335,6 +340,10 @@ void parse(const int argc, char *const *const argv,
             lib_settings->frame_size_limit = (unsigned) res;
             break;
         }
+        case ARG_STRICT_STD_COMPLIANCE:
+            lib_settings->strict_std_compliance =
+                parse_unsigned(optarg, ARG_STRICT_STD_COMPLIANCE, argv[0]);
+            break;
         case 'v':
             fprintf(stderr, "%s\n", dav1d_version());
             exit(0);

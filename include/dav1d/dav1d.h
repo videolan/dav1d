@@ -67,7 +67,10 @@ typedef struct Dav1dSettings {
     unsigned frame_size_limit; ///< maximum frame size, in pixels (0 = unlimited)
     Dav1dPicAllocator allocator; ///< Picture allocator callback.
     Dav1dLogger logger; ///< Logger callback.
-    uint8_t reserved[32]; ///< reserved for future use
+    int strict_std_compliance; ///< whether to abort decoding on standard compliance violations
+                               ///< that don't affect actual bitstream decoding (e.g. inconsistent
+                               ///< or invalid metadata)
+    uint8_t reserved[28]; ///< reserved for future use
 } Dav1dSettings;
 
 /**
