@@ -77,8 +77,13 @@ static int write_header(Y4m2OutputContext *const c, const Dav1dPicture *const p)
         chr_names_8bpc_i420[p->seq_hdr->chr > 2 ? DAV1D_CHR_UNKNOWN : p->seq_hdr->chr] :
         ss_names[p->p.layout][p->seq_hdr->hbd];
 
-    fprintf(c->f, "YUV4MPEG2 W%d H%d F%d:%d Ip C%s\n",
-            p->p.w, p->p.h, c->fps[0], c->fps[1], ss_name);
+    int fw = p->frame_hdr->width[0], fh = p->frame_hdr->height;
+    int rw = p->frame_hdr->render_width, rh = p->frame_hdr->render_height;
+    int aw = rw > rh ? rw : (rw + 0.5) / fw * fh;
+    int ah = rh > rw ? rh : (rh + 0.5) / fh * fw;
+
+    fprintf(c->f, "YUV4MPEG2 W%d H%d F%d:%d Ip A%d:%d C%s\n",
+            p->p.w, p->p.h, c->fps[0], c->fps[1], aw, ah, ss_name);
 
     return 0;
 }
