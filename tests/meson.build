@@ -101,6 +101,36 @@ if is_asm_enabled
     test('checkasm', checkasm, is_parallel: false)
 endif
 
+c99_extension_flag = cc.first_supported_argument(
+    '-Werror=c11-extensions',
+    '-Werror=c99-c11-compat',
+    '-Wc11-extensions',
+    '-Wc99-c11-compat',
+)
+
+# dav1d_api_headers
+foreach header : dav1d_api_headers
+    header_file = '@0@'.format(header).split('/')[-1]
+    target = header_file + '_test'
+
+    header_test_source = custom_target(target,
+        output : target + '.c',
+        input : 'header_test.c.in',
+        capture : true,
+        command : ['sed', '-e', 's/INPUT/' + header_file + '/', '@INPUT@']
+    )
+
+    header_test_exe = executable(target,
+        header_test_source,
+        include_directories: dav1d_inc_dirs,
+        c_args: [c99_extension_flag],
+        build_by_default: true
+    )
+
+    test(target, header_test_exe)
+endforeach
+
+
 # fuzzing binaries
 if meson.version().version_compare('>=0.49')
     subdir('libfuzzer')
