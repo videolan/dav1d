@@ -28,6 +28,7 @@
 #ifndef DAV1D_HEADERS_H
 #define DAV1D_HEADERS_H
 
+#include <stdint.h>
 #include <stddef.h>
 
 // Constants from Section 3. "Symbols and abbreviated terms"
