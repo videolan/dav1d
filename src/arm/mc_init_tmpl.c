@@ -99,10 +99,12 @@ void bitfn(dav1d_mc_dsp_init_arm)(Dav1dMCDSPContext *const c) {
     init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   neon);
     init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          neon);
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               neon);
+#endif
 
     c->avg = BF(dav1d_avg, neon);
     c->w_avg = BF(dav1d_w_avg, neon);
     c->mask = BF(dav1d_mask, neon);
+#if BITDEPTH == 8 || ARCH_AARCH64
     c->blend = BF(dav1d_blend, neon);
     c->blend_h = BF(dav1d_blend_h, neon);
     c->blend_v = BF(dav1d_blend_v, neon);

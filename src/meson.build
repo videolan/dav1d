@@ -147,6 +147,7 @@ if is_asm_enabled
 
             if dav1d_bitdepths.contains('16')
                 libdav1d_sources += files(
+                    'arm/32/mc16.S',
                 )
             endif
         endif
