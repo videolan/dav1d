@@ -223,17 +223,6 @@ api_export_flags = []
 #
 
 if host_machine.system() == 'windows' and get_option('default_library') != 'static'
-    rc_version_array = meson.project_version().split('.')
-    winmod = import('windows')
-    rc_data = configuration_data()
-    rc_data.set('PROJECT_VERSION_MAJOR', rc_version_array[0])
-    rc_data.set('PROJECT_VERSION_MINOR', rc_version_array[1])
-    rc_data.set('PROJECT_VERSION_REVISION', rc_version_array[2])
-    rc_data.set('API_VERSION_MAJOR', dav1d_api_version_major)
-    rc_data.set('API_VERSION_MINOR', dav1d_api_version_minor)
-    rc_data.set('API_VERSION_REVISION', dav1d_api_version_revision)
-    rc_data.set('COPYRIGHT_YEARS', '2019')
-
     rc_file = configure_file(
         input : 'dav1d.rc.in',
         output : 'dav1d.rc',
