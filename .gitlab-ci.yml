@@ -464,9 +464,12 @@ test-debian-asan:
                       -Dtestdata_tests=true
                       -Dlogging=false
                       -Db_sanitize=address
-                      -Denable_asm=false
         - ninja -C build
-        - cd build && time meson test -v --setup=sanitizer
+        - cd build
+        - exit_code=0
+        - time meson test -v --setup=sanitizer --test-args "--cpumask 0" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --test-args "--cpumask 0xff" || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-msan:
     extends:
