@@ -60,20 +60,27 @@ if is_asm_enabled
         checkasm_bitdepth_objs += checkasm_bitdepth_lib.extract_all_objects()
     endforeach
 
-    checkasm_nasm_objs = []
+    checkasm_asm_objs = []
+    checkasm_asm_sources = []
     if host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64'
-        checkasm_sources += files('checkasm/arm/checkasm_64.S')
+        checkasm_asm_sources += files('checkasm/arm/checkasm_64.S')
     elif host_machine.cpu_family().startswith('arm')
-        checkasm_sources += files('checkasm/arm/checkasm_32.S')
+        checkasm_asm_sources += files('checkasm/arm/checkasm_32.S')
     elif host_machine.cpu_family().startswith('x86')
-        checkasm_nasm_objs = nasm_gen.process(files('checkasm/x86/checkasm.asm'))
+        checkasm_asm_objs += nasm_gen.process(files('checkasm/x86/checkasm.asm'))
+    endif
+
+    if use_gaspp
+        checkasm_asm_objs += gaspp_gen.process(checkasm_asm_sources)
+    else
+        checkasm_sources += checkasm_asm_sources
     endif
 
     m_lib = cc.find_library('m', required: false)
 
     checkasm = executable('checkasm',
         checkasm_sources,
-        checkasm_nasm_objs,
+        checkasm_asm_objs,
 
         objects: [
             checkasm_bitdepth_objs,
