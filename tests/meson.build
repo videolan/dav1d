@@ -31,8 +31,6 @@ if not get_option('enable_tests')
     subdir_done()
 endif
 
-libdav1d_nasm_objs_if_needed = []
-
 if is_asm_enabled
     checkasm_sources = files(
         'checkasm/checkasm.c',
@@ -73,14 +71,9 @@ if is_asm_enabled
 
     m_lib = cc.find_library('m', required: false)
 
-    if meson.version().version_compare('< 0.48.999')
-        libdav1d_nasm_objs_if_needed = libdav1d_nasm_objs
-    endif
-
     checkasm = executable('checkasm',
         checkasm_sources,
         checkasm_nasm_objs,
-        libdav1d_nasm_objs_if_needed,
 
         objects: [
             checkasm_bitdepth_objs,
@@ -132,9 +125,7 @@ endforeach
 
 
 # fuzzing binaries
-if meson.version().version_compare('>=0.49')
-    subdir('libfuzzer')
-endif
+subdir('libfuzzer')
 
 # Include dav1d test data repository with additional tests
 if get_option('testdata_tests')

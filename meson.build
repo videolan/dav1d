@@ -28,7 +28,7 @@ project('dav1d', ['c'],
                       'warning_level=2',
                       'buildtype=release',
                       'b_ndebug=if-release'],
-    meson_version: '>= 0.47.0')
+    meson_version: '>= 0.49.0')
 
 dav1d_soname_version       = '5.0.0'
 dav1d_api_version_array    = dav1d_soname_version.split('.')
