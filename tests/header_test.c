@@ -25,7 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dav1d/INPUT>
+#include DAV1D_TEST_HEADER
 
 int main()
 {

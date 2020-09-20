@@ -110,20 +110,12 @@ c99_extension_flag = cc.first_supported_argument(
 
 # dav1d_api_headers
 foreach header : dav1d_api_headers
-    header_file = '@0@'.format(header).split('/')[-1]
-    target = header_file + '_test'
-
-    header_test_source = custom_target(target,
-        output : target + '.c',
-        input : 'header_test.c.in',
-        capture : true,
-        command : ['sed', '-e', 's/INPUT/' + header_file + '/', '@INPUT@']
-    )
+    target = header + '_test'
 
     header_test_exe = executable(target,
-        header_test_source,
+        'header_test.c',
         include_directories: dav1d_inc_dirs,
-        c_args: [c99_extension_flag],
+        c_args: ['-DDAV1D_TEST_HEADER="@0@"'.format(header), c99_extension_flag],
         build_by_default: true
     )
 

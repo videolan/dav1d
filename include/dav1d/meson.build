@@ -31,13 +31,13 @@ version_h_target = configure_file(input: 'version.h.in',
                                   output: 'version.h',
                                   configuration: version_h_data)
 
-dav1d_api_headers = files(
+dav1d_api_headers = [
     'common.h',
     'data.h',
     'dav1d.h',
     'headers.h',
     'picture.h',
-    )
+]
 
 # install headers
 install_headers(dav1d_api_headers,
