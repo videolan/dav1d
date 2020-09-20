@@ -238,7 +238,7 @@ endif
 # Compiler flags that should be set
 # But when the compiler does not supports them
 # it is not an error and silently tolerated
-if cc.get_id() != 'msvc'
+if cc.get_argument_syntax() != 'msvc'
     optional_arguments += [
       '-Wundef',
       '-Werror=vla',
