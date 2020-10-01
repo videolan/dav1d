@@ -1366,6 +1366,10 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
         break;
     }
     case DAV1D_OBU_METADATA: {
+#define DEBUG_OBU_METADATA 0
+#if DEBUG_OBU_METADATA
+        const uint8_t *const init_ptr = gb.ptr;
+#endif
         // obu metadta type field
         const enum ObuMetaType meta_type = dav1d_get_uleb128(&gb);
         const int meta_type_len = (dav1d_get_bits_pos(&gb) - init_bit_pos) >> 3;
@@ -1378,7 +1382,17 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             Dav1dContentLightLevel *const content_light = ref->data;
 
             content_light->max_content_light_level = dav1d_get_bits(&gb, 16);
+#if DEBUG_OBU_METADATA
+            printf("CLLOBU: max-content-light-level: %d [off=%ld]\n",
+                   content_light->max_content_light_level,
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             content_light->max_frame_average_light_level = dav1d_get_bits(&gb, 16);
+#if DEBUG_OBU_METADATA
+            printf("CLLOBU: max-frame-average-light-level: %d [off=%ld]\n",
+                   content_light->max_frame_average_light_level,
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
 
             // Skip the trailing bit, align to the next byte boundary and check for overrun.
             dav1d_get_bits(&gb, 1);
@@ -1401,13 +1415,37 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             for (int i = 0; i < 3; i++) {
                 mastering_display->primaries[i][0] = dav1d_get_bits(&gb, 16);
                 mastering_display->primaries[i][1] = dav1d_get_bits(&gb, 16);
+#if DEBUG_OBU_METADATA
+                printf("MDCVOBU: primaries[%d]: (%d, %d) [off=%ld]\n", i,
+                       mastering_display->primaries[i][0],
+                       mastering_display->primaries[i][1],
+                       (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             }
             mastering_display->white_point[0] = dav1d_get_bits(&gb, 16);
+#if DEBUG_OBU_METADATA
+            printf("MDCVOBU: white-point-x: %d [off=%ld]\n",
+                   mastering_display->white_point[0],
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             mastering_display->white_point[1] = dav1d_get_bits(&gb, 16);
-
+#if DEBUG_OBU_METADATA
+            printf("MDCVOBU: white-point-y: %d [off=%ld]\n",
+                   mastering_display->white_point[1],
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             mastering_display->max_luminance = dav1d_get_bits(&gb, 32);
+#if DEBUG_OBU_METADATA
+            printf("MDCVOBU: max-luminance: %d [off=%ld]\n",
+                   mastering_display->max_luminance,
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             mastering_display->min_luminance = dav1d_get_bits(&gb, 32);
-
+#if DEBUG_OBU_METADATA
+            printf("MDCVOBU: min-luminance: %d [off=%ld]\n",
+                   mastering_display->min_luminance,
+                   (gb.ptr - init_ptr) * 8 - gb.bits_left);
+#endif
             // Skip the trailing bit, align to the next byte boundary and check for overrun.
             dav1d_get_bits(&gb, 1);
             dav1d_bytealign_get_bits(&gb);
