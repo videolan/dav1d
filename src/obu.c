@@ -55,7 +55,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->profile = dav1d_get_bits(gb, 3);
     if (hdr->profile > 2) goto error;
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-profile: off=%ld\n",
+    printf("SEQHDR: post-profile: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -63,7 +63,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->reduced_still_picture_header = dav1d_get_bits(gb, 1);
     if (hdr->reduced_still_picture_header && !hdr->still_picture) goto error;
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-stillpicture_flags: off=%ld\n",
+    printf("SEQHDR: post-stillpicture_flags: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -102,7 +102,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             hdr->decoder_model_info_present = 0;
         }
 #if DEBUG_SEQ_HDR
-        printf("SEQHDR: post-timinginfo: off=%ld\n",
+        printf("SEQHDR: post-timinginfo: off=%u\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -138,7 +138,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             c->operating_point < hdr->num_operating_points ? c->operating_point : 0;
         c->operating_point_idc = hdr->operating_points[op_idx].idc;
 #if DEBUG_SEQ_HDR
-        printf("SEQHDR: post-operating-points: off=%ld\n",
+        printf("SEQHDR: post-operating-points: off=%u\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
     }
@@ -148,7 +148,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->max_width = dav1d_get_bits(gb, hdr->width_n_bits) + 1;
     hdr->max_height = dav1d_get_bits(gb, hdr->height_n_bits) + 1;
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-size: off=%ld\n",
+    printf("SEQHDR: post-size: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
     hdr->frame_id_numbers_present =
@@ -158,7 +158,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->frame_id_n_bits = dav1d_get_bits(gb, 3) + hdr->delta_frame_id_n_bits + 1;
     }
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-frame-id-numbers-present: off=%ld\n",
+    printf("SEQHDR: post-frame-id-numbers-present: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -192,7 +192,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         }
         hdr->screen_content_tools = dav1d_get_bits(gb, 1) ? DAV1D_ADAPTIVE : dav1d_get_bits(gb, 1);
     #if DEBUG_SEQ_HDR
-        printf("SEQHDR: post-screentools: off=%ld\n",
+        printf("SEQHDR: post-screentools: off=%u\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
     #endif
         hdr->force_integer_mv = hdr->screen_content_tools ?
@@ -204,7 +204,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->cdef = dav1d_get_bits(gb, 1);
     hdr->restoration = dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-featurebits: off=%ld\n",
+    printf("SEQHDR: post-featurebits: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -264,13 +264,13 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     }
     hdr->separate_uv_delta_q = !hdr->monochrome && dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-colorinfo: off=%ld\n",
+    printf("SEQHDR: post-colorinfo: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
     hdr->film_grain_present = dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
-    printf("SEQHDR: post-filmgrain: off=%ld\n",
+    printf("SEQHDR: post-filmgrain: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
 
@@ -367,7 +367,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     hdr->show_existing_frame =
         !seqhdr->reduced_still_picture_header && dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-show_existing_frame: off=%ld\n",
+    printf("HDR: post-show_existing_frame: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     if (hdr->show_existing_frame) {
@@ -391,7 +391,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ||
         seqhdr->reduced_still_picture_header || dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-frametype_bits: off=%ld\n",
+    printf("HDR: post-frametype_bits: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->disable_cdf_update = dav1d_get_bits(gb, 1);
@@ -412,7 +412,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     hdr->frame_size_override = seqhdr->reduced_still_picture_header ? 0 :
                                hdr->frame_type == DAV1D_FRAME_TYPE_SWITCH ? 1 : dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-frame_size_override_flag: off=%ld\n",
+    printf("HDR: post-frame_size_override_flag: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->frame_offset = seqhdr->order_hint ?
@@ -565,14 +565,14 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->frame_type & 1 && dav1d_get_bits(gb, 1);
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-frametype-specific-bits: off=%ld\n",
+    printf("HDR: post-frametype-specific-bits: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
     hdr->refresh_context = !seqhdr->reduced_still_picture_header &&
                            !hdr->disable_cdf_update && !dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-refresh_context: off=%ld\n",
+    printf("HDR: post-refresh_context: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -646,7 +646,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->tiling.n_bytes = hdr->tiling.update = 0;
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-tiling: off=%ld\n",
+    printf("HDR: post-tiling: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -669,7 +669,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         }
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-quant: off=%ld\n",
+    printf("HDR: post-quant: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->quant.qm = dav1d_get_bits(gb, 1);
@@ -681,7 +681,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                                           hdr->quant.qm_u;
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-qm: off=%ld\n",
+    printf("HDR: post-qm: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -766,7 +766,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             hdr->segmentation.seg_data.d[i].ref = -1;
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-segmentation: off=%ld\n",
+    printf("HDR: post-segmentation: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -778,7 +778,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     hdr->delta.lf.res_log2 = hdr->delta.lf.present ? dav1d_get_bits(gb, 2) : 0;
     hdr->delta.lf.multi = hdr->delta.lf.present ? dav1d_get_bits(gb, 1) : 0;
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-delta_q_lf_flags: off=%ld\n",
+    printf("HDR: post-delta_q_lf_flags: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -838,7 +838,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         }
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-lpf: off=%ld\n",
+    printf("HDR: post-lpf: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -857,7 +857,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->cdef.uv_strength[0] = 0;
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-cdef: off=%ld\n",
+    printf("HDR: post-cdef: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -899,19 +899,19 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->restoration.type[2] = DAV1D_RESTORATION_NONE;
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-restoration: off=%ld\n",
+    printf("HDR: post-restoration: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
     hdr->txfm_mode = hdr->all_lossless ? DAV1D_TX_4X4_ONLY :
                      dav1d_get_bits(gb, 1) ? DAV1D_TX_SWITCHABLE : DAV1D_TX_LARGEST;
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-txfmmode: off=%ld\n",
+    printf("HDR: post-txfmmode: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->switchable_comp_refs = hdr->frame_type & 1 ? dav1d_get_bits(gb, 1) : 0;
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-refmode: off=%ld\n",
+    printf("HDR: post-refmode: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->skip_mode_allowed = 0;
@@ -972,18 +972,18 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
     }
     hdr->skip_mode_enabled = hdr->skip_mode_allowed ? dav1d_get_bits(gb, 1) : 0;
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-extskip: off=%ld\n",
+    printf("HDR: post-extskip: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->warp_motion = !hdr->error_resilient_mode && hdr->frame_type & 1 &&
         seqhdr->warped_motion && dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-warpmotionbit: off=%ld\n",
+    printf("HDR: post-warpmotionbit: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
     hdr->reduced_txtp_set = dav1d_get_bits(gb, 1);
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-reducedtxtpset: off=%ld\n",
+    printf("HDR: post-reducedtxtpset: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -1037,7 +1037,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         }
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-gmv: off=%ld\n",
+    printf("HDR: post-gmv: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -1121,7 +1121,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         memset(&hdr->film_grain.data, 0, sizeof(hdr->film_grain.data));
     }
 #if DEBUG_FRAME_HDR
-    printf("HDR: post-filmgrain: off=%ld\n",
+    printf("HDR: post-filmgrain: off=%td\n",
            (gb->ptr - init_ptr) * 8 - gb->bits_left);
 #endif
 
@@ -1383,13 +1383,13 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
 
             content_light->max_content_light_level = dav1d_get_bits(&gb, 16);
 #if DEBUG_OBU_METADATA
-            printf("CLLOBU: max-content-light-level: %d [off=%ld]\n",
+            printf("CLLOBU: max-content-light-level: %d [off=%td]\n",
                    content_light->max_content_light_level,
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
             content_light->max_frame_average_light_level = dav1d_get_bits(&gb, 16);
 #if DEBUG_OBU_METADATA
-            printf("CLLOBU: max-frame-average-light-level: %d [off=%ld]\n",
+            printf("CLLOBU: max-frame-average-light-level: %d [off=%td]\n",
                    content_light->max_frame_average_light_level,
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
@@ -1416,7 +1416,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                 mastering_display->primaries[i][0] = dav1d_get_bits(&gb, 16);
                 mastering_display->primaries[i][1] = dav1d_get_bits(&gb, 16);
 #if DEBUG_OBU_METADATA
-                printf("MDCVOBU: primaries[%d]: (%d, %d) [off=%ld]\n", i,
+                printf("MDCVOBU: primaries[%d]: (%d, %d) [off=%td]\n", i,
                        mastering_display->primaries[i][0],
                        mastering_display->primaries[i][1],
                        (gb.ptr - init_ptr) * 8 - gb.bits_left);
@@ -1424,25 +1424,25 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             }
             mastering_display->white_point[0] = dav1d_get_bits(&gb, 16);
 #if DEBUG_OBU_METADATA
-            printf("MDCVOBU: white-point-x: %d [off=%ld]\n",
+            printf("MDCVOBU: white-point-x: %d [off=%td]\n",
                    mastering_display->white_point[0],
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
             mastering_display->white_point[1] = dav1d_get_bits(&gb, 16);
 #if DEBUG_OBU_METADATA
-            printf("MDCVOBU: white-point-y: %d [off=%ld]\n",
+            printf("MDCVOBU: white-point-y: %d [off=%td]\n",
                    mastering_display->white_point[1],
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
             mastering_display->max_luminance = dav1d_get_bits(&gb, 32);
 #if DEBUG_OBU_METADATA
-            printf("MDCVOBU: max-luminance: %d [off=%ld]\n",
+            printf("MDCVOBU: max-luminance: %d [off=%td]\n",
                    mastering_display->max_luminance,
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
             mastering_display->min_luminance = dav1d_get_bits(&gb, 32);
 #if DEBUG_OBU_METADATA
-            printf("MDCVOBU: min-luminance: %d [off=%ld]\n",
+            printf("MDCVOBU: min-luminance: %d [off=%td]\n",
                    mastering_display->min_luminance,
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
