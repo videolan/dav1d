@@ -3102,7 +3102,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                                                           4 * (t->by + f->sb_step),
                                                           PLANE_TYPE_BLOCK))
                             {
-                                return 1;
+                                goto error;
                             }
                         dav1d_refmvs_load_tmvs(&f->rf, tile_row,
                                                0, f->bw >> 1, t->by >> 1, by_end);
