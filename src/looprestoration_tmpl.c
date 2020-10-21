@@ -211,7 +211,6 @@ static void wiener_c(pixel *p, const ptrdiff_t p_stride,
 static void boxsum3(coef *dst, const pixel *src, const int w, const int h) {
     // We skip the first row, as it is never used
     src += REST_UNIT_STRIDE;
-    dst += REST_UNIT_STRIDE;
 
     // We skip the first and last columns, as they are never used
     for (int x = 1; x < w - 1; x++) {
@@ -231,7 +230,7 @@ static void boxsum3(coef *dst, const pixel *src, const int w, const int h) {
         }
      }
 
-    // We skip the first 2 rows as they are never read
+    // We skip the first row as it is never read
     dst += REST_UNIT_STRIDE;
     // We skip the last 2 rows as it is never read
     for (int y = 2; y < h - 2; y++) {
@@ -272,9 +271,6 @@ static void boxsum3(coef *dst, const pixel *src, const int w, const int h) {
 // c: Pixel summed not stored
 // x: Pixel not summed not stored
 static void boxsum5(coef *dst, const pixel *const src, const int w, const int h) {
-    // We skip the first row, as it is never used
-    dst += REST_UNIT_STRIDE;
-
     for (int x = 0; x < w; x++) {
         coef *ds = dst + x;
         const pixel *s = src + 3 * REST_UNIT_STRIDE + x;
@@ -297,7 +293,7 @@ static void boxsum5(coef *dst, const pixel *const src, const int w, const int h)
         }
     }
 
-    // We skip the first 2 rows as they are never read
+    // We skip the first row as it is never read
     dst += REST_UNIT_STRIDE;
     for (int y = 2; y < h - 2; y++) {
         int a = dst[0];
@@ -321,7 +317,6 @@ static void boxsum5(coef *dst, const pixel *const src, const int w, const int h)
 static void boxsum3sqr(int32_t *dst, const pixel *src, const int w, const int h) {
     // We skip the first row, as it is never used
     src += REST_UNIT_STRIDE;
-    dst += REST_UNIT_STRIDE;
 
     // We skip the first and last columns, as they are never used
     for (int x = 1; x < w - 1; x++) {
@@ -364,9 +359,6 @@ static void boxsum3sqr(int32_t *dst, const pixel *src, const int w, const int h)
 static void boxsum5sqr(int32_t *dst, const pixel *const src, const int w,
                        const int h)
 {
-    // We skip the first row, as it is never used
-    dst += REST_UNIT_STRIDE;
-
     for (int x = 0; x < w; x++) {
         int32_t *ds = dst + x;
         const pixel *s = src + 3 * REST_UNIT_STRIDE + x;
@@ -389,7 +381,7 @@ static void boxsum5sqr(int32_t *dst, const pixel *const src, const int w,
         }
     }
 
-    // We skip the first 2 rows as they are never read
+    // We skip the first row as it is never read
     dst += REST_UNIT_STRIDE;
     for (int y = 2; y < h - 2; y++) {
         int a = dst[0];
@@ -418,12 +410,12 @@ static void selfguided_filter(coef *dst, const pixel *src,
 
     // Selfguided filter is applied to a maximum stripe height of 64 + 3 pixels
     // of padding above and below
-    int32_t A_[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
-    int32_t *A = A_ + 3 * REST_UNIT_STRIDE + 3;
+    int32_t A_[68 /*(64 + 2 + 2)*/ * REST_UNIT_STRIDE];
+    int32_t *A = A_ + 2 * REST_UNIT_STRIDE + 3;
     // By inverting A and B after the boxsums, B can be of size coef instead
     // of int32_t
-    coef B_[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
-    coef *B = B_ + 3 * REST_UNIT_STRIDE + 3;
+    coef B_[68 /*(64 + 2 + 2)*/ * REST_UNIT_STRIDE];
+    coef *B = B_ + 2 * REST_UNIT_STRIDE + 3;
 
     const int step = (n == 25) + 1;
     if (n == 25) {
