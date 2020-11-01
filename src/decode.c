@@ -2678,17 +2678,17 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                    sizeof(*f->tile_thread.titsati_index_rows) *
                        (f->frame_hdr->tiling.rows + 1)))
         {
-            for (int tile_row = 0, tile_idx = 0;
+            for (int tile_row = 0, task_idx = 0;
                  tile_row < f->frame_hdr->tiling.rows; tile_row++)
             {
                 for (int sby = f->frame_hdr->tiling.row_start_sb[tile_row];
                      sby < f->frame_hdr->tiling.row_start_sb[tile_row + 1]; sby++)
                 {
                     for (int tile_col = 0; tile_col < f->frame_hdr->tiling.cols;
-                         tile_col++, tile_idx++)
+                         tile_col++, task_idx++)
                     {
-                        f->tile_thread.task_idx_to_sby_and_tile_idx[tile_idx][0] = sby;
-                        f->tile_thread.task_idx_to_sby_and_tile_idx[tile_idx][1] =
+                        f->tile_thread.task_idx_to_sby_and_tile_idx[task_idx][0] = sby;
+                        f->tile_thread.task_idx_to_sby_and_tile_idx[task_idx][1] =
                             tile_row * f->frame_hdr->tiling.cols + tile_col;
                     }
                 }
