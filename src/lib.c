@@ -129,6 +129,11 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->all_layers = s->all_layers;
     c->frame_size_limit = s->frame_size_limit;
 
+    if (c->allocator.alloc_picture_callback == dav1d_default_picture_alloc) {
+        if (pthread_mutex_init(&c->picture_buffer_pool.lock, NULL)) goto error;
+        c->allocator.cookie = c;
+    }
+
     /* On 32-bit systems extremely large frame sizes can cause overflows in
      * dav1d_decode_frame() malloc size calculations. Prevent that from occuring
      * by enforcing a maximum frame size limit, chosen to roughly correspond to
@@ -571,6 +576,14 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     dav1d_ref_dec(&c->mastering_display_ref);
     dav1d_ref_dec(&c->content_light_ref);
     dav1d_ref_dec(&c->itut_t35_ref);
+
+    pthread_mutex_destroy(&c->picture_buffer_pool.lock);
+    Dav1dPictureBuffer *buf = c->picture_buffer_pool.buf;
+    while (buf) {
+        Dav1dPictureBuffer *const next = buf->next;
+        dav1d_free_aligned(buf->data);
+        buf = next;
+    }
 
     dav1d_freep_aligned(c_out);
 }

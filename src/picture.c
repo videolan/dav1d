@@ -45,7 +45,7 @@
 #include "src/thread_task.h"
 
 int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
-    assert(cookie == NULL);
+    assert(sizeof(Dav1dPictureBuffer) <= DAV1D_PICTURE_ALIGNMENT);
     const int hbd = p->p.bpc > 8;
     const int aligned_w = (p->p.w + 127) & ~127;
     const int aligned_h = (p->p.h + 127) & ~127;
@@ -67,27 +67,47 @@ int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
     p->stride[1] = uv_stride;
     const size_t y_sz = y_stride * aligned_h;
     const size_t uv_sz = uv_stride * (aligned_h >> ss_ver);
-    const size_t pic_size = y_sz + 2 * uv_sz + DAV1D_PICTURE_ALIGNMENT;
-    uint8_t *const data = dav1d_alloc_aligned(pic_size, DAV1D_PICTURE_ALIGNMENT);
-    if (!data) return DAV1D_ERR(ENOMEM);
+    const size_t pic_size = y_sz + 2 * uv_sz;
+
+    /* Pop buffer from the pool. */
+    Dav1dContext *const c = cookie;
+    pthread_mutex_lock(&c->picture_buffer_pool.lock);
+    Dav1dPictureBuffer *buf = c->picture_buffer_pool.buf;
+    uint8_t *data;
+    if (buf) {
+        c->picture_buffer_pool.buf = buf->next;
+        pthread_mutex_unlock(&c->picture_buffer_pool.lock);
+        data = buf->data;
+        if ((uintptr_t)buf - (uintptr_t)data != pic_size) {
+            dav1d_free_aligned(data);
+            goto alloc;
+        }
+    } else {
+        pthread_mutex_unlock(&c->picture_buffer_pool.lock);
+alloc:
+        data = dav1d_alloc_aligned(pic_size + DAV1D_PICTURE_ALIGNMENT,
+                                   DAV1D_PICTURE_ALIGNMENT);
+        if (!data) return DAV1D_ERR(ENOMEM);
+        buf = (Dav1dPictureBuffer*)(data + pic_size);
+        buf->data = data;
+    }
+    p->allocator_data = buf;
 
     p->data[0] = data;
     p->data[1] = has_chroma ? data + y_sz : NULL;
     p->data[2] = has_chroma ? data + y_sz + uv_sz : NULL;
 
-#ifndef NDEBUG /* safety check */
-    p->allocator_data = data;
-#endif
-
     return 0;
 }
 
 void dav1d_default_picture_release(Dav1dPicture *const p, void *const cookie) {
-    assert(cookie == NULL);
-#ifndef NDEBUG /* safety check */
-    assert(p->allocator_data == p->data[0]);
-#endif
-    dav1d_free_aligned(p->data[0]);
+    /* Push buffer to the pool. */
+    Dav1dContext *const c = cookie;
+    Dav1dPictureBuffer *const buf = p->allocator_data;
+    pthread_mutex_lock(&c->picture_buffer_pool.lock);
+    buf->next = c->picture_buffer_pool.buf;
+    c->picture_buffer_pool.buf = buf;
+    pthread_mutex_unlock(&c->picture_buffer_pool.lock);
 }
 
 struct pic_ctx_context {

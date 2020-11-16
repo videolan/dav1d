@@ -135,6 +135,11 @@ struct Dav1dContext {
     int drain;
 
     Dav1dLogger logger;
+
+    struct {
+        pthread_mutex_t lock;
+        Dav1dPictureBuffer *buf;
+    } picture_buffer_pool;
 };
 
 struct Dav1dFrameContext {
