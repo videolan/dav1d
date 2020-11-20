@@ -1234,7 +1234,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
 
     switch (type) {
     case DAV1D_OBU_SEQ_HDR: {
-        Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dSequenceHeader));
+        Dav1dRef *ref = dav1d_ref_create_using_pool(&c->seq_hdr_pool,
+                                                    sizeof(Dav1dSequenceHeader));
         if (!ref) return DAV1D_ERR(ENOMEM);
         Dav1dSequenceHeader *seq_hdr = ref->data;
         memset(seq_hdr, 0, sizeof(*seq_hdr));
@@ -1280,7 +1281,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
         if (global) break;
         if (!c->seq_hdr) goto error;
         if (!c->frame_hdr_ref) {
-            c->frame_hdr_ref = dav1d_ref_create(sizeof(Dav1dFrameHeader));
+            c->frame_hdr_ref = dav1d_ref_create_using_pool(&c->frame_hdr_pool,
+                                                           sizeof(Dav1dFrameHeader));
             if (!c->frame_hdr_ref) return DAV1D_ERR(ENOMEM);
         }
 #ifndef NDEBUG

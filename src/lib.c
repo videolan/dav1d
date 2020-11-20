@@ -38,7 +38,6 @@
 #include "dav1d/dav1d.h"
 #include "dav1d/data.h"
 
-#include "common/mem.h"
 #include "common/validate.h"
 
 #include "src/cpu.h"
@@ -75,6 +74,35 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->operating_point = 0;
     s->all_layers = 1; // just until the tests are adjusted
     s->frame_size_limit = 0;
+}
+
+static COLD int init_mem_pools(Dav1dContext *const c) {
+    if (!pthread_mutex_init(&c->seq_hdr_pool.lock, NULL)) {
+        if (!pthread_mutex_init(&c->frame_hdr_pool.lock, NULL)) {
+            if (!pthread_mutex_init(&c->segmap_pool.lock, NULL)) {
+                if (!pthread_mutex_init(&c->refmvs_pool.lock, NULL)) {
+                    if (!pthread_mutex_init(&c->cdf_pool.lock, NULL)) {
+                        if (c->allocator.alloc_picture_callback == dav1d_default_picture_alloc) {
+                            if (!pthread_mutex_init(&c->picture_pool.lock, NULL)) {
+                                c->allocator.cookie = &c->picture_pool;
+                                c->mem_pools_inited = 2;
+                                return 0;
+                            }
+                        } else {
+                            c->mem_pools_inited = 1;
+                            return 0;
+                        }
+                        pthread_mutex_destroy(&c->cdf_pool.lock);
+                    }
+                    pthread_mutex_destroy(&c->refmvs_pool.lock);
+                }
+                pthread_mutex_destroy(&c->segmap_pool.lock);
+            }
+            pthread_mutex_destroy(&c->frame_hdr_pool.lock);
+        }
+        pthread_mutex_destroy(&c->seq_hdr_pool.lock);
+    }
+    return -1;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -129,10 +157,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->all_layers = s->all_layers;
     c->frame_size_limit = s->frame_size_limit;
 
-    if (c->allocator.alloc_picture_callback == dav1d_default_picture_alloc) {
-        if (pthread_mutex_init(&c->picture_buffer_pool.lock, NULL)) goto error;
-        c->allocator.cookie = c;
-    }
+    if (init_mem_pools(c)) goto error;
 
     /* On 32-bit systems extremely large frame sizes can cause overflows in
      * dav1d_decode_frame() malloc size calculations. Prevent that from occuring
@@ -577,12 +602,14 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     dav1d_ref_dec(&c->content_light_ref);
     dav1d_ref_dec(&c->itut_t35_ref);
 
-    pthread_mutex_destroy(&c->picture_buffer_pool.lock);
-    Dav1dPictureBuffer *buf = c->picture_buffer_pool.buf;
-    while (buf) {
-        Dav1dPictureBuffer *const next = buf->next;
-        dav1d_free_aligned(buf->data);
-        buf = next;
+    if (c->mem_pools_inited) {
+        dav1d_mem_pool_destroy(&c->seq_hdr_pool);
+        dav1d_mem_pool_destroy(&c->frame_hdr_pool);
+        dav1d_mem_pool_destroy(&c->segmap_pool);
+        dav1d_mem_pool_destroy(&c->refmvs_pool);
+        dav1d_mem_pool_destroy(&c->cdf_pool);
+        if (c->mem_pools_inited == 2)
+            dav1d_mem_pool_destroy(&c->picture_pool);
     }
 
     dav1d_freep_aligned(c_out);

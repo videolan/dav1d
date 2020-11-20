@@ -38,6 +38,7 @@ libdav1d_sources = files(
     'itx_1d.c',
     'lf_mask.c',
     'log.c',
+    'mem.c',
     'msac.c',
     'obu.c',
     'picture.c',

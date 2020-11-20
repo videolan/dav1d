@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include "common/intops.h"
-#include "common/mem.h"
 #include "common/validate.h"
 
 #include "src/internal.h"
@@ -45,7 +44,7 @@
 #include "src/thread_task.h"
 
 int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
-    assert(sizeof(Dav1dPictureBuffer) <= DAV1D_PICTURE_ALIGNMENT);
+    assert(sizeof(Dav1dMemPoolBuffer) <= DAV1D_PICTURE_ALIGNMENT);
     const int hbd = p->p.bpc > 8;
     const int aligned_w = (p->p.w + 127) & ~127;
     const int aligned_h = (p->p.h + 127) & ~127;
@@ -69,30 +68,13 @@ int dav1d_default_picture_alloc(Dav1dPicture *const p, void *const cookie) {
     const size_t uv_sz = uv_stride * (aligned_h >> ss_ver);
     const size_t pic_size = y_sz + 2 * uv_sz;
 
-    /* Pop buffer from the pool. */
-    Dav1dContext *const c = cookie;
-    pthread_mutex_lock(&c->picture_buffer_pool.lock);
-    Dav1dPictureBuffer *buf = c->picture_buffer_pool.buf;
-    uint8_t *data;
-    if (buf) {
-        c->picture_buffer_pool.buf = buf->next;
-        pthread_mutex_unlock(&c->picture_buffer_pool.lock);
-        data = buf->data;
-        if ((uintptr_t)buf - (uintptr_t)data != pic_size) {
-            dav1d_free_aligned(data);
-            goto alloc;
-        }
-    } else {
-        pthread_mutex_unlock(&c->picture_buffer_pool.lock);
-alloc:
-        data = dav1d_alloc_aligned(pic_size + DAV1D_PICTURE_ALIGNMENT,
-                                   DAV1D_PICTURE_ALIGNMENT);
-        if (!data) return DAV1D_ERR(ENOMEM);
-        buf = (Dav1dPictureBuffer*)(data + pic_size);
-        buf->data = data;
-    }
+    Dav1dMemPoolBuffer *const buf = dav1d_mem_pool_pop(cookie, pic_size +
+                                                       DAV1D_PICTURE_ALIGNMENT -
+                                                       sizeof(Dav1dMemPoolBuffer));
+    if (!buf) return DAV1D_ERR(ENOMEM);
     p->allocator_data = buf;
 
+    uint8_t *const data = buf->data;
     p->data[0] = data;
     p->data[1] = has_chroma ? data + y_sz : NULL;
     p->data[2] = has_chroma ? data + y_sz + uv_sz : NULL;
@@ -101,13 +83,7 @@ alloc:
 }
 
 void dav1d_default_picture_release(Dav1dPicture *const p, void *const cookie) {
-    /* Push buffer to the pool. */
-    Dav1dContext *const c = cookie;
-    Dav1dPictureBuffer *const buf = p->allocator_data;
-    pthread_mutex_lock(&c->picture_buffer_pool.lock);
-    buf->next = c->picture_buffer_pool.buf;
-    c->picture_buffer_pool.buf = buf;
-    pthread_mutex_unlock(&c->picture_buffer_pool.lock);
+    dav1d_mem_pool_push(cookie, p->allocator_data);
 }
 
 struct pic_ctx_context {
