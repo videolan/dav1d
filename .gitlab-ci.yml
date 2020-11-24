@@ -291,7 +291,8 @@ build-debian-aarch64-clang-5:
 build-macos:
     stage: build
     tags:
-        - macos
+        - amd64
+        - catalina
     script:
         - meson build --buildtype release
                       -Ddefault_library=both
