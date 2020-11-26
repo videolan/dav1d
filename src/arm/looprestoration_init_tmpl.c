@@ -104,7 +104,6 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
     }
 }
 
-#if BITDEPTH == 8 || ARCH_AARCH64
 void BF(dav1d_sgr_box3_h, neon)(int32_t *sumsq, int16_t *sum,
                                 const pixel (*left)[4],
                                 const pixel *src, const ptrdiff_t stride,
@@ -283,7 +282,6 @@ static void sgr_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
         }
     }
 }
-#endif // BITDEPTH == 8
 
 COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPContext *const c, int bpc) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -291,8 +289,6 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPCont
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
     c->wiener = wiener_filter_neon;
-#if BITDEPTH == 8 || ARCH_AARCH64
     if (bpc <= 10)
         c->selfguided = sgr_filter_neon;
-#endif
 }
