@@ -98,7 +98,7 @@ if is_asm_enabled
             ],
         )
 
-    test('checkasm', checkasm, is_parallel: false)
+    test('checkasm', checkasm, suite: 'checkasm', is_parallel: false)
 endif
 
 c99_extension_flag = cc.first_supported_argument(
@@ -119,7 +119,7 @@ foreach header : dav1d_api_headers
         build_by_default: true
     )
 
-    test(target, header_test_exe)
+    test(target, header_test_exe, suite: 'headers')
 endforeach
 
 
