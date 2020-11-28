@@ -99,6 +99,7 @@ if is_asm_enabled
         )
 
     test('checkasm', checkasm, suite: 'checkasm', is_parallel: false)
+    benchmark('checkasm', checkasm, suite: 'checkasm', timeout: 3600, args: '--bench')
 endif
 
 c99_extension_flag = cc.first_supported_argument(
