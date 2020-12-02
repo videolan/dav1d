@@ -47,32 +47,34 @@
 \
 void dav1d_wiener_filter_h_##ext(int16_t *dst, const pixel (*left)[4], \
                                  const pixel *src, ptrdiff_t stride, \
-                                 const int16_t fh[7], const intptr_t w, \
+                                 const int16_t filter[2][8], const intptr_t w, \
                                  int h, enum LrEdgeFlags edges); \
 void dav1d_wiener_filter_v_##ext(pixel *dst, ptrdiff_t stride, \
                                  const int16_t *mid, int w, int h, \
-                                 const int16_t fv[7], enum LrEdgeFlags edges); \
+                                 const int16_t filter[2][8], \
+                                 enum LrEdgeFlags edges); \
 \
 static void wiener_filter_##ext(pixel *const dst, const ptrdiff_t dst_stride, \
                                 const pixel (*const left)[4], \
                                 const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                const int w, const int h, const int16_t fh[7], \
-                                const int16_t fv[7], const enum LrEdgeFlags edges) \
+                                const int w, const int h, \
+                                const int16_t filter[2][8], \
+                                const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(int16_t, mid, 68 * 384,); \
 \
     /* horizontal filter */ \
     dav1d_wiener_filter_h_##ext(&mid[2 * 384], left, dst, dst_stride, \
-                               fh, w, h, edges); \
+                                filter, w, h, edges); \
     if (edges & LR_HAVE_TOP) \
         dav1d_wiener_filter_h_##ext(mid, NULL, lpf, lpf_stride, \
-                                   fh, w, 2, edges); \
+                                    filter, w, 2, edges); \
     if (edges & LR_HAVE_BOTTOM) \
         dav1d_wiener_filter_h_##ext(&mid[(2 + h) * 384], NULL, \
-                                   lpf + 6 * PXSTRIDE(lpf_stride), lpf_stride, \
-                                   fh, w, 2, edges); \
+                                    lpf + 6 * PXSTRIDE(lpf_stride), lpf_stride, \
+                                    filter, w, 2, edges); \
 \
-    dav1d_wiener_filter_v_##ext(dst, dst_stride, &mid[2*384], w, h, fv, edges); \
+    dav1d_wiener_filter_v_##ext(dst, dst_stride, &mid[2*384], w, h, filter, edges); \
 }
 
 #define SGR_FILTER(ext) \
