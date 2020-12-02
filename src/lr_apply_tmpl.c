@@ -163,6 +163,7 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     int stripe_h = imin((64 - 8 * !y) >> ss_ver, row_h - y);
 
     ALIGN_STK_16(int16_t, filter, 2, [8]);
+    wienerfilter_fn wiener_fn = NULL;
     if (lr->type == DAV1D_RESTORATION_WIENER) {
         filter[0][0] = filter[0][6] = lr->filter_h[0];
         filter[0][1] = filter[0][5] = lr->filter_h[1];
@@ -178,6 +179,8 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
         filter[1][1] = filter[1][5] = lr->filter_v[1];
         filter[1][2] = filter[1][4] = lr->filter_v[2];
         filter[1][3] = 128 - (filter[1][0] + filter[1][1] + filter[1][2]) * 2;
+
+        wiener_fn = dsp->lr.wiener[!(filter[0][0] | filter[1][0])];
     } else {
         assert(lr->type == DAV1D_RESTORATION_SGRPROJ);
     }
@@ -185,9 +188,9 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     while (y + stripe_h <= row_h) {
         // Change HAVE_BOTTOM bit in edges to (y + stripe_h != row_h)
         edges ^= (-(y + stripe_h != row_h) ^ edges) & LR_HAVE_BOTTOM;
-        if (lr->type == DAV1D_RESTORATION_WIENER) {
-            dsp->lr.wiener(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
-                           filter, edges HIGHBD_CALL_SUFFIX);
+        if (wiener_fn) {
+            wiener_fn(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
+                      filter, edges HIGHBD_CALL_SUFFIX);
         } else {
             dsp->lr.selfguided(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
                                lr->sgr_idx, lr->sgr_weights, edges HIGHBD_CALL_SUFFIX);

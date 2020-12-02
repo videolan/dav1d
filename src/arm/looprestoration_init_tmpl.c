@@ -288,7 +288,7 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPCont
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-    c->wiener = wiener_filter_neon;
+    c->wiener[0] = c->wiener[1] = wiener_filter_neon;
     if (bpc <= 10)
         c->selfguided = sgr_filter_neon;
 }

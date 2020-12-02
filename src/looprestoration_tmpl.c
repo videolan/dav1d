@@ -509,7 +509,7 @@ static void selfguided_c(pixel *p, const ptrdiff_t p_stride,
 }
 
 COLD void bitfn(dav1d_loop_restoration_dsp_init)(Dav1dLoopRestorationDSPContext *const c, int bpc) {
-    c->wiener = wiener_c;
+    c->wiener[0] = c->wiener[1] = wiener_c;
     c->selfguided = selfguided_c;
 
 #if HAVE_ASM

@@ -332,7 +332,7 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_ppc)
     if (!(flags & DAV1D_PPC_CPU_FLAG_VSX)) return;
 
 #if BITDEPTH == 8
-    c->wiener = wiener_filter_vsx;
+    c->wiener[0] = c->wiener[1] = wiener_filter_vsx;
 #endif
 }
 

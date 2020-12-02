@@ -67,7 +67,7 @@ void (name)(pixel *dst, ptrdiff_t dst_stride, \
 typedef decl_selfguided_filter_fn(*selfguided_fn);
 
 typedef struct Dav1dLoopRestorationDSPContext {
-    wienerfilter_fn wiener;
+    wienerfilter_fn wiener[2]; /* 7-tap, 5-tap */
     selfguided_fn selfguided;
 } Dav1dLoopRestorationDSPContext;
 
