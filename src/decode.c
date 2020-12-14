@@ -2831,6 +2831,28 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
 
         ptr += 32;
+#if !defined(BITDEPTH) || BITDEPTH == 8
+        if (y_stride < 0) {
+            f->lf.cdef_line[0][0] = (unsigned char*)ptr - y_stride * 1;
+            f->lf.cdef_line[1][0] = (unsigned char*)ptr - y_stride * 3;
+            ptr -= y_stride * 4;
+        } else {
+            f->lf.cdef_line[0][0] = (unsigned char*)ptr + y_stride * 0;
+            f->lf.cdef_line[1][0] = (unsigned char*)ptr + y_stride * 2;
+            ptr += y_stride * 4;
+        }
+        if (uv_stride < 0) {
+            f->lf.cdef_line[0][1] = (unsigned char*)ptr - uv_stride * 1;
+            f->lf.cdef_line[0][2] = (unsigned char*)ptr - uv_stride * 3;
+            f->lf.cdef_line[1][1] = (unsigned char*)ptr - uv_stride * 5;
+            f->lf.cdef_line[1][2] = (unsigned char*)ptr - uv_stride * 7;
+        } else {
+            f->lf.cdef_line[0][1] = (unsigned char*)ptr + uv_stride * 0;
+            f->lf.cdef_line[0][2] = (unsigned char*)ptr + uv_stride * 2;
+            f->lf.cdef_line[1][1] = (unsigned char*)ptr + uv_stride * 4;
+            f->lf.cdef_line[1][2] = (unsigned char*)ptr + uv_stride * 6;
+        }
+#else
         if (y_stride < 0) {
             f->lf.cdef_line[0][0] = (short unsigned int*)ptr - y_stride * 1;
             f->lf.cdef_line[1][0] = (short unsigned int*)ptr - y_stride * 3;
@@ -2851,6 +2873,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->lf.cdef_line[1][1] = (short unsigned int*)ptr + uv_stride * 4;
             f->lf.cdef_line[1][2] = (short unsigned int*)ptr + uv_stride * 6;
         }
+#endif
 
         f->lf.cdef_line_sz[0] = (int) y_stride;
         f->lf.cdef_line_sz[1] = (int) uv_stride;
@@ -2866,7 +2889,11 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
 
         for (int pl = 0; pl <= 2; pl++) {
+#if !defined(BITDEPTH) || BITDEPTH == 8
+            f->lf.lr_lpf_line[pl] = (unsigned char*)lr_ptr;
+#else
             f->lf.lr_lpf_line[pl] = (short unsigned int*)lr_ptr;
+#endif
             lr_ptr += lr_line_sz * 12;
         }
 
@@ -2932,8 +2959,13 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->ipred_edge_sz = 0;
             goto error;
         }
+#if !defined(BITDEPTH) || BITDEPTH == 8
+        f->ipred_edge[1] = (unsigned char*)ptr + ipred_edge_sz * 128 * 1;
+        f->ipred_edge[2] = (unsigned char*)ptr + ipred_edge_sz * 128 * 2;
+#else
         f->ipred_edge[1] = (short unsigned int*)ptr + ipred_edge_sz * 128 * 1;
         f->ipred_edge[2] = (short unsigned int*)ptr + ipred_edge_sz * 128 * 2;
+#endif
         f->ipred_edge_sz = ipred_edge_sz;
     }
 
