@@ -98,7 +98,7 @@ if is_asm_enabled
             ],
         )
 
-    test('checkasm', checkasm, suite: 'checkasm', is_parallel: false)
+    test('checkasm', checkasm, suite: 'checkasm', timeout: 180, is_parallel: false)
     benchmark('checkasm', checkasm, suite: 'checkasm', timeout: 3600, args: '--bench')
 endif
 
