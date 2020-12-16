@@ -420,21 +420,6 @@ test-debian32-asm:
     needs: ["build-debian32"]
     dependencies: ["build-debian32"]
 
-test-debian-mt:
-    extends:
-        - .debian-amd64-common
-        - .test-common
-    needs: ["build-debian"]
-    dependencies: ["build-debian"]
-    script:
-        - meson configure build -Dtestdata_tests=true
-        - cd build
-        - exit_code=0
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 1 --framethreads 2" || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1" || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2" || exit_code=$((exit_code + $?))
-        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
-
 test-debian-unaligned-stack:
     extends:
         - .debian-amd64-common
@@ -506,6 +491,28 @@ test-debian-ubsan:
                       -Denable_asm=false
         - ninja -C build
         - cd build && time meson test -v --setup=sanitizer
+
+test-debian-tsan:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian"]
+    variables:
+        TSAN_OPTIONS: 'halt_on_error=1'
+        CC: clang
+    script:
+        - meson build --buildtype debugoptimized
+                      -Dtestdata_tests=true
+                      -Dlogging=false
+                      -Db_sanitize=thread
+                      -Db_lundef=false
+        - ninja -C build
+        - cd build
+        - exit_code=0
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 1 --framethreads 2" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2" || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-win64:
     extends:
