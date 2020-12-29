@@ -30,179 +30,171 @@
 
 #include "common/intops.h"
 
-#define WIENER_FILTER(ext) \
-void dav1d_wiener_filter7_##ext(pixel *dst, ptrdiff_t dst_stride, \
-                                const pixel (*left)[4], const pixel *lpf, \
-                                ptrdiff_t lpf_stride, int w, int h, \
-                                const LooprestorationParams *params, \
-                                enum LrEdgeFlags edges); \
-void dav1d_wiener_filter5_##ext(pixel *dst, ptrdiff_t dst_stride, \
-                                const pixel (*left)[4], const pixel *lpf, \
-                                ptrdiff_t lpf_stride, int w, int h, \
-                                const LooprestorationParams *params, \
-                                enum LrEdgeFlags edges);
+#define decl_wiener_filter_fns(ext) \
+decl_lr_filter_fn(BF(dav1d_wiener_filter7, ext)); \
+decl_lr_filter_fn(BF(dav1d_wiener_filter5, ext))
 
-#define SGR_FILTER(ext) \
-void dav1d_sgr_filter_5x5_##ext(pixel *dst, ptrdiff_t dst_stride, \
-                                const pixel (*left)[4], const pixel *lpf, \
-                                ptrdiff_t lpf_stride, int w, int h, \
-                                const LooprestorationParams *params, \
-                                enum LrEdgeFlags edges); \
-void dav1d_sgr_filter_3x3_##ext(pixel *dst, ptrdiff_t dst_stride, \
-                                const pixel (*left)[4], const pixel *lpf, \
-                                ptrdiff_t lpf_stride, int w, int h, \
-                                const LooprestorationParams *params, \
-                                enum LrEdgeFlags edges); \
-void dav1d_sgr_filter_mix_##ext(pixel *dst, ptrdiff_t dst_stride, \
-                                const pixel (*left)[4], const pixel *lpf, \
-                                ptrdiff_t lpf_stride, int w, int h, \
-                                const LooprestorationParams *params, \
-                                enum LrEdgeFlags edges);
+#define decl_sgr_filter_fns(ext) \
+void BF(dav1d_sgr_filter_5x5, ext)(pixel *dst, ptrdiff_t dst_stride, \
+                                   const pixel (*left)[4], const pixel *lpf, \
+                                   ptrdiff_t lpf_stride, int w, int h, \
+                                   const LooprestorationParams *params, \
+                                   enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_filter_3x3, ext)(pixel *dst, ptrdiff_t dst_stride, \
+                                   const pixel (*left)[4], const pixel *lpf, \
+                                   ptrdiff_t lpf_stride, int w, int h, \
+                                   const LooprestorationParams *params, \
+                                   enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_filter_mix, ext)(pixel *dst, ptrdiff_t dst_stride, \
+                                   const pixel (*left)[4], const pixel *lpf, \
+                                   ptrdiff_t lpf_stride, int w, int h, \
+                                   const LooprestorationParams *params, \
+                                   enum LrEdgeFlags edges);
 
 /* FIXME: Replace with a port of the AVX2 code */
 #define SGR_FILTER_OLD(ext) \
-void dav1d_sgr_box3_h_##ext(int32_t *sumsq, int16_t *sum, \
-                            const pixel (*left)[4], \
-                            const pixel *src, const ptrdiff_t stride, \
-                            const int w, const int h, \
-                            const enum LrEdgeFlags edges); \
-void dav1d_sgr_box3_v_##ext(int32_t *sumsq, int16_t *sum, \
-                            const int w, const int h, \
-                            const enum LrEdgeFlags edges); \
-void dav1d_sgr_calc_ab1_##ext(int32_t *a, int16_t *b, \
-                              const int w, const int h, const unsigned s); \
-void dav1d_sgr_finish_filter1_##ext(coef *tmp, \
-                                    const pixel *src, const ptrdiff_t stride, \
-                                    const int32_t *a, const int16_t *b, \
-                                    const int w, const int h); \
+void BF(dav1d_sgr_box3_h, ext)(int32_t *sumsq, int16_t *sum, \
+                               const pixel (*left)[4], \
+                               const pixel *src, const ptrdiff_t stride, \
+                               const int w, const int h, \
+                               const enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_box3_v, ext)(int32_t *sumsq, int16_t *sum, \
+                               const int w, const int h, \
+                               const enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_calc_ab1, ext)(int32_t *a, int16_t *b, \
+                                 const int w, const int h, const unsigned s); \
+void BF(dav1d_sgr_finish_filter1, ext)(coef *tmp, \
+                                       const pixel *src, const ptrdiff_t stride, \
+                                       const int32_t *a, const int16_t *b, \
+                                       const int w, const int h); \
 \
 /* filter with a 3x3 box (radius=1) */ \
-static void dav1d_sgr_filter1_##ext(coef *tmp, \
-                                    const pixel *src, const ptrdiff_t stride, \
-                                    const pixel (*left)[4], \
-                                    const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                    const int w, const int h, const int strength, \
-                                    const enum LrEdgeFlags edges) \
+static void BF(dav1d_sgr_filter1, ext)(coef *tmp, \
+                                       const pixel *src, const ptrdiff_t stride, \
+                                       const pixel (*left)[4], \
+                                       const pixel *lpf, const ptrdiff_t lpf_stride, \
+                                       const int w, const int h, const int strength, \
+                                       const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(int32_t, sumsq_mem, (384 + 16) * 68 + 8,); \
     int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq; \
     ALIGN_STK_32(int16_t, sum_mem, (384 + 16) * 68 + 16,); \
     int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum; \
 \
-    dav1d_sgr_box3_h_##ext(sumsq, sum, left, src, stride, w, h, edges); \
+    BF(dav1d_sgr_box3_h, ext)(sumsq, sum, left, src, stride, w, h, edges); \
     if (edges & LR_HAVE_TOP) \
-        dav1d_sgr_box3_h_##ext(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)], \
-                              NULL, lpf, lpf_stride, w, 2, edges); \
+        BF(dav1d_sgr_box3_h, ext)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)], \
+                                  NULL, lpf, lpf_stride, w, 2, edges); \
 \
     if (edges & LR_HAVE_BOTTOM) \
-        dav1d_sgr_box3_h_##ext(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)], \
-                              NULL, lpf + 6 * PXSTRIDE(lpf_stride), \
-                              lpf_stride, w, 2, edges); \
+        BF(dav1d_sgr_box3_h, ext)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)], \
+                                  NULL, lpf + 6 * PXSTRIDE(lpf_stride), \
+                                  lpf_stride, w, 2, edges); \
 \
-    dav1d_sgr_box3_v_##ext(sumsq, sum, w, h, edges); \
-    dav1d_sgr_calc_ab1_##ext(a, b, w, h, strength); \
-    dav1d_sgr_finish_filter1_##ext(tmp, src, stride, a, b, w, h); \
+    BF(dav1d_sgr_box3_v, ext)(sumsq, sum, w, h, edges); \
+    BF(dav1d_sgr_calc_ab1, ext)(a, b, w, h, strength); \
+    BF(dav1d_sgr_finish_filter1, ext)(tmp, src, stride, a, b, w, h); \
 } \
 \
-void dav1d_sgr_box5_h_##ext(int32_t *sumsq, int16_t *sum, \
-                            const pixel (*left)[4], \
-                            const pixel *src, const ptrdiff_t stride, \
-                            const int w, const int h, \
-                            const enum LrEdgeFlags edges); \
-void dav1d_sgr_box5_v_##ext(int32_t *sumsq, int16_t *sum, \
-                            const int w, const int h, \
-                            const enum LrEdgeFlags edges); \
-void dav1d_sgr_calc_ab2_##ext(int32_t *a, int16_t *b, \
-                              const int w, const int h, const int strength); \
-void dav1d_sgr_finish_filter2_##ext(coef *tmp, \
-                                    const pixel *src, const ptrdiff_t stride, \
-                                    const int32_t *a, const int16_t *b, \
-                                    const int w, const int h); \
+void BF(dav1d_sgr_box5_h, ext)(int32_t *sumsq, int16_t *sum, \
+                               const pixel (*left)[4], \
+                               const pixel *src, const ptrdiff_t stride, \
+                               const int w, const int h, \
+                               const enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_box5_v, ext)(int32_t *sumsq, int16_t *sum, \
+                               const int w, const int h, \
+                               const enum LrEdgeFlags edges); \
+void BF(dav1d_sgr_calc_ab2, ext)(int32_t *a, int16_t *b, \
+                                 const int w, const int h, const int strength); \
+void BF(dav1d_sgr_finish_filter2, ext)(coef *tmp, \
+                                       const pixel *src, const ptrdiff_t stride, \
+                                       const int32_t *a, const int16_t *b, \
+                                       const int w, const int h); \
 \
 /* filter with a 5x5 box (radius=2) */ \
-static void dav1d_sgr_filter2_##ext(coef *tmp, \
-                                    const pixel *src, const ptrdiff_t stride, \
-                                    const pixel (*left)[4], \
-                                    const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                    const int w, const int h, const int strength, \
-                                    const enum LrEdgeFlags edges) \
+static void BF(dav1d_sgr_filter2, ext)(coef *tmp, \
+                                       const pixel *src, const ptrdiff_t stride, \
+                                       const pixel (*left)[4], \
+                                       const pixel *lpf, const ptrdiff_t lpf_stride, \
+                                       const int w, const int h, const int strength, \
+                                       const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(int32_t, sumsq_mem, (384 + 16) * 68 + 8,); \
     int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq; \
     ALIGN_STK_32(int16_t, sum_mem, (384 + 16) * 68 + 16,); \
     int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum; \
 \
-    dav1d_sgr_box5_h_##ext(sumsq, sum, left, src, stride, w, h, edges); \
+    BF(dav1d_sgr_box5_h, ext)(sumsq, sum, left, src, stride, w, h, edges); \
     if (edges & LR_HAVE_TOP) \
-        dav1d_sgr_box5_h_##ext(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)], \
-                              NULL, lpf, lpf_stride, w, 2, edges); \
+        BF(dav1d_sgr_box5_h, ext)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)], \
+                                  NULL, lpf, lpf_stride, w, 2, edges); \
 \
     if (edges & LR_HAVE_BOTTOM) \
-        dav1d_sgr_box5_h_##ext(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)], \
-                              NULL, lpf + 6 * PXSTRIDE(lpf_stride), \
-                              lpf_stride, w, 2, edges); \
+        BF(dav1d_sgr_box5_h, ext)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)], \
+                                  NULL, lpf + 6 * PXSTRIDE(lpf_stride), \
+                                  lpf_stride, w, 2, edges); \
 \
-    dav1d_sgr_box5_v_##ext(sumsq, sum, w, h, edges); \
-    dav1d_sgr_calc_ab2_##ext(a, b, w, h, strength); \
-    dav1d_sgr_finish_filter2_##ext(tmp, src, stride, a, b, w, h); \
+    BF(dav1d_sgr_box5_v, ext)(sumsq, sum, w, h, edges); \
+    BF(dav1d_sgr_calc_ab2, ext)(a, b, w, h, strength); \
+    BF(dav1d_sgr_finish_filter2, ext)(tmp, src, stride, a, b, w, h); \
 } \
 \
-void dav1d_sgr_weighted1_##ext(pixel *dst, const ptrdiff_t stride, \
-                               const coef *t1, const int w, const int h, \
-                               const int wt); \
-void dav1d_sgr_weighted2_##ext(pixel *dst, const ptrdiff_t stride, \
-                               const coef *t1, const coef *t2, \
-                               const int w, const int h, \
-                               const uint32_t wt); \
+void BF(dav1d_sgr_weighted1, ext)(pixel *dst, const ptrdiff_t stride, \
+                                  const coef *t1, const int w, const int h, \
+                                  const int wt); \
+void BF(dav1d_sgr_weighted2, ext)(pixel *dst, const ptrdiff_t stride, \
+                                  const coef *t1, const coef *t2, \
+                                  const int w, const int h, \
+                                  const uint32_t wt); \
 \
-static void sgr_filter_5x5_##ext(pixel *const dst, const ptrdiff_t dst_stride, \
-                                 const pixel (*const left)[4], \
-                                 const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                 const int w, const int h, \
-                                 const LooprestorationParams *const params, \
-                                 const enum LrEdgeFlags edges) \
+static void BF(sgr_filter_5x5, ext)(pixel *const dst, const ptrdiff_t dst_stride, \
+                                    const pixel (*const left)[4], \
+                                    const pixel *lpf, const ptrdiff_t lpf_stride, \
+                                    const int w, const int h, \
+                                    const LooprestorationParams *const params, \
+                                    const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(coef, tmp, 64 * 384,); \
-    dav1d_sgr_filter2_##ext(tmp, dst, dst_stride, left, lpf, lpf_stride, \
-                           w, h, params->sgr.s0, edges); \
-    dav1d_sgr_weighted1_##ext(dst, dst_stride, tmp, w, h, params->sgr.w0); \
+    BF(dav1d_sgr_filter2, ext)(tmp, dst, dst_stride, left, lpf, lpf_stride, \
+                               w, h, params->sgr.s0, edges); \
+    BF(dav1d_sgr_weighted1, ext)(dst, dst_stride, tmp, w, h, params->sgr.w0); \
 } \
-static void sgr_filter_3x3_##ext(pixel *const dst, const ptrdiff_t dst_stride, \
-                                 const pixel (*const left)[4], \
-                                 const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                 const int w, const int h, \
-                                 const LooprestorationParams *const params, \
-                                 const enum LrEdgeFlags edges) \
+static void BF(sgr_filter_3x3, ext)(pixel *const dst, const ptrdiff_t dst_stride, \
+                                    const pixel (*const left)[4], \
+                                    const pixel *lpf, const ptrdiff_t lpf_stride, \
+                                    const int w, const int h, \
+                                    const LooprestorationParams *const params, \
+                                    const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(coef, tmp, 64 * 384,); \
-    dav1d_sgr_filter1_##ext(tmp, dst, dst_stride, left, lpf, lpf_stride, \
-                           w, h, params->sgr.s1, edges); \
-    dav1d_sgr_weighted1_##ext(dst, dst_stride, tmp, w, h, params->sgr.w1); \
+    BF(dav1d_sgr_filter1, ext)(tmp, dst, dst_stride, left, lpf, lpf_stride, \
+                               w, h, params->sgr.s1, edges); \
+    BF(dav1d_sgr_weighted1, ext)(dst, dst_stride, tmp, w, h, params->sgr.w1); \
 } \
-static void sgr_filter_mix_##ext(pixel *const dst, const ptrdiff_t dst_stride, \
-                                 const pixel (*const left)[4], \
-                                 const pixel *lpf, const ptrdiff_t lpf_stride, \
-                                 const int w, const int h, \
-                                 const LooprestorationParams *const params, \
-                                 const enum LrEdgeFlags edges) \
+static void BF(sgr_filter_mix, ext)(pixel *const dst, const ptrdiff_t dst_stride, \
+                                    const pixel (*const left)[4], \
+                                    const pixel *lpf, const ptrdiff_t lpf_stride, \
+                                    const int w, const int h, \
+                                    const LooprestorationParams *const params, \
+                                    const enum LrEdgeFlags edges) \
 { \
     ALIGN_STK_32(coef, tmp1, 64 * 384,); \
     ALIGN_STK_32(coef, tmp2, 64 * 384,); \
-    dav1d_sgr_filter2_##ext(tmp1, dst, dst_stride, left, lpf, lpf_stride, \
-                           w, h, params->sgr.s0, edges); \
-    dav1d_sgr_filter1_##ext(tmp2, dst, dst_stride, left, lpf, lpf_stride, \
-                           w, h, params->sgr.s1, edges); \
+    BF(dav1d_sgr_filter2, ext)(tmp1, dst, dst_stride, left, lpf, lpf_stride, \
+                               w, h, params->sgr.s0, edges); \
+    BF(dav1d_sgr_filter1, ext)(tmp2, dst, dst_stride, left, lpf, lpf_stride, \
+                               w, h, params->sgr.s1, edges); \
     const uint32_t wt = (params->sgr.w1 << 16) | (uint16_t) params->sgr.w0; \
-    dav1d_sgr_weighted2_##ext(dst, dst_stride, tmp1, tmp2, w, h, wt); \
+    BF(dav1d_sgr_weighted2, ext)(dst, dst_stride, tmp1, tmp2, w, h, wt); \
 }
 
 #if BITDEPTH == 8
-WIENER_FILTER(sse2)
-WIENER_FILTER(ssse3)
+decl_wiener_filter_fns(sse2);
+decl_wiener_filter_fns(ssse3);
 SGR_FILTER_OLD(ssse3)
 # if ARCH_X86_64
-WIENER_FILTER(avx2)
-SGR_FILTER(avx2)
+decl_wiener_filter_fns(avx2);
+decl_sgr_filter_fns(avx2)
 # endif
 #endif
 
@@ -211,25 +203,25 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPCont
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSE2)) return;
 #if BITDEPTH == 8
-    c->wiener[0] = dav1d_wiener_filter7_sse2;
-    c->wiener[1] = dav1d_wiener_filter5_sse2;
+    c->wiener[0] = BF(dav1d_wiener_filter7, sse2);
+    c->wiener[1] = BF(dav1d_wiener_filter5, sse2);
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;
 #if BITDEPTH == 8
-    c->wiener[0] = dav1d_wiener_filter7_ssse3;
-    c->wiener[1] = dav1d_wiener_filter5_ssse3;
-    c->sgr[0] = sgr_filter_5x5_ssse3;
-    c->sgr[1] = sgr_filter_3x3_ssse3;
-    c->sgr[2] = sgr_filter_mix_ssse3;
+    c->wiener[0] = BF(dav1d_wiener_filter7, ssse3);
+    c->wiener[1] = BF(dav1d_wiener_filter5, ssse3);
+    c->sgr[0] = BF(sgr_filter_5x5, ssse3);
+    c->sgr[1] = BF(sgr_filter_3x3, ssse3);
+    c->sgr[2] = BF(sgr_filter_mix, ssse3);
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 #if BITDEPTH == 8 && ARCH_X86_64
-    c->wiener[0] = dav1d_wiener_filter7_avx2;
-    c->wiener[1] = dav1d_wiener_filter5_avx2;
-    c->sgr[0] = dav1d_sgr_filter_5x5_avx2;
-    c->sgr[1] = dav1d_sgr_filter_3x3_avx2;
-    c->sgr[2] = dav1d_sgr_filter_mix_avx2;
+    c->wiener[0] = BF(dav1d_wiener_filter7, avx2);
+    c->wiener[1] = BF(dav1d_wiener_filter5, avx2);
+    c->sgr[0] = BF(dav1d_sgr_filter_5x5, avx2);
+    c->sgr[1] = BF(dav1d_sgr_filter_3x3, avx2);
+    c->sgr[2] = BF(dav1d_sgr_filter_mix, avx2);
 #endif
 }
