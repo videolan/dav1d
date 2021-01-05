@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include "cli_config.h"
 
 #include <getopt.h>
 #include <limits.h>
@@ -84,6 +85,12 @@ static const struct option long_opts[] = {
     { NULL,             0, NULL, 0 },
 };
 
+#if HAVE_XXHASH_H
+#define AVAILABLE_MUXERS "'md5', 'xxh3', 'yuv', 'yuv4mpeg2' or 'null'"
+#else
+#define AVAILABLE_MUXERS "'md5', 'yuv', 'yuv4mpeg2' or 'null'"
+#endif
+
 #if ARCH_AARCH64 || ARCH_ARM
 #define ALLOWED_CPU_MASKS " or 'neon'"
 #elif ARCH_PPC64LE
@@ -109,7 +116,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --input/-i $file:     input file\n"
             " --output/-o $file:    output file\n"
             " --demuxer $name:      force demuxer type ('ivf', 'section5' or 'annexb'; default: detect from content)\n"
-            " --muxer $name:        force muxer type ('md5', 'yuv', 'yuv4mpeg2' or 'null'; default: detect from extension)\n"
+            " --muxer $name:        force muxer type (" AVAILABLE_MUXERS "; default: detect from extension)\n"
             " --quiet/-q:           disable status messages\n"
             " --frametimes $file:   dump frame times to file\n"
             " --limit/-l $num:      stop decoding after $num frames\n"
@@ -120,7 +127,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --pfthreads $num:     number of postfilter threads (default: 1)\n"
-            " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5)\n"
+            " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5 or xxh3)\n"
             " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
@@ -345,8 +352,11 @@ void parse(const int argc, char *const *const argv,
     if (cli_settings->verify) {
         if (cli_settings->outputfile)
             usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not set");
-        if (cli_settings->muxer && strcmp(cli_settings->muxer, "md5"))
-            usage(argv[0], "Verification (--verify) requires the md5 muxer (--muxer md5)");
+        if (cli_settings->muxer && strcmp(cli_settings->muxer, "md5") &&
+            strcmp(cli_settings->muxer, "xxh3"))
+        {
+            usage(argv[0], "Verification (--verify) requires a checksum muxer (md5 or xxh3)");
+        }
 
         cli_settings->outputfile = "-";
         if (!cli_settings->muxer)
@@ -354,7 +364,8 @@ void parse(const int argc, char *const *const argv,
     }
 
     if (!grain_specified && cli_settings->muxer &&
-        !strcmp(cli_settings->muxer, "md5"))
+        (!strcmp(cli_settings->muxer, "md5") ||
+        !strcmp(cli_settings->muxer, "xxh3")))
     {
         lib_settings->apply_grain = 0;
     }
