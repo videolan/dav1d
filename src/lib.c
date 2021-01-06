@@ -136,9 +136,17 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     {
         goto error;
     }
-    if (c->allocator.alloc_picture_callback == dav1d_default_picture_alloc) {
+
+    if (c->allocator.alloc_picture_callback   == dav1d_default_picture_alloc &&
+        c->allocator.release_picture_callback == dav1d_default_picture_release)
+    {
+        if (c->allocator.cookie) goto error;
         if (dav1d_mem_pool_init(&c->picture_pool)) goto error;
         c->allocator.cookie = c->picture_pool;
+    } else if (c->allocator.alloc_picture_callback   == dav1d_default_picture_alloc ||
+               c->allocator.release_picture_callback == dav1d_default_picture_release)
+    {
+        goto error;
     }
 
     /* On 32-bit systems extremely large frame sizes can cause overflows in
