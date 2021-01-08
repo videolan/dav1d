@@ -66,8 +66,11 @@ typedef struct {
 #define WINDOW_WIDTH  910
 #define WINDOW_HEIGHT 512
 
-#define DAV1D_EVENT_NEW_FRAME 1
-#define DAV1D_EVENT_DEC_QUIT  2
+enum {
+    DAV1D_EVENT_NEW_FRAME,
+    DAV1D_EVENT_SEEK_FRAME,
+    DAV1D_EVENT_DEC_QUIT
+};
 
 /**
  * Renderer info

@@ -59,3 +59,5 @@ void *dp_fifo_shift(Dav1dPlayPtrFifo *fifo);
  * other thread will call dp_fifo_shift will lead to a deadlock.
  */
 void dp_fifo_push(Dav1dPlayPtrFifo *fifo, void *element);
+
+void dp_fifo_flush(Dav1dPlayPtrFifo *fifo, void (*destroy_elem)(void *));
