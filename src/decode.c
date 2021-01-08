@@ -1984,10 +1984,10 @@ static int decode_b(Dav1dTileContext *const t,
 #undef set_ctx
     }
     if (!b->skip) {
-        uint16_t (*noskip_mask)[2] = &t->lf_mask->noskip_mask[by4];
+        uint16_t (*noskip_mask)[2] = &t->lf_mask->noskip_mask[by4 >> 1];
         const unsigned mask = (~0U >> (32 - bw4)) << (bx4 & 15);
         const int bx_idx = (bx4 & 16) >> 4;
-        for (int y = 0; y < bh4; y++, noskip_mask++) {
+        for (int y = 0; y < bh4; y += 2, noskip_mask++) {
             (*noskip_mask)[bx_idx] |= mask;
             if (bw4 == 32) // this should be mask >> 16, but it's 0xffffffff anyway
                 (*noskip_mask)[1] |= mask;

@@ -53,7 +53,7 @@ typedef struct Av1Filter {
     uint16_t filter_y[2 /* 0=col, 1=row */][32][3][2];
     uint16_t filter_uv[2 /* 0=col, 1=row */][32][2][2];
     int8_t cdef_idx[4]; // -1 means "unset"
-    uint16_t noskip_mask[32][2];
+    uint16_t noskip_mask[16][2]; // for 8x8 blocks, but stored on a 4x8 basis
 } Av1Filter;
 
 // each struct describes one 128x128 area (1 or 4 SBs), post-superres-scaling
