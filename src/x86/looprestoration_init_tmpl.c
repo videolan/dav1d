@@ -30,9 +30,40 @@
 
 #include "common/intops.h"
 
+#if BITDEPTH != 8
+#define decl_wiener_filter_fn(name, ext) \
+void BF(name##_h, ext)(int16_t *dst, const pixel (*left)[4], const pixel *src, \
+                       ptrdiff_t stride, const int16_t fh[7], const intptr_t w, \
+                       int h, enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX); \
+void BF(name##_v, ext)(pixel *dst, ptrdiff_t stride, const int16_t *mid, \
+                       const int16_t fv[7], int w, int h, \
+                       enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX); \
+static void BF(name, ext)(pixel *const dst, const ptrdiff_t dst_stride, \
+                          const pixel (*const left)[4], \
+                          const pixel *lpf, const ptrdiff_t lpf_stride, \
+                          const int w, const int h, const LooprestorationParams *params, \
+                          const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX) { \
+    ALIGN_STK_64(int16_t, mid, 68 * 384,); \
+    BF(name##_h, ext)(&mid[2*384], left, dst, dst_stride, params->filter[0], w, h, \
+                      edges HIGHBD_TAIL_SUFFIX); \
+    if (edges & LR_HAVE_TOP) { \
+        BF(name##_h, ext)(mid, NULL, lpf, lpf_stride, params->filter[0], w, 2, \
+                          edges HIGHBD_TAIL_SUFFIX); \
+    } \
+    if (edges & LR_HAVE_BOTTOM) { \
+        BF(name##_h, ext)(&mid[(2 + h)*384], NULL, lpf + 6*PXSTRIDE(lpf_stride), \
+                          lpf_stride, params->filter[0], w, 2, edges HIGHBD_TAIL_SUFFIX); \
+    } \
+    BF(name##_v, ext)(dst, dst_stride, mid, params->filter[1], w, h, edges HIGHBD_TAIL_SUFFIX); \
+}
+#define decl_wiener_filter_fns(ext) \
+decl_wiener_filter_fn(dav1d_wiener_filter7, ext); \
+decl_wiener_filter_fn(dav1d_wiener_filter5, ext)
+#else
 #define decl_wiener_filter_fns(ext) \
 decl_lr_filter_fn(BF(dav1d_wiener_filter7, ext)); \
 decl_lr_filter_fn(BF(dav1d_wiener_filter5, ext))
+#endif
 
 #define decl_sgr_filter_fns(ext) \
 void BF(dav1d_sgr_filter_5x5, ext)(pixel *dst, ptrdiff_t dst_stride, \
@@ -193,9 +224,12 @@ decl_wiener_filter_fns(sse2);
 decl_wiener_filter_fns(ssse3);
 SGR_FILTER_OLD(ssse3)
 # if ARCH_X86_64
-decl_wiener_filter_fns(avx2);
 decl_sgr_filter_fns(avx2)
 # endif
+#endif
+
+#if ARCH_X86_64
+decl_wiener_filter_fns(avx2);
 #endif
 
 COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPContext *const c) {
@@ -217,11 +251,13 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPCont
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
-#if BITDEPTH == 8 && ARCH_X86_64
+#if ARCH_X86_64
     c->wiener[0] = BF(dav1d_wiener_filter7, avx2);
     c->wiener[1] = BF(dav1d_wiener_filter5, avx2);
+# if BITDEPTH == 8
     c->sgr[0] = BF(dav1d_sgr_filter_5x5, avx2);
     c->sgr[1] = BF(dav1d_sgr_filter_3x3, avx2);
     c->sgr[2] = BF(dav1d_sgr_filter_mix, avx2);
+# endif
 #endif
 }
