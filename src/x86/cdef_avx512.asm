@@ -270,8 +270,7 @@ DECLARE_REG_TMP 2, 7
 ; L8 L9 40 41 42 43 44 45  8e 8f 80 81 82 83 84 85
 ; La Lb 50 51 52 53 54 55  9e 9f 90 91 92 93 94 95
 
-cglobal cdef_filter_4x8_8bpc, 4, 9, 22, dst, stride, left, top, \
-                                        pri, sec, dir, damping, edge
+cglobal cdef_filter_4x8_8bpc, 4, 9, 22, dst, stride, left, top, pri, sec, dir, damping, edge
 %define base r8-edge_mask
     vpbroadcastd ym21, strided
     mov           r6d, edgem
