@@ -2372,10 +2372,10 @@ static void setup_tile(Dav1dTileState *const ts,
         &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 4] :
         NULL;
 
-    ts->frame_thread.cf = f->frame_thread.cf ?
-        (uint8_t*)f->frame_thread.cf +
-            (((size_t)tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd) :
-        NULL;
+    ts->frame_thread.cf = (coef*)f->frame_thread.cf ?
+        (coef*)((uint8_t*)f->frame_thread.cf +
+            (((size_t)tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd)) :
+        (coef*)NULL;
 
     dav1d_cdf_thread_copy(&ts->cdf, &f->in_cdf);
     ts->last_qidx = f->frame_hdr->quant.yac;
@@ -2831,26 +2831,49 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
 
         ptr += 32;
+#if !defined(BITDEPTH) || BITDEPTH == 8
         if (y_stride < 0) {
-            f->lf.cdef_line[0][0] = ptr - y_stride * 1;
-            f->lf.cdef_line[1][0] = ptr - y_stride * 3;
+            f->lf.cdef_line[0][0] = (unsigned char*)ptr - y_stride * 1;
+            f->lf.cdef_line[1][0] = (unsigned char*)ptr - y_stride * 3;
             ptr -= y_stride * 4;
         } else {
-            f->lf.cdef_line[0][0] = ptr + y_stride * 0;
-            f->lf.cdef_line[1][0] = ptr + y_stride * 2;
+            f->lf.cdef_line[0][0] = (unsigned char*)ptr + y_stride * 0;
+            f->lf.cdef_line[1][0] = (unsigned char*)ptr + y_stride * 2;
             ptr += y_stride * 4;
         }
         if (uv_stride < 0) {
-            f->lf.cdef_line[0][1] = ptr - uv_stride * 1;
-            f->lf.cdef_line[0][2] = ptr - uv_stride * 3;
-            f->lf.cdef_line[1][1] = ptr - uv_stride * 5;
-            f->lf.cdef_line[1][2] = ptr - uv_stride * 7;
+            f->lf.cdef_line[0][1] = (unsigned char*)ptr - uv_stride * 1;
+            f->lf.cdef_line[0][2] = (unsigned char*)ptr - uv_stride * 3;
+            f->lf.cdef_line[1][1] = (unsigned char*)ptr - uv_stride * 5;
+            f->lf.cdef_line[1][2] = (unsigned char*)ptr - uv_stride * 7;
         } else {
-            f->lf.cdef_line[0][1] = ptr + uv_stride * 0;
-            f->lf.cdef_line[0][2] = ptr + uv_stride * 2;
-            f->lf.cdef_line[1][1] = ptr + uv_stride * 4;
-            f->lf.cdef_line[1][2] = ptr + uv_stride * 6;
+            f->lf.cdef_line[0][1] = (unsigned char*)ptr + uv_stride * 0;
+            f->lf.cdef_line[0][2] = (unsigned char*)ptr + uv_stride * 2;
+            f->lf.cdef_line[1][1] = (unsigned char*)ptr + uv_stride * 4;
+            f->lf.cdef_line[1][2] = (unsigned char*)ptr + uv_stride * 6;
         }
+#else
+        if (y_stride < 0) {
+            f->lf.cdef_line[0][0] = (unsigned short*)ptr - y_stride * 1;
+            f->lf.cdef_line[1][0] = (unsigned short*)ptr - y_stride * 3;
+            ptr -= y_stride * 4;
+        } else {
+            f->lf.cdef_line[0][0] = (unsigned short*)ptr + y_stride * 0;
+            f->lf.cdef_line[1][0] = (unsigned short*)ptr + y_stride * 2;
+            ptr += y_stride * 4;
+        }
+        if (uv_stride < 0) {
+            f->lf.cdef_line[0][1] = (unsigned short*)ptr - uv_stride * 1;
+            f->lf.cdef_line[0][2] = (unsigned short*)ptr - uv_stride * 3;
+            f->lf.cdef_line[1][1] = (unsigned short*)ptr - uv_stride * 5;
+            f->lf.cdef_line[1][2] = (unsigned short*)ptr - uv_stride * 7;
+        } else {
+            f->lf.cdef_line[0][1] = (unsigned short*)ptr + uv_stride * 0;
+            f->lf.cdef_line[0][2] = (unsigned short*)ptr + uv_stride * 2;
+            f->lf.cdef_line[1][1] = (unsigned short*)ptr + uv_stride * 4;
+            f->lf.cdef_line[1][2] = (unsigned short*)ptr + uv_stride * 6;
+        }
+#endif
 
         f->lf.cdef_line_sz[0] = (int) y_stride;
         f->lf.cdef_line_sz[1] = (int) uv_stride;
@@ -2866,7 +2889,11 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
 
         for (int pl = 0; pl <= 2; pl++) {
-            f->lf.lr_lpf_line[pl] = lr_ptr;
+#if !defined(BITDEPTH) || BITDEPTH == 8
+            f->lf.lr_lpf_line[pl] = (unsigned char*)lr_ptr;
+#else
+            f->lf.lr_lpf_line[pl] = (unsigned short*)lr_ptr;
+#endif
             lr_ptr += lr_line_sz * 12;
         }
 
@@ -2925,14 +2952,20 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     const int ipred_edge_sz = f->sbh * f->sb128w << hbd;
     if (ipred_edge_sz != f->ipred_edge_sz) {
         dav1d_freep_aligned(&f->ipred_edge[0]);
-        uint8_t *ptr = f->ipred_edge[0] =
+        f->ipred_edge[0] =
             dav1d_alloc_aligned(ipred_edge_sz * 128 * 3, 32);
+        uint8_t *ptr = (uint8_t*)f->ipred_edge[0];
         if (!ptr) {
             f->ipred_edge_sz = 0;
             goto error;
         }
-        f->ipred_edge[1] = ptr + ipred_edge_sz * 128 * 1;
-        f->ipred_edge[2] = ptr + ipred_edge_sz * 128 * 2;
+#if !defined(BITDEPTH) || BITDEPTH == 8
+        f->ipred_edge[1] = (unsigned char*)ptr + ipred_edge_sz * 128 * 1;
+        f->ipred_edge[2] = (unsigned char*)ptr + ipred_edge_sz * 128 * 2;
+#else
+        f->ipred_edge[1] = (unsigned short*)ptr + ipred_edge_sz * 128 * 1;
+        f->ipred_edge[2] = (unsigned short*)ptr + ipred_edge_sz * 128 * 2;
+#endif
         f->ipred_edge_sz = ipred_edge_sz;
     }
 
@@ -3207,10 +3240,10 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 ts->frame_thread.pal_idx = f->frame_thread.pal_idx ?
                     &f->frame_thread.pal_idx[tile_start_off * size_mul[1] / 4] :
                     NULL;
-                ts->frame_thread.cf = f->frame_thread.cf ?
-                    (uint8_t*)f->frame_thread.cf +
-                        ((tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd) :
-                    NULL;
+                ts->frame_thread.cf = (coef*)f->frame_thread.cf ?
+                    (coef*)((uint8_t*)f->frame_thread.cf +
+                        ((tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd)) :
+                    (coef*)NULL;
                 if (f->n_tc > 0) {
                     const unsigned row_sb_start =
                         f->frame_hdr->tiling.row_start_sb[ts->tiling.row];
