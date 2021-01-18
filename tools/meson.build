@@ -99,6 +99,11 @@ dav1d = executable('dav1d',
 
     link_with : [libdav1d, dav1d_input_objs, dav1d_output_objs],
     include_directories : [dav1d_inc_dirs],
-    dependencies : [getopt_dependency, thread_dependency, rt_dependency],
+    dependencies : [
+        getopt_dependency,
+        thread_dependency,
+        rt_dependency,
+        libm_dependency,
+        ],
     install : true,
 )

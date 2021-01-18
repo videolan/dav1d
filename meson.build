@@ -168,6 +168,8 @@ if host_machine.system() == 'linux'
     endif
 endif
 
+libm_dependency = cc.find_library('m', required: false)
+
 
 # Header checks
 
