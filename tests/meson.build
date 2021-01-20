@@ -125,23 +125,25 @@ endforeach
 # fuzzing binaries
 subdir('libfuzzer')
 
-# seek stress test binary
-seek_stress_sources = files('seek_stress.c')
-seek_stress = executable('seek_stress',
-    seek_stress_sources, rev_target,
-    objects: [
-        dav1d.extract_objects('dav1d_cli_parse.c'),
-        dav1d_input_objs.extract_objects('input/input.c', 'input/ivf.c'),
-    ],
-    include_directories: [dav1d_inc_dirs, include_directories('../tools')],
-    link_with: libdav1d,
-    dependencies: [
-        thread_dependency,
-        rt_dependency,
-        getopt_dependency,
-        libm_dependency,
-    ],
-)
+# seek stress test binary, depends on dav1d cli tool
+if get_option('enable_tools')
+    seek_stress_sources = files('seek_stress.c')
+    seek_stress = executable('seek_stress',
+        seek_stress_sources, rev_target,
+        objects: [
+            dav1d.extract_objects('dav1d_cli_parse.c'),
+            dav1d_input_objs.extract_objects('input/input.c', 'input/ivf.c'),
+        ],
+        include_directories: [dav1d_inc_dirs, include_directories('../tools')],
+        link_with: libdav1d,
+        dependencies: [
+            thread_dependency,
+            rt_dependency,
+            getopt_dependency,
+            libm_dependency,
+        ],
+    )
+endif
 
 # Include dav1d test data repository with additional tests
 if get_option('testdata_tests')

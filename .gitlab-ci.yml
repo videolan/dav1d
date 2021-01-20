@@ -139,6 +139,14 @@ build-debian-examples:
                       -Denable_examples=true
         - ninja -C build
 
+build-debian-no-tools:
+    extends: .debian-amd64-common
+    script:
+        - meson build --buildtype release
+                      --werror
+                      -Denable_tools=false
+        - ninja -C build
+
 build-win32:
     extends: .debian-amd64-common
     script:
