@@ -437,6 +437,10 @@ build-debian-ppc64le:
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
         - git -C tests/dav1d-test-data describe --always --long
     dependencies: []
+    artifacts:
+        when: always
+        reports:
+          junit: build/meson-logs/testlog.junit.xml
 
 .test-asm-common:
     extends:
