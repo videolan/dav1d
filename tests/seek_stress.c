@@ -39,9 +39,9 @@
 #include "input/demuxer.h"
 #include "dav1d_cli_parse.h"
 
-#define NUM_RAND_SEEK 8
-#define NUM_REL_SEEK  10
-#define NUM_END_SEEK  6
+#define NUM_RAND_SEEK 3
+#define NUM_REL_SEEK  4
+#define NUM_END_SEEK  2
 
 const Demuxer annexb_demuxer = { .name = "" };
 const Demuxer section5_demuxer = { .name = "" };
