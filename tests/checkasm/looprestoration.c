@@ -160,9 +160,14 @@ static void check_sgr(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
                 call_new(a_dst + 32, 448 * sizeof(pixel), left,
                          h_edge + 32, 448 * sizeof(pixel),
                          w, h, sgr_idx, sgr_wt, edges HIGHBD_TAIL_SUFFIX);
-                checkasm_check_pixel(c_dst + 32, 448 * sizeof(pixel),
-                                     a_dst + 32, 448 * sizeof(pixel),
-                                     w, h, "dst");
+                if (checkasm_check_pixel(c_dst + 32, 448 * sizeof(pixel),
+                                         a_dst + 32, 448 * sizeof(pixel),
+                                         w, h, "dst"))
+                {
+                    fprintf(stderr, "size = %dx%d, edges = %04d\n",
+                            w, h, to_binary(edges));
+                    break;
+                }
             }
             bench_new(a_dst + 32, 448 * sizeof(pixel), left,
                       h_edge + 32, 448 * sizeof(pixel),
