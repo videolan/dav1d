@@ -41,9 +41,14 @@ static int to_binary(int x) { /* 0-15 -> 0000-1111 */
 static void init_tmp(pixel *buf, const ptrdiff_t stride,
                      const int w, const int h, const int bitdepth_max)
 {
+    const int noise_mask = bitdepth_max >> 4;
+    const int x_off = rnd() & 7, y_off = rnd() & 7;
+
     for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++)
-            buf[x] = rnd() & bitdepth_max;
+        for (int x = 0; x < w; x++) {
+            buf[x] = (((x + x_off) ^ (y + y_off)) & 8 ? bitdepth_max : 0) ^
+                     (rnd() & noise_mask);
+        }
         buf += PXSTRIDE(stride);
     }
 }
