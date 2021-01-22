@@ -410,7 +410,8 @@ test-debian:
         - ninja coverage-xml
         - grep -Eo 'line-rate="[^"]+"' meson-logs/coverage.xml | head -n 1 |
           grep -Eo '[0-9.]+' | awk '{ print "coverage:", $1 * 100 } '
-        - time meson test -v --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 2"
+        - time meson test -v --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 1 --pfthreads=2"
+        - time meson test -v --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 2 --pfthreads=2"
     coverage: '/^coverage: (\d+.\d+)$/'
     artifacts:
         expose_as: 'Coverage HTML report'
@@ -520,11 +521,14 @@ test-debian-tsan:
         - ninja -C build
         - cd build
         - exit_code=0
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 1 --framethreads 2" || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1" || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2" || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 2"                               || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite oss-fuzz-asan --suite oss-fuzz-msan --suite oss-fuzz-ubsan                                        || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 1 --framethreads 2 --pfthreads 1" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1 --pfthreads 1" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2 --pfthreads 1" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 1 --pfthreads 2" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--tilethreads 2 --framethreads 2 --pfthreads 2" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 1 --pfthreads 2"                               || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata_seek-stress --test-args "--tilethreads 2 --framethreads 2 --pfthreads 2"                               || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite oss-fuzz-asan --suite oss-fuzz-msan --suite oss-fuzz-ubsan                                                      || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-win64:

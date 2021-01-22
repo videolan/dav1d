@@ -2526,7 +2526,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
              t->a = f->a + col_sb128_start + tile_row * f->sb128w;
              t->bx < ts->tiling.col_end; t->bx += sb_step)
         {
-            if (atomic_load_explicit(c->frame_thread.flush, memory_order_acquire))
+            if (atomic_load_explicit(c->flush, memory_order_acquire))
                 return 1;
             if (decode_sb(t, root_bl, c->intra_edge.root[root_bl]))
                 return 1;
@@ -2557,7 +2557,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
          t->lf_mask = f->lf.mask + sb128y * f->sb128w + col_sb128_start;
          t->bx < ts->tiling.col_end; t->bx += sb_step)
     {
-        if (atomic_load_explicit(c->frame_thread.flush, memory_order_acquire))
+        if (atomic_load_explicit(c->flush, memory_order_acquire))
             return 1;
         if (root_bl == BL_128X128) {
             t->cur_sb_cdef_idx_ptr = t->lf_mask->cdef_idx;
@@ -2859,7 +2859,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     const int lr_line_sz = ((f->sr_cur.p.p.w + 31) & ~31) << hbd;
     if (lr_line_sz != f->lf.lr_line_sz) {
         dav1d_freep_aligned(&f->lf.lr_lpf_line[0]);
-        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * 3 * 12, 32);
+        const int num_lines = c->n_pfc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
+        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * num_lines * 3, 32);
         if (!lr_ptr) {
             f->lf.lr_line_sz = 0;
             goto error;
@@ -2867,7 +2868,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
         for (int pl = 0; pl <= 2; pl++) {
             f->lf.lr_lpf_line[pl] = lr_ptr;
-            lr_ptr += lr_line_sz * 12;
+            lr_ptr += lr_line_sz * num_lines;
         }
 
         f->lf.lr_line_sz = lr_line_sz;
@@ -2955,6 +2956,12 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                                     f->refpoc, f->mvs, f->refrefpoc, f->ref_mvs, f->n_tc);
         if (ret < 0) goto error;
     }
+
+    // create post-filtering tasks
+    if (c->n_pfc > 1)
+        if (dav1d_task_create_filter_sbrow(f))
+            goto error;
+
     retval = DAV1D_ERR(EINVAL);
 
     // setup dequant tables
@@ -3081,7 +3088,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         for (int n = 0; n < f->sb128w * f->frame_hdr->tiling.rows; n++)
             reset_context(&f->a[n], !(f->frame_hdr->frame_type & 1), f->frame_thread.pass);
 
-        if (f->n_tc == 1) {
+        if (f->n_tc == 1 || (c->n_pfc > 1 && f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows == 1)) {
             Dav1dTileContext *const t = f->tc;
 
             // no tile threading - we explicitly interleave tile/sbrow decoding
@@ -3108,7 +3115,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                     }
                     for (int tile_col = 0; tile_col < f->frame_hdr->tiling.cols; tile_col++) {
                         t->ts = &f->ts[tile_row * f->frame_hdr->tiling.cols + tile_col];
-
                         if (dav1d_decode_tile_sbrow(t)) goto error;
                     }
                     if (f->frame_thread.pass <= 1 && f->frame_hdr->frame_type & 1) {
@@ -3116,10 +3122,24 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                     }
 
                     // loopfilter + cdef + restoration
-                    if (f->frame_thread.pass != 1)
-                        f->bd_fn.filter_sbrow(f, sby);
-                    dav1d_thread_picture_signal(&f->sr_cur, (sby + 1) * f->sb_step * 4,
-                                                progress_plane_type);
+                    if (f->frame_thread.pass != 1) {
+                        if (c->n_pfc == 1)
+                            f->bd_fn.filter_sbrow(f, sby);
+                        else {
+                            pthread_mutex_lock(&f->lf.thread.pftd->lock);
+                            if (f->lf.thread.npf != 0 && !f->lf.thread.done) {
+                                Dav1dTask *const t = &f->lf.thread.tasks[sby * f->lf.thread.npf];
+                                t->start = 1;
+                                if (t->status == DAV1D_TASK_READY)
+                                    dav1d_task_schedule(f->lf.thread.pftd, t);
+                            }
+                            pthread_mutex_unlock(&f->lf.thread.pftd->lock);
+                        }
+                    }
+                    if (c->n_pfc == 1 || f->frame_thread.pass == 1 || f->lf.thread.npf == 0)
+                        dav1d_thread_picture_signal(&f->sr_cur,
+                                                    (sby + 1) * f->sb_step * 4,
+                                                    progress_plane_type);
                 }
             }
         } else {
@@ -3142,7 +3162,6 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             pthread_cond_broadcast(&f->tile_thread.cond);
             pthread_mutex_unlock(&f->tile_thread.lock);
 
-            // loopfilter + cdef + restoration
             for (int tile_row = 0; tile_row < f->frame_hdr->tiling.rows; tile_row++) {
                 for (int sby = f->frame_hdr->tiling.row_start_sb[tile_row];
                      sby < f->frame_hdr->tiling.row_start_sb[tile_row + 1]; sby++)
@@ -3174,10 +3193,24 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                     }
 
                     // loopfilter + cdef + restoration
-                    if (f->frame_thread.pass != 1)
-                        f->bd_fn.filter_sbrow(f, sby);
-                    dav1d_thread_picture_signal(&f->sr_cur, (sby + 1) * f->sb_step * 4,
-                                                progress_plane_type);
+                    if (f->frame_thread.pass != 1) {
+                        if (c->n_pfc == 1)
+                            f->bd_fn.filter_sbrow(f, sby);
+                        else {
+                            pthread_mutex_lock(&f->lf.thread.pftd->lock);
+                            if (f->lf.thread.npf != 0 && !f->lf.thread.done) {
+                                Dav1dTask *const t = &f->lf.thread.tasks[sby * f->lf.thread.npf];
+                                t->start = 1;
+                                if (t->status == DAV1D_TASK_READY)
+                                    dav1d_task_schedule(f->lf.thread.pftd, t);
+                            }
+                            pthread_mutex_unlock(&f->lf.thread.pftd->lock);
+                        }
+                    }
+                    if (c->n_pfc == 1 || f->frame_thread.pass == 1 || f->lf.thread.npf == 0)
+                        dav1d_thread_picture_signal(&f->sr_cur,
+                                                    (sby + 1) * f->sb_step * 4,
+                                                    progress_plane_type);
                 }
             }
 
@@ -3222,6 +3255,17 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
     retval = 0;
 error:
+    if (c->n_pfc > 1) {
+        pthread_mutex_lock(&f->lf.thread.pftd->lock);
+        if (!f->lf.thread.done) {
+            if (retval != 0) {
+                f->lf.thread.done = -1;
+                pthread_cond_signal(&f->lf.thread.pftd->cond);
+            }
+            pthread_cond_wait(&f->lf.thread.cond, &f->lf.thread.pftd->lock);
+        }
+        pthread_mutex_unlock(&f->lf.thread.pftd->lock);
+    }
     dav1d_thread_picture_signal(&f->sr_cur, retval == 0 ? UINT_MAX : FRAME_ERROR,
                                 PLANE_TYPE_ALL);
     for (int i = 0; i < 7; i++) {
@@ -3329,6 +3373,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f->bd_fn.recon_b_inter = dav1d_recon_b_inter_##bd##bpc; \
         f->bd_fn.recon_b_intra = dav1d_recon_b_intra_##bd##bpc; \
         f->bd_fn.filter_sbrow = dav1d_filter_sbrow_##bd##bpc; \
+        f->bd_fn.filter_sbrow_deblock = dav1d_filter_sbrow_deblock_##bd##bpc; \
+        f->bd_fn.filter_sbrow_cdef = dav1d_filter_sbrow_cdef_##bd##bpc; \
+        f->bd_fn.filter_sbrow_resize = dav1d_filter_sbrow_resize_##bd##bpc; \
+        f->bd_fn.filter_sbrow_lr = dav1d_filter_sbrow_lr_##bd##bpc; \
         f->bd_fn.backup_ipred_edge = dav1d_backup_ipred_edge_##bd##bpc; \
         f->bd_fn.read_coef_blocks = dav1d_read_coef_blocks_##bd##bpc
     if (!f->seq_hdr->hbd) {

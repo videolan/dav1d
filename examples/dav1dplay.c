@@ -95,6 +95,7 @@ static void dp_settings_print_usage(const char *const app,
             " --untimed/-u:         ignore PTS, render as fast as possible\n"
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
+            " --pfthreads $num:     number of postfilter threads(default: 1)\n"
             " --highquality:        enable high quality rendering\n"
             " --zerocopy/-z:        enable zero copy upload path\n"
             " --gpugrain/-g:        enable GPU grain synthesis\n"
@@ -127,6 +128,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     enum {
         ARG_FRAME_THREADS = 256,
         ARG_TILE_THREADS,
+        ARG_POSTFILTER_THREADS,
         ARG_HIGH_QUALITY,
     };
 
@@ -137,6 +139,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
         { "untimed",        0, NULL, 'u' },
         { "framethreads",   1, NULL, ARG_FRAME_THREADS },
         { "tilethreads",    1, NULL, ARG_TILE_THREADS },
+        { "pfthreads",      1, NULL, ARG_POSTFILTER_THREADS },
         { "highquality",    0, NULL, ARG_HIGH_QUALITY },
         { "zerocopy",       0, NULL, 'z' },
         { "gpugrain",       0, NULL, 'g' },
@@ -174,6 +177,10 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
             case ARG_TILE_THREADS:
                 lib_settings->n_tile_threads =
                     parse_unsigned(optarg, ARG_TILE_THREADS, argv[0]);
+                break;
+            case ARG_POSTFILTER_THREADS:
+                lib_settings->n_postfilter_threads =
+                    parse_unsigned(optarg, ARG_POSTFILTER_THREADS, argv[0]);
                 break;
             default:
                 dp_settings_print_usage(argv[0], NULL);

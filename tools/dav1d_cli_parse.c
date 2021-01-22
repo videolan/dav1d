@@ -51,6 +51,7 @@ enum {
     ARG_REALTIME_CACHE,
     ARG_FRAME_THREADS,
     ARG_TILE_THREADS,
+    ARG_POSTFILTER_THREADS,
     ARG_VERIFY,
     ARG_FILM_GRAIN,
     ARG_OPPOINT,
@@ -73,6 +74,7 @@ static const struct option long_opts[] = {
     { "realtimecache",  1, NULL, ARG_REALTIME_CACHE },
     { "framethreads",   1, NULL, ARG_FRAME_THREADS },
     { "tilethreads",    1, NULL, ARG_TILE_THREADS },
+    { "pfthreads",      1, NULL, ARG_POSTFILTER_THREADS },
     { "verify",         1, NULL, ARG_VERIFY },
     { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
     { "oppoint",        1, NULL, ARG_OPPOINT },
@@ -117,6 +119,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --version/-v:         print version and exit\n"
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
+            " --pfthreads $num:     number of postfilter threads (default: 1)\n"
             " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5)\n"
             " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
@@ -294,6 +297,10 @@ void parse(const int argc, char *const *const argv,
         case ARG_TILE_THREADS:
             lib_settings->n_tile_threads =
                 parse_unsigned(optarg, ARG_TILE_THREADS, argv[0]);
+            break;
+        case ARG_POSTFILTER_THREADS:
+            lib_settings->n_postfilter_threads =
+                parse_unsigned(optarg, ARG_POSTFILTER_THREADS, argv[0]);
             break;
         case ARG_VERIFY:
             cli_settings->verify = optarg;

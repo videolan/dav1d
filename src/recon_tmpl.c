@@ -1965,74 +1965,107 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
     return 0;
 }
 
-void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
-    const int sbsz = f->sb_step, sbh = f->sbh;
-
-    if (f->frame_hdr->loopfilter.level_y[0] ||
-        f->frame_hdr->loopfilter.level_y[1])
-    {
+void bytefn(dav1d_filter_sbrow_deblock)(Dav1dFrameContext*const f, const int sby) {
+    const int y = sby * f->sb_step * 4;
+    const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    pixel *const p[3] = {
+        f->lf.p[0] + y * PXSTRIDE(f->cur.stride[0]),
+        f->lf.p[1] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
+        f->lf.p[2] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver)
+    };
+    Av1Filter *mask = f->lf.mask + (sby >> !f->seq_hdr->sb128) * f->sb128w;
+    if (f->frame_hdr->loopfilter.level_y[0] || f->frame_hdr->loopfilter.level_y[1]) {
         int start_of_tile_row = 0;
         if (f->frame_hdr->tiling.row_start_sb[f->lf.tile_row] == sby)
             start_of_tile_row = f->lf.tile_row++;
-        bytefn(dav1d_loopfilter_sbrow)(f, f->lf.p, f->lf.mask_ptr, sby,
-                                       start_of_tile_row);
+        bytefn(dav1d_loopfilter_sbrow)(f, p, mask, sby, start_of_tile_row);
     }
-
     if (f->lf.restore_planes) {
         // Store loop filtered pixels required by loop restoration
-        bytefn(dav1d_lr_copy_lpf)(f, f->lf.p, sby);
+        bytefn(dav1d_lr_copy_lpf)(f, p, sby);
     }
-    if (f->seq_hdr->cdef) {
-        if (sby) {
-            const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
-            pixel *p_up[3] = {
-                f->lf.p[0] - 8 * PXSTRIDE(f->cur.stride[0]),
-                f->lf.p[1] - (8 * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
-                f->lf.p[2] - (8 * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
-            };
-            bytefn(dav1d_cdef_brow)(f, p_up, f->lf.prev_mask_ptr,
-                                    sby * sbsz - 2, sby * sbsz);
-        }
-        const int n_blks = sbsz - 2 * (sby + 1 < sbh);
-        bytefn(dav1d_cdef_brow)(f, f->lf.p, f->lf.mask_ptr, sby * sbsz,
-                                imin(sby * sbsz + n_blks, f->bh));
-    }
-    if (f->frame_hdr->width[0] != f->frame_hdr->width[1]) {
-        const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
-        for (int pl = 0; pl < 1 + 2 * has_chroma; pl++) {
-            const int ss_ver = pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
-            const int h_start = 8 * !!sby >> ss_ver;
-            const ptrdiff_t dst_stride = f->sr_cur.p.stride[!!pl];
-            pixel *dst = f->lf.sr_p[pl] - h_start * PXSTRIDE(dst_stride);
-            const ptrdiff_t src_stride = f->cur.stride[!!pl];
-            const pixel *src = f->lf.p[pl] - h_start * PXSTRIDE(src_stride);
-            const int h_end = 4 * (sbsz - 2 * (sby + 1 < sbh)) >> ss_ver;
-            const int ss_hor = pl && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
-            const int dst_w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
-            const int src_w = (4 * f->bw + ss_hor) >> ss_hor;
-            const int img_h = (f->cur.p.h - sbsz * 4 * sby + ss_ver) >> ss_ver;
+}
 
-            f->dsp->mc.resize(dst, dst_stride, src, src_stride, dst_w,
-                              imin(img_h, h_end) + h_start, src_w,
-                              f->resize_step[!!pl], f->resize_start[!!pl]
-                              HIGHBD_CALL_SUFFIX);
-        }
-    }
-    if (f->lf.restore_planes) {
-        bytefn(dav1d_lr_sbrow)(f, f->lf.sr_p, sby);
-    }
-
+void bytefn(dav1d_filter_sbrow_cdef)(Dav1dFrameContext *const f, const int sby) {
+    const int sbsz = f->sb_step;
+    const int y = sby * sbsz * 4;
     const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
-    f->lf.p[0] += sbsz * 4 * PXSTRIDE(f->cur.stride[0]);
-    f->lf.p[1] += sbsz * 4 * PXSTRIDE(f->cur.stride[1]) >> ss_ver;
-    f->lf.p[2] += sbsz * 4 * PXSTRIDE(f->cur.stride[1]) >> ss_ver;
-    f->lf.sr_p[0] += sbsz * 4 * PXSTRIDE(f->sr_cur.p.stride[0]);
-    f->lf.sr_p[1] += sbsz * 4 * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver;
-    f->lf.sr_p[2] += sbsz * 4 * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver;
-    f->lf.prev_mask_ptr = f->lf.mask_ptr;
-    if ((sby & 1) || f->seq_hdr->sb128) {
-        f->lf.mask_ptr += f->sb128w;
+    pixel *const p[3] = {
+        f->lf.p[0] + y * PXSTRIDE(f->cur.stride[0]),
+        f->lf.p[1] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
+        f->lf.p[2] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver)
+    };
+    Av1Filter *prev_mask = f->lf.mask + ((sby - 1) >> !f->seq_hdr->sb128) * f->sb128w;
+    Av1Filter *mask = f->lf.mask + (sby >> !f->seq_hdr->sb128) * f->sb128w;
+    const int start = sby * sbsz;
+    if (sby) {
+        const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+        pixel *p_up[3] = {
+            p[0] - 8 * PXSTRIDE(f->cur.stride[0]),
+            p[1] - (8 * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
+            p[2] - (8 * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
+        };
+        bytefn(dav1d_cdef_brow)(f, p_up, prev_mask, start - 2, start);
     }
+    const int n_blks = sbsz - 2 * (sby + 1 < f->sbh);
+    const int end = imin(start + n_blks, f->bh);
+    bytefn(dav1d_cdef_brow)(f, p, mask, start, end);
+}
+
+void bytefn(dav1d_filter_sbrow_resize)(Dav1dFrameContext *const f, const int sby) {
+    const int sbsz = f->sb_step;
+    const int y = sby * sbsz * 4;
+    const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    const pixel *const p[3] = {
+        f->lf.p[0] + y * PXSTRIDE(f->cur.stride[0]),
+        f->lf.p[1] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver),
+        f->lf.p[2] + (y * PXSTRIDE(f->cur.stride[1]) >> ss_ver)
+    };
+    pixel *const sr_p[3] = {
+        f->lf.sr_p[0] + y * PXSTRIDE(f->sr_cur.p.stride[0]),
+        f->lf.sr_p[1] + (y * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver),
+        f->lf.sr_p[2] + (y * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver)
+    };
+    const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
+    for (int pl = 0; pl < 1 + 2 * has_chroma; pl++) {
+        const int ss_ver = pl && f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+        const int h_start = 8 * !!sby >> ss_ver;
+        const ptrdiff_t dst_stride = f->sr_cur.p.stride[!!pl];
+        pixel *dst = sr_p[pl] - h_start * PXSTRIDE(dst_stride);
+        const ptrdiff_t src_stride = f->cur.stride[!!pl];
+        const pixel *src = p[pl] - h_start * PXSTRIDE(src_stride);
+        const int h_end = 4 * (sbsz - 2 * (sby + 1 < f->sbh)) >> ss_ver;
+        const int ss_hor = pl && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+        const int dst_w = (f->sr_cur.p.p.w + ss_hor) >> ss_hor;
+        const int src_w = (4 * f->bw + ss_hor) >> ss_hor;
+        const int img_h = (f->cur.p.h - sbsz * 4 * sby + ss_ver) >> ss_ver;
+
+        f->dsp->mc.resize(dst, dst_stride, src, src_stride, dst_w,
+                          imin(img_h, h_end) + h_start, src_w,
+                          f->resize_step[!!pl], f->resize_start[!!pl]
+                          HIGHBD_CALL_SUFFIX);
+    }
+}
+
+void bytefn(dav1d_filter_sbrow_lr)(Dav1dFrameContext *const f, const int sby) {
+    const int y = sby * f->sb_step * 4;
+    const int ss_ver = f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I420;
+    pixel *const sr_p[3] = {
+        f->lf.sr_p[0] + y * PXSTRIDE(f->sr_cur.p.stride[0]),
+        f->lf.sr_p[1] + (y * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver),
+        f->lf.sr_p[2] + (y * PXSTRIDE(f->sr_cur.p.stride[1]) >> ss_ver)
+    };
+    bytefn(dav1d_lr_sbrow)(f, sr_p, sby);
+}
+
+void bytefn(dav1d_filter_sbrow)(Dav1dFrameContext *const f, const int sby) {
+    bytefn(dav1d_filter_sbrow_deblock)(f, sby);
+    if (f->seq_hdr->cdef)
+        bytefn(dav1d_filter_sbrow_cdef)(f, sby);
+    if (f->frame_hdr->width[0] != f->frame_hdr->width[1])
+        bytefn(dav1d_filter_sbrow_resize)(f, sby);
+    if (f->lf.restore_planes)
+        bytefn(dav1d_filter_sbrow_lr)(f, sby);
 }
 
 void bytefn(dav1d_backup_ipred_edge)(Dav1dTileContext *const t) {
