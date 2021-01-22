@@ -95,62 +95,52 @@ static int xor128_rand(void) {
     return w >> 1;
 }
 
-static int decode_rand(DemuxerContext *in, Dav1dContext *c,
+static inline int decode_frame(Dav1dPicture *const p,
+                               Dav1dContext *const c, Dav1dData *const data)
+{
+    int res;
+    memset(p, 0, sizeof(*p));
+    if ((res = dav1d_send_data(c, data)) < 0) {
+        if (res != DAV1D_ERR(EAGAIN)) {
+            fprintf(stderr, "Error decoding frame: %s\n",
+                    strerror(DAV1D_ERR(res)));
+            return res;
+        }
+    }
+    if ((res = dav1d_get_picture(c, p)) < 0) {
+        if (res != DAV1D_ERR(EAGAIN)) {
+            fprintf(stderr, "Error decoding frame: %s\n",
+                    strerror(DAV1D_ERR(res)));
+            return res;
+        }
+    } else dav1d_picture_unref(p);
+    return 0;
+}
+
+static int decode_rand(DemuxerContext *const in, Dav1dContext *const c,
                        Dav1dData *const data, const double fps)
 {
     int res = 0;
     Dav1dPicture p;
-    dav1d_flush(c);
-    for (unsigned i = 0; i < xor128_rand() % (unsigned)(fps * 5); i++) {
-        memset(&p, 0, sizeof(p));
-        if ((res = dav1d_send_data(c, data)) < 0) {
-            if (res != DAV1D_ERR(EAGAIN)) {
-                fprintf(stderr, "Error decoding frame: %s\n",
-                        strerror(DAV1D_ERR(res)));
-                break;
-            }
-        }
-        if ((res = dav1d_get_picture(c, &p)) < 0) {
-            if (res != DAV1D_ERR(EAGAIN)) {
-                fprintf(stderr, "Error decoding frame: %s\n",
-                        strerror(DAV1D_ERR(res)));
-                break;
-            }
-            res = 0;
-        } else dav1d_picture_unref(&p);
-        if (input_read(in, data) || !data->sz) break;
+    const int num_frames = xor128_rand() % (int)(fps * 5);
+    for (int i = 0; i < num_frames; i++) {
+        if ((res = decode_frame(&p, c, data))) break;
+        if (input_read(in, data) || data->sz == 0) break;
     }
     return res;
 }
 
-static int decode_all(DemuxerContext *in, Dav1dContext *c,
-                      Dav1dData *const data)
+static int decode_all(DemuxerContext *const in,
+                      Dav1dContext *const c, Dav1dData *const data)
 {
     int res = 0;
     Dav1dPicture p;
-    dav1d_flush(c);
-    do {
-        memset(&p, 0, sizeof(p));
-        if ((res = dav1d_send_data(c, data)) < 0) {
-            if (res != DAV1D_ERR(EAGAIN)) {
-                fprintf(stderr, "Error decoding frame: %s\n",
-                        strerror(DAV1D_ERR(res)));
-                break;
-            }
-        }
-        if ((res = dav1d_get_picture(c, &p)) < 0) {
-            if (res != DAV1D_ERR(EAGAIN)) {
-                fprintf(stderr, "Error decoding frame: %s\n",
-                        strerror(DAV1D_ERR(res)));
-                break;
-            }
-            res = 0;
-        } else dav1d_picture_unref(&p);
+    do { if ((res = decode_frame(&p, c, data))) break;
     } while (!input_read(in, data) && data->sz > 0);
     return res;
 }
 
-static int seek(DemuxerContext *const in,
+static int seek(DemuxerContext *const in, Dav1dContext *const c,
                 const uint64_t pts, Dav1dData *const data)
 {
     int res;
@@ -158,6 +148,7 @@ static int seek(DemuxerContext *const in,
     Dav1dSequenceHeader seq;
     do { if ((res = input_read(in, data))) break;
     } while (dav1d_parse_sequence_header(&seq, data->data, data->sz));
+    dav1d_flush(c);
     return res;
 }
 
@@ -203,7 +194,7 @@ int main(const int argc, char *const *const argv) {
     // seek at random pts
     for (int i = 0; i < NUM_RAND_SEEK; i++) {
         pts = FRAME_OFFSET_TO_PTS(xor128_rand() % total);
-        if (seek(in, pts, &data)) continue;
+        if (seek(in, c, pts, &data)) continue;
         if (decode_rand(in, c, &data, fps)) goto end;
     }
     pts = TS_TO_PTS(data.m.timestamp);
@@ -219,13 +210,13 @@ int main(const int argc, char *const *const argv) {
         const int64_t new_ts = llround(new_pts / (timebase * 1000000000.0));
         new_pts = TS_TO_PTS(new_ts);
         if (new_pts < 0 || (uint64_t)new_pts >= FRAME_OFFSET_TO_PTS(total)) {
-            if (seek(in, FRAME_OFFSET_TO_PTS(total / 2), &data)) break;
+            if (seek(in, c, FRAME_OFFSET_TO_PTS(total / 2), &data)) break;
             pts = TS_TO_PTS(data.m.timestamp);
             tries++;
             continue;
         }
-        if (seek(in, new_pts, &data))
-            if (seek(in, 0, &data)) goto end;
+        if (seek(in, c, new_pts, &data))
+            if (seek(in, c, 0, &data)) goto end;
         if (decode_rand(in, c, &data, fps)) goto end;
         pts = TS_TO_PTS(data.m.timestamp);
     }
@@ -235,11 +226,11 @@ int main(const int argc, char *const *const argv) {
         shift += 5;
         if (shift > total)
             shift = total;
-    } while (seek(in, FRAME_OFFSET_TO_PTS(total - shift), &data));
+    } while (seek(in, c, FRAME_OFFSET_TO_PTS(total - shift), &data));
 
     // simulate seeking after the end of the file
     for (int i = 0; i < NUM_END_SEEK; i++) {
-        if (seek(in, FRAME_OFFSET_TO_PTS(total - shift), &data)) goto end;
+        if (seek(in, c, FRAME_OFFSET_TO_PTS(total - shift), &data)) goto end;
         if (decode_all(in, c, &data)) goto end;
         int num_flush = 1 + 64 + xor128_rand() % 64;
         while (num_flush--) dav1d_flush(c);
