@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2018-2021, VideoLAN and dav1d authors
  * Copyright © 2018, Two Orioles, LLC
  * All rights reserved.
  *
@@ -35,6 +35,7 @@
 
 #include "dav1d/data.h"
 
+#include "common/frame.h"
 #include "common/intops.h"
 
 #include "src/ctx.h"
@@ -727,7 +728,7 @@ static int decode_b(Dav1dTileContext *const t,
             case_set(bh4, l., 1, by4);
             case_set(bw4, a->, 0, bx4);
 #undef set_ctx
-            if (f->frame_hdr->frame_type & 1) {
+            if (IS_INTER_OR_SWITCH(f->frame_hdr)) {
                 refmvs_block *const r = &t->rt.r[(t->by & 31) + 5 + bh4 - 1][t->bx];
                 for (int x = 0; x < bw4; x++) {
                     r[x].ref.ref[0] = 0;
@@ -748,7 +749,7 @@ static int decode_b(Dav1dTileContext *const t,
 #undef set_ctx
             }
         } else {
-            if (f->frame_hdr->frame_type & 1 /* not intrabc */ &&
+            if (IS_INTER_OR_SWITCH(f->frame_hdr) /* not intrabc */ &&
                 b->comp_type == COMP_INTER_NONE && b->motion_mode == MM_WARP)
             {
                 if (b->matrix[0] == SHRT_MIN) {
@@ -791,7 +792,7 @@ static int decode_b(Dav1dTileContext *const t,
             case_set(bw4, a->, 0, bx4);
 #undef set_ctx
 
-            if (f->frame_hdr->frame_type & 1) {
+            if (IS_INTER_OR_SWITCH(f->frame_hdr)) {
                 refmvs_block *const r = &t->rt.r[(t->by & 31) + 5 + bh4 - 1][t->bx];
                 for (int x = 0; x < bw4; x++) {
                     r[x].ref.ref[0] = b->ref[0] + 1;
@@ -1043,7 +1044,7 @@ static int decode_b(Dav1dTileContext *const t,
 
     if (b->skip_mode) {
         b->intra = 0;
-    } else if (f->frame_hdr->frame_type & 1) {
+    } else if (IS_INTER_OR_SWITCH(f->frame_hdr)) {
         if (seg && (seg->ref >= 0 || seg->globalmv)) {
             b->intra = !seg->ref;
         } else {
@@ -1064,7 +1065,7 @@ static int decode_b(Dav1dTileContext *const t,
 
     // intra/inter-specific stuff
     if (b->intra) {
-        uint16_t *const ymode_cdf = f->frame_hdr->frame_type & 1 ?
+        uint16_t *const ymode_cdf = IS_INTER_OR_SWITCH(f->frame_hdr) ?
             ts->cdf.m.y_mode[dav1d_ymode_size_context[bs]] :
             ts->cdf.kfym[dav1d_intra_mode_context[t->a->mode[bx4]]]
                         [dav1d_intra_mode_context[t->l.mode[by4]]];
@@ -1252,7 +1253,7 @@ static int decode_b(Dav1dTileContext *const t,
         rep_macro(type, t->dir skip, off, mul * b->skip); \
         /* see aomedia bug 2183 for why we use luma coordinates here */ \
         rep_macro(type, t->pal_sz_uv[diridx], off, mul * (has_chroma ? b->pal_sz[1] : 0)); \
-        if (f->frame_hdr->frame_type & 1) { \
+        if (IS_INTER_OR_SWITCH(f->frame_hdr)) { \
             rep_macro(type, t->dir comp_type, off, mul * COMP_INTER_NONE); \
             rep_macro(type, t->dir ref[0], off, mul * ((uint8_t) -1)); \
             rep_macro(type, t->dir ref[1], off, mul * ((uint8_t) -1)); \
@@ -1293,10 +1294,10 @@ static int decode_b(Dav1dTileContext *const t,
                 }
             }
         }
-        if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
+        if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
             splat_intraref(&t->rt, t->by, t->bx, bs);
         }
-    } else if (!(f->frame_hdr->frame_type & 1)) {
+    } else if (!IS_INTER_OR_SWITCH(f->frame_hdr)) {
         // intra block copy
         refmvs_candidate mvstack[8];
         int n_mvs, ctx;
@@ -2513,14 +2514,14 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
     const int col_sb_start = f->frame_hdr->tiling.col_start_sb[tile_col];
     const int col_sb128_start = col_sb_start >> !f->seq_hdr->sb128;
 
-    if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
+    if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
         dav1d_refmvs_tile_sbrow_init(&t->rt, &f->rf, ts->tiling.col_start,
                                      ts->tiling.col_end, ts->tiling.row_start,
                                      ts->tiling.row_end, t->by >> f->sb_shift,
                                      ts->tiling.row);
     }
 
-    reset_context(&t->l, !(f->frame_hdr->frame_type & 1), f->frame_thread.pass);
+    reset_context(&t->l, !IS_INTER_OR_SWITCH(f->frame_hdr), f->frame_thread.pass);
     if (f->frame_thread.pass == 2) {
         for (t->bx = ts->tiling.col_start,
              t->a = f->a + col_sb128_start + tile_row * f->sb128w;
@@ -2631,7 +2632,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
         }
     }
 
-    if (f->n_tc > 1 && f->frame_hdr->frame_type & 1) {
+    if (f->n_tc > 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
         dav1d_refmvs_save_tmvs(&t->rt,
                                ts->tiling.col_start >> 1, ts->tiling.col_end >> 1,
                                t->by >> 1, (t->by + sb_step) >> 1);
@@ -2950,7 +2951,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     }
 
     // init ref mvs
-    if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
+    if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
         const int ret =
             dav1d_refmvs_init_frame(&f->rf, f->seq_hdr, f->frame_hdr,
                                     f->refpoc, f->mvs, f->refrefpoc, f->ref_mvs, f->n_tc);
@@ -3086,7 +3087,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->frame_thread.pass == 1 ? PLANE_TYPE_BLOCK : PLANE_TYPE_Y;
 
         for (int n = 0; n < f->sb128w * f->frame_hdr->tiling.rows; n++)
-            reset_context(&f->a[n], !(f->frame_hdr->frame_type & 1), f->frame_thread.pass);
+            reset_context(&f->a[n], !IS_INTER_OR_SWITCH(f->frame_hdr), f->frame_thread.pass);
 
         if (f->n_tc == 1 || (c->n_pfc > 1 && f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows == 1)) {
             Dav1dTileContext *const t = f->tc;
@@ -3117,7 +3118,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                         t->ts = &f->ts[tile_row * f->frame_hdr->tiling.cols + tile_col];
                         if (dav1d_decode_tile_sbrow(t)) goto error;
                     }
-                    if (f->frame_thread.pass <= 1 && f->frame_hdr->frame_type & 1) {
+                    if (f->frame_thread.pass <= 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
                         dav1d_refmvs_save_tmvs(&t->rt, 0, f->bw >> 1, t->by >> 1, by_end);
                     }
 
@@ -3391,7 +3392,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 #undef assign_bitdepth_case
 
     int ref_coded_width[7];
-    if (f->frame_hdr->frame_type & 1) {
+    if (IS_INTER_OR_SWITCH(f->frame_hdr)) {
         if (f->frame_hdr->primary_ref_frame != DAV1D_PRIMARY_REF_NONE) {
             const int pri_ref = f->frame_hdr->refidx[f->frame_hdr->primary_ref_frame];
             if (!c->refs[pri_ref].p.p.data[0]) {
@@ -3509,7 +3510,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->bitdepth_max = (1 << f->cur.p.bpc) - 1;
 
     // ref_mvs
-    if ((f->frame_hdr->frame_type & 1) || f->frame_hdr->allow_intrabc) {
+    if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
         f->mvs_ref = dav1d_ref_create_using_pool(c->refmvs_pool,
             sizeof(*f->mvs) * f->sb128h * 16 * (f->b4_stride >> 1));
         if (!f->mvs_ref) {

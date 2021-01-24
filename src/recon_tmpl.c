@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2018-2021, VideoLAN and dav1d authors
  * Copyright © 2018, Two Orioles, LLC
  * All rights reserved.
  *
@@ -33,6 +33,7 @@
 #include "common/attributes.h"
 #include "common/bitdepth.h"
 #include "common/dump.h"
+#include "common/frame.h"
 #include "common/intops.h"
 
 #include "src/cdef_apply.h"
@@ -1544,7 +1545,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTileContext *const t, const enum BlockSize 
         4 * (t->by * PXSTRIDE(f->cur.stride[0]) + t->bx);
     const ptrdiff_t uvdstoff =
         4 * ((t->bx >> ss_hor) + (t->by >> ss_ver) * PXSTRIDE(f->cur.stride[1]));
-    if (!(f->frame_hdr->frame_type & 1)) {
+    if (!IS_INTER_OR_SWITCH(f->frame_hdr)) {
         // intrabc
         assert(!f->frame_hdr->super_res.enabled);
         res = mc(t, dst, NULL, f->cur.stride[0], bw4, bh4, t->bx, t->by, 0,
