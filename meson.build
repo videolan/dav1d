@@ -1,4 +1,4 @@
-# Copyright © 2018-2020, VideoLAN and dav1d authors
+# Copyright © 2018-2021, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -128,7 +128,7 @@ if host_machine.system() == 'windows'
     rc_data.set('API_VERSION_MAJOR', dav1d_api_version_major)
     rc_data.set('API_VERSION_MINOR', dav1d_api_version_minor)
     rc_data.set('API_VERSION_REVISION', dav1d_api_version_revision)
-    rc_data.set('COPYRIGHT_YEARS', '2020')
+    rc_data.set('COPYRIGHT_YEARS', '2021')
 else
     thread_dependency = dependency('threads')
     thread_compat_dep = []
