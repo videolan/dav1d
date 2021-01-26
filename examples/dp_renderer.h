@@ -87,7 +87,7 @@ typedef struct rdr_info
     void (*destroy_renderer)(void *cookie);
     // Callback to the render function that renders a prevously sent frame
     void (*render)(void *cookie, const Dav1dPlaySettings *settings);
-    // Callback to the send frame function
+    // Callback to the send frame function, _may_ also unref dav1d_pic!
     int (*update_frame)(void *cookie, Dav1dPicture *dav1d_pic,
                         const Dav1dPlaySettings *settings);
     // Callback for alloc/release pictures (optional)

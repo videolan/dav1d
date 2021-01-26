@@ -317,8 +317,8 @@ static void dp_rd_ctx_post_event(Dav1dPlayRenderContext *rd_ctx, uint32_t type)
 static void dp_rd_ctx_update_with_dav1d_picture(Dav1dPlayRenderContext *rd_ctx,
                                                 Dav1dPicture *dav1d_pic)
 {
-    renderer_info->update_frame(rd_ctx->rd_priv, dav1d_pic, &rd_ctx->settings);
     rd_ctx->current_ts = dav1d_pic->m.timestamp;
+    renderer_info->update_frame(rd_ctx->rd_priv, dav1d_pic, &rd_ctx->settings);
 }
 
 /**
