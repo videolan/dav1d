@@ -706,8 +706,6 @@ const Dav1dPlayRenderInfo rdr_placebo_gl = {
     .destroy_renderer = placebo_renderer_destroy,
     .render = placebo_render,
     .update_frame = placebo_upload_image,
-    .alloc_pic = placebo_alloc_pic,
-    .release_pic = placebo_release_pic,
 
 # if PL_API_VER >= 63
     .supports_gpu_grain = 1,
