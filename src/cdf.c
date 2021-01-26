@@ -4014,7 +4014,7 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     update_cdf_1d(11, m.txtp_inter2);
     update_bit_1d(4, m.txtp_inter3);
 
-    if (!IS_INTER_OR_SWITCH(hdr)) {
+    if (IS_KEY_OR_INTRA(hdr)) {
         update_bit_0d(m.intrabc);
 
         update_cdf_1d(N_MV_JOINTS - 1, dmv.joint);

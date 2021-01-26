@@ -1297,7 +1297,7 @@ static int decode_b(Dav1dTileContext *const t,
         if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
             splat_intraref(&t->rt, t->by, t->bx, bs);
         }
-    } else if (!IS_INTER_OR_SWITCH(f->frame_hdr)) {
+    } else if (IS_KEY_OR_INTRA(f->frame_hdr)) {
         // intra block copy
         refmvs_candidate mvstack[8];
         int n_mvs, ctx;
@@ -2521,7 +2521,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
                                      ts->tiling.row);
     }
 
-    reset_context(&t->l, !IS_INTER_OR_SWITCH(f->frame_hdr), f->frame_thread.pass);
+    reset_context(&t->l, IS_KEY_OR_INTRA(f->frame_hdr), f->frame_thread.pass);
     if (f->frame_thread.pass == 2) {
         for (t->bx = ts->tiling.col_start,
              t->a = f->a + col_sb128_start + tile_row * f->sb128w;
@@ -3087,7 +3087,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             f->frame_thread.pass == 1 ? PLANE_TYPE_BLOCK : PLANE_TYPE_Y;
 
         for (int n = 0; n < f->sb128w * f->frame_hdr->tiling.rows; n++)
-            reset_context(&f->a[n], !IS_INTER_OR_SWITCH(f->frame_hdr), f->frame_thread.pass);
+            reset_context(&f->a[n], IS_KEY_OR_INTRA(f->frame_hdr), f->frame_thread.pass);
 
         if (f->n_tc == 1 || (c->n_pfc > 1 && f->frame_hdr->tiling.cols * f->frame_hdr->tiling.rows == 1)) {
             Dav1dTileContext *const t = f->tc;
