@@ -29,6 +29,23 @@
 #include "src/looprestoration.h"
 #include "src/tables.h"
 
+#if ARCH_AARCH64
+void BF(dav1d_wiener_filter7, neon)(pixel *p, const ptrdiff_t p_stride,
+                                    const pixel (*left)[4],
+                                    const pixel *lpf, const ptrdiff_t lpf_stride,
+                                    const int w, int h,
+                                    const int16_t filter[2][8],
+                                    const enum LrEdgeFlags edges
+                                    HIGHBD_DECL_SUFFIX);
+void BF(dav1d_wiener_filter5, neon)(pixel *p, const ptrdiff_t p_stride,
+                                    const pixel (*left)[4],
+                                    const pixel *lpf, const ptrdiff_t lpf_stride,
+                                    const int w, int h,
+                                    const int16_t filter[2][8],
+                                    const enum LrEdgeFlags edges
+                                    HIGHBD_DECL_SUFFIX);
+#else
+
 // The 8bpc version calculates things slightly differently than the reference
 // C version. That version calculates roughly this:
 // int16_t sum = 0;
@@ -89,6 +106,7 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t dst_stride,
                                     mid_stride * sizeof(*mid)
                                     HIGHBD_TAIL_SUFFIX);
 }
+#endif
 
 void BF(dav1d_sgr_box3_h, neon)(int32_t *sumsq, int16_t *sum,
                                 const pixel (*left)[4],
@@ -234,7 +252,12 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_arm)(Dav1dLoopRestorationDSPCont
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
+#if ARCH_AARCH64
+    c->wiener[0] = BF(dav1d_wiener_filter7, neon);
+    c->wiener[1] = BF(dav1d_wiener_filter5, neon);
+#else
     c->wiener[0] = c->wiener[1] = wiener_filter_neon;
+#endif
     if (bpc <= 10)
         c->selfguided = sgr_filter_neon;
 }
