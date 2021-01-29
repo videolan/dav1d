@@ -581,22 +581,30 @@ static int decode_coefs(Dav1dTileContext *const t,
 
     // residual and sign
     const uint16_t *const dq_tbl = ts->dq[b->seg_id][plane];
-    const uint8_t *const qm_tbl = f->qm[lossless || is_1d || *txtp == IDTX][tx][plane];
+    const uint8_t *const qm_tbl = *txtp < IDTX ? f->qm[tx][plane] : NULL;
     const int dq_shift = imax(0, t_dim->ctx - 2);
     const unsigned cf_max = ~(~127U << (BITDEPTH == 8 ? 8 : f->cur.p.bpc));
-    unsigned dc_sign = 1 << 6;
-    unsigned cul_level;
+    unsigned cul_level, dc_sign_level;
 
-    if (dc_tok) { // dc
-        const int dc_sign_ctx = get_dc_sign_ctx(tx, a, l);
-        uint16_t *const dc_sign_cdf = ts->cdf.coef.dc_sign[chroma][dc_sign_ctx];
-        const int sign = dav1d_msac_decode_bool_adapt(&ts->msac, dc_sign_cdf);
-        if (dbg)
-            printf("Post-dc_sign[%d][%d][%d]: r=%d\n",
-                   chroma, dc_sign_ctx, sign, ts->msac.rng);
+    if (!dc_tok) {
+        cul_level = 0;
+        dc_sign_level = 1 << 6;
+        if (qm_tbl) goto ac_qm;
+        goto ac_noqm;
+    }
 
-        unsigned dq = (dq_tbl[0] * qm_tbl[0] + 16) >> 5;
-        dc_sign = (sign - 1) & (2 << 6);
+    const int dc_sign_ctx = get_dc_sign_ctx(tx, a, l);
+    uint16_t *const dc_sign_cdf = ts->cdf.coef.dc_sign[chroma][dc_sign_ctx];
+    const int dc_sign = dav1d_msac_decode_bool_adapt(&ts->msac, dc_sign_cdf);
+    if (dbg)
+        printf("Post-dc_sign[%d][%d][%d]: r=%d\n",
+               chroma, dc_sign_ctx, dc_sign, ts->msac.rng);
+
+    unsigned dc_dq = dq_tbl[0];
+    dc_sign_level = (dc_sign - 1) & (2 << 6);
+
+    if (qm_tbl) {
+        dc_dq = (dc_dq * qm_tbl[0] + 16) >> 5;
 
         if (dc_tok == 15) {
             dc_tok = read_golomb(&ts->msac) + 15;
@@ -605,46 +613,100 @@ static int decode_coefs(Dav1dTileContext *const t,
                        dc_tok - 15, dc_tok, ts->msac.rng);
 
             dc_tok &= 0xfffff;
+            dc_dq = (dc_dq * dc_tok) & 0xffffff;
+        } else {
+            dc_dq *= dc_tok;
+            assert(dc_dq <= 0xffffff);
         }
+        cul_level = dc_tok;
+        dc_dq >>= dq_shift;
+        cf[0] = (coef) (umin(dc_dq - dc_sign, cf_max) ^ -dc_sign);
 
-        dq = ((dq * dc_tok) & 0xffffff) >> dq_shift;
-        cf[0] = imin(dq - sign, cf_max) ^ -sign;
-    }
-    cul_level = dc_tok;
-    if (rc) { // ac
-        const unsigned ac_dq = dq_tbl[1];
-        do {
-            const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
-            if (dbg)
-                printf("Post-sign[%d=%d]: r=%d\n", rc, sign, ts->msac.rng);
-
-            const unsigned rc_tok = cf[rc];
-            unsigned tok, dq = (ac_dq * qm_tbl[rc] + 16) >> 5;
-
-            // residual
-            if (rc_tok >= (15 << 11)) {
-                tok = read_golomb(&ts->msac) + 15;
+        if (rc) ac_qm: {
+            const unsigned ac_dq = dq_tbl[1];
+            do {
+                const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
                 if (dbg)
-                    printf("Post-residual[%d=%d->%d]: r=%d\n",
-                           rc, tok - 15, tok, ts->msac.rng);
+                    printf("Post-sign[%d=%d]: r=%d\n", rc, sign, ts->msac.rng);
+                const unsigned rc_tok = cf[rc];
+                unsigned tok, dq = (ac_dq * qm_tbl[rc] + 16) >> 5;
 
-                // coefficient parsing, see 5.11.39
-                tok &= 0xfffff;
-            } else {
-                tok = rc_tok >> 11;
-            }
+                if (rc_tok >= (15 << 11)) {
+                    tok = read_golomb(&ts->msac) + 15;
+                    if (dbg)
+                        printf("Post-residual[%d=%d->%d]: r=%d\n",
+                               rc, tok - 15, tok, ts->msac.rng);
 
-            // dequant, see 7.12.3
-            cul_level += tok;
-            dq = ((dq * tok) & 0xffffff) >> dq_shift;
-            cf[rc] = imin(dq - sign, cf_max) ^ -sign;
+                    tok &= 0xfffff;
+                    dq = (dq * tok) & 0xffffff;
+                } else {
+                    tok = rc_tok >> 11;
+                    dq *= tok;
+                    assert(dq <= 0xffffff);
+                }
+                cul_level += tok;
+                dq >>= dq_shift;
+                cf[rc] = (coef) (umin(dq - sign, cf_max) ^ -sign);
 
-            rc = rc_tok & 0x3ff; // next non-zero rc, zero if eob
-        } while (rc);
+                rc = rc_tok & 0x3ff;
+            } while (rc);
+        }
+    } else {
+        // non-qmatrix is the common case and allows for additional optimizations
+        if (dc_tok == 15) {
+            dc_tok = read_golomb(&ts->msac) + 15;
+            if (dbg)
+                printf("Post-dc_residual[%d->%d]: r=%d\n",
+                       dc_tok - 15, dc_tok, ts->msac.rng);
+
+            dc_tok &= 0xfffff;
+            dc_dq = ((dc_dq * dc_tok) & 0xffffff) >> dq_shift;
+            dc_dq = umin(dc_dq - dc_sign, cf_max);
+        } else {
+            dc_dq = ((dc_dq * dc_tok) >> dq_shift) - dc_sign;
+            assert(dc_dq <= cf_max);
+        }
+        cul_level = dc_tok;
+        cf[0] = (coef) (dc_dq ^ -dc_sign);
+
+        if (rc) ac_noqm: {
+            const unsigned ac_dq = dq_tbl[1];
+            do {
+                const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
+                if (dbg)
+                    printf("Post-sign[%d=%d]: r=%d\n", rc, sign, ts->msac.rng);
+                const unsigned rc_tok = cf[rc];
+                unsigned tok, dq;
+
+                // residual
+                if (rc_tok >= (15 << 11)) {
+                    tok = read_golomb(&ts->msac) + 15;
+                    if (dbg)
+                        printf("Post-residual[%d=%d->%d]: r=%d\n",
+                               rc, tok - 15, tok, ts->msac.rng);
+
+                    // coefficient parsing, see 5.11.39
+                    tok &= 0xfffff;
+
+                    // dequant, see 7.12.3
+                    dq = ((ac_dq * tok) & 0xffffff) >> dq_shift;
+                    dq = umin(dq - sign, cf_max);
+                } else {
+                    // cannot exceed cf_max, so we can avoid the clipping
+                    tok = rc_tok >> 11;
+                    dq = ((ac_dq * tok) >> dq_shift) - sign;
+                    assert(dq <= cf_max);
+                }
+                cul_level += tok;
+                cf[rc] = (coef) (dq ^ -sign);
+
+                rc = rc_tok & 0x3ff; // next non-zero rc, zero if eob
+            } while (rc);
+        }
     }
 
     // context
-    *res_ctx = umin(cul_level, 63) | dc_sign;
+    *res_ctx = umin(cul_level, 63) | dc_sign_level;
 
     return eob;
 }

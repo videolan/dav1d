@@ -2966,15 +2966,13 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     // setup dequant tables
     init_quant_tables(f->seq_hdr, f->frame_hdr, f->frame_hdr->quant.yac, f->dq);
     if (f->frame_hdr->quant.qm)
-        for (int j = 0; j < N_RECT_TX_SIZES; j++) {
-            f->qm[0][j][0] = dav1d_qm_tbl[f->frame_hdr->quant.qm_y][0][j];
-            f->qm[0][j][1] = dav1d_qm_tbl[f->frame_hdr->quant.qm_u][1][j];
-            f->qm[0][j][2] = dav1d_qm_tbl[f->frame_hdr->quant.qm_v][1][j];
+        for (int i = 0; i < N_RECT_TX_SIZES; i++) {
+            f->qm[i][0] = dav1d_qm_tbl[f->frame_hdr->quant.qm_y][0][i];
+            f->qm[i][1] = dav1d_qm_tbl[f->frame_hdr->quant.qm_u][1][i];
+            f->qm[i][2] = dav1d_qm_tbl[f->frame_hdr->quant.qm_v][1][i];
         }
-    for (int i = f->frame_hdr->quant.qm; i < 2; i++)
-        for (int tx = 0; tx < N_RECT_TX_SIZES; tx++)
-            for (int pl = 0; pl < 3; pl++)
-                f->qm[i][tx][pl] = dav1d_qm_tbl[15][!!pl][tx];
+    else
+        memset(f->qm, 0, sizeof(f->qm));
 
     // setup jnt_comp weights
     if (f->frame_hdr->switchable_comp_refs) {

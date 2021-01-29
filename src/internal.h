@@ -208,7 +208,7 @@ struct Dav1dFrameContext {
     ptrdiff_t b4_stride;
     int w4, h4, bw, bh, sb128w, sb128h, sbh, sb_shift, sb_step, sr_sb128w;
     uint16_t dq[DAV1D_MAX_SEGMENTS][3 /* plane */][2 /* dc/ac */];
-    const uint8_t *qm[2 /* is_1d */][N_RECT_TX_SIZES][3 /* plane */];
+    const uint8_t *qm[N_RECT_TX_SIZES][3 /* plane */];
     BlockContext *a;
     int a_sz /* w*tile_rows */;
     refmvs_frame rf;
