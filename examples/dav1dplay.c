@@ -723,6 +723,8 @@ int main(int argc, char **argv)
             } else if (e->type == SDL_WINDOWEVENT) {
                 if (e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     // TODO: Handle window resizes
+                } else if(e->window.event == SDL_WINDOWEVENT_EXPOSED) {
+                    dp_rd_ctx_render(rd_ctx);
                 }
             } else if (e->type == SDL_KEYDOWN) {
                 SDL_KeyboardEvent *kbde = (SDL_KeyboardEvent *)e;
@@ -763,14 +765,12 @@ int main(int argc, char **argv)
             // Do not update textures during termination
             if (!dp_rd_ctx_should_terminate(rd_ctx)) {
                 dp_rd_ctx_update_with_dav1d_picture(rd_ctx, p);
+                dp_rd_ctx_render(rd_ctx);
                 n_out++;
             }
             destroy_pic(p);
             num_frame_events--;
         }
-        // Do not render during termination
-        if (!dp_rd_ctx_should_terminate(rd_ctx))
-            dp_rd_ctx_render(rd_ctx);
     }
 
 out:;
