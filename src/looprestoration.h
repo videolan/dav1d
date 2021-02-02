@@ -50,6 +50,9 @@ typedef const void *const_left_pixel_row;
 // filter can be applied to a bigger surface.
 //    * w is constrained by the restoration unit size (w <= 256)
 //    * h is constrained by the stripe height (h <= 64)
+// The filter functions are allowed to do aligned writes past the right
+// edge of the buffer, aligned up to the minimum loop restoration unit size
+// (which is 32 pixels for subsampled chroma and 64 pixels for luma).
 #define decl_wiener_filter_fn(name) \
 void (name)(pixel *dst, ptrdiff_t dst_stride, \
             const_left_pixel_row left, \
