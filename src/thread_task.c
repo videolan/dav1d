@@ -49,7 +49,10 @@ int dav1d_task_create_filter_sbrow(Dav1dFrameContext *const f) {
     if (num_tasks > f->lf.thread.num_tasks) {
         const size_t size = sizeof(Dav1dTask) * num_tasks;
         tasks = realloc(f->lf.thread.tasks, size);
-        if (!tasks) return -1;
+        if (!tasks) {
+            pthread_mutex_unlock(&pftd->lock);
+            return -1;
+        }
         memset(tasks, 0, size);
         f->lf.thread.tasks = tasks;
         f->lf.thread.num_tasks = num_tasks;
