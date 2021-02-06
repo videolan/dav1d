@@ -345,7 +345,7 @@ void parse(const int argc, char *const *const argv,
     if (cli_settings->verify) {
         if (cli_settings->outputfile)
             usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not set");
-        if (cli_settings->muxer && !strcmp(cli_settings->muxer, "md5"))
+        if (cli_settings->muxer && strcmp(cli_settings->muxer, "md5"))
             usage(argv[0], "Verification (--verify) requires the md5 muxer (--muxer md5)");
 
         cli_settings->outputfile = "-";
