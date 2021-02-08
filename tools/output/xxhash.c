@@ -124,7 +124,7 @@ static int xxh3_verify(xxh3Context *const xxh3, const char * xxh3_str) {
         char *ignore;
         memcpy(t, xxh3_str, 2);
         xxh3_str += 2;
-        c.digest[i] = strtoul(t, &ignore, 16);
+        c.digest[i] = (unsigned char) strtoul(t, &ignore, 16);
     }
     XXH128_hash_t verify = XXH128_hashFromCanonical(&c);
 
