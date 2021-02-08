@@ -283,7 +283,7 @@ static int md5_verify(MD5Context *const md5, const char *md5_str) {
     md5_finish(md5);
 
     if (strlen(md5_str) < 32)
-        return 0;
+        return -1;
 
     uint32_t abcd[4] = { 0 };
     char t[3] = { 0 };
