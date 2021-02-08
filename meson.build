@@ -259,6 +259,7 @@ if cc.get_argument_syntax() != 'msvc'
 else
     optional_arguments += [
       '-wd4028', # parameter different from declaration
+      '-wd4090', # broken with arrays of pointers
       '-wd4996'  # use of POSIX functions
     ]
 endif
