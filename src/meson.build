@@ -132,6 +132,8 @@ if is_asm_enabled
             endif
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_sources_asm = files(
+                # itx.S is used for both 8 and 16 bpc.
+                'arm/32/itx.S',
                 'arm/32/looprestoration_common.S',
                 'arm/32/msac.S',
             )
@@ -140,7 +142,6 @@ if is_asm_enabled
                 libdav1d_sources_asm += files(
                     'arm/32/cdef.S',
                     'arm/32/ipred.S',
-                    'arm/32/itx.S',
                     'arm/32/loopfilter.S',
                     'arm/32/looprestoration.S',
                     'arm/32/mc.S',
@@ -151,6 +152,7 @@ if is_asm_enabled
                 libdav1d_sources_asm += files(
                     'arm/32/cdef16.S',
                     'arm/32/ipred16.S',
+                    'arm/32/itx16.S',
                     'arm/32/loopfilter16.S',
                     'arm/32/looprestoration16.S',
                     'arm/32/mc16.S',
