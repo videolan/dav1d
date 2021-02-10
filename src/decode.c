@@ -2485,15 +2485,12 @@ static void read_restoration_info(Dav1dTileContext *const t,
                    lr->filter_h[1], lr->filter_h[2], ts->msac.rng);
     } else if (lr->type == DAV1D_RESTORATION_SGRPROJ) {
         const unsigned idx = dav1d_msac_decode_bools(&ts->msac, 4);
+        const uint16_t *const sgr_params = dav1d_sgr_params[idx];
         lr->sgr_idx = idx;
-        lr->sgr_weights[0] = dav1d_sgr_params[idx][0] ?
-            dav1d_msac_decode_subexp(&ts->msac,
-                ts->lr_ref[p]->sgr_weights[0] + 96, 128, 4) - 96 :
-            0;
-        lr->sgr_weights[1] = dav1d_sgr_params[idx][1] ?
-            dav1d_msac_decode_subexp(&ts->msac,
-                ts->lr_ref[p]->sgr_weights[1] + 32, 128, 4) - 32 :
-            95;
+        lr->sgr_weights[0] = sgr_params[0] ? dav1d_msac_decode_subexp(&ts->msac,
+            ts->lr_ref[p]->sgr_weights[0] + 96, 128, 4) - 96 : 0;
+        lr->sgr_weights[1] = sgr_params[1] ? dav1d_msac_decode_subexp(&ts->msac,
+            ts->lr_ref[p]->sgr_weights[1] + 32, 128, 4) - 32 : 95;
         memcpy(lr->filter_v, ts->lr_ref[p]->filter_v, sizeof(lr->filter_v));
         memcpy(lr->filter_h, ts->lr_ref[p]->filter_h, sizeof(lr->filter_h));
         ts->lr_ref[p] = lr;

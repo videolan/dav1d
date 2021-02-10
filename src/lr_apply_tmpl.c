@@ -167,9 +167,10 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     // The first stripe of the frame is shorter by 8 luma pixel rows.
     int stripe_h = imin((64 - 8 * !y) >> ss_ver, row_h - y);
 
-    ALIGN_STK_16(int16_t, filter, 2, [8]);
-    wienerfilter_fn wiener_fn = NULL;
+    looprestorationfilter_fn lr_fn;
+    LooprestorationParams params;
     if (lr->type == DAV1D_RESTORATION_WIENER) {
+        int16_t (*const filter)[8] = params.filter;
         filter[0][0] = filter[0][6] = lr->filter_h[0];
         filter[0][1] = filter[0][5] = lr->filter_h[1];
         filter[0][2] = filter[0][4] = lr->filter_h[2];
@@ -185,21 +186,23 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
         filter[1][2] = filter[1][4] = lr->filter_v[2];
         filter[1][3] = 128 - (filter[1][0] + filter[1][1] + filter[1][2]) * 2;
 
-        wiener_fn = dsp->lr.wiener[!(filter[0][0] | filter[1][0])];
+        lr_fn = dsp->lr.wiener[!(filter[0][0] | filter[1][0])];
     } else {
         assert(lr->type == DAV1D_RESTORATION_SGRPROJ);
+        const uint16_t *const sgr_params = dav1d_sgr_params[lr->sgr_idx];
+        params.sgr.s0 = sgr_params[0];
+        params.sgr.s1 = sgr_params[1];
+        params.sgr.w0 = lr->sgr_weights[0];
+        params.sgr.w1 = 128 - (lr->sgr_weights[0] + lr->sgr_weights[1]);
+
+        lr_fn = dsp->lr.sgr[!!sgr_params[0] + !!sgr_params[1] * 2 - 1];
     }
 
     while (y + stripe_h <= row_h) {
         // Change the HAVE_BOTTOM bit in edges to (sby + 1 != f->sbh || y + stripe_h != row_h)
         edges ^= (-(sby + 1 != f->sbh || y + stripe_h != row_h) ^ edges) & LR_HAVE_BOTTOM;
-        if (wiener_fn) {
-            wiener_fn(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
-                      filter, edges HIGHBD_CALL_SUFFIX);
-        } else {
-            dsp->lr.selfguided(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
-                               lr->sgr_idx, lr->sgr_weights, edges HIGHBD_CALL_SUFFIX);
-        }
+        lr_fn(p, p_stride, left, lpf, lpf_stride, unit_w, stripe_h,
+              &params, edges HIGHBD_CALL_SUFFIX);
 
         left += stripe_h;
         y += stripe_h;
