@@ -43,6 +43,24 @@ void dav1d_wiener_filter5_##ext(pixel *dst, ptrdiff_t dst_stride, \
                                 enum LrEdgeFlags edges);
 
 #define SGR_FILTER(ext) \
+void dav1d_sgr_filter_5x5_##ext(pixel *dst, ptrdiff_t dst_stride, \
+                                const pixel (*left)[4], const pixel *lpf, \
+                                ptrdiff_t lpf_stride, int w, int h, \
+                                const LooprestorationParams *params, \
+                                enum LrEdgeFlags edges); \
+void dav1d_sgr_filter_3x3_##ext(pixel *dst, ptrdiff_t dst_stride, \
+                                const pixel (*left)[4], const pixel *lpf, \
+                                ptrdiff_t lpf_stride, int w, int h, \
+                                const LooprestorationParams *params, \
+                                enum LrEdgeFlags edges); \
+void dav1d_sgr_filter_mix_##ext(pixel *dst, ptrdiff_t dst_stride, \
+                                const pixel (*left)[4], const pixel *lpf, \
+                                ptrdiff_t lpf_stride, int w, int h, \
+                                const LooprestorationParams *params, \
+                                enum LrEdgeFlags edges);
+
+/* FIXME: Replace with a port of the AVX2 code */
+#define SGR_FILTER_OLD(ext) \
 void dav1d_sgr_box3_h_##ext(int32_t *sumsq, int16_t *sum, \
                             const pixel (*left)[4], \
                             const pixel *src, const ptrdiff_t stride, \
@@ -181,7 +199,7 @@ static void sgr_filter_mix_##ext(pixel *const dst, const ptrdiff_t dst_stride, \
 #if BITDEPTH == 8
 WIENER_FILTER(sse2)
 WIENER_FILTER(ssse3)
-SGR_FILTER(ssse3)
+SGR_FILTER_OLD(ssse3)
 # if ARCH_X86_64
 WIENER_FILTER(avx2)
 SGR_FILTER(avx2)
@@ -210,8 +228,8 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPCont
 #if BITDEPTH == 8 && ARCH_X86_64
     c->wiener[0] = dav1d_wiener_filter7_avx2;
     c->wiener[1] = dav1d_wiener_filter5_avx2;
-    c->sgr[0] = sgr_filter_5x5_avx2;
-    c->sgr[1] = sgr_filter_3x3_avx2;
-    c->sgr[2] = sgr_filter_mix_avx2;
+    c->sgr[0] = dav1d_sgr_filter_5x5_avx2;
+    c->sgr[1] = dav1d_sgr_filter_3x3_avx2;
+    c->sgr[2] = dav1d_sgr_filter_mix_avx2;
 #endif
 }
