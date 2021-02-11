@@ -208,24 +208,26 @@ static const EnumParseTable cpu_mask_tbl[] = {
     { "avx2",      X86_CPU_MASK_AVX2 },
     { "avx512icl", X86_CPU_MASK_AVX512ICL },
 #endif
-    { 0 },
+    { "none",      0 },
 };
 
+#define ARRAY_SIZE(n) (sizeof(n)/sizeof(*(n)))
+
 static unsigned parse_enum(char *optarg, const EnumParseTable *const tbl,
-                           const int option, const char *app)
+                           const int tbl_sz, const int option, const char *app)
 {
     char str[1024];
 
     strcpy(str, "any of ");
-    for (int n = 0; tbl[n].str; n++) {
+    for (int n = 0; n < tbl_sz; n++) {
         if (!strcmp(tbl[n].str, optarg))
             return tbl[n].val;
 
         if (n) {
-            if (!tbl[n + 1].str)
-                strcat(str, " or ");
-            else
+            if (n < tbl_sz - 1)
                 strcat(str, ", ");
+            else
+                strcat(str, " or ");
         }
         strcat(str, tbl[n].str);
     }
@@ -339,7 +341,7 @@ void parse(const int argc, char *const *const argv,
             fprintf(stderr, "%s\n", dav1d_version());
             exit(0);
         case ARG_CPU_MASK:
-            dav1d_set_cpu_flags_mask(parse_enum(optarg, cpu_mask_tbl,
+            dav1d_set_cpu_flags_mask(parse_enum(optarg, cpu_mask_tbl, ARRAY_SIZE(cpu_mask_tbl),
                                                 ARG_CPU_MASK, argv[0]));
             break;
         default:
