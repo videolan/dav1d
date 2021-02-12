@@ -147,6 +147,22 @@ build-debian-no-tools:
                       -Denable_tools=false
         - ninja -C build
 
+build-debian-bitdepth-8:
+    extends: .debian-amd64-common
+    script:
+        - meson build --buildtype release
+                      --werror
+                      -Dbitdepths=8
+        - ninja -C build
+
+build-debian-bitdepth-16:
+    extends: .debian-amd64-common
+    script:
+        - meson build --buildtype release
+                      --werror
+                      -Dbitdepths=16
+        - ninja -C build
+
 build-win32:
     extends: .debian-amd64-common
     script:
