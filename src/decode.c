@@ -2858,7 +2858,8 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     if (lr_line_sz != f->lf.lr_line_sz) {
         dav1d_freep_aligned(&f->lf.lr_lpf_line[0]);
         const int num_lines = c->n_pfc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
-        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * num_lines * 3, 32);
+        // lr simd may overread the input, so slightly over-allocate the lpf buffer
+        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * num_lines * 3 + 64, 32);
         if (!lr_ptr) {
             f->lf.lr_line_sz = 0;
             goto error;
