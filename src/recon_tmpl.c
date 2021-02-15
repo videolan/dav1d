@@ -444,32 +444,34 @@ static int decode_coefs(Dav1dTileContext *const t,
     // base tokens
     uint16_t (*const eob_cdf)[4] = ts->cdf.coef.eob_base_tok[t_dim->ctx][chroma];
     uint16_t (*const hi_cdf)[4] = ts->cdf.coef.br_tok[imin(t_dim->ctx, 3)][chroma];
-    const uint16_t *const scan = dav1d_scans[tx][tx_class];
     unsigned rc, dc_tok;
 
     if (eob) {
         uint16_t (*const lo_cdf)[4] = ts->cdf.coef.base_tok[t_dim->ctx][chroma];
         uint8_t *const levels = t->scratch.levels; // bits 0-5: tok, 6-7: lo_tok
         const int sw = imin(t_dim->w, 8), sh = imin(t_dim->h, 8);
-        const unsigned shift = 2 + imin(t_dim->lh, 3), mask = 4 * sh - 1;
 
         /* eob */
-        rc = scan[eob];
-        unsigned x = rc >> shift, y = rc & mask;
         unsigned ctx = 1 + (eob > sw * sh * 2) + (eob > sw * sh * 4);
         int eob_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, eob_cdf[ctx], 2);
         int tok = eob_tok + 1;
         int level_tok = tok * 0x41;
         unsigned mag;
 
-        if (dbg)
-            printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n",
-                   t_dim->ctx, chroma, ctx, eob, rc, tok, ts->msac.rng);
-
 #define DECODE_COEFS_CLASS(tx_class) \
+        unsigned x, y; \
+        if (tx_class == TX_CLASS_2D) \
+            rc = scan[eob], x = rc >> shift, y = rc & mask; \
+        else if (tx_class == TX_CLASS_H) \
+            /* Transposing reduces the stride and padding requirements */ \
+            x = eob & mask, y = eob >> shift, rc = eob; \
+        else /* tx_class == TX_CLASS_V */ \
+            x = eob & mask, y = eob >> shift, rc = (x << shift2) | y; \
+        if (dbg) \
+            printf("Post-lo_tok[%d][%d][%d][%d=%d=%d]: r=%d\n", \
+                   t_dim->ctx, chroma, ctx, eob, rc, tok, ts->msac.rng); \
         if (eob_tok == 2) { \
-            ctx = (tx_class == TX_CLASS_2D ? (x | y) > 1 : \
-                   tx_class == TX_CLASS_H ? x != 0 : y != 0) ? 14 : 7; \
+            ctx = (tx_class == TX_CLASS_2D ? (x | y) > 1 : y != 0) ? 14 : 7; \
             tok = dav1d_msac_decode_hi_tok(&ts->msac, hi_cdf[ctx]); \
             level_tok = tok + (3 << 6); \
             if (dbg) \
@@ -478,17 +480,15 @@ static int decode_coefs(Dav1dTileContext *const t,
                        ts->msac.rng); \
         } \
         cf[rc] = tok << 11; \
-        if (tx_class == TX_CLASS_H) \
-            /* Transposing reduces the stride and padding requirements */ \
-            levels[y * stride + x] = (uint8_t) level_tok; \
-        else \
-            levels[x * stride + y] = (uint8_t) level_tok; \
+        levels[x * stride + y] = (uint8_t) level_tok; \
         for (int i = eob - 1; i > 0; i--) { /* ac */ \
             unsigned rc_i; \
-            if (tx_class == TX_CLASS_H) \
-                rc_i = i, x = rc_i & mask, y = rc_i >> shift; \
-            else \
+            if (tx_class == TX_CLASS_2D) \
                 rc_i = scan[i], x = rc_i >> shift, y = rc_i & mask; \
+            else if (tx_class == TX_CLASS_H) \
+                x = i & mask, y = i >> shift, rc_i = i; \
+            else /* tx_class == TX_CLASS_V */ \
+                x = i & mask, y = i >> shift, rc_i = (x << shift2) | y; \
             assert(x < 32 && y < 32); \
             uint8_t *const level = levels + x * stride + y; \
             ctx = get_lo_ctx(level, tx_class, &mag, lo_ctx_offsets, x, y, stride); \
@@ -540,27 +540,33 @@ static int decode_coefs(Dav1dTileContext *const t,
         } \
         break
 
+        const uint8_t (*lo_ctx_offsets)[5];
+        const uint16_t *scan;
         switch (tx_class) {
         case TX_CLASS_2D: {
             const unsigned nonsquare_tx = tx >= RTX_4X8;
-            const uint8_t (*const lo_ctx_offsets)[5] =
-                dav1d_lo_ctx_offsets[nonsquare_tx + (tx & nonsquare_tx)];
+            lo_ctx_offsets = dav1d_lo_ctx_offsets[nonsquare_tx + (tx & nonsquare_tx)];
+            scan = dav1d_scans[tx];
             const ptrdiff_t stride = 4 * sh;
+            const unsigned shift = t_dim->lh < 4 ? t_dim->lh + 2 : 5, shift2 = 0;
+            const unsigned mask = 4 * sh - 1;
             memset(levels, 0, stride * (4 * sw + 2));
             DECODE_COEFS_CLASS(TX_CLASS_2D);
         }
         case TX_CLASS_H: {
-#define lo_ctx_offsets NULL
             const ptrdiff_t stride = 16;
+            const unsigned shift = t_dim->lh + 2, shift2 = 0;
+            const unsigned mask = 4 * sh - 1;
             memset(levels, 0, stride * (4 * sh + 2));
             DECODE_COEFS_CLASS(TX_CLASS_H);
         }
         case TX_CLASS_V: {
             const ptrdiff_t stride = 16;
+            const unsigned shift = t_dim->lw + 2, shift2 = t_dim->lh + 2;
+            const unsigned mask = 4 * sw - 1;
             memset(levels, 0, stride * (4 * sw + 2));
             DECODE_COEFS_CLASS(TX_CLASS_V);
         }
-#undef lo_ctx_offsets
 #undef DECODE_COEFS_CLASS
         default: assert(0);
         }
