@@ -540,12 +540,12 @@ static int decode_coefs(Dav1dTileContext *const t,
         } \
         break
 
-        const uint8_t (*lo_ctx_offsets)[5];
         const uint16_t *scan;
         switch (tx_class) {
         case TX_CLASS_2D: {
             const unsigned nonsquare_tx = tx >= RTX_4X8;
-            lo_ctx_offsets = dav1d_lo_ctx_offsets[nonsquare_tx + (tx & nonsquare_tx)];
+            const uint8_t (*const lo_ctx_offsets)[5] =
+                dav1d_lo_ctx_offsets[nonsquare_tx + (tx & nonsquare_tx)];
             scan = dav1d_scans[tx];
             const ptrdiff_t stride = 4 * sh;
             const unsigned shift = t_dim->lh < 4 ? t_dim->lh + 2 : 5, shift2 = 0;
@@ -554,6 +554,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             DECODE_COEFS_CLASS(TX_CLASS_2D);
         }
         case TX_CLASS_H: {
+            const uint8_t (*const lo_ctx_offsets)[5] = NULL;
             const ptrdiff_t stride = 16;
             const unsigned shift = t_dim->lh + 2, shift2 = 0;
             const unsigned mask = 4 * sh - 1;
@@ -561,6 +562,7 @@ static int decode_coefs(Dav1dTileContext *const t,
             DECODE_COEFS_CLASS(TX_CLASS_H);
         }
         case TX_CLASS_V: {
+            const uint8_t (*const lo_ctx_offsets)[5] = NULL;
             const ptrdiff_t stride = 16;
             const unsigned shift = t_dim->lw + 2, shift2 = t_dim->lh + 2;
             const unsigned mask = 4 * sw - 1;
