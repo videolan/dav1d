@@ -7,6 +7,7 @@ Changes for 0.8.2 'Eurasian hobby':
  - Give the post-filters their own threads
  - ARM64: rewrite the wiener functions
  - Speed up coefficient decoding, 0.5%-3% global decoding gain
+ - x86 optimizations for CDEF_filter in 10bit
  - x86: rewrite the SGR AVX2 asm
  - x86: improve msac speed on SSE2+ machines
  - ARM32: improve speed of ipred and warp
