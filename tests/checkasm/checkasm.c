@@ -772,32 +772,65 @@ void checkasm_set_signal_handler_state(const int enabled) {
 int checkasm_check_##type(const char *const file, const int line, \
                           const type *buf1, ptrdiff_t stride1, \
                           const type *buf2, ptrdiff_t stride2, \
-                          const int w, int h, const char *const name) \
+                          const int w, int h, const char *const name, \
+                          const int padding) \
 { \
     stride1 /= sizeof(*buf1); \
     stride2 /= sizeof(*buf2); \
     int y = 0; \
-    for (y = 0; y < h; y++) \
-        if (memcmp(&buf1[y*stride1], &buf2[y*stride2], w*sizeof(*buf1))) \
+    for (y = -padding; y < h + padding; y++) \
+        if (memcmp(&buf1[y*stride1 - padding], &buf2[y*stride2 - padding], \
+                   (w + 2*padding)*sizeof(*buf1))) \
             break; \
-    if (y == h) \
+    if (y == h + padding) \
         return 0; \
     if (!checkasm_fail_func("%s:%d", file, line)) \
         return 1; \
-    fprintf(stderr, "%s:\n", name); \
-    while (h--) { \
-        for (int x = 0; x < w; x++) \
-            fprintf(stderr, " " fmt, buf1[x]); \
-        fprintf(stderr, "    "); \
-        for (int x = 0; x < w; x++) \
-            fprintf(stderr, " " fmt, buf2[x]); \
-        fprintf(stderr, "    "); \
-        for (int x = 0; x < w; x++) \
-            fprintf(stderr, "%c", buf1[x] != buf2[x] ? 'x' : '.'); \
-        buf1 += stride1; \
-        buf2 += stride2; \
-        fprintf(stderr, "\n"); \
+    fprintf(stderr, "%s (%dx%d):\n", name, w, h); \
+    for (y = 0; y < h; y++) \
+        if (memcmp(&buf1[y*stride1], &buf2[y*stride2], w*sizeof(*buf1))) \
+            break; \
+    if (y != h) { \
+        for (y = 0; y < h; y++) { \
+            for (int x = 0; x < w; x++) \
+                fprintf(stderr, " " fmt, buf1[x]); \
+            fprintf(stderr, "    "); \
+            for (int x = 0; x < w; x++) \
+                fprintf(stderr, " " fmt, buf2[x]); \
+            fprintf(stderr, "    "); \
+            for (int x = 0; x < w; x++) \
+                fprintf(stderr, "%c", buf1[x] != buf2[x] ? 'x' : '.'); \
+            buf1 += stride1; \
+            buf2 += stride2; \
+            fprintf(stderr, "\n"); \
+        } \
+        buf1 -= h*stride1; \
+        buf2 -= h*stride2; \
     } \
+    for (y = -padding; y < 0; y++) \
+        if (memcmp(&buf1[y*stride1 - padding], &buf2[y*stride2 - padding], \
+                   (w + 2*padding)*sizeof(*buf1))) { \
+            fprintf(stderr, " overwrite above\n"); \
+            break; \
+        } \
+    for (y = h; y < h + padding; y++) \
+        if (memcmp(&buf1[y*stride1 - padding], &buf2[y*stride2 - padding], \
+                   (w + 2*padding)*sizeof(*buf1))) { \
+            fprintf(stderr, " overwrite below\n"); \
+            break; \
+        } \
+    for (y = 0; y < h; y++) \
+        if (memcmp(&buf1[y*stride1 - padding], &buf2[y*stride2 - padding], \
+                   padding*sizeof(*buf1))) { \
+            fprintf(stderr, " overwrite left\n"); \
+            break; \
+        } \
+    for (y = 0; y < h; y++) \
+        if (memcmp(&buf1[y*stride1 + w], &buf2[y*stride2 + w], \
+                   padding*sizeof(*buf1))) { \
+            fprintf(stderr, " overwrite right\n"); \
+            break; \
+        } \
     return 1; \
 }
 
