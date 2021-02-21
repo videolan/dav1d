@@ -2,12 +2,12 @@ Changes for 0.8.2 'Eurasian hobby':
 -----------------------------------
 
 0.8.2 is a middle-size update of the 0.8.0 branch:
- - ARM32 optimizations for ipred in 10/12bits, completing most of
-   the 10b/12b work on ARM
+ - ARM32 optimizations for ipred and itx in 10/12bits,
+   completing the 10b/12b work on ARM64 and ARM32
  - Give the post-filters their own threads
  - ARM64: rewrite the wiener functions
  - Speed up coefficient decoding, 0.5%-3% global decoding gain
- - x86 optimizations for CDEF_filter in 10bit
+ - x86 optimizations for CDEF_filter and wiener in 10/12bit
  - x86: rewrite the SGR AVX2 asm
  - x86: improve msac speed on SSE2+ machines
  - ARM32: improve speed of ipred and warp
