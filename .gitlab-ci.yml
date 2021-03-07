@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20200602183013
+    image: registry.videolan.org/dav1d-debian-unstable:20210307102341
     stage: build
     tags:
         - docker
@@ -117,6 +117,21 @@ build-debian-static:
         - ninja -C build
         - cd build && meson test -v
         - nm -A -g src/libdav1d.a | grep " [ABCDGRST] " | (! grep -v " _*dav1d_")
+
+build-debian-illegal-instructions:
+    extends: .debian-amd64-common
+    tags:
+        - docker
+        - avx2
+        - amd64
+    script:
+        - meson build --buildtype debug
+        - ninja -C build
+        - cd build
+        - exit_code=0
+        - time meson test -v --suite checkasm --wrapper 'qemu-x86_64 -cpu Conroe' || exit_code=$((exit_code + $?))
+        - time meson test -v --suite checkasm --wrapper 'qemu-x86_64 -cpu Penryn' || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 build-debian32:
     extends: .debian-amd64-common
