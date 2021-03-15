@@ -29,8 +29,15 @@
 
 #include "src/cpu.h"
 #include "src/film_grain.h"
+#include "asm-offsets.h"
 
 #if BITDEPTH == 8 && ARCH_AARCH64
+
+CHECK_OFFSET(Dav1dFilmGrainData, scaling_shift, FGD_SCALING_SHIFT);
+CHECK_OFFSET(Dav1dFilmGrainData, uv_mult, FGD_UV_MULT);
+CHECK_OFFSET(Dav1dFilmGrainData, uv_luma_mult, FGD_UV_LUMA_MULT);
+CHECK_OFFSET(Dav1dFilmGrainData, uv_offset, FGD_UV_OFFSET);
+CHECK_OFFSET(Dav1dFilmGrainData, clip_to_restricted_range, FGD_CLIP_TO_RESTRICTED_RANGE);
 
 // Use ptrdiff_t instead of int for the last few parameters, to get the
 // same layout of parameters on the stack across platforms.
@@ -49,6 +56,26 @@ FGY(00);
 FGY(01);
 FGY(10);
 FGY(11);
+
+// Use ptrdiff_t instead of int for the last few parameters, to get the
+// parameters on the stack with the same layout across platforms.
+#define FGUV(suff) \
+void BF(dav1d_fguv_32x32_ ## suff, neon)(pixel *const dst, \
+                                         const pixel *const src, \
+                                         const ptrdiff_t stride, \
+                                         const uint8_t scaling[SCALING_SIZE], \
+                                         const Dav1dFilmGrainData *const data, \
+                                         const entry grain_lut[][GRAIN_WIDTH], \
+                                         const pixel *const luma_row, \
+                                         const ptrdiff_t luma_stride, \
+                                         const int offsets[][2], \
+                                         const ptrdiff_t h, const ptrdiff_t uv, \
+                                         const ptrdiff_t is_id, \
+                                         const ptrdiff_t type)
+
+FGUV(420);
+FGUV(422);
+FGUV(444);
 
 static inline int get_random_number(const int bits, unsigned *const state) {
     const int r = *state;
@@ -120,6 +147,60 @@ static void fgy_32x32xn_neon(pixel *const dst_row, const pixel *const src_row,
     }
 }
 
+#define fguv_ss_fn(nm, sx, sy) \
+static void \
+fguv_32x32xn_##nm##_neon(pixel *const dst_row, const pixel *const src_row, \
+                  const ptrdiff_t stride, const Dav1dFilmGrainData *const data, \
+                  const int pw, const uint8_t scaling[SCALING_SIZE], \
+                  const entry grain_lut[][GRAIN_WIDTH], const int bh, \
+                  const int row_num, const pixel *const luma_row, \
+                  const ptrdiff_t luma_stride, const int uv, const int is_id \
+                  HIGHBD_DECL_SUFFIX) \
+{ \
+    const int rows = 1 + (data->overlap_flag && row_num > 0); \
+ \
+    /* seed[0] contains the current row, seed[1] contains the previous */ \
+    unsigned seed[2]; \
+    for (int i = 0; i < rows; i++) { \
+        seed[i] = data->seed; \
+        seed[i] ^= (((row_num - i) * 37  + 178) & 0xFF) << 8; \
+        seed[i] ^= (((row_num - i) * 173 + 105) & 0xFF); \
+    } \
+ \
+    int offsets[2 /* col offset */][2 /* row offset */]; \
+ \
+    /* process this row in BLOCK_SIZE^2 blocks (subsampled) */ \
+    for (int bx = 0; bx < pw; bx += BLOCK_SIZE >> sx) { \
+        if (data->overlap_flag && bx) { \
+            /* shift previous offsets left */ \
+            for (int i = 0; i < rows; i++) \
+                offsets[1][i] = offsets[0][i]; \
+        } \
+ \
+        /* update current offsets */ \
+        for (int i = 0; i < rows; i++) \
+            offsets[0][i] = get_random_number(8, &seed[i]); \
+ \
+        int type = 0; \
+        if (data->overlap_flag && row_num) \
+            type |= 1; /* overlap y */ \
+        if (data->overlap_flag && bx) \
+            type |= 2; /* overlap x */ \
+        if (data->chroma_scaling_from_luma) \
+            type |= 4; \
+ \
+        BF(dav1d_fguv_32x32_##nm, neon)(dst_row + bx, src_row + bx, stride, \
+                                        scaling, data, grain_lut, \
+                                        luma_row + (bx << sx), luma_stride, \
+                                        offsets, bh, uv, is_id, type \
+                                        HIGHBD_TAIL_SUFFIX); \
+    } \
+}
+
+fguv_ss_fn(420, 1, 1);
+fguv_ss_fn(422, 1, 0);
+fguv_ss_fn(444, 0, 0);
+
 #endif
 
 COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c) {
@@ -129,5 +210,8 @@ COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c
 
 #if BITDEPTH == 8 && ARCH_AARCH64
     c->fgy_32x32xn = fgy_32x32xn_neon;
+    c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I420 - 1] = fguv_32x32xn_420_neon;
+    c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I422 - 1] = fguv_32x32xn_422_neon;
+    c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I444 - 1] = fguv_32x32xn_444_neon;
 #endif
 }
