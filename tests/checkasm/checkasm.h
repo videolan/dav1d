@@ -319,8 +319,7 @@ DECL_CHECKASM_CHECK_FUNC(int16_t);
 DECL_CHECKASM_CHECK_FUNC(int32_t);
 
 
-#define PASTE(a,b) a ## b
-#define CONCAT(a,b) PASTE(a,b)
+#define CONCAT(a,b) a ## b
 
 #define checkasm_check(prefix, ...) CONCAT(checkasm_check_, prefix)(__FILE__, __LINE__, __VA_ARGS__)
 
