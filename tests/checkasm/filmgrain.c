@@ -178,29 +178,38 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
         generate_scaling(bitdepth_from_max(bitdepth_max), fg_data[0].y_points,
                          fg_data[0].num_y_points, scaling);
 
-        const int w = 1 + (rnd() & 127);
-        const int h = 1 + (rnd() & 31);
-
         for (int y = 0; y < 32; y++)
             for (int x = 0; x < 128; x++)
                 src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
-        const int row_num = rnd() & 1 ? rnd() & 0x7ff : 0;
 
         fg_data[0].clip_to_restricted_range = rnd() & 1;
         fg_data[0].scaling_shift = (rnd() & 3) + 8;
         for (fg_data[0].overlap_flag = 0; fg_data[0].overlap_flag <= 1;
              fg_data[0].overlap_flag++)
         {
-            call_ref(c_dst, src, stride, fg_data, w, scaling, grain_lut, h,
-                     row_num HIGHBD_TAIL_SUFFIX);
-            call_new(a_dst, src, stride, fg_data, w, scaling, grain_lut, h,
-                     row_num HIGHBD_TAIL_SUFFIX);
+            for (int i = 0; i <= fg_data[0].overlap_flag; i++) {
+                int w, h, row_num;
+                if (fg_data[0].overlap_flag) {
+                    w = 35 + (rnd() % 93);
+                    h = 3 + (rnd() % 29);
+                    row_num = i ? 1 + (rnd() & 0x7ff) : 0;
+                } else {
+                    w = 1 + (rnd() & 127);
+                    h = 1 + (rnd() & 31);
+                    row_num = rnd() & 0x7ff;
+                }
 
-            checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst");
+                call_ref(c_dst, src, stride, fg_data, w, scaling, grain_lut, h,
+                         row_num HIGHBD_TAIL_SUFFIX);
+                call_new(a_dst, src, stride, fg_data, w, scaling, grain_lut, h,
+                         row_num HIGHBD_TAIL_SUFFIX);
+
+                checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst");
+            }
         }
         fg_data[0].overlap_flag = 1;
         bench_new(a_dst, src, stride, fg_data, 64, scaling, grain_lut, 32,
-                  row_num HIGHBD_TAIL_SUFFIX);
+                  1 HIGHBD_TAIL_SUFFIX);
     }
 
     report("fgy_32x32xn");
@@ -258,17 +267,12 @@ static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                 dsp->generate_grain_uv[layout_idx](grain_lut[1], grain_lut[0],
                                                    fg_data, uv_pl HIGHBD_TAIL_SUFFIX);
 
-                const int w = 1 + (rnd() & (127 >> ss_x));
-                const int h = 1 + (rnd() & (31 >> ss_y));
-
                 for (int y = 0; y < 32; y++)
                     for (int x = 0; x < 128; x++)
                         src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
                 for (int y = 0; y < 32; y++)
                     for (int x = 0; x < 128; x++)
                         luma_src[y * PXSTRIDE(lstride) + x] = rnd() & bitdepth_max;
-                const int row_num = rnd() & 1 ? rnd() & 0x7ff : 0;
-
                 if (csfl) {
                     fg_data[0].num_y_points = 2 + (rnd() % 13);
                     const int pad = 0xff / fg_data[0].num_y_points;
@@ -301,17 +305,30 @@ static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                 for (fg_data[0].overlap_flag = 0; fg_data[0].overlap_flag <= 1;
                      fg_data[0].overlap_flag++)
                 {
-                    call_ref(c_dst, src, stride, fg_data, w, scaling, grain_lut[1], h,
-                             row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
-                    call_new(a_dst, src, stride, fg_data, w, scaling, grain_lut[1], h,
-                             row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+                    for (int i = 0; i <= fg_data[0].overlap_flag; i++) {
+                        int w, h, row_num;
+                        if (fg_data[0].overlap_flag) {
+                            w = (36 >> ss_x) + (rnd() % (92 >> ss_x));
+                            h = (4 >> ss_y) + (rnd() % (28 >> ss_y));
+                            row_num = i ? 1 + (rnd() & 0x7ff) : 0;
+                        } else {
+                            w = 1 + (rnd() & (127 >> ss_x));
+                            h = 1 + (rnd() & (31 >> ss_y));
+                            row_num = rnd() & 0x7ff;
+                        }
 
-                    checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst");
+                        call_ref(c_dst, src, stride, fg_data, w, scaling, grain_lut[1], h,
+                                 row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+                        call_new(a_dst, src, stride, fg_data, w, scaling, grain_lut[1], h,
+                                 row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+
+                        checkasm_check_pixel(c_dst, stride, a_dst, stride, w, h, "dst");
+                    }
                 }
 
                 fg_data[0].overlap_flag = 1;
                 bench_new(a_dst, src, stride, fg_data, 32, scaling, grain_lut[1], 16,
-                          row_num, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
+                          1, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
             }
         }
     }
