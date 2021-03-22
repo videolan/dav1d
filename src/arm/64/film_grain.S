@@ -96,25 +96,19 @@ endconst
         add             \dst, \dst, \offx, uxtw // grain_lut += offx
 .endm
 
-// void dav1d_fgy_32x32_XY_8bpc_neon(pixel *const dst, const pixel *const src,
-//                                   const ptrdiff_t stride,
-//                                   const uint8_t scaling[SCALING_SIZE],
-//                                   const int scaling_shift,
-//                                   const entry grain_lut[][GRAIN_WIDTH],
-//                                   const int offsets[][2],
-//                                   const int h, const ptrdiff_t clip);
-.macro fgy ox, oy
-function fgy_32x32_\ox\oy\()_8bpc_neon, export=1
+// void dav1d_fgy_32x32_8bpc_neon(pixel *const dst, const pixel *const src,
+//                                const ptrdiff_t stride,
+//                                const uint8_t scaling[SCALING_SIZE],
+//                                const int scaling_shift,
+//                                const entry grain_lut[][GRAIN_WIDTH],
+//                                const int offsets[][2],
+//                                const int h, const ptrdiff_t clip,
+//                                const ptrdiff_t type);
+function fgy_32x32_8bpc_neon, export=1
         str             x30, [sp, #-16]!
-.if \ox
         ldr             w11, [x6, #8]          // offsets[1][0]
-.endif
-.if \oy
         ldr             w13, [x6, #4]          // offsets[0][1]
-.endif
-.if \ox && \oy
         ldr             w15, [x6, #12]         // offsets[1][1]
-.endif
         ldr             w6,  [x6]              // offsets[0][0]
         ldr             w8,  [sp, #16]         // clip
         mov             x9,  #GRAIN_WIDTH      // grain_lut stride
@@ -122,9 +116,7 @@ function fgy_32x32_\ox\oy\()_8bpc_neon, export=1
         neg             w4,  w4
         dup             v29.8h, w4             // -scaling_shift
 
-.if \ox || \oy
         movrel          x16, overlap_coeffs_0
-.endif
 
         cbz             w8,  1f
         // clip
@@ -137,54 +129,48 @@ function fgy_32x32_\ox\oy\()_8bpc_neon, export=1
         movi            v31.16b, #255
 2:
 
-.if \ox || \oy
         ld1             {v27.8b, v28.8b}, [x16] // overlap_coeffs
-.endif
 
         add             x5,  x5,  #9           // grain_lut += 9
         add             x5,  x5,  x9,  lsl #3  // grain_lut += 8 * grain_stride
         add             x5,  x5,  x9           // grain_lut += grain_stride
 
-.if \ox
         calc_offset     w11, w12, w11, 0,  0
-.endif
-.if \oy
         calc_offset     w13, w14, w13, 0,  0
-.endif
-.if \ox && \oy
         calc_offset     w15, w16, w15, 0,  0
-.endif
         calc_offset     w6,  w10, w6,  0,  0
 
-.if \ox
         add_offset      x12, w11, x12, x5,  x9
-.endif
-.if \oy
         add_offset      x14, w13, x14, x5,  x9
-.endif
-.if \ox && \oy
         add_offset      x16, w15, x16, x5,  x9
-.endif
         add_offset      x5,  w6,  x10, x5,  x9
 
-.if \ox
+        ldr             w11, [sp, #24]         // type
+        adr             x13, L(fgy_loop_tbl)
+
         add             x4,  x12, #32          // grain_lut += BLOCK_SIZE * bx
-.endif
-.if \oy
         add             x6,  x14, x9,  lsl #5  // grain_lut += grain_stride * BLOCK_SIZE * by
-.endif
-.if \ox && \oy
+
+        tst             w11, #1
+        ldrh            w11, [x13, w11, uxtw #1]
+
         add             x8,  x16, x9,  lsl #5  // grain_lut += grain_stride * BLOCK_SIZE * by
         add             x8,  x8,  #32          // grain_lut += BLOCK_SIZE * bx
-.endif
 
-.if \oy
+        sub             x11, x13, w11, uxtw
+
+        b.eq            1f
+        // y overlap
         dup             v6.16b,  v27.b[0]
         dup             v7.16b,  v27.b[1]
         mov             w10, w7                // backup actual h
         mov             w7,  #2
-.endif
+1:
+        br              x11
+endfunc
 
+function fgy_loop_neon
+.macro fgy ox, oy
 L(loop_\ox\oy):
 1:
         ld1             {v0.16b,  v1.16b},  [x1],  x2 // src
@@ -300,13 +286,19 @@ L(loop_\ox\oy):
 .endif
         ldr             x30, [sp], #16
         ret
-endfunc
 .endm
 
-fgy 0, 0
-fgy 0, 1
-fgy 1, 0
-fgy 1, 1
+        fgy             0, 0
+        fgy             0, 1
+        fgy             1, 0
+        fgy             1, 1
+
+L(fgy_loop_tbl):
+        .hword L(fgy_loop_tbl) - L(loop_00)
+        .hword L(fgy_loop_tbl) - L(loop_01)
+        .hword L(fgy_loop_tbl) - L(loop_10)
+        .hword L(fgy_loop_tbl) - L(loop_11)
+endfunc
 
 // void dav1d_fguv_32x32_420_8bpc_neon(pixel *const dst,
 //                                     const pixel *const src,

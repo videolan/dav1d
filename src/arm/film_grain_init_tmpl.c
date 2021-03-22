@@ -41,21 +41,16 @@ CHECK_OFFSET(Dav1dFilmGrainData, clip_to_restricted_range, FGD_CLIP_TO_RESTRICTE
 
 // Use ptrdiff_t instead of int for the last few parameters, to get the
 // same layout of parameters on the stack across platforms.
-#define FGY(suff) \
-void BF(dav1d_fgy_32x32_ ## suff, neon)(pixel *const dst, \
-                                        const pixel *const src, \
-                                        const ptrdiff_t stride, \
-                                        const uint8_t scaling[SCALING_SIZE], \
-                                        const int scaling_shift, \
-                                        const entry grain_lut[][GRAIN_WIDTH], \
-                                        const int offsets[][2], \
-                                        const int h, const ptrdiff_t clip \
-                                        HIGHBD_DECL_SUFFIX)
-
-FGY(00);
-FGY(01);
-FGY(10);
-FGY(11);
+void BF(dav1d_fgy_32x32, neon)(pixel *const dst,
+                               const pixel *const src,
+                               const ptrdiff_t stride,
+                               const uint8_t scaling[SCALING_SIZE],
+                               const int scaling_shift,
+                               const entry grain_lut[][GRAIN_WIDTH],
+                               const int offsets[][2],
+                               const int h, const ptrdiff_t clip,
+                               const ptrdiff_t type
+                               HIGHBD_DECL_SUFFIX);
 
 // Use ptrdiff_t instead of int for the last few parameters, to get the
 // parameters on the stack with the same layout across platforms.
@@ -117,33 +112,17 @@ static void fgy_32x32xn_neon(pixel *const dst_row, const pixel *const src_row,
         for (int i = 0; i < rows; i++)
             offsets[0][i] = get_random_number(8, &seed[i]);
 
-        if (data->overlap_flag && row_num) {
-            if (data->overlap_flag && bx)
-                BF(dav1d_fgy_32x32_11, neon)(dst_row + bx, src_row + bx, stride,
-                                             scaling, data->scaling_shift,
-                                             grain_lut, offsets, bh,
-                                             data->clip_to_restricted_range
-                                             HIGHBD_TAIL_SUFFIX);
-            else
-                BF(dav1d_fgy_32x32_01, neon)(dst_row + bx, src_row + bx, stride,
-                                             scaling, data->scaling_shift,
-                                             grain_lut, offsets, bh,
-                                             data->clip_to_restricted_range
-                                             HIGHBD_TAIL_SUFFIX);
-        } else {
-            if (data->overlap_flag && bx)
-                BF(dav1d_fgy_32x32_10, neon)(dst_row + bx, src_row + bx, stride,
-                                             scaling, data->scaling_shift,
-                                             grain_lut, offsets, bh,
-                                             data->clip_to_restricted_range
-                                             HIGHBD_TAIL_SUFFIX);
-            else
-                BF(dav1d_fgy_32x32_00, neon)(dst_row + bx, src_row + bx, stride,
-                                             scaling, data->scaling_shift,
-                                             grain_lut, offsets, bh,
-                                             data->clip_to_restricted_range
-                                             HIGHBD_TAIL_SUFFIX);
-        }
+        int type = 0;
+        if (data->overlap_flag && row_num)
+            type |= 1; /* overlap y */
+        if (data->overlap_flag && bx)
+            type |= 2; /* overlap x */
+
+        BF(dav1d_fgy_32x32, neon)(dst_row + bx, src_row + bx, stride,
+                                  scaling, data->scaling_shift,
+                                  grain_lut, offsets, bh,
+                                  data->clip_to_restricted_range, type
+                                  HIGHBD_TAIL_SUFFIX);
     }
 }
 
