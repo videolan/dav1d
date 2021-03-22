@@ -27,6 +27,12 @@
 #ifndef ARM_ASM_OFFSETS_H
 #define ARM_ASM_OFFSETS_H
 
+#define FGD_SEED                         0
+#define FGD_AR_COEFF_LAG                 92
+#define FGD_AR_COEFFS_Y                  96
+#define FGD_AR_COEFF_SHIFT               176
+#define FGD_GRAIN_SCALE_SHIFT            184
+
 #define FGD_SCALING_SHIFT                88
 #define FGD_UV_MULT                      188
 #define FGD_UV_LUMA_MULT                 196

@@ -33,11 +33,21 @@
 
 #if BITDEPTH == 8 && ARCH_AARCH64
 
+CHECK_OFFSET(Dav1dFilmGrainData, seed, FGD_SEED);
+CHECK_OFFSET(Dav1dFilmGrainData, ar_coeff_lag, FGD_AR_COEFF_LAG);
+CHECK_OFFSET(Dav1dFilmGrainData, ar_coeffs_y, FGD_AR_COEFFS_Y);
+CHECK_OFFSET(Dav1dFilmGrainData, ar_coeff_shift, FGD_AR_COEFF_SHIFT);
+CHECK_OFFSET(Dav1dFilmGrainData, grain_scale_shift, FGD_GRAIN_SCALE_SHIFT);
+
 CHECK_OFFSET(Dav1dFilmGrainData, scaling_shift, FGD_SCALING_SHIFT);
 CHECK_OFFSET(Dav1dFilmGrainData, uv_mult, FGD_UV_MULT);
 CHECK_OFFSET(Dav1dFilmGrainData, uv_luma_mult, FGD_UV_LUMA_MULT);
 CHECK_OFFSET(Dav1dFilmGrainData, uv_offset, FGD_UV_OFFSET);
 CHECK_OFFSET(Dav1dFilmGrainData, clip_to_restricted_range, FGD_CLIP_TO_RESTRICTED_RANGE);
+
+void BF(dav1d_generate_grain_y, neon)(entry buf[][GRAIN_WIDTH],
+                                      const Dav1dFilmGrainData *const data
+                                      HIGHBD_DECL_SUFFIX);
 
 // Use ptrdiff_t instead of int for the last few parameters, to get the
 // same layout of parameters on the stack across platforms.
@@ -189,6 +199,8 @@ COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
 #if BITDEPTH == 8 && ARCH_AARCH64
+    c->generate_grain_y = BF(dav1d_generate_grain_y, neon);
+
     c->fgy_32x32xn = fgy_32x32xn_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I420 - 1] = fguv_32x32xn_420_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I422 - 1] = fguv_32x32xn_422_neon;
