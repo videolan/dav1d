@@ -34,6 +34,12 @@
 #define UNIT_TEST 1
 #include "src/fg_apply_tmpl.c"
 
+#if BITDEPTH == 8
+#define checkasm_check_entry(...) checkasm_check(int8_t, __VA_ARGS__)
+#else
+#define checkasm_check_entry(...) checkasm_check(int16_t, __VA_ARGS__)
+#endif
+
 static const char ss_name[][4] = {
     [DAV1D_PIXEL_LAYOUT_I420 - 1] = "420",
     [DAV1D_PIXEL_LAYOUT_I422 - 1] = "422",
@@ -65,11 +71,9 @@ static void check_gen_grny(const Dav1dFilmGrainDSPContext *const dsp) {
 
             call_ref(grain_lut_c, fg_data HIGHBD_TAIL_SUFFIX);
             call_new(grain_lut_a, fg_data HIGHBD_TAIL_SUFFIX);
-            if (memcmp(grain_lut_c, grain_lut_a,
-                       GRAIN_WIDTH * GRAIN_HEIGHT * sizeof(entry)))
-            {
-                fail();
-            }
+            checkasm_check_entry(grain_lut_c[0], sizeof(entry) * GRAIN_WIDTH,
+                                 grain_lut_a[0], sizeof(entry) * GRAIN_WIDTH,
+                                 GRAIN_WIDTH, GRAIN_HEIGHT, "grain_lut");
 
             bench_new(grain_lut_a, fg_data HIGHBD_TAIL_SUFFIX);
         }
@@ -123,10 +127,11 @@ static void check_gen_grnuv(const Dav1dFilmGrainDSPContext *const dsp) {
                 memset(grain_lut_a, 0xff, sizeof(grain_lut_a));
                 call_ref(grain_lut_c, grain_lut_y, fg_data, uv HIGHBD_TAIL_SUFFIX);
                 call_new(grain_lut_a, grain_lut_y, fg_data, uv HIGHBD_TAIL_SUFFIX);
-                int diff = 0, w = ss_x ? 44 : GRAIN_WIDTH;
-                for (int y = 0; y < (ss_y ? 38 : GRAIN_HEIGHT); y++)
-                    diff |= memcmp(grain_lut_a[y], grain_lut_c[y], w * sizeof(entry));
-                if (diff) fail();
+                int w = ss_x ? 44 : GRAIN_WIDTH;
+                int h = ss_y ? 38 : GRAIN_HEIGHT;
+                checkasm_check_entry(grain_lut_c[0], sizeof(entry) * GRAIN_WIDTH,
+                                     grain_lut_a[0], sizeof(entry) * GRAIN_WIDTH,
+                                     w, h, "grain_lut");
 
                 bench_new(grain_lut_a, grain_lut_y, fg_data, uv HIGHBD_TAIL_SUFFIX);
             }

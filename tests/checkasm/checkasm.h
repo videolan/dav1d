@@ -325,6 +325,7 @@ int checkasm_check_##type(const char *const file, const int line, \
                           const int align_w, const int align_h, \
                           const int padding)
 
+DECL_CHECKASM_CHECK_FUNC(int8_t);
 DECL_CHECKASM_CHECK_FUNC(uint8_t);
 DECL_CHECKASM_CHECK_FUNC(uint16_t);
 DECL_CHECKASM_CHECK_FUNC(int16_t);
