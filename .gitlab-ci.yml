@@ -415,6 +415,7 @@ build-debian-ppc64le:
         - avx2
     script:
         - meson configure build -Dtestdata_tests=true
+        - ninja -C build
         - cd build
         - exit_code=0
         - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0"     || exit_code=$((exit_code + $?))
