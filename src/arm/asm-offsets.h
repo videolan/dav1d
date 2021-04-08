@@ -30,6 +30,7 @@
 #define FGD_SEED                         0
 #define FGD_AR_COEFF_LAG                 92
 #define FGD_AR_COEFFS_Y                  96
+#define FGD_AR_COEFFS_UV                 120
 #define FGD_AR_COEFF_SHIFT               176
 #define FGD_GRAIN_SCALE_SHIFT            184
 
