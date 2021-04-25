@@ -66,7 +66,8 @@ void BF(dav1d_fguv_32x32_ ## suff, neon)(pixel *const dst, \
                                          const int offsets[][2], \
                                          const ptrdiff_t h, const ptrdiff_t uv, \
                                          const ptrdiff_t is_id, \
-                                         const ptrdiff_t type)
+                                         const ptrdiff_t type \
+                                         HIGHBD_DECL_SUFFIX)
 
 FGUV(420);
 FGUV(422);
