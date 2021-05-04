@@ -189,6 +189,7 @@ if is_asm_enabled
             'x86/cpuid.asm',
             'x86/msac.asm',
             'x86/cdef_avx2.asm',
+            'x86/itx_avx2.asm',
             'x86/looprestoration_avx2.asm',
             'x86/cdef_sse.asm',
         )
@@ -200,7 +201,6 @@ if is_asm_enabled
                 'x86/mc_avx2.asm',
                 'x86/film_grain_avx2.asm',
                 'x86/ipred_avx2.asm',
-                'x86/itx_avx2.asm',
                 'x86/loopfilter_avx2.asm',
                 'x86/film_grain_sse.asm',
                 'x86/ipred_sse.asm',
@@ -215,6 +215,7 @@ if is_asm_enabled
             libdav1d_sources_asm += files(
                 'x86/cdef16_avx2.asm',
                 'x86/ipred16_avx2.asm',
+                'x86/itx16_avx2.asm',
                 'x86/loopfilter16_avx2.asm',
                 'x86/looprestoration16_avx2.asm',
                 'x86/mc16_avx2.asm',
