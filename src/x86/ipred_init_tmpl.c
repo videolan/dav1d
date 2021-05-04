@@ -136,6 +136,8 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c
     init_cfl_ac_fn(DAV1D_PIXEL_LAYOUT_I444 - 1, ipred_cfl_ac_444, avx2);
 
     c->pal_pred = dav1d_pal_pred_avx2;
+#else
+    c->pal_pred = dav1d_pal_pred_16bpc_avx2;
 #endif
 #endif
 }
