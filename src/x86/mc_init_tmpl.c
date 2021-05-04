@@ -291,6 +291,8 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->blend = dav1d_blend_16bpc_avx2;
     c->blend_v = dav1d_blend_v_16bpc_avx2;
     c->blend_h = dav1d_blend_h_16bpc_avx2;
+    c->warp8x8  = dav1d_warp_affine_8x8_16bpc_avx2;
+    c->warp8x8t = dav1d_warp_affine_8x8t_16bpc_avx2;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
