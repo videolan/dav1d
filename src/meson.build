@@ -215,6 +215,7 @@ if is_asm_enabled
             libdav1d_sources_asm += files(
                 'x86/cdef16_avx2.asm',
                 'x86/ipred16_avx2.asm',
+                'x86/loopfilter16_avx2.asm',
                 'x86/looprestoration16_avx2.asm',
                 'x86/mc16_avx2.asm',
                 'x86/cdef16_sse.asm',
