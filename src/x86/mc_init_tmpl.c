@@ -281,6 +281,8 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 
     c->emu_edge = dav1d_emu_edge_avx2;
     c->resize = dav1d_resize_avx2;
+#else
+    c->avg = dav1d_avg_16bpc_avx2;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
