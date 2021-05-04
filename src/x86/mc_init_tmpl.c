@@ -284,6 +284,7 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 #else
     c->avg = dav1d_avg_16bpc_avx2;
     c->w_avg = dav1d_w_avg_16bpc_avx2;
+    c->mask = dav1d_mask_16bpc_avx2;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
