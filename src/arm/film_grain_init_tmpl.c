@@ -31,7 +31,7 @@
 #include "src/film_grain.h"
 #include "asm-offsets.h"
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if ARCH_AARCH64
 
 CHECK_OFFSET(Dav1dFilmGrainData, seed, FGD_SEED);
 CHECK_OFFSET(Dav1dFilmGrainData, ar_coeff_lag, FGD_AR_COEFF_LAG);
@@ -149,6 +149,7 @@ static void fgy_32x32xn_neon(pixel *const dst_row, const pixel *const src_row,
     }
 }
 
+#if BITDEPTH == 8
 #define fguv_ss_fn(nm, sx, sy) \
 static void \
 fguv_32x32xn_##nm##_neon(pixel *const dst_row, const pixel *const src_row, \
@@ -204,21 +205,26 @@ fguv_ss_fn(422, 1, 0);
 fguv_ss_fn(444, 0, 0);
 
 #endif
+#endif
 
 COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if BITDEPTH == 8 && ARCH_AARCH64
+#if ARCH_AARCH64
+#if BITDEPTH == 8
     c->generate_grain_y = BF(dav1d_generate_grain_y, neon);
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I420 - 1] = BF(dav1d_generate_grain_uv_420, neon);
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I422 - 1] = BF(dav1d_generate_grain_uv_422, neon);
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I444 - 1] = BF(dav1d_generate_grain_uv_444, neon);
+#endif
 
     c->fgy_32x32xn = fgy_32x32xn_neon;
+#if BITDEPTH == 8
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I420 - 1] = fguv_32x32xn_420_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I422 - 1] = fguv_32x32xn_422_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I444 - 1] = fguv_32x32xn_444_neon;
+#endif
 #endif
 }
