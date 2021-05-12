@@ -755,10 +755,12 @@ void checkasm_report(const char *const name, ...) {
 
 void checkasm_set_signal_handler_state(const int enabled) {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     if (enabled)
         AddVectoredExceptionHandler(0, signal_handler);
     else
         RemoveVectoredExceptionHandler(signal_handler);
+#endif
 #else
     void (*const handler)(int) = enabled ? signal_handler : SIG_DFL;
     signal(SIGBUS,  handler);
