@@ -183,10 +183,6 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
         generate_scaling(bitdepth_from_max(bitdepth_max), fg_data[0].y_points,
                          fg_data[0].num_y_points, scaling);
 
-        for (int y = 0; y < 32; y++)
-            for (int x = 0; x < 128; x++)
-                src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
-
         fg_data[0].clip_to_restricted_range = rnd() & 1;
         fg_data[0].scaling_shift = (rnd() & 3) + 8;
         for (fg_data[0].overlap_flag = 0; fg_data[0].overlap_flag <= 1;
@@ -202,6 +198,14 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                     w = 1 + (rnd() & 127);
                     h = 1 + (rnd() & 31);
                     row_num = rnd() & 0x7ff;
+                }
+
+                for (int y = 0; y < 32; y++) {
+                    // Src pixels past the right edge can be uninitialized
+                    for (int x = 0; x < 128; x++)
+                        src[y * PXSTRIDE(stride) + x] = rnd();
+                    for (int x = 0; x < w; x++)
+                        src[y * PXSTRIDE(stride) + x] &= bitdepth_max;
                 }
 
                 CLEAR_PIXEL_RECT(c_dst);
@@ -275,12 +279,6 @@ static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                 dsp->generate_grain_uv[layout_idx](grain_lut[1], grain_lut[0],
                                                    fg_data, uv_pl HIGHBD_TAIL_SUFFIX);
 
-                for (int y = 0; y < 32; y++)
-                    for (int x = 0; x < 128; x++)
-                        src[y * PXSTRIDE(stride) + x] = rnd() & bitdepth_max;
-                for (int y = 0; y < 32; y++)
-                    for (int x = 0; x < 128; x++)
-                        luma_src[y * PXSTRIDE(lstride) + x] = rnd() & bitdepth_max;
                 if (csfl) {
                     fg_data[0].num_y_points = 2 + (rnd() % 13);
                     const int pad = 0xff / fg_data[0].num_y_points;
@@ -323,6 +321,18 @@ static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                             w = 1 + (rnd() & (127 >> ss_x));
                             h = 1 + (rnd() & (31 >> ss_y));
                             row_num = rnd() & 0x7ff;
+                        }
+
+                        for (int y = 0; y < 32; y++) {
+                            // Src pixels past the right edge can be uninitialized
+                            for (int x = 0; x < 128; x++) {
+                                src[y * PXSTRIDE(stride) + x] = rnd();
+                                luma_src[y * PXSTRIDE(lstride) + x] = rnd();
+                            }
+                            for (int x = 0; x < w; x++)
+                                src[y * PXSTRIDE(stride) + x] &= bitdepth_max;
+                            for (int x = 0; x < (w << ss_x); x++)
+                                luma_src[y * PXSTRIDE(lstride) + x] &= bitdepth_max;
                         }
 
                         CLEAR_PIXEL_RECT(c_dst);
