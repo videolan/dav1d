@@ -139,8 +139,6 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
     assign_itx16_fn(pfx, w, h, ext); \
     assign_itx_fn(pfx, w, h, wht_wht,           WHT_WHT,           ext)
 
-    if (bpc > 10) return;
-
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;
@@ -168,6 +166,12 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
+
+#if ARCH_X86_64 && BITDEPTH == 16
+    assign_itx_fn(, 4, 4, wht_wht, WHT_WHT, 16bpc_avx2);
+#endif
+
+    if (bpc > 10) return;
 
 #if ARCH_X86_64
 #if BITDEPTH == 8
