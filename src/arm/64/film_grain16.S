@@ -188,7 +188,6 @@ function fgy_loop_neon
 .macro fgy ox, oy
 L(loop_\ox\oy):
 1:
-        mov             w16, #0xfff
         ld1             {v0.8h,  v1.8h,  v2.8h,  v3.8h},  [x1],  x2 // src
 .if \ox
         ld1             {v20.4h},                         [x4],  x9 // grain_lut old
@@ -199,7 +198,7 @@ L(loop_\ox\oy):
 .if \ox && \oy
         ld1             {v14.4h},                         [x8],  x9 // grain_lut top old
 .endif
-        dup             v4.8h,   w16
+        mvni            v4.8h,   #0xf0, lsl #8 // 0x0fff
         ld1             {v16.8h, v17.8h, v18.8h, v19.8h}, [x5],  x9 // grain_lut
 
         // Make sure that uninitialized pixels out of range past the right
