@@ -101,6 +101,8 @@ decl_itx_fn(dav1d_inv_txfm_add_dct_dct_64x16_ssse3);
 decl_itx_fn(dav1d_inv_txfm_add_dct_dct_64x32_ssse3);
 decl_itx_fn(dav1d_inv_txfm_add_dct_dct_64x64_ssse3);
 
+decl_itx_fn(dav1d_inv_txfm_add_wht_wht_4x4_16bpc_sse2);
+
 COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
                                         const int bpc)
 {
@@ -140,6 +142,12 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
     assign_itx_fn(pfx, w, h, wht_wht,           WHT_WHT,           ext)
 
     const unsigned flags = dav1d_get_cpu_flags();
+
+    if (!(flags & DAV1D_X86_CPU_FLAG_SSE2)) return;
+
+#if BITDEPTH == 16
+    assign_itx_fn(, 4, 4, wht_wht, WHT_WHT, 16bpc_sse2);
+#endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;
 
