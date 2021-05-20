@@ -216,6 +216,9 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->w_mask[0] = dav1d_w_mask_444_16bpc_ssse3;
     c->w_mask[1] = dav1d_w_mask_422_16bpc_ssse3;
     c->w_mask[2] = dav1d_w_mask_420_16bpc_ssse3;
+    c->blend = dav1d_blend_16bpc_ssse3;
+    c->blend_v = dav1d_blend_v_16bpc_ssse3;
+    c->blend_h = dav1d_blend_h_16bpc_ssse3;
 #endif
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSE41))
