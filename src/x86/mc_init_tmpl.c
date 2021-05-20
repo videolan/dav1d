@@ -193,7 +193,9 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     init_mct_scaled_fn(FILTER_2D_8TAP_SHARP,          8tap_scaled_sharp,          ssse3);
     init_mct_scaled_fn(FILTER_2D_BILINEAR,            bilin_scaled,               ssse3);
 #endif
+#endif
 
+#if BITDEPTH == 8
     c->avg = dav1d_avg_ssse3;
     c->w_avg = dav1d_w_avg_ssse3;
     c->mask = dav1d_mask_ssse3;
@@ -207,6 +209,10 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
 
     c->emu_edge = dav1d_emu_edge_ssse3;
     c->resize = dav1d_resize_ssse3;
+#else
+    c->avg = dav1d_avg_16bpc_ssse3;
+    c->w_avg = dav1d_w_avg_16bpc_ssse3;
+    c->mask = dav1d_mask_16bpc_ssse3;
 #endif
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSE41))

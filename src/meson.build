@@ -218,11 +218,12 @@ if is_asm_enabled
                 'x86/film_grain16_avx2.asm',
                 'x86/ipred16_avx2.asm',
                 'x86/itx16_avx2.asm',
-                'x86/itx16_sse.asm',
                 'x86/loopfilter16_avx2.asm',
                 'x86/looprestoration16_avx2.asm',
                 'x86/mc16_avx2.asm',
                 'x86/cdef16_sse.asm',
+                'x86/itx16_sse.asm',
+                'x86/mc16_sse.asm',
             )
         endif
 
