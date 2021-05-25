@@ -232,12 +232,14 @@ function sum_lag1_above_neon
         smull2          v5.8h,   v0.16b,  v27.16b
         smull           v6.8h,   v1.8b,   v29.8b
         smull2          v7.8h,   v1.16b,  v29.16b
-        add             v2.8h,   v2.8h,   v4.8h
-        add             v3.8h,   v3.8h,   v5.8h
-        saddl           v4.4s,   v2.4h,   v6.4h
-        saddl2          v5.4s,   v2.8h,   v6.8h
-        saddl           v6.4s,   v3.4h,   v7.4h
-        saddl2          v7.4s,   v3.8h,   v7.8h
+        saddl           v0.4s,   v2.4h,   v4.4h
+        saddl2          v1.4s,   v2.8h,   v4.8h
+        saddl           v2.4s,   v3.4h,   v5.4h
+        saddl2          v3.4s,   v3.8h,   v5.8h
+        saddw           v4.4s,   v0.4s,   v6.4h
+        saddw2          v5.4s,   v1.4s,   v6.8h
+        saddw           v6.4s,   v2.4s,   v7.4h
+        saddw2          v7.4s,   v3.4s,   v7.8h
         ret
 endfunc
 
@@ -450,14 +452,18 @@ function sum_lag2_above_neon
         smull2          v7.8h,   v0.16b,  v28.16b
         smull           v0.8h,   v1.8b,   v29.8b
         smull2          v1.8h,   v1.16b,  v29.16b
-        add             v2.8h,   v2.8h,   v4.8h
-        add             v3.8h,   v3.8h,   v5.8h
-        add             v0.8h,   v0.8h,   v6.8h
-        add             v1.8h,   v1.8h,   v7.8h
-        saddl           v4.4s,   v2.4h,   v0.4h
-        saddl2          v5.4s,   v2.8h,   v0.8h
-        saddl           v6.4s,   v3.4h,   v1.4h
-        saddl2          v7.4s,   v3.8h,   v1.8h
+        saddl           v22.4s,  v2.4h,   v4.4h
+        saddl2          v23.4s,  v2.8h,   v4.8h
+        saddl           v26.4s,  v3.4h,   v5.4h
+        saddl2          v27.4s,  v3.8h,   v5.8h
+        saddl           v2.4s,   v0.4h,   v6.4h
+        saddl2          v3.4s,   v0.8h,   v6.8h
+        saddl           v6.4s,   v1.4h,   v7.4h
+        saddl2          v7.4s,   v1.8h,   v7.8h
+        add             v4.4s,   v22.4s,  v2.4s
+        add             v5.4s,   v23.4s,  v3.4s
+        add             v6.4s,   v26.4s,  v6.4s
+        add             v7.4s,   v27.4s,  v7.4s
 
         ext             v22.16b, v19.16b, v20.16b, #14 // top left, top mid
         dup             v26.16b, v30.b[5]
@@ -476,14 +482,18 @@ function sum_lag2_above_neon
         smull2          v27.8h,  v0.16b,  v28.16b
         smull           v28.8h,  v1.8b,   v29.8b
         smull2          v29.8h,  v1.16b,  v29.16b
-        add             v2.8h,   v2.8h,   v22.8h
-        add             v3.8h,   v3.8h,   v23.8h
-        add             v26.8h,  v26.8h,  v28.8h
-        add             v27.8h,  v27.8h,  v29.8h
-        saddl           v0.4s,   v2.4h,   v26.4h
-        saddl2          v1.4s,   v2.8h,   v26.8h
-        saddl           v2.4s,   v3.4h,   v27.4h
-        saddl2          v3.4s,   v3.8h,   v27.8h
+        saddl           v0.4s,   v2.4h,   v22.4h
+        saddl2          v1.4s,   v2.8h,   v22.8h
+        saddl           v2.4s,   v3.4h,   v23.4h
+        saddl2          v3.4s,   v3.8h,   v23.8h
+        saddl           v22.4s,  v26.4h,  v28.4h
+        saddl2          v23.4s,  v26.8h,  v28.8h
+        saddl           v26.4s,  v27.4h,  v29.4h
+        saddl2          v27.4s,  v27.8h,  v29.8h
+        add             v0.4s,   v0.4s,   v22.4s
+        add             v1.4s,   v1.4s,   v23.4s
+        add             v2.4s,   v2.4s,   v26.4s
+        add             v3.4s,   v3.4s,   v27.4s
         dup             v26.16b, v30.b[2]
         dup             v27.16b, v30.b[7]
         smull           v22.8h,  v17.8b,  v26.8b
@@ -498,14 +508,16 @@ function sum_lag2_above_neon
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
 
-        add             v22.8h,  v22.8h,  v24.8h
-        add             v23.8h,  v23.8h,  v25.8h
+        saddl           v0.4s,   v22.4h,  v24.4h
+        saddl2          v1.4s,   v22.8h,  v24.8h
+        saddl           v2.4s,   v23.4h,  v25.4h
+        saddl2          v3.4s,   v23.8h,  v25.8h
         mov             v19.16b, v20.16b
         mov             v20.16b, v21.16b
-        saddw           v4.4s,   v4.4s,   v22.4h
-        saddw2          v5.4s,   v5.4s,   v22.8h
-        saddw           v6.4s,   v6.4s,   v23.4h
-        saddw2          v7.4s,   v7.4s,   v23.8h
+        add             v4.4s,   v4.4s,   v0.4s
+        add             v5.4s,   v5.4s,   v1.4s
+        add             v6.4s,   v6.4s,   v2.4s
+        add             v7.4s,   v7.4s,   v3.4s
         ret
 endfunc
 
@@ -711,32 +723,38 @@ function sum_lag3_above_neon
         smull2          v3.8h,   v9.16b,  v23.16b
         smull           v8.8h,   v10.8b,  v24.8b
         smull2          v9.8h,   v10.16b, v24.16b
-        add             v0.8h,   v0.8h,   v2.8h
-        add             v1.8h,   v1.8h,   v3.8h
         smull           v10.8h,  v11.8b,  v26.8b
         smull2          v11.8h,  v11.16b, v26.16b
-        smull           v2.8h,   v12.8b,  v27.8b
-        smull2          v3.8h,   v12.16b, v27.16b
-        add             v8.8h,   v8.8h,   v10.8h
-        add             v9.8h,   v9.8h,   v11.8h
+        saddl           v22.4s,  v0.4h,   v2.4h
+        saddl2          v23.4s,  v0.8h,   v2.8h
+        saddl           v24.4s,  v1.4h,   v3.4h
+        saddl2          v26.4s,  v1.8h,   v3.8h
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
+        smull           v8.8h,   v12.8b,  v27.8b
+        smull2          v9.8h,   v12.16b, v27.16b
         smull           v10.8h,  v13.8b,  v28.8b
         smull2          v11.8h,  v13.16b, v28.16b
-        saddl           v4.4s,   v0.4h,   v8.4h
-        saddl2          v5.4s,   v0.8h,   v8.8h
-        saddl           v6.4s,   v1.4h,   v9.4h
-        saddl2          v7.4s,   v1.8h,   v9.8h
-        smull           v8.8h,   v14.8b,  v25.8b
-        smull2          v9.8h,   v14.16b, v25.16b
-        add             v2.8h,   v2.8h,   v10.8h
-        add             v3.8h,   v3.8h,   v11.8h
-        saddl           v0.4s,   v2.4h,   v8.4h
-        saddl2          v1.4s,   v2.8h,   v8.8h
-        saddl           v2.4s,   v3.4h,   v9.4h
-        saddl2          v3.4s,   v3.8h,   v9.8h
+        smull           v12.8h,  v14.8b,  v25.8b
+        smull2          v13.8h,  v14.16b, v25.16b
+        add             v4.4s,   v22.4s,  v0.4s
+        add             v5.4s,   v23.4s,  v1.4s
+        add             v6.4s,   v24.4s,  v2.4s
+        add             v7.4s,   v26.4s,  v3.4s
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
         add             v4.4s,   v4.4s,   v0.4s
         add             v5.4s,   v5.4s,   v1.4s
         add             v6.4s,   v6.4s,   v2.4s
         add             v7.4s,   v7.4s,   v3.4s
+        saddw           v4.4s,   v4.4s,   v12.4h
+        saddw2          v5.4s,   v5.4s,   v12.8h
+        saddw           v6.4s,   v6.4s,   v13.4h
+        saddw2          v7.4s,   v7.4s,   v13.8h
 
         ext             v8.16b,  v16.16b, v17.16b, #13 // top left, top mid
         dup             v22.16b, v29.b[7]
@@ -758,36 +776,42 @@ function sum_lag3_above_neon
         smull2          v3.8h,   v9.16b,  v23.16b
         smull           v8.8h,   v10.8b,  v24.8b
         smull2          v9.8h,   v10.16b, v24.16b
-        add             v0.8h,   v0.8h,   v2.8h
-        add             v1.8h,   v1.8h,   v3.8h
         smull           v10.8h,  v11.8b,  v26.8b
         smull2          v11.8h,  v11.16b, v26.16b
-        smull           v2.8h,   v12.8b,  v27.8b
-        smull2          v3.8h,   v12.16b, v27.16b
-        add             v8.8h,   v8.8h,   v10.8h
-        add             v9.8h,   v9.8h,   v11.8h
+        saddl           v22.4s,  v0.4h,   v2.4h
+        saddl2          v23.4s,  v0.8h,   v2.8h
+        saddl           v24.4s,  v1.4h,   v3.4h
+        saddl2          v26.4s,  v1.8h,   v3.8h
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
+        smull           v8.8h,   v12.8b,  v27.8b
+        smull2          v9.8h,   v12.16b, v27.16b
         smull           v10.8h,  v13.8b,  v28.8b
         smull2          v11.8h,  v13.16b, v28.16b
-        saddl           v12.4s,  v0.4h,   v8.4h
-        saddl2          v13.4s,  v0.8h,   v8.8h
-        saddl           v0.4s,   v1.4h,   v9.4h
-        saddl2          v1.4s,   v1.8h,   v9.8h
-        smull           v8.8h,   v17.8b,  v25.8b
-        smull2          v9.8h,   v17.16b, v25.16b
-        add             v2.8h,   v2.8h,   v10.8h
-        add             v3.8h,   v3.8h,   v11.8h
-        add             v4.4s,   v4.4s,   v12.4s
-        add             v5.4s,   v5.4s,   v13.4s
-        add             v6.4s,   v6.4s,   v0.4s
-        add             v7.4s,   v7.4s,   v1.4s
-        saddl           v0.4s,   v2.4h,   v8.4h
-        saddl2          v1.4s,   v2.8h,   v8.8h
-        saddl           v2.4s,   v3.4h,   v9.4h
-        saddl2          v3.4s,   v3.8h,   v9.8h
+        smull           v12.8h,  v17.8b,  v25.8b
+        smull2          v13.8h,  v17.16b, v25.16b
+        add             v22.4s,  v22.4s,  v0.4s
+        add             v23.4s,  v23.4s,  v1.4s
+        add             v24.4s,  v24.4s,  v2.4s
+        add             v26.4s,  v26.4s,  v3.4s
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
+        add             v4.4s,   v4.4s,   v22.4s
+        add             v5.4s,   v5.4s,   v23.4s
+        add             v6.4s,   v6.4s,   v24.4s
+        add             v7.4s,   v7.4s,   v26.4s
         add             v4.4s,   v4.4s,   v0.4s
         add             v5.4s,   v5.4s,   v1.4s
         add             v6.4s,   v6.4s,   v2.4s
         add             v7.4s,   v7.4s,   v3.4s
+        saddw           v4.4s,   v4.4s,   v12.4h
+        saddw2          v5.4s,   v5.4s,   v12.8h
+        saddw           v6.4s,   v6.4s,   v13.4h
+        saddw2          v7.4s,   v7.4s,   v13.8h
 
         ext             v8.16b,  v19.16b, v20.16b, #13 // top left, top mid
         dup             v22.16b, v29.b[14]
@@ -809,42 +833,46 @@ function sum_lag3_above_neon
         smull2          v3.8h,   v9.16b,  v23.16b
         smull           v8.8h,   v10.8b,  v24.8b
         smull2          v9.8h,   v10.16b, v24.16b
-        add             v0.8h,   v0.8h,   v2.8h
-        add             v1.8h,   v1.8h,   v3.8h
         smull           v10.8h,  v11.8b,  v26.8b
         smull2          v11.8h,  v11.16b, v26.16b
-        smull           v2.8h,   v12.8b,  v27.8b
-        smull2          v3.8h,   v12.16b, v27.16b
-        add             v8.8h,   v8.8h,   v10.8h
-        add             v9.8h,   v9.8h,   v11.8h
+        saddl           v22.4s,  v0.4h,   v2.4h
+        saddl2          v23.4s,  v0.8h,   v2.8h
+        saddl           v24.4s,  v1.4h,   v3.4h
+        saddl2          v26.4s,  v1.8h,   v3.8h
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
+        smull           v8.8h,   v12.8b,  v27.8b
+        smull2          v9.8h,   v12.16b, v27.16b
         smull           v10.8h,  v13.8b,  v28.8b
         smull2          v11.8h,  v13.16b, v28.16b
-        saddl           v12.4s,  v0.4h,   v8.4h
-        saddl2          v13.4s,  v0.8h,   v8.8h
-        saddl           v0.4s,   v1.4h,   v9.4h
-        saddl2          v1.4s,   v1.8h,   v9.8h
-        smull           v8.8h,   v20.8b,  v25.8b
-        smull2          v9.8h,   v20.16b, v25.16b
-        add             v2.8h,   v2.8h,   v10.8h
-        add             v3.8h,   v3.8h,   v11.8h
-        add             v4.4s,   v4.4s,   v12.4s
-        add             v5.4s,   v5.4s,   v13.4s
-        add             v6.4s,   v6.4s,   v0.4s
-        add             v7.4s,   v7.4s,   v1.4s
-        saddl           v0.4s,   v2.4h,   v8.4h
-        saddl2          v1.4s,   v2.8h,   v8.8h
-        saddl           v2.4s,   v3.4h,   v9.4h
-        saddl2          v3.4s,   v3.8h,   v9.8h
+        smull           v12.8h,  v20.8b,  v25.8b
+        smull2          v19.8h,  v20.16b, v25.16b
+        add             v22.4s,  v22.4s,  v0.4s
+        add             v23.4s,  v23.4s,  v1.4s
+        add             v24.4s,  v24.4s,  v2.4s
+        add             v26.4s,  v26.4s,  v3.4s
+        saddl           v0.4s,   v8.4h,   v10.4h
+        saddl2          v1.4s,   v8.8h,   v10.8h
+        saddl           v2.4s,   v9.4h,   v11.4h
+        saddl2          v3.4s,   v9.8h,   v11.8h
+        add             v4.4s,   v4.4s,   v22.4s
+        add             v5.4s,   v5.4s,   v23.4s
+        add             v6.4s,   v6.4s,   v24.4s
+        add             v7.4s,   v7.4s,   v26.4s
+        mov             v13.16b, v14.16b
+        mov             v14.16b, v15.16b
         add             v4.4s,   v4.4s,   v0.4s
         add             v5.4s,   v5.4s,   v1.4s
         add             v6.4s,   v6.4s,   v2.4s
         add             v7.4s,   v7.4s,   v3.4s
-
-        mov             v13.16b, v14.16b
-        mov             v14.16b, v15.16b
-
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
+        saddw           v4.4s,   v4.4s,   v12.4h
+        saddw2          v5.4s,   v5.4s,   v12.8h
+        saddw           v6.4s,   v6.4s,   v19.4h
+        saddw2          v7.4s,   v7.4s,   v19.8h
 
         mov             v19.16b, v20.16b
         mov             v20.16b, v21.16b
