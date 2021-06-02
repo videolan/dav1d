@@ -1599,7 +1599,7 @@ function fgy_32x32_8bpc_neon, export=1
         mov             x9,  #GRAIN_WIDTH      // grain_lut stride
 
         neg             w4,  w4
-        dup             v29.8h, w4             // -scaling_shift
+        dup             v29.8h,  w4            // -scaling_shift
 
         movrel          x16, overlap_coeffs_0
 
@@ -1813,11 +1813,11 @@ function fguv_32x32_\layout\()_8bpc_neon, export=1
         add             x14, x10, #FGD_UV_LUMA_MULT
         add             x15, x10, #FGD_UV_MULT
         add             x10, x10, #FGD_UV_OFFSET
-        ld1             {v8.h}[0], [x14] // uv_luma_mult
-        ld1r            {v24.8h},  [x10] // uv_offset
-        ld1             {v8.h}[1], [x15] // uv_mult
+        ld1             {v8.h}[0], [x14]       // uv_luma_mult
+        ld1r            {v24.8h},  [x10]       // uv_offset
+        ld1             {v8.h}[1], [x15]       // uv_mult
 
-        dup             v29.8h, w13            // -scaling_shift
+        dup             v29.8h,  w13           // -scaling_shift
 
         cbz             w12, 1f
         // clip
