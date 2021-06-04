@@ -1800,7 +1800,7 @@ endfunc
 .macro fguv layout, sx, sy
 function fguv_32x32_\layout\()_8bpc_neon, export=1
         str             x30,      [sp, #-32]!
-        stp             d8,  d9,  [sp, #16]
+        str             d8,       [sp, #16]
         ldp             x8,  x9,  [sp, #32]    // offsets, h
         ldp             x10, x11, [sp, #48]    // uv, is_id
 
@@ -2064,7 +2064,7 @@ L(fguv_loop_sx0_csfl\csfl\()_\ox\oy):
         fguv_loop_sx0   1, 1, 1
 
 9:
-        ldp             d8,  d9,  [sp, #16]
+        ldr             d8,       [sp, #16]
         ldr             x30,      [sp], #32
         ret
 
@@ -2211,7 +2211,7 @@ L(fguv_loop_sx1_csfl\csfl\()_\ox\oy):
         fguv_loop_sx1   1, 1, 1
 
 9:
-        ldp             d8,  d9,  [sp, #16]
+        ldr             d8,       [sp, #16]
         ldr             x30,      [sp], #32
         ret
 
