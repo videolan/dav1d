@@ -110,6 +110,7 @@ function fgy_32x32_16bpc_neon, export=1
         stp             d10, d11, [sp, #32]
         stp             d12, d13, [sp, #48]
         str             d14,      [sp, #64]
+        eor             w4,  w4,  #15          // 15 - scaling_shift
         ldr             w11, [x6, #8]          // offsets[1][0]
         ldr             w13, [x6, #4]          // offsets[0][1]
         ldr             w15, [x6, #12]         // offsets[1][1]
@@ -122,8 +123,7 @@ function fgy_32x32_16bpc_neon, export=1
         mov             x9,  #GRAIN_WIDTH*2    // grain_lut stride
         neg             w10, w10               // bitdepth_min_8
 
-        neg             w4,  w4
-        dup             v29.4s,  w4            // -scaling_shift
+        dup             v29.8h,  w4            // 15 - scaling_shift
         dup             v27.8h,  w10           // bitdepth_min_8
 
         movrel          x16, overlap_coeffs_0
@@ -268,7 +268,7 @@ L(loop_\ox\oy):
         smax            v19.8h,  v19.8h,  v25.8h
 .endif
 
-        uxtl            v4.8h,   v6.8b   // scaling
+        uxtl            v4.8h,   v6.8b            // scaling
 .if \ox && !\oy
         sqrshrn         v20.4h,  v20.4s,  #5
 .endif
@@ -281,37 +281,18 @@ L(loop_\ox\oy):
         smax            v20.4h,  v20.4h,  v25.4h
 .endif
         uxtl2           v7.8h,   v7.16b
-
 .if \ox && !\oy
-        smull           v20.4s,  v20.4h,  v4.4h   // scaling * grain
-.else
-        smull           v20.4s,  v16.4h,  v4.4h
+        ins             v16.d[0], v20.d[0]
 .endif
-        smull2          v21.4s,  v16.8h,  v4.8h
-        smull           v22.4s,  v17.4h,  v5.4h
-        smull2          v23.4s,  v17.8h,  v5.8h
-        smull           v16.4s,  v18.4h,  v6.4h
-        smull2          v17.4s,  v18.8h,  v6.8h
-        smull           v18.4s,  v19.4h,  v7.4h
-        smull2          v19.4s,  v19.8h,  v7.8h
+        ushl            v4.8h,   v4.8h,   v29.8h  // scaling << (15 - scaling_shift)
+        ushl            v5.8h,   v5.8h,   v29.8h
+        ushl            v6.8h,   v6.8h,   v29.8h
+        ushl            v7.8h,   v7.8h,   v29.8h
 
-        srshl           v20.4s,  v20.4s,  v29.4s  // round2(scaling * grain, scaling_shift)
-        srshl           v21.4s,  v21.4s,  v29.4s
-        srshl           v22.4s,  v22.4s,  v29.4s
-        srshl           v23.4s,  v23.4s,  v29.4s
-        srshl           v16.4s,  v16.4s,  v29.4s
-        srshl           v17.4s,  v17.4s,  v29.4s
-        srshl           v18.4s,  v18.4s,  v29.4s
-        srshl           v19.4s,  v19.4s,  v29.4s
-
-        sqxtn           v20.4h,  v20.4s
-        sqxtn2          v20.8h,  v21.4s
-        sqxtn           v21.4h,  v22.4s
-        sqxtn2          v21.8h,  v23.4s
-        sqxtn           v22.4h,  v16.4s
-        sqxtn2          v22.8h,  v17.4s
-        sqxtn           v23.4h,  v18.4s
-        sqxtn2          v23.8h,  v19.4s
+        sqrdmulh        v20.8h,  v16.8h,  v4.8h   // round2((scaling << (15 - scaling_shift) * grain, 15)
+        sqrdmulh        v21.8h,  v17.8h,  v5.8h
+        sqrdmulh        v22.8h,  v18.8h,  v6.8h
+        sqrdmulh        v23.8h,  v19.8h,  v7.8h
 
         usqadd          v0.8h,   v20.8h           // *src + noise
         usqadd          v1.8h,   v21.8h
