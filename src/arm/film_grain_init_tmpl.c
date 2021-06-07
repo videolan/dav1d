@@ -209,7 +209,7 @@ COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if ARCH_AARCH64 && BITDEPTH == 8
+#if ARCH_AARCH64
     c->generate_grain_y = BF(dav1d_generate_grain_y, neon);
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I420 - 1] = BF(dav1d_generate_grain_uv_420, neon);
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I422 - 1] = BF(dav1d_generate_grain_uv_422, neon);
