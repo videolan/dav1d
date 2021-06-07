@@ -229,6 +229,11 @@ static void check_fgy_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
             }
         }
         fg_data[0].overlap_flag = 1;
+        for (int y = 0; y < 32; y++) {
+            // Make sure all pixels are in range
+            for (int x = 0; x < 128; x++)
+                src[y * PXSTRIDE(stride) + x] &= bitdepth_max;
+        }
         bench_new(a_dst, src, stride, fg_data, 64, scaling, grain_lut, 32,
                   1 HIGHBD_TAIL_SUFFIX);
     }
@@ -368,6 +373,13 @@ static void check_fguv_sbrow(const Dav1dFilmGrainDSPContext *const dsp) {
                 }
 
                 fg_data[0].overlap_flag = 1;
+                for (int y = 0; y < 32; y++) {
+                    // Make sure all pixels are in range
+                    for (int x = 0; x < 128; x++) {
+                        src[y * PXSTRIDE(stride) + x] &= bitdepth_max;
+                        luma_src[y * PXSTRIDE(lstride) + x] &= bitdepth_max;
+                    }
+                }
                 bench_new(a_dst, src, stride, fg_data, 32, scaling, grain_lut[1], 16,
                           1, luma_src, lstride, uv_pl, is_identity HIGHBD_TAIL_SUFFIX);
             }
