@@ -1511,40 +1511,47 @@ gen_grain_44 uv_422
 
 .macro gather_interleaved dst1, dst2, src1, src2, off
         umov            w14, \src1[0+\off]
-        umov            w15, \src2[1+\off]
+        umov            w15, \src2[8+\off]
         umov            w16, \src1[2+\off]
         add             x14, x14, x3
-        umov            w17, \src2[3+\off]
+        umov            w17, \src2[10+\off]
         add             x15, x15, x3
-        ld1             {\dst1}[0+\off], [x14]
+        ld1             {\dst1}[0+\off],  [x14]
         umov            w14, \src1[4+\off]
         add             x16, x16, x3
-        ld1             {\dst2}[1+\off], [x15]
-        umov            w15, \src2[5+\off]
+        ld1             {\dst2}[8+\off],  [x15]
+        umov            w15, \src2[12+\off]
         add             x17, x17, x3
-        ld1             {\dst1}[2+\off], [x16]
+        ld1             {\dst1}[2+\off],  [x16]
         umov            w16, \src1[6+\off]
         add             x14, x14, x3
-        ld1             {\dst2}[3+\off], [x17]
-        umov            w17, \src2[7+\off]
+        ld1             {\dst2}[10+\off], [x17]
+        umov            w17, \src2[14+\off]
         add             x15, x15, x3
-        ld1             {\dst1}[4+\off], [x14]
+        ld1             {\dst1}[4+\off],  [x14]
         add             x16, x16, x3
-        ld1             {\dst2}[5+\off], [x15]
+        ld1             {\dst2}[12+\off], [x15]
         add             x17, x17, x3
-        ld1             {\dst1}[6+\off], [x16]
-        ld1             {\dst2}[7+\off], [x17]
+        ld1             {\dst1}[6+\off],  [x16]
+        ld1             {\dst2}[14+\off], [x17]
 .endm
 
 .macro gather dst1, dst2, src1, src2
         gather_interleaved \dst1, \dst2, \src1, \src2, 0
         gather_interleaved \dst2, \dst1, \src2, \src1, 0
-        gather_interleaved \dst1, \dst2, \src1, \src2, 8
-        gather_interleaved \dst2, \dst1, \src2, \src1, 8
+        gather_interleaved \dst1, \dst2, \src1, \src2, 1
+        gather_interleaved \dst2, \dst1, \src2, \src1, 1
 .endm
 
-function gather_neon
+function gather32_neon
         gather          v4.b, v5.b, v0.b, v1.b
+        ret
+endfunc
+
+function gather16_neon
+        gather_interleaved v4.b, v5.b, v0.b, v0.b, 0
+        gather_interleaved v4.b, v5.b, v0.b, v0.b, 1
+        ins             v4.d[1], v5.d[1]
         ret
 endfunc
 
@@ -1663,7 +1670,7 @@ L(loop_\ox\oy):
 .endif
         ld1             {v18.16b, v19.16b}, [x5],  x9 // grain_lut
 
-        bl              gather_neon
+        bl              gather32_neon
 
 .if \ox
         smull           v20.8h,  v20.8b,  v27.8b
@@ -1946,7 +1953,7 @@ L(fguv_loop_sx0_csfl\csfl\()_\ox\oy):
         sqxtun2         v1.16b,  v5.8h
 .endif
 
-        bl              gather_neon
+        bl              gather32_neon
 
 .if \ox
         smull           v20.8h,  v20.8b,  v27.8b
@@ -2113,7 +2120,7 @@ L(fguv_loop_sx1_csfl\csfl\()_\ox\oy):
         sqxtun2         v0.16b,  v3.8h
 .endif
 
-        bl              gather_neon
+        bl              gather16_neon
 
 .if \ox
         smull           v20.8h,  v20.8b,  v27.8b
