@@ -47,7 +47,7 @@
     decl_##type##_fn(name##_16bpc_sse2); \
     decl_##type##_fn(name##_16bpc_ssse3); \
     decl_##type##_fn(name##_16bpc_avx2); \
-    decl_##type##_fn(name##_avx512icl);
+    decl_##type##_fn(name##_16bpc_avx512icl);
 #define init_mc_fn(type, name, suffix) \
     c->mc[type] = dav1d_put_##name##_16bpc_##suffix
 #define init_mct_fn(type, name, suffix) \
@@ -217,6 +217,8 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->blend = dav1d_blend_16bpc_ssse3;
     c->blend_v = dav1d_blend_v_16bpc_ssse3;
     c->blend_h = dav1d_blend_h_16bpc_ssse3;
+
+    c->emu_edge = dav1d_emu_edge_16bpc_ssse3;
 #endif
 
     if(!(flags & DAV1D_X86_CPU_FLAG_SSE41))
