@@ -62,8 +62,6 @@ GEN_GRAIN_UV(422);
 GEN_GRAIN_UV(444);
 #endif
 
-#if ARCH_AARCH64 || BITDEPTH == 8
-
 // Use ptrdiff_t instead of int for the last few parameters, to get the
 // same layout of parameters on the stack across platforms.
 void BF(dav1d_fgy_32x32, neon)(pixel *const dst,
@@ -206,8 +204,6 @@ fguv_ss_fn(420, 1, 1);
 fguv_ss_fn(422, 1, 0);
 fguv_ss_fn(444, 0, 0);
 
-#endif
-
 COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
 
@@ -220,10 +216,8 @@ COLD void bitfn(dav1d_film_grain_dsp_init_arm)(Dav1dFilmGrainDSPContext *const c
     c->generate_grain_uv[DAV1D_PIXEL_LAYOUT_I444 - 1] = BF(dav1d_generate_grain_uv_444, neon);
 #endif
 
-#if ARCH_AARCH64 || BITDEPTH == 8
     c->fgy_32x32xn = fgy_32x32xn_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I420 - 1] = fguv_32x32xn_420_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I422 - 1] = fguv_32x32xn_422_neon;
     c->fguv_32x32xn[DAV1D_PIXEL_LAYOUT_I444 - 1] = fguv_32x32xn_444_neon;
-#endif
 }
