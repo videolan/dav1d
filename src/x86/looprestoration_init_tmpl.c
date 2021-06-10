@@ -179,6 +179,7 @@ static void BF(sgr_filter_mix, ext)(pixel *const dst, const ptrdiff_t dst_stride
 decl_wiener_filter_fns(sse2);
 decl_wiener_filter_fns(ssse3);
 decl_wiener_filter_fns(avx2);
+decl_sgr_filter_fns(ssse3);
 decl_sgr_filter_fns(avx2);
 
 #if BITDEPTH == 8
@@ -203,6 +204,12 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPCont
     c->sgr[0] = BF(sgr_filter_5x5, ssse3);
     c->sgr[1] = BF(sgr_filter_3x3, ssse3);
     c->sgr[2] = BF(sgr_filter_mix, ssse3);
+#else
+    if (bpc == 10) {
+        c->sgr[0] = BF(dav1d_sgr_filter_5x5, ssse3);
+        c->sgr[1] = BF(dav1d_sgr_filter_3x3, ssse3);
+        c->sgr[2] = BF(dav1d_sgr_filter_mix, ssse3);
+    }
 #endif
 
 #if ARCH_X86_64
