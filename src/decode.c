@@ -2629,7 +2629,7 @@ int dav1d_decode_tile_sbrow(Dav1dTileContext *const t) {
         }
     }
 
-    if (f->n_tc > 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
+    if (f->seq_hdr->ref_frame_mvs && f->n_tc > 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
         dav1d_refmvs_save_tmvs(&t->rt,
                                ts->tiling.col_start >> 1, ts->tiling.col_end >> 1,
                                t->by >> 1, (t->by + sb_step) >> 1);
@@ -3114,7 +3114,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                         t->ts = &f->ts[tile_row * f->frame_hdr->tiling.cols + tile_col];
                         if (dav1d_decode_tile_sbrow(t)) goto error;
                     }
-                    if (f->frame_thread.pass <= 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
+                    if (f->seq_hdr->ref_frame_mvs && f->frame_thread.pass <= 1 && IS_INTER_OR_SWITCH(f->frame_hdr)) {
                         dav1d_refmvs_save_tmvs(&t->rt, 0, f->bw >> 1, t->by >> 1, by_end);
                     }
 
