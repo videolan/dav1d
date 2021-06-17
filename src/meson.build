@@ -175,6 +175,7 @@ if is_asm_enabled
         libdav1d_sources += files(
             'x86/cpu.c',
             'x86/msac_init.c',
+            'x86/refmvs_init.c',
         )
 
         libdav1d_tmpl_sources += files(
@@ -191,6 +192,7 @@ if is_asm_enabled
         libdav1d_sources_asm = files(
             'x86/cpuid.asm',
             'x86/msac.asm',
+            'x86/refmvs.asm',
             'x86/cdef_avx2.asm',
             'x86/itx_avx2.asm',
             'x86/looprestoration_avx2.asm',

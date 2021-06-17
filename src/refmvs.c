@@ -920,4 +920,8 @@ static void splat_mv_c(refmvs_block **rr, const refmvs_block *const rmv,
 COLD void dav1d_refmvs_dsp_init(Dav1dRefmvsDSPContext *const c)
 {
     c->splat_mv = splat_mv_c;
+
+#if HAVE_ASM && ARCH_X86
+    dav1d_refmvs_dsp_init_x86(c);
+#endif
 }

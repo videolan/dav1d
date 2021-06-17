@@ -145,5 +145,6 @@ void dav1d_refmvs_find(const refmvs_tile *rt,
                        enum EdgeFlags edge_flags, int by4, int bx4);
 
 void dav1d_refmvs_dsp_init(Dav1dRefmvsDSPContext *dsp);
+void dav1d_refmvs_dsp_init_x86(Dav1dRefmvsDSPContext *dsp);
 
 #endif /* DAV1D_SRC_REF_MVS_H */
