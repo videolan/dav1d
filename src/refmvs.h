@@ -55,11 +55,11 @@ typedef union refmvs_mvpair {
     uint64_t n;
 } refmvs_mvpair;
 
-typedef struct refmvs_block {
+PACKED(typedef struct refmvs_block {
     refmvs_mvpair mv;
     refmvs_refpair ref;
     uint8_t bs, mf; // 1 = globalmv+affine, 2 = newmv
-} refmvs_block;
+}) ALIGN(refmvs_block, 4);
 
 typedef struct refmvs_frame {
     const Dav1dFrameHeader *frm_hdr;

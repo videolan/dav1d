@@ -178,4 +178,10 @@ static inline int clzll(const unsigned long long mask) {
     static_assert(name == offsetof(type, field), #field)
 #endif
 
+#ifdef _MSC_VER
+#define PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else
+#define PACKED(...) __VA_ARGS__ __attribute__((__packed__))
+#endif
+
 #endif /* DAV1D_COMMON_ATTRIBUTES_H */
