@@ -266,6 +266,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
             f->frame_thread.td.inited = 1;
         }
     }
+    dav1d_refmvs_dsp_init(&c->refmvs_dsp);
 
     // intra edge tree
     c->intra_edge.root[BL_128X128] = &c->intra_edge.branch_sb128[0].node;

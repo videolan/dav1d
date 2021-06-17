@@ -35,6 +35,7 @@
 #include "common/intops.h"
 
 #include "src/env.h"
+#include "src/mem.h"
 #include "src/refmvs.h"
 
 static void add_spatial_candidate(refmvs_candidate *const mvstack, int *const cnt,
@@ -817,16 +818,16 @@ int dav1d_refmvs_init_frame(refmvs_frame *const rf,
     const ptrdiff_t r_stride = ((frm_hdr->width[0] + 127) & ~127) >> 2;
     const int n_tile_rows = n_tile_threads > 1 ? frm_hdr->tiling.rows : 1;
     if (r_stride != rf->r_stride || n_tile_rows != rf->n_tile_rows) {
-        if (rf->r) free(rf->r);
-        rf->r = malloc(sizeof(*rf->r) * 35 * r_stride * n_tile_rows);
+        if (rf->r) dav1d_freep_aligned(&rf->r);
+        rf->r = dav1d_alloc_aligned(sizeof(*rf->r) * 35 * r_stride * n_tile_rows, 64);
         if (!rf->r) return DAV1D_ERR(ENOMEM);
         rf->r_stride = r_stride;
     }
 
     const ptrdiff_t rp_stride = r_stride >> 1;
     if (rp_stride != rf->rp_stride || n_tile_rows != rf->n_tile_rows) {
-        if (rf->rp_proj) free(rf->rp_proj);
-        rf->rp_proj = malloc(sizeof(*rf->rp_proj) * 16 * rp_stride * n_tile_rows);
+        if (rf->rp_proj) dav1d_freep_aligned(&rf->rp_proj);
+        rf->rp_proj = dav1d_alloc_aligned(sizeof(*rf->rp_proj) * 16 * rp_stride * n_tile_rows, 64);
         if (!rf->rp_proj) return DAV1D_ERR(ENOMEM);
         rf->rp_stride = rp_stride;
     }
@@ -902,6 +903,21 @@ void dav1d_refmvs_init(refmvs_frame *const rf) {
 }
 
 void dav1d_refmvs_clear(refmvs_frame *const rf) {
-    if (rf->r) free(rf->r);
-    if (rf->rp_proj) free(rf->rp_proj);
+    if (rf->r) dav1d_freep_aligned(&rf->r);
+    if (rf->rp_proj) dav1d_freep_aligned(&rf->rp_proj);
+}
+
+static void splat_mv_c(refmvs_block **rr, const refmvs_block *const rmv,
+                       const int bx4, const int bw4, int bh4)
+{
+    do {
+        refmvs_block *const r = *rr++ + bx4;
+        for (int x = 0; x < bw4; x++)
+            r[x] = *rmv;
+    } while (--bh4);
+}
+
+COLD void dav1d_refmvs_dsp_init(Dav1dRefmvsDSPContext *const c)
+{
+    c->splat_mv = splat_mv_c;
 }

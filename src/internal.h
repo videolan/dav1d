@@ -134,6 +134,7 @@ struct Dav1dContext {
     CdfThreadContext cdf[8];
 
     Dav1dDSPContext dsp[3 /* 8, 10, 12 bits/component */];
+    Dav1dRefmvsDSPContext refmvs_dsp;
 
     // tree to keep track of which edges are available
     struct {

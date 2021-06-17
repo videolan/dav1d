@@ -692,6 +692,68 @@ static inline unsigned get_prev_frame_segid(const Dav1dFrameContext *const f,
     return seg_id;
 }
 
+static inline void splat_oneref_mv(const Dav1dContext *const c,
+                                   Dav1dTileContext *const t,
+                                   const enum BlockSize bs,
+                                   const Av1Block *const b,
+                                   const int bw4, const int bh4)
+{
+    const enum InterPredMode mode = b->inter_mode;
+    const refmvs_block ALIGN(tmpl, 16) = (refmvs_block) {
+        .ref.ref = { b->ref[0] + 1, b->interintra_type ? 0 : -1 },
+        .mv.mv[0] = b->mv[0],
+        .bs = bs,
+        .mf = (mode == GLOBALMV && imin(bw4, bh4) >= 2) | ((mode == NEWMV) * 2),
+    };
+    c->refmvs_dsp.splat_mv(&t->rt.r[(t->by & 31) + 5], &tmpl, t->bx, bw4, bh4);
+}
+
+static inline void splat_intrabc_mv(const Dav1dContext *const c,
+                                    Dav1dTileContext *const t,
+                                    const enum BlockSize bs,
+                                    const Av1Block *const b,
+                                    const int bw4, const int bh4)
+{
+    const refmvs_block ALIGN(tmpl, 16) = (refmvs_block) {
+        .ref.ref = { 0, -1 },
+        .mv.mv[0] = b->mv[0],
+        .bs = bs,
+        .mf = 0,
+    };
+    c->refmvs_dsp.splat_mv(&t->rt.r[(t->by & 31) + 5], &tmpl, t->bx, bw4, bh4);
+}
+
+static inline void splat_tworef_mv(const Dav1dContext *const c,
+                                   Dav1dTileContext *const t,
+                                   const enum BlockSize bs,
+                                   const Av1Block *const b,
+                                   const int bw4, const int bh4)
+{
+    assert(bw4 >= 2 && bh4 >= 2);
+    const enum CompInterPredMode mode = b->inter_mode;
+    const refmvs_block ALIGN(tmpl, 16) = (refmvs_block) {
+        .ref.ref = { b->ref[0] + 1, b->ref[1] + 1 },
+        .mv.mv = { b->mv[0], b->mv[1] },
+        .bs = bs,
+        .mf = (mode == GLOBALMV_GLOBALMV) | !!((1 << mode) & (0xbc)) * 2,
+    };
+    c->refmvs_dsp.splat_mv(&t->rt.r[(t->by & 31) + 5], &tmpl, t->bx, bw4, bh4);
+}
+
+static inline void splat_intraref(const Dav1dContext *const c,
+                                  Dav1dTileContext *const t,
+                                  const enum BlockSize bs,
+                                  const int bw4, const int bh4)
+{
+    const refmvs_block ALIGN(tmpl, 16) = (refmvs_block) {
+        .ref.ref = { 0, -1 },
+        .mv.mv[0].n = INVALID_MV,
+        .bs = bs,
+        .mf = 0,
+    };
+    c->refmvs_dsp.splat_mv(&t->rt.r[(t->by & 31) + 5], &tmpl, t->bx, bw4, bh4);
+}
+
 static int decode_b(Dav1dTileContext *const t,
                     const enum BlockLevel bl,
                     const enum BlockSize bs,
@@ -1294,9 +1356,8 @@ static int decode_b(Dav1dTileContext *const t,
                 }
             }
         }
-        if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {
-            splat_intraref(&t->rt, t->by, t->bx, bs);
-        }
+        if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc)
+            splat_intraref(f->c, t, bs, bw4, bh4);
     } else if (IS_KEY_OR_INTRA(f->frame_hdr)) {
         // intra block copy
         refmvs_candidate mvstack[8];
@@ -1392,7 +1453,7 @@ static int decode_b(Dav1dTileContext *const t,
             if (f->bd_fn.recon_b_inter(t, bs, b)) return -1;
         }
 
-        splat_intrabc_mv(&t->rt, t->by, t->bx, bs, b->mv[0]);
+        splat_intrabc_mv(f->c, t, bs, b, bw4, bh4);
 
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
         rep_macro(type, t->dir tx_intra, off, mul * b_dim[2 + diridx]); \
@@ -1934,14 +1995,10 @@ static int decode_b(Dav1dTileContext *const t,
         }
 
         // context updates
-        if (is_comp) {
-            splat_tworef_mv(&t->rt, t->by, t->bx, bs, b->inter_mode,
-                            (refmvs_refpair) { .ref = { b->ref[0], b->ref[1] }},
-                            (refmvs_mvpair) { .mv = { [0] = b->mv[0], [1] = b->mv[1] }});
-        } else {
-            splat_oneref_mv(&t->rt, t->by, t->bx, bs, b->inter_mode,
-                            b->ref[0], b->mv[0], b->interintra_type);
-        }
+        if (is_comp)
+            splat_tworef_mv(f->c, t, bs, b, bw4, bh4);
+        else
+            splat_oneref_mv(f->c, t, bs, b, bw4, bh4);
 
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
         rep_macro(type, t->dir seg_pred, off, mul * seg_pred); \
