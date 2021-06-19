@@ -195,6 +195,7 @@ if is_asm_enabled
             'x86/itx_avx2.asm',
             'x86/looprestoration_avx2.asm',
             'x86/cdef_sse.asm',
+            'x86/itx_sse.asm',
         )
 
         if dav1d_bitdepths.contains('8')
@@ -207,7 +208,6 @@ if is_asm_enabled
                 'x86/loopfilter_avx2.asm',
                 'x86/film_grain_sse.asm',
                 'x86/ipred_sse.asm',
-                'x86/itx_sse.asm',
                 'x86/loopfilter_sse.asm',
                 'x86/looprestoration_sse.asm',
                 'x86/mc_sse.asm',
