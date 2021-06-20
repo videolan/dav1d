@@ -33,6 +33,14 @@
 #include <stddef.h>
 #include <assert.h>
 
+#ifndef __has_attribute
+#define __has_attribute(x) 0
+#endif
+
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 #ifdef __GNUC__
 #define ATTR_ALIAS __attribute__((may_alias))
 #define ATTR_FORMAT_PRINTF(fmt, attr) __attribute__((__format__(__printf__, fmt, attr)))
@@ -93,9 +101,11 @@
  */
 #ifdef _MSC_VER
 #define NOINLINE __declspec(noinline)
-#else /* !_MSC_VER */
+#elif __has_attribute(noclone)
+#define NOINLINE __attribute__((noinline, noclone))
+#else
 #define NOINLINE __attribute__((noinline))
-#endif /* !_MSC_VER */
+#endif
 
 #ifdef __clang__
 #define NO_SANITIZE(x) __attribute__((no_sanitize(x)))
@@ -159,10 +169,6 @@ static inline int clzll(const unsigned long long mask) {
     return __builtin_clzll(mask);
 }
 #endif /* !_MSC_VER */
-
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
 
 #ifndef static_assert
 #define CHECK_OFFSET(type, field, name) \
