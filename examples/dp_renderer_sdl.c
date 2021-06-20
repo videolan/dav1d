@@ -43,7 +43,7 @@ typedef struct renderer_priv_ctx
     SDL_Texture *tex;
 } Dav1dPlayRendererPrivateContext;
 
-static void *sdl_renderer_create()
+static void *sdl_renderer_create(void)
 {
     SDL_Window *win = dp_create_sdl_window(0);
     if (win == NULL)

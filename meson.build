@@ -247,6 +247,7 @@ if cc.get_argument_syntax() != 'msvc'
       '-Wno-maybe-uninitialized',
       '-Wno-missing-field-initializers',
       '-Wno-unused-parameter',
+      '-Wstrict-prototypes',
       '-Werror=missing-prototypes',
       '-Wshorten-64-to-32',
     ]
