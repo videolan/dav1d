@@ -1208,15 +1208,15 @@ L(generate_grain_\type\()_lag1):
         ld1r            {v28.16b}, [x4], #1 // ar_coeffs_y[1]
         ld1r            {v29.16b}, [x4]     // ar_coeffs_y[2]
 .ifc \type, y
-        ldrsb           w4,  [x4, #1]       // ar_coeffs_y[4]
+        ldrsb           w4,  [x4, #1]       // ar_coeffs_y[3]
 .else
         add             x4,  x4,  #2
 .endif
 
         mov             w1,  #3
 .ifc \type, uv_444
-        ld1r            {v30.16b}, [x4]     // ar_coeffs_uv[5]
-        ldursb          w4,  [x4, #-1]      // ar_coeffs_uv[4]
+        ld1r            {v30.16b}, [x4]     // ar_coeffs_uv[4]
+        ldursb          w4,  [x4, #-1]      // ar_coeffs_uv[3]
 .endif
         bl              generate_grain_rows_neon
 
@@ -1423,8 +1423,8 @@ L(generate_grain_\type\()_lag1):
         add             x4,  x4,  #2
 
         mov             w1,  #3
-        ld1r            {v30.16b}, [x4]     // ar_coeffs_uv[5]
-        ldursb          w4,  [x4, #-1]      // ar_coeffs_uv[4]
+        ld1r            {v30.16b}, [x4]     // ar_coeffs_u4[4]
+        ldursb          w4,  [x4, #-1]      // ar_coeffs_uv[3]
         bl              generate_grain_rows_44_neon
 
         set_height      w1,  \type
