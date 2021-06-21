@@ -72,13 +72,13 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;
 
-#if BITDEPTH == 8
     init_angular_ipred_fn(DC_PRED,       ipred_dc,       ssse3);
     init_angular_ipred_fn(DC_128_PRED,   ipred_dc_128,   ssse3);
     init_angular_ipred_fn(TOP_DC_PRED,   ipred_dc_top,   ssse3);
     init_angular_ipred_fn(LEFT_DC_PRED,  ipred_dc_left,  ssse3);
     init_angular_ipred_fn(HOR_PRED,      ipred_h,        ssse3);
     init_angular_ipred_fn(VERT_PRED,     ipred_v,        ssse3);
+#if BITDEPTH == 8
     init_angular_ipred_fn(PAETH_PRED,    ipred_paeth,    ssse3);
     init_angular_ipred_fn(SMOOTH_PRED,   ipred_smooth,   ssse3);
     init_angular_ipred_fn(SMOOTH_H_PRED, ipred_smooth_h, ssse3);
