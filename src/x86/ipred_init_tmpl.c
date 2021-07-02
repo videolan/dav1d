@@ -91,11 +91,9 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c
     init_cfl_pred_fn(TOP_DC_PRED,  ipred_cfl_top,  ssse3);
     init_cfl_pred_fn(LEFT_DC_PRED, ipred_cfl_left, ssse3);
 
-#if BITDEPTH == 8
     init_cfl_ac_fn(DAV1D_PIXEL_LAYOUT_I420 - 1, ipred_cfl_ac_420, ssse3);
     init_cfl_ac_fn(DAV1D_PIXEL_LAYOUT_I422 - 1, ipred_cfl_ac_422, ssse3);
     init_cfl_ac_fn(DAV1D_PIXEL_LAYOUT_I444 - 1, ipred_cfl_ac_444, ssse3);
-#endif
 
     c->pal_pred = BF(dav1d_pal_pred, ssse3);
 
