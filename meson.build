@@ -173,21 +173,26 @@ libm_dependency = cc.find_library('m', required: false)
 
 # Header checks
 
-stdatomic_dependency = []
+stdatomic_dependencies = []
 if not cc.check_header('stdatomic.h')
     if cc.get_id() == 'msvc'
         # we have a custom replacement for MSVC
-        stdatomic_dependency = declare_dependency(
+        stdatomic_dependencies += declare_dependency(
             include_directories : include_directories('include/compat/msvc'),
         )
     elif cc.compiles('''int main() { int v = 0; return __atomic_fetch_add(&v, 1, __ATOMIC_SEQ_CST); }''',
                      name : 'GCC-style atomics', args : test_args)
-        stdatomic_dependency = declare_dependency(
+        stdatomic_dependencies += declare_dependency(
             include_directories : include_directories('include/compat/gcc'),
         )
     else
         error('Atomics not supported')
     endif
+endif
+
+if host_machine.cpu_family().startswith('wasm')
+    # enable atomics + bulk-memory features
+    stdatomic_dependencies += thread_dependency.partial_dependency(compile_args: true)
 endif
 
 if cc.check_header('unistd.h')
