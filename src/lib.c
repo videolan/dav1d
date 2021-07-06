@@ -318,7 +318,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
     }
 
     if (!c->seq_hdr) {
-        res = DAV1D_ERR(EINVAL);
+        res = DAV1D_ERR(ENOENT);
         goto error;
     }
 
