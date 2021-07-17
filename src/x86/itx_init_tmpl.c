@@ -78,7 +78,7 @@ decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x32, ext)); \
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x64, ext))
 
 decl_itx_fns(avx2);
-decl_itx16_fns( 4,  4, sse4);
+decl_itx_fns(sse4);
 decl_itx_fns(ssse3);
 decl_itx_fn(dav1d_inv_txfm_add_wht_wht_4x4_16bpc_sse2);
 
@@ -157,6 +157,7 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
 #if BITDEPTH == 16
     if (bpc <= 10) {
         assign_itx16_fn(,   4,  4, sse4);
+        assign_itx16_fn(R,  4,  8, sse4);
     }
 #endif
 
