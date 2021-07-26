@@ -79,7 +79,7 @@ typedef struct refmvs_frame {
 
     refmvs_block *r; // 35 x r_stride memory
     ptrdiff_t r_stride;
-    int n_tile_rows, n_tile_threads;
+    int n_tile_rows, n_tile_threads, n_frame_threads;
 } refmvs_frame;
 
 typedef struct refmvs_tile {
@@ -116,7 +116,7 @@ int dav1d_refmvs_init_frame(refmvs_frame *rf,
                             refmvs_temporal_block *rp,
                             const unsigned ref_ref_poc[7][7],
                             /*const*/ refmvs_temporal_block *const rp_ref[7],
-                            int n_tile_threads);
+                            int n_tile_threads, int n_frame_threads);
 
 // initialize temporal MVs; this can be done in any configuration, e.g. one
 // tile/sbrow at a time, where col_{start,end}8 are the tile boundaries; or
@@ -136,7 +136,7 @@ void dav1d_refmvs_save_tmvs(const refmvs_tile *rt,
 void dav1d_refmvs_tile_sbrow_init(refmvs_tile *rt, const refmvs_frame *rf,
                                   int tile_col_start4, int tile_col_end4,
                                   int tile_row_start4, int tile_row_end4,
-                                  int sby, int tile_row_idx);
+                                  int sby, int tile_row_idx, int pass);
 
 // call for each block
 void dav1d_refmvs_find(const refmvs_tile *rt,

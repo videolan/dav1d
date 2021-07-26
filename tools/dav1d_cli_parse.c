@@ -50,9 +50,8 @@ enum {
     ARG_FRAME_TIMES,
     ARG_REALTIME,
     ARG_REALTIME_CACHE,
-    ARG_FRAME_THREADS,
-    ARG_TILE_THREADS,
-    ARG_POSTFILTER_THREADS,
+    ARG_THREADS,
+    ARG_FRAME_DELAY,
     ARG_VERIFY,
     ARG_FILM_GRAIN,
     ARG_OPPOINT,
@@ -73,9 +72,8 @@ static const struct option long_opts[] = {
     { "skip",           1, NULL, 's' },
     { "realtime",       2, NULL, ARG_REALTIME },
     { "realtimecache",  1, NULL, ARG_REALTIME_CACHE },
-    { "framethreads",   1, NULL, ARG_FRAME_THREADS },
-    { "tilethreads",    1, NULL, ARG_TILE_THREADS },
-    { "pfthreads",      1, NULL, ARG_POSTFILTER_THREADS },
+    { "threads",        1, NULL, ARG_THREADS },
+    { "framedelay",     1, NULL, ARG_FRAME_DELAY },
     { "verify",         1, NULL, ARG_VERIFY },
     { "filmgrain",      1, NULL, ARG_FILM_GRAIN },
     { "oppoint",        1, NULL, ARG_OPPOINT },
@@ -124,9 +122,9 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --realtime [$fract]:  limit framerate, optional argument to override input framerate\n"
             " --realtimecache $num: set the size of the cache in realtime mode (default: 0)\n"
             " --version/-v:         print version and exit\n"
-            " --framethreads $num:  number of frame threads (default: 1)\n"
-            " --tilethreads $num:   number of tile threads (default: 1)\n"
-            " --pfthreads $num:     number of postfilter threads (default: 1)\n"
+            " --threads $num:       number of threads (default: 1)\n"
+            " --framedelay $num:    maximum frame delay, capped at $threads (default: 8);\n"
+            "                       set to 1 for low-latency decoding\n"
             " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5 or xxh3)\n"
             " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
@@ -299,17 +297,13 @@ void parse(const int argc, char *const *const argv,
             cli_settings->realtime_cache =
                 parse_unsigned(optarg, ARG_REALTIME_CACHE, argv[0]);
             break;
-        case ARG_FRAME_THREADS:
-            lib_settings->n_frame_threads =
-                parse_unsigned(optarg, ARG_FRAME_THREADS, argv[0]);
+        case ARG_FRAME_DELAY:
+            lib_settings->max_frame_delay =
+                parse_unsigned(optarg, ARG_FRAME_DELAY, argv[0]);
             break;
-        case ARG_TILE_THREADS:
-            lib_settings->n_tile_threads =
-                parse_unsigned(optarg, ARG_TILE_THREADS, argv[0]);
-            break;
-        case ARG_POSTFILTER_THREADS:
-            lib_settings->n_postfilter_threads =
-                parse_unsigned(optarg, ARG_POSTFILTER_THREADS, argv[0]);
+        case ARG_THREADS:
+            lib_settings->n_threads =
+                parse_unsigned(optarg, ARG_THREADS, argv[0]);
             break;
         case ARG_VERIFY:
             cli_settings->verify = optarg;
