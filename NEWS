@@ -7,7 +7,7 @@ Changes for 0.9.1 'Golden Eagle':
    sgr (10b), warp8x8, deblock, film_grain, cfl_ac/pred for 32bit and 64bit x86 processors
  - Film grain NEON for fguv 10/12b, fgy/fguv 8b and fgy/fguv 10/12 arm32
  - Fixes for filmgrain on ARM
- - itx 4x4 for SSE4
+ - itx 10bit optimizations for 4x4/x8/x16, 8x4/x8/x16 for SSE4
  - Misc improvements on SSE2, SSE4
 
 
