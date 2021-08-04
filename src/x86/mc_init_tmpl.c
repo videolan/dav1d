@@ -264,9 +264,7 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->warp8x8  = BF(dav1d_warp_affine_8x8, avx2);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, avx2);
     c->emu_edge = BF(dav1d_emu_edge, avx2);
-#if BITDEPTH == 8
     c->resize = BF(dav1d_resize, avx2);
-#endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL))
         return;
