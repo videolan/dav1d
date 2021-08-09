@@ -165,7 +165,7 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
         assign_itx16_fn(R, 16,  4, sse4);
         assign_itx16_fn(R, 16,  8, sse4);
         assign_itx12_fn(,  16, 16, sse4);
-        assign_itx_fn(R, 8, 32, identity_identity, IDTX, sse4);
+        assign_itx2_fn (R,  8, 32, sse4);
         assign_itx_fn(R, 32, 8, identity_identity, IDTX, sse4);
         assign_itx_fn(R, 16, 32, identity_identity, IDTX, sse4);
         assign_itx_fn(R, 32, 16, identity_identity, IDTX, sse4);
