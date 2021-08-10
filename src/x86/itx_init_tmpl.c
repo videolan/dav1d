@@ -170,6 +170,7 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
         assign_itx2_fn (R, 16, 32, sse4);
         assign_itx2_fn (R, 32, 16, sse4);
         assign_itx2_fn (,  32, 32, sse4);
+        assign_itx1_fn (R, 16, 64, sse4);
     }
 #endif
 
