@@ -456,25 +456,28 @@ checkasm_context checkasm_context_buf;
  * gracefully instead of just aborting abruptly. */
 #ifdef _WIN32
 static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
+    const char *err;
     switch (e->ExceptionRecord->ExceptionCode) {
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
-        checkasm_fail_func("fatal arithmetic error");
+        err = "fatal arithmetic error";
         break;
     case EXCEPTION_ILLEGAL_INSTRUCTION:
     case EXCEPTION_PRIV_INSTRUCTION:
-        checkasm_fail_func("illegal instruction");
+        err = "illegal instruction";
         break;
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
     case EXCEPTION_DATATYPE_MISALIGNMENT:
     case EXCEPTION_IN_PAGE_ERROR:
     case EXCEPTION_STACK_OVERFLOW:
-        checkasm_fail_func("segmentation fault");
+        err = "segmentation fault";
         break;
     default:
         return EXCEPTION_CONTINUE_SEARCH;
     }
+    RemoveVectoredExceptionHandler(signal_handler);
+    checkasm_fail_func(err);
     checkasm_load_context();
     return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
 }
