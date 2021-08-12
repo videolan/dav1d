@@ -54,7 +54,6 @@ n13: dq 0x4a75479abd64e097
 n14: dq 0x249214109d5d1c88
 %endif
 
-errmsg_reg:   db "failed to preserve register", 0
 errmsg_stack: db "stack corruption", 0
 
 SECTION .text
@@ -99,114 +98,177 @@ cglobal stack_clobber, 1, 2
 ;-----------------------------------------------------------------------------
 INIT_XMM
 cglobal checked_call, 2, 15, 16, max_args*8+64+8
-    mov  t0, r0
+    mov            t0, r0
 
     ; All arguments have been pushed on the stack instead of registers in
     ; order to test for incorrect assumptions that 32-bit ints are
     ; zero-extended to 64-bit.
-    mov  r0, r6mp
-    mov  r1, r7mp
-    mov  r2, r8mp
-    mov  r3, r9mp
+    mov            r0, r6mp
+    mov            r1, r7mp
+    mov            r2, r8mp
+    mov            r3, r9mp
 %if UNIX64
-    mov  r4, r10mp
-    mov  r5, r11mp
+    mov            r4, r10mp
+    mov            r5, r11mp
 %else ; WIN64
     ; Move possible floating-point arguments to the correct registers
-    movq m0, r0
-    movq m1, r1
-    movq m2, r2
-    movq m3, r3
+    movq           m0, r0
+    movq           m1, r1
+    movq           m2, r2
+    movq           m3, r3
 
-    %assign i 6
-    %rep 16-6
-        mova m %+ i, [x %+ i]
-        %assign i i+1
-    %endrep
+%assign i 6
+%rep 16-6
+    mova       m %+ i, [x %+ i]
+    %assign i i+1
+%endrep
 %endif
 
     ; write stack canaries to the area above parameters passed on the stack
-    mov r9d, [num_stack_params]
-    mov  r8, [rsp+stack_offset] ; return address
-    not  r8
+    mov           r9d, [num_stack_params]
+    mov            r8, [rsp+stack_offset] ; return address
+    not            r8
 %assign i 0
 %rep 8 ; 64 bytes
     mov [stack_param+(r9+i)*8], r8
     %assign i i+1
 %endrep
-    dec r9d
+    dec           r9d
     jl .stack_setup_done ; no stack parameters
 .copy_stack_parameter:
-    mov  r8, [stack_param+stack_offset+7*8+r9*8]
+    mov            r8, [stack_param+stack_offset+7*8+r9*8]
     mov [stack_param+r9*8], r8
-    dec r9d
+    dec           r9d
     jge .copy_stack_parameter
 .stack_setup_done:
 
 %assign i 14
 %rep 15-free_regs
-    mov r %+ i, [n %+ i]
+    mov        r %+ i, [n %+ i]
     %assign i i-1
 %endrep
-    call t0
+    call           t0
+
+    ; check for stack corruption
+    mov           r0d, [num_stack_params]
+    mov            r3, [rsp+stack_offset]
+    mov            r4, [stack_param+r0*8]
+    not            r3
+    xor            r4, r3
+%assign i 1
+%rep 6
+    mov            r5, [stack_param+(r0+i)*8]
+    xor            r5, r3
+    or             r4, r5
+    %assign i i+1
+%endrep
+    xor            r3, [stack_param+(r0+7)*8]
+    lea            r0, [errmsg_stack]
+    or             r4, r3
+    jnz .fail
 
     ; check for failure to preserve registers
-    xor r14, [n14]
-    lea  r0, [errmsg_reg]
-%assign i 13
-%rep 14-free_regs
-    xor r %+ i, [n %+ i]
-    or  r14, r %+ i
+%assign i 14
+%rep 15-free_regs
+    cmp        r %+ i, [r0-errmsg_stack+n %+ i]
+    setne         r4b
+    lea           r3d, [r4+r3*2]
     %assign i i-1
 %endrep
 %if WIN64
-    pxor m6, [x6]
-    %assign i 7
-    %rep 16-7
-        pxor m %+ i, [x %+ i]
-        por  m6, m %+ i
-        %assign i i+1
-    %endrep
-    packsswb m6, m6
-    movq r5, m6
-    or  r14, r5
+    lea            r0, [rsp+60] ; account for shadow space
+    mov            r5, r0
+    test          r3d, r3d
+    jz .gpr_ok
+%else
+    test          r3d, r3d
+    jz .ok
+    lea            r0, [rsp+28]
 %endif
-    jnz .fail
-
-    ; check for stack corruption
-    mov r9d, [num_stack_params]
-    mov  r8, [rsp+stack_offset]
-    mov  r4, [stack_param+r9*8]
-    not  r8
-    xor  r4, r8
-%assign i 1
-%rep 6
-    mov  r5, [stack_param+(r9+i)*8]
-    xor  r5, r8
-    or   r4, r5
+%assign i free_regs
+%rep 15-free_regs
+%if i < 10
+    mov    dword [r0], " r0" + (i << 16)
+    lea            r4, [r0+3]
+%else
+    mov    dword [r0], " r10" + ((i - 10) << 24)
+    lea            r4, [r0+4]
+%endif
+    test          r3b, 1 << (i - free_regs)
+    cmovnz         r0, r4
     %assign i i+1
 %endrep
-    xor  r8, [stack_param+(r9+7)*8]
-    or   r4, r8
-    jz .ok
-    add  r0, errmsg_stack-errmsg_reg
+%if WIN64 ; xmm registers
+.gpr_ok:
+%assign i 6
+%rep 16-6
+    pxor       m %+ i, [x %+ i]
+    %assign i i+1
+%endrep
+    packsswb       m6, m7
+    packsswb       m8, m9
+    packsswb      m10, m11
+    packsswb      m12, m13
+    packsswb      m14, m15
+    packsswb       m6, m6
+    packsswb       m8, m10
+    packsswb      m12, m14
+    packsswb       m6, m6
+    packsswb       m8, m12
+    packsswb       m6, m8
+    pxor           m7, m7
+    pcmpeqb        m6, m7
+    pmovmskb      r3d, m6
+    cmp           r3d, 0xffff
+    je .xmm_ok
+    mov           r7d, " xmm"
+%assign i 6
+%rep 16-6
+    mov        [r0+0], r7d
+%if i < 10
+    mov   byte [r0+4], "0" + i
+    lea            r4, [r0+5]
+%else
+    mov   word [r0+4], "10" + ((i - 10) << 8)
+    lea            r4, [r0+6]
+%endif
+    test          r3d, 1 << i
+    cmovz          r0, r4
+    %assign i i+1
+%endrep
+.xmm_ok:
+    cmp            r0, r5
+    je .ok
+    mov     byte [r0], 0
+    lea            r0, [r5-28]
+%else
+    mov     byte [r0], 0
+    mov            r0, rsp
+%endif
+    mov dword [r0+ 0], "fail"
+    mov dword [r0+ 4], "ed t"
+    mov dword [r0+ 8], "o pr"
+    mov dword [r0+12], "eser"
+    mov dword [r0+16], "ve r"
+    mov dword [r0+20], "egis"
+    mov dword [r0+24], "ter:"
 .fail:
     ; Call fail_func() with a descriptive message to mark it as a failure.
     ; Save the return value located in rdx:rax first to prevent clobbering.
-    mov  r9, rax
-    mov r10, rdx
-    xor eax, eax
+    mov            r9, rax
+    mov           r10, rdx
+    xor           eax, eax
     call fail_func
-    mov rdx, r10
-    mov rax, r9
+    mov           rdx, r10
+    mov           rax, r9
 .ok:
     RET
 
 ; trigger a warmup of vector units
 %macro WARMUP 0
 cglobal warmup, 0, 0
-    xorps   m0, m0
-    mulps   m0, m0
+    xorps          m0, m0
+    mulps          m0, m0
     RET
 %endmacro
 
@@ -227,61 +289,82 @@ WARMUP
 ; void checkasm_checked_call(void *func, ...)
 ;-----------------------------------------------------------------------------
 cglobal checked_call, 1, 7
-    mov  r3, [esp+stack_offset]      ; return address
-    mov  r1, [esp+stack_offset+17*4] ; num_stack_params
-    mov  r2, 27
-    not  r3
-    sub  r2, r1
+    mov            r3, [esp+stack_offset]      ; return address
+    mov            r1, [esp+stack_offset+17*4] ; num_stack_params
+    mov            r2, 27
+    not            r3
+    sub            r2, r1
 .push_canary:
-    push r3
-    dec  r2
+    push           r3
+    dec            r2
     jg .push_canary
 .push_parameter:
     push dword [esp+32*4]
-    dec  r1
+    dec            r1
     jg .push_parameter
-    mov  r3, n3
-    mov  r4, n4
-    mov  r5, n5
-    mov  r6, n6
-    call r0
+    mov            r3, n3
+    mov            r4, n4
+    mov            r5, n5
+    mov            r6, n6
+    call           r0
 
     ; check for failure to preserve registers
-    xor  r3, n3
-    xor  r4, n4
-    xor  r5, n5
-    xor  r6, n6
-    or   r3, r4
-    or   r5, r6
-    LEA  r1, errmsg_reg
-    or   r3, r5
-    jnz .fail
-
+    cmp            r3, n3
+    setne         r3h
+    cmp            r4, n4
+    setne         r3b
+    shl           r3d, 16
+    cmp            r5, n5
+    setne         r3h
+    cmp            r6, n6
+    setne         r3b
+    test           r3, r3
+    jz .gpr_ok
+    lea            r1, [esp+16]
+    mov dword [r1+ 0], "fail"
+    mov dword [r1+ 4], "ed t"
+    mov dword [r1+ 8], "o pr"
+    mov dword [r1+12], "eser"
+    mov dword [r1+16], "ve r"
+    mov dword [r1+20], "egis"
+    mov dword [r1+24], "ter:"
+    lea            r4, [r1+28]
+%assign i 3
+%rep 4
+    mov dword    [r4], " r0" + (i << 16)
+    lea            r5, [r4+3]
+    test           r3, 1 << ((6 - i) * 8)
+    cmovnz         r4, r5
+    %assign i i+1
+%endrep
+    mov     byte [r4], 0
+    jmp .fail
+.gpr_ok:
     ; check for stack corruption
-    mov  r3, [esp+48*4] ; num_stack_params
-    mov  r6, [esp+31*4] ; return address
-    mov  r4, [esp+r3*4]
-    sub  r3, 26
-    not  r6
-    xor  r4, r6
+    mov            r3, [esp+48*4] ; num_stack_params
+    mov            r6, [esp+31*4] ; return address
+    mov            r4, [esp+r3*4]
+    sub            r3, 26
+    not            r6
+    xor            r4, r6
 .check_canary:
-    mov  r5, [esp+(r3+27)*4]
-    xor  r5, r6
-    or   r4, r5
-    inc  r3
+    mov            r5, [esp+(r3+27)*4]
+    xor            r5, r6
+    or             r4, r5
+    inc            r3
     jl .check_canary
-    test r4, r4
+    test           r4, r4
     jz .ok
-    add  r1, errmsg_stack-errmsg_reg
+    LEA            r1, errmsg_stack
 .fail:
-    mov  r3, eax
-    mov  r4, edx
-    mov [esp], r1
+    mov            r3, eax
+    mov            r4, edx
+    mov         [esp], r1
     call fail_func
-    mov edx, r4
-    mov eax, r3
+    mov           edx, r4
+    mov           eax, r3
 .ok:
-    add esp, 27*4
+    add           esp, 27*4
     RET
 
 %endif ; ARCH_X86_64
