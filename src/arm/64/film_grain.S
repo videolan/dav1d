@@ -186,16 +186,24 @@ endfunc
         add             x0,  x0,  #GRAIN_WIDTH-32
 .endm
 
-.macro get_grain_2 dst
+function get_grain_2_neon
         increment_seed  2
         read_rand       x14, 11,  1
         read_rand       x15, 11,  0
         add             x14, x3,  x14, lsl #1
         add             x15, x3,  x15, lsl #1
-        ld1             {\dst\().h}[0], [x14]
-        ld1             {\dst\().h}[1], [x15]
-        srshl           v0.4h,      \dst\().4h,  v31.4h
-        xtn             \dst\().8b,  v0.8h
+        ld1             {v0.h}[0], [x14]
+        ld1             {v0.h}[1], [x15]
+        srshl           v0.4h,   v0.4h,   v31.4h
+        xtn             v0.8b,   v0.8h
+        ret
+endfunc
+
+.macro get_grain_2 dst
+        bl              get_grain_2_neon
+.ifnc \dst, v0
+        mov             \dst\().8b, v0.8b
+.endif
 .endm
 
 // w15 holds the number of entries to produce
