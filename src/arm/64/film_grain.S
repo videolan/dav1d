@@ -207,17 +207,30 @@ endfunc
 .endm
 
 // w15 holds the number of entries to produce
-// w14 holds the previous output entry
+// w14, w16 and w17 hold the previous output entries
 // v0 holds the vector of produced entries
 // v1 holds the input vector of sums from above
-function output_lag1_neon
+.macro output_lag n
+function output_lag\n\()_neon
 1:
         read_shift_rand x13, 11
         mov             w11, v1.s[0]
         ldrsh           w12, [x3, x13, lsl #1]
         ext             v0.16b,  v0.16b,  v0.16b,  #1
-        madd            w14, w14, w4,  w11        // sum (above) + *coeff * prev output
-        add             w14, w14, w8              // 1 << (ar_coeff_shift - 1)
+.if \n == 1
+        madd            w11, w14, w4,  w11        // sum (above) + *coeff * prev output
+.elseif \n == 2
+        madd            w11, w16, w4,  w11        // sum (above) + *coeff * prev output 1
+        madd            w11, w14, w17, w11        // += *coeff * prev output 2
+        mov             w16, w14
+.else
+        madd            w11, w17, w4,  w11        // sum (above) + *coeff * prev output 1
+        madd            w11, w16, w20, w11        // sum (above) + *coeff * prev output 2
+        madd            w11, w14, w21, w11        // += *coeff * prev output 3
+        mov             w17, w16
+        mov             w16, w14
+.endif
+        add             w14, w11, w8              // 1 << (ar_coeff_shift - 1)
         asr             w14, w14, w7              // >> ar_coeff_shift
         add             w12, w12, w10
         asr             w12, w12, w9              // >> (4 + grain_scale_shift)
@@ -232,6 +245,12 @@ function output_lag1_neon
         b.gt            1b
         ret
 endfunc
+.endm
+
+output_lag 1
+output_lag 2
+output_lag 3
+
 
 function sum_lag1_above_neon
         smull           v2.8h,   v3.8b,   v28.8b
@@ -408,34 +427,6 @@ sum_lag1_func uv_420, 420, right, 9
         sum_lag1        uv_420, \dst, \left, \mid, \right, \edge
 .endm
 
-// w15 holds the number of entries to produce
-// w14 and w16 hold the previous output entries
-// v0 holds the vector of produced entries
-// v1 holds the input vector of sums from above
-function output_lag2_neon
-1:
-        read_shift_rand x13, 11
-        mov             w11, v1.s[0]
-        ldrsh           w12, [x3, x13, lsl #1]
-        ext             v0.16b,  v0.16b,  v0.16b,  #1
-        madd            w11, w16, w4,  w11        // sum (above) + *coeff * prev output 1
-        madd            w11, w14, w17, w11        // += *coeff * prev output 2
-        mov             w16, w14
-        add             w14, w11, w8              // 1 << (ar_coeff_shift - 1)
-        asr             w14, w14, w7              // >> ar_coeff_shift
-        add             w12, w12, w10
-        asr             w12, w12, w9              // >> (4 + grain_scale_shift)
-        add             w14, w14, w12
-        cmp             w14, w5
-        csel            w14, w14, w5,  le
-        cmp             w14, w6
-        csel            w14, w14, w6,  ge
-        subs            w15, w15, #1
-        ext             v1.16b,  v1.16b,  v1.16b,  #4
-        ins             v0.b[15], w14
-        b.gt            1b
-        ret
-endfunc
 
 function sum_lag2_above_neon
         sub             x12, x0,  #2*GRAIN_WIDTH - 16
@@ -671,37 +662,6 @@ sum_lag2_func uv_420, 420, left
 sum_lag2_func uv_420, 420, mid
 sum_lag2_func uv_420, 420, right, 9
 
-
-// w15 holds the number of entries to produce
-// w14, w16 and w17 hold the previous output entries
-// v0 holds the vector of produced entries
-// v1 holds the input vector of sums from above
-function output_lag3_neon
-1:
-        read_shift_rand x13, 11
-        mov             w11, v1.s[0]
-        ldrsh           w12, [x3, x13, lsl #1]
-        ext             v0.16b,  v0.16b,  v0.16b,  #1
-        madd            w11, w17, w4,  w11        // sum (above) + *coeff * prev output 1
-        madd            w11, w16, w20, w11        // sum (above) + *coeff * prev output 2
-        madd            w11, w14, w21, w11        // += *coeff * prev output 3
-        mov             w17, w16
-        mov             w16, w14
-        add             w14, w11, w8              // 1 << (ar_coeff_shift - 1)
-        asr             w14, w14, w7              // >> ar_coeff_shift
-        add             w12, w12, w10
-        asr             w12, w12, w9              // >> (4 + grain_scale_shift)
-        add             w14, w14, w12
-        cmp             w14, w5
-        csel            w14, w14, w5,  le
-        cmp             w14, w6
-        csel            w14, w14, w6,  ge
-        subs            w15, w15, #1
-        ext             v1.16b,  v1.16b,  v1.16b,  #4
-        ins             v0.b[15], w14
-        b.gt            1b
-        ret
-endfunc
 
 function sum_lag3_above_neon
         sub             x11, x0,  #3*GRAIN_WIDTH - 16
