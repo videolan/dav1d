@@ -1161,8 +1161,6 @@ function generate_grain_\type\()_8bpc_neon, export=1
 
         br              x16
 
-        ret
-
 L(generate_grain_\type\()_lag0):
 .ifc \type, y
         mov             w1,  #GRAIN_HEIGHT
@@ -1384,8 +1382,6 @@ function generate_grain_\type\()_8bpc_neon, export=1
         eor             w2,  w2,  w11
 
         br              x16
-
-        ret
 
 L(generate_grain_\type\()_lag0):
         dup             v28.8h,  w7
