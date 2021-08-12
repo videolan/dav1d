@@ -257,15 +257,15 @@ function sum_\type\()_lag1_\edge\()_neon
         saddlp          v25.8h,  v25.16b
         add             v22.8h,  v22.8h,  v24.8h
         add             v23.8h,  v23.8h,  v25.8h
-        rshrn           v0.8b,   v22.8h, #2
-        rshrn2          v0.16b,  v23.8h, #2
+        rshrn           v0.8b,   v22.8h,  #2
+        rshrn2          v0.16b,  v23.8h,  #2
 .endif
 .ifc \type, uv_422
         ld1             {v22.16b, v23.16b}, [x19], #32
         saddlp          v22.8h,  v22.16b
         saddlp          v23.8h,  v23.16b
-        rshrn           v0.8b,   v22.8h, #1
-        rshrn2          v0.16b,  v23.8h, #1
+        rshrn           v0.8b,   v22.8h,  #1
+        rshrn2          v0.16b,  v23.8h,  #1
 .endif
 .ifc \type, uv_444
         ld1             {v0.16b}, [x19], #16
@@ -541,15 +541,15 @@ function sum_\type\()_lag2_\edge\()_neon
         saddlp          v25.8h,  v25.16b
         add             v22.8h,  v22.8h,  v24.8h
         add             v23.8h,  v23.8h,  v25.8h
-        rshrn           v0.8b,   v22.8h, #2
-        rshrn2          v0.16b,  v23.8h, #2
+        rshrn           v0.8b,   v22.8h,  #2
+        rshrn2          v0.16b,  v23.8h,  #2
 .endif
 .ifc \type, uv_422
         ld1             {v22.16b, v23.16b}, [x19], #32
         saddlp          v22.8h,  v22.16b
         saddlp          v23.8h,  v23.16b
-        rshrn           v0.8b,   v22.8h, #1
-        rshrn2          v0.16b,  v23.8h, #1
+        rshrn           v0.8b,   v22.8h,  #1
+        rshrn2          v0.16b,  v23.8h,  #1
 .endif
 .ifc \type, uv_444
         ld1             {v0.16b}, [x19], #16
@@ -901,15 +901,15 @@ function sum_\type\()_lag3_\edge\()_neon
         saddlp          v25.8h,  v25.16b
         add             v22.8h,  v22.8h,  v24.8h
         add             v23.8h,  v23.8h,  v25.8h
-        rshrn           v0.8b,   v22.8h, #2
-        rshrn2          v0.16b,  v23.8h, #2
+        rshrn           v0.8b,   v22.8h,  #2
+        rshrn2          v0.16b,  v23.8h,  #2
 .endif
 .ifc \type, uv_422
         ld1             {v22.16b, v23.16b}, [x19], #32
         saddlp          v22.8h,  v22.16b
         saddlp          v23.8h,  v23.16b
-        rshrn           v0.8b,   v22.8h, #1
-        rshrn2          v0.16b,  v23.8h, #1
+        rshrn           v0.8b,   v22.8h,  #1
+        rshrn2          v0.16b,  v23.8h,  #1
 .endif
 .ifc \type, uv_444
         ld1             {v0.16b}, [x19], #16
@@ -1083,8 +1083,8 @@ function add_uv_420_coeff_lag0_neon
         saddlp          v5.8h,   v5.16b
         saddlp          v6.8h,   v6.16b
         saddlp          v7.8h,   v7.16b
-        add             v4.8h,   v4.8h,  v6.8h
-        add             v5.8h,   v5.8h,  v7.8h
+        add             v4.8h,   v4.8h,   v6.8h
+        add             v5.8h,   v5.8h,   v7.8h
         rshrn           v4.8b,   v4.8h,   #2
         rshrn2          v4.16b,  v5.8h,   #2
         and             v0.16b,  v4.16b,  v0.16b
