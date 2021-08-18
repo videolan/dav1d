@@ -59,6 +59,7 @@ name##_8bpc(void); \
 name##_16bpc(void)
 
 void checkasm_check_msac(void);
+void checkasm_check_refmvs(void);
 decl_check_bitfns(void checkasm_check_cdef);
 decl_check_bitfns(void checkasm_check_filmgrain);
 decl_check_bitfns(void checkasm_check_ipred);
@@ -328,11 +329,11 @@ int checkasm_check_##type(const char *const file, const int line, \
                           const int padding)
 
 DECL_CHECKASM_CHECK_FUNC(int8_t);
-DECL_CHECKASM_CHECK_FUNC(uint8_t);
-DECL_CHECKASM_CHECK_FUNC(uint16_t);
 DECL_CHECKASM_CHECK_FUNC(int16_t);
 DECL_CHECKASM_CHECK_FUNC(int32_t);
-
+DECL_CHECKASM_CHECK_FUNC(uint8_t);
+DECL_CHECKASM_CHECK_FUNC(uint16_t);
+DECL_CHECKASM_CHECK_FUNC(uint32_t);
 
 #define CONCAT(a,b) a ## b
 

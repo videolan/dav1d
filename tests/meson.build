@@ -35,6 +35,7 @@ if is_asm_enabled
     checkasm_sources = files(
         'checkasm/checkasm.c',
         'checkasm/msac.c',
+        'checkasm/refmvs.c',
     )
 
     checkasm_tmpl_sources = files(

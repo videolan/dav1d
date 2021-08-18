@@ -70,6 +70,7 @@ static const struct {
     void (*func)(void);
 } tests[] = {
     { "msac", checkasm_check_msac },
+    { "refmvs", checkasm_check_refmvs },
 #if CONFIG_8BPC
     { "cdef_8bpc", checkasm_check_cdef_8bpc },
     { "filmgrain_8bpc", checkasm_check_filmgrain_8bpc },
@@ -858,10 +859,11 @@ int checkasm_check_##type(const char *const file, const int line, \
 }
 
 DEF_CHECKASM_CHECK_FUNC(int8_t,   "%4d")
-DEF_CHECKASM_CHECK_FUNC(uint8_t,  "%02x")
-DEF_CHECKASM_CHECK_FUNC(uint16_t, "%04x")
 DEF_CHECKASM_CHECK_FUNC(int16_t,  "%6d")
 DEF_CHECKASM_CHECK_FUNC(int32_t,  "%9d")
+DEF_CHECKASM_CHECK_FUNC(uint8_t,  "%02x")
+DEF_CHECKASM_CHECK_FUNC(uint16_t, "%04x")
+DEF_CHECKASM_CHECK_FUNC(uint32_t, "%08x")
 
 #if ARCH_X86_64
 void checkasm_simd_warmup(void)
