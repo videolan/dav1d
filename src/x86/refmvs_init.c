@@ -29,6 +29,7 @@
 #include "src/refmvs.h"
 
 decl_splat_mv_fn(dav1d_splat_mv_sse2);
+decl_splat_mv_fn(dav1d_splat_mv_avx2);
 
 COLD void dav1d_refmvs_dsp_init_x86(Dav1dRefmvsDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -36,4 +37,10 @@ COLD void dav1d_refmvs_dsp_init_x86(Dav1dRefmvsDSPContext *const c) {
     if (!(flags & DAV1D_X86_CPU_FLAG_SSE2)) return;
 
     c->splat_mv = dav1d_splat_mv_sse2;
+
+#if ARCH_X86_64
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
+
+    c->splat_mv = dav1d_splat_mv_avx2;
+#endif
 }

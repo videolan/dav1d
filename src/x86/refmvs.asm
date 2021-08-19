@@ -26,7 +26,7 @@
 %include "config.asm"
 %include "ext/x86/x86inc.asm"
 
-SECTION_RODATA
+SECTION_RODATA 32
 
 %macro JMP_TABLE 2-*
     %xdefine %%prefix mangle(private_prefix %+ _%1)
@@ -38,6 +38,12 @@ SECTION_RODATA
     %endrep
 %endmacro
 
+%if ARCH_X86_64
+splat_mv_shuf: db  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,  0,  1,  2,  3
+               db  4,  5,  6,  7,  8,  9, 10, 11,  0,  1,  2,  3,  4,  5,  6,  7
+
+JMP_TABLE splat_mv_avx2, 1, 2, 4, 8, 16, 32
+%endif
 JMP_TABLE splat_mv_sse2, 1, 2, 4, 8, 16, 32
 
 SECTION .text
@@ -104,3 +110,60 @@ cglobal splat_mv, 4, 5, 3, rr, a, bx4, bw4, bh4
     dec           bh4d
     jg .loop
     RET
+
+%if ARCH_X86_64
+INIT_YMM avx2
+cglobal splat_mv, 4, 5, 3, rr, a, bx4, bw4, bh4
+    add           bx4d, bw4d
+    tzcnt         bw4d, bw4d
+    vbroadcasti128  m0, [aq]
+    lea             aq, [splat_mv_avx2_table]
+    lea           bx4q, [bx4q*3-32]
+    movsxd        bw4q, [aq+bw4q*4]
+    pshufb          m0, [splat_mv_shuf]
+    movifnidn     bh4d, bh4m
+    pshufd          m1, m0, q2102
+    pshufd          m2, m0, q1021
+    add           bw4q, aq
+.loop:
+    mov             aq, [rrq]
+    add            rrq, gprsize
+    lea             aq, [aq+bx4q*4]
+    jmp           bw4q
+.w32:
+    mova     [aq-32*8], m0
+    mova     [aq-32*7], m1
+    mova     [aq-32*6], m2
+    mova     [aq-32*5], m0
+    mova     [aq-32*4], m1
+    mova     [aq-32*3], m2
+.w16:
+    mova     [aq-32*2], m0
+    mova     [aq-32*1], m1
+    mova     [aq+32*0], m2
+.w8:
+    mova     [aq+32*1], m0
+    mova     [aq+32*2], m1
+    mova     [aq+32*3], m2
+    dec           bh4d
+    jg .loop
+    RET
+.w4:
+    movu      [aq+ 80], m0
+    mova      [aq+112], xm1
+    dec           bh4d
+    jg .loop
+    RET
+.w2:
+    movu      [aq+104], xm0
+    movq      [aq+120], xm2
+    dec           bh4d
+    jg .loop
+    RET
+.w1:
+    movq      [aq+116], xm0
+    movd      [aq+124], xm1
+    dec           bh4d
+    jg .loop
+    RET
+%endif
