@@ -291,7 +291,7 @@ libdav1d_entrypoints_objs = static_library('dav1d_entrypoint',
     c_args : [stackalign_flag, stackrealign_flag, api_export_flags],
     install : false,
     build_by_default : false,
-).extract_all_objects()
+).extract_all_objects(recursive: true)
 
 # Helper library for each bitdepth
 libdav1d_bitdepth_objs = []
@@ -304,7 +304,7 @@ foreach bitdepth : dav1d_bitdepths
         c_args : ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag,
         install : false,
         build_by_default : false,
-    ).extract_all_objects()
+    ).extract_all_objects(recursive: true)
 endforeach
 
 # Helper library for each bitdepth and architecture-specific flags
@@ -317,7 +317,7 @@ foreach bitdepth : dav1d_bitdepths
         c_args : ['-DBITDEPTH=@0@'.format(bitdepth)] + stackalign_flag + arch_flags,
         install : false,
         build_by_default : false,
-    ).extract_all_objects()
+    ).extract_all_objects(recursive: true)
 endforeach
 
 # The final dav1d library

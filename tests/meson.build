@@ -58,7 +58,7 @@ if is_asm_enabled
             install: false,
             build_by_default: false,
         )
-        checkasm_bitdepth_objs += checkasm_bitdepth_lib.extract_all_objects()
+        checkasm_bitdepth_objs += checkasm_bitdepth_lib.extract_all_objects(recursive: true)
     endforeach
 
     checkasm_asm_objs = []
