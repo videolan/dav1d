@@ -92,6 +92,7 @@ if is_asm_enabled
 
         libdav1d_sources += files(
             'arm/cpu.c',
+            'arm/refmvs_init.c',
         )
         libdav1d_tmpl_sources += files(
             'arm/cdef_init_tmpl.c',
@@ -109,6 +110,7 @@ if is_asm_enabled
                 'arm/64/itx.S',
                 'arm/64/looprestoration_common.S',
                 'arm/64/msac.S',
+                'arm/64/refmvs.S',
             )
 
             if dav1d_bitdepths.contains('8')
@@ -139,6 +141,7 @@ if is_asm_enabled
                 'arm/32/itx.S',
                 'arm/32/looprestoration_common.S',
                 'arm/32/msac.S',
+                'arm/32/refmvs.S',
             )
 
             if dav1d_bitdepths.contains('8')

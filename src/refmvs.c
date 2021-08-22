@@ -921,7 +921,11 @@ COLD void dav1d_refmvs_dsp_init(Dav1dRefmvsDSPContext *const c)
 {
     c->splat_mv = splat_mv_c;
 
-#if HAVE_ASM && ARCH_X86
+#if HAVE_ASM
+#if ARCH_AARCH64 || ARCH_ARM
+    dav1d_refmvs_dsp_init_arm(c);
+#elif ARCH_X86
     dav1d_refmvs_dsp_init_x86(c);
+#endif
 #endif
 }
