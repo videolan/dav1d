@@ -178,6 +178,21 @@ build-debian-bitdepth-16:
                       -Dbitdepths=16
         - ninja -C build
 
+build-debian-avx:
+    extends: .debian-amd64-common
+    tags:
+        - docker
+        - avx2
+        - amd64
+    variables:
+        CFLAGS: '-mavx'
+    script:
+        - meson build --buildtype debug
+                      --werror
+        - ninja -C build
+        - cd build
+        - time meson test -v --suite checkasm
+
 build-win32:
     extends: .debian-amd64-common
     script:

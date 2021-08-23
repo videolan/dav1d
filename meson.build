@@ -375,6 +375,9 @@ if host_machine.cpu_family().startswith('x86')
     cdata_asm.set10('ARCH_X86_64', host_machine.cpu_family() == 'x86_64')
     cdata_asm.set10('ARCH_X86_32', host_machine.cpu_family() == 'x86')
     cdata_asm.set10('PIC', true)
+
+    # Convert SSE asm into (128-bit) AVX when compiler flags are set to use AVX instructions
+    cdata_asm.set10('FORCE_VEX_ENCODING', cc.get_define('__AVX__') != '')
 endif
 
 cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
