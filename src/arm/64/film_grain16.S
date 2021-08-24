@@ -179,8 +179,8 @@ function output_lag\n\()_neon
         mov             w16, w14
 .endif
         add             w14, w11, w8              // 1 << (ar_coeff_shift - 1)
+        add             w12, w12, w10             // 1 << (4 - bitdepth_min_8 + grain_scale_shift - 1)
         asr             w14, w14, w7              // >> ar_coeff_shift
-        add             w12, w12, w10
         asr             w12, w12, w9              // >> (4 - bitdepth_min_8 + grain_scale_shift)
         add             w14, w14, w12
         cmp             w14, w5
