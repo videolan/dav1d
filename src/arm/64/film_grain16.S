@@ -887,8 +887,7 @@ L(generate_grain_\type\()_lag2):
         ret
 
 L(generate_grain_\type\()_lag3):
-        ldr             q29,      [x4]      // ar_coeffs_y[0-15]
-        ldr             q30,      [x4, #16] // ar_coeffs_y[16-23], ar_coeffs_uv[16-24]
+        ld1             {v29.16b, v30.16b}, [x4] // ar_coeffs_y[0-23], ar_coeffs_uv[0-24]
         stp             d8,  d9,  [sp, #16]
         stp             d10, d11, [sp, #32]
         stp             d12, d13, [sp, #48]
