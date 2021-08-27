@@ -179,10 +179,8 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     c->avg = BF(dav1d_avg, ssse3);
     c->w_avg = BF(dav1d_w_avg, ssse3);
     c->mask = BF(dav1d_mask, ssse3);
-#if BITDEPTH == 16
     c->w_mask[0] = BF(dav1d_w_mask_444, ssse3);
     c->w_mask[1] = BF(dav1d_w_mask_422, ssse3);
-#endif
     c->w_mask[2] = BF(dav1d_w_mask_420, ssse3);
     c->blend = BF(dav1d_blend, ssse3);
     c->blend_v = BF(dav1d_blend_v, ssse3);
