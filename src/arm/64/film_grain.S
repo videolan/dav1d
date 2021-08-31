@@ -815,7 +815,6 @@ function get_grain_row_44_neon
 endfunc
 
 function add_uv_444_coeff_lag0_neon
-        str             x30, [sp, #-16]!
 add_coeff_lag0_start:
         smull           v2.8h,   v0.8b,   v27.8b
         smull2          v3.8h,   v0.16b,  v27.16b
@@ -825,12 +824,10 @@ add_coeff_lag0_start:
         saddw2          v3.8h,   v3.8h,   v1.16b
         sqxtn           v2.8b,   v2.8h
         sqxtn2          v2.16b,  v3.8h
-        ldr             x30, [sp], #16
         ret
 endfunc
 
 function add_uv_420_coeff_lag0_neon
-        str             x30, [sp, #-16]!
         ld1             {v4.16b, v5.16b}, [x19], #32
         ld1             {v6.16b, v7.16b}, [x12], #32
         saddlp          v4.8h,   v4.16b
@@ -846,7 +843,6 @@ function add_uv_420_coeff_lag0_neon
 endfunc
 
 function add_uv_422_coeff_lag0_neon
-        str             x30, [sp, #-16]!
         ld1             {v4.16b, v5.16b}, [x19], #32
         saddlp          v4.8h,   v4.16b
         saddlp          v5.8h,   v5.16b
