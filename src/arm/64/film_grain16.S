@@ -423,7 +423,7 @@ function sum_lag2_above_neon
         ret
 endfunc
 
-.macro sum_lag2_func type, uv_layout, edge, elems=16
+.macro sum_lag2_func type, uv_layout, edge, elems=8
 function sum_\type\()_lag2_\edge\()_neon
         str             x30, [sp, #-16]!
 .ifc \edge, left
@@ -576,7 +576,7 @@ function sum_lag3_above_neon
         ret
 endfunc
 
-.macro sum_lag3_func type, uv_layout, edge, elems=16
+.macro sum_lag3_func type, uv_layout, edge, elems=8
 function sum_\type\()_lag3_\edge\()_neon
         str             x30, [sp, #-16]!
 .ifc \edge, left
