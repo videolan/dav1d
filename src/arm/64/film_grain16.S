@@ -104,12 +104,6 @@ endfunc
         st1             {\r5\().h}[0], [x0], #2
 .endm
 
-.macro store_grain_row_44 r0, r1, r2
-        st1             {\r0\().16b,\r1\().16b}, [x0], #32
-        st1             {\r2\().16b},  [x0]
-        add             x0,  x0,  #GRAIN_WIDTH-32
-.endm
-
 function get_grain_2_neon
         increment_seed  2
         read_rand       x14, 11,  1
