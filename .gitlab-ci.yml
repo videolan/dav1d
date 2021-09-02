@@ -193,6 +193,20 @@ build-debian-avx:
         - cd build
         - time meson test -v --suite checkasm
 
+build-debian-avx512:
+    extends: .debian-amd64-common
+    tags:
+        - docker
+        - amd64-avx512
+    variables:
+        CFLAGS: '-mavx'
+    script:
+        - meson build --buildtype debug
+                      --werror
+        - ninja -C build
+        - cd build
+        - time meson test -v --suite checkasm
+
 build-win32:
     extends: .debian-amd64-common
     script:
@@ -480,6 +494,22 @@ test-debian32-asm:
         - .test-asm-common
     needs: ["build-debian32"]
     dependencies: ["build-debian32"]
+
+test-debian-avx512:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    tags:
+        - docker
+        - amd64-avx512
+    variables:
+        CFLAGS: '-mavx'
+    needs: ["build-debian-avx512"]
+    script:
+        - meson build --buildtype release
+                      -Dtestdata_tests=true
+        - ninja -C build
+        - cd build && time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx512icl"
 
 test-debian-unaligned-stack:
     extends:
