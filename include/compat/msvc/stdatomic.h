@@ -41,8 +41,8 @@
 
 #include "common/attributes.h"
 
-typedef volatile LONG  __declspec(align(32)) atomic_int;
-typedef volatile ULONG __declspec(align(32)) atomic_uint;
+typedef volatile LONG  atomic_int;
+typedef volatile ULONG atomic_uint;
 
 typedef enum {
     memory_order_relaxed,
