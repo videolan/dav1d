@@ -32,6 +32,8 @@
 
 #include "common/attributes.h"
 
+#include "src/internal.h"
+
 #include "dav1d/common.h"
 
 #if ARCH_AARCH64 || ARCH_ARM
@@ -45,5 +47,6 @@
 void dav1d_init_cpu(void);
 unsigned dav1d_get_cpu_flags(void);
 DAV1D_API void dav1d_set_cpu_flags_mask(unsigned mask);
+int dav1d_num_logical_processors(Dav1dContext *c);
 
 #endif /* DAV1D_SRC_CPU_H */

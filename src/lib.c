@@ -63,8 +63,8 @@ COLD const char *dav1d_version(void) {
 }
 
 COLD void dav1d_default_settings(Dav1dSettings *const s) {
-    s->max_frame_delay = 8; // set to 1 to do low-latency decoding
-    s->n_threads = 1;
+    s->n_threads = 0;
+    s->max_frame_delay = 0;
     s->apply_grain = 1;
     s->allocator.cookie = NULL;
     s->allocator.alloc_picture_callback = dav1d_default_picture_alloc;
@@ -100,9 +100,9 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     validate_input_or_ret(c_out != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(s != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(s->n_threads >= 1 &&
+    validate_input_or_ret(s->n_threads >= 0 &&
                           s->n_threads <= DAV1D_MAX_THREADS, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(s->max_frame_delay >= 1 &&
+    validate_input_or_ret(s->max_frame_delay >= 0 &&
                           s->max_frame_delay <= DAV1D_MAX_FRAME_DELAY, DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->allocator.alloc_picture_callback != NULL,
                           DAV1D_ERR(EINVAL));
@@ -163,15 +163,18 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->flush = &c->flush_mem;
     atomic_init(c->flush, 0);
 
-    c->n_tc = s->n_threads;
-    c->n_fc = imin(s->n_threads, s->max_frame_delay);
+    c->n_tc = s->n_threads ? s->n_threads :
+        iclip(dav1d_num_logical_processors(c), 1, DAV1D_MAX_THREADS);
+    c->n_fc = s->max_frame_delay ? umin(s->max_frame_delay, c->n_tc) :
+        umin(c->n_tc, 8);
+
     c->fc = dav1d_alloc_aligned(sizeof(*c->fc) * c->n_fc, 32);
     if (!c->fc) goto error;
     memset(c->fc, 0, sizeof(*c->fc) * c->n_fc);
 
-    c->tc = dav1d_alloc_aligned(sizeof(*c->tc) * s->n_threads, 64);
+    c->tc = dav1d_alloc_aligned(sizeof(*c->tc) * c->n_tc, 64);
     if (!c->tc) goto error;
-    memset(c->tc, 0, sizeof(*c->tc) * s->n_threads);
+    memset(c->tc, 0, sizeof(*c->tc) * c->n_tc);
     if (c->n_tc > 1) {
         if (pthread_mutex_init(&c->task_thread.lock, NULL)) goto error;
         if (pthread_cond_init(&c->task_thread.cond, NULL)) {
@@ -199,7 +202,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         dav1d_refmvs_init(&f->rf);
     }
 
-    for (int m = 0; m < s->n_threads; m++) {
+    for (unsigned m = 0; m < c->n_tc; m++) {
         Dav1dTaskContext *const t = &c->tc[m];
         t->f = &c->fc[0];
         t->task_thread.ttd = &c->task_thread;
@@ -251,6 +254,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
 
     Dav1dSettings s;
     dav1d_default_settings(&s);
+    s.n_threads = 1;
     s.logger.callback = NULL;
 
     Dav1dContext *c;
