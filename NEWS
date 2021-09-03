@@ -1,3 +1,16 @@
+Changes for 0.9.2 'Golden Eagle':
+---------------------------------
+
+0.9.2 is a small update of dav1d on the 0.9.x branch:
+ - x86: SSE4 optimizations of inverse transforms for 10bit for all sizes
+ - x86: mc.resize optimizations with AVX2/SSSE3 for 10/12b
+ - x86: SSSE3 optimizations for cdef_filter in 10/12b and mc_w_mask_422/444 in 8b
+ - ARM NEON optimizations for FilmGrain Gen_grain functions
+ - Optimizations for splat_mv in SSE2/AVX2 and NEON
+ - x86: SGR improvements for SSSE3 CPUs
+ - x86: AVX2 optimizations for cfl_ac
+
+
 Changes for 0.9.1 'Golden Eagle':
 ---------------------------------
 
