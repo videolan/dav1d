@@ -77,7 +77,7 @@ cur_found:
 static inline void reset_task_cur_async(struct TaskThreadData *const ttd,
                                         unsigned frame_idx, unsigned n_frames)
 {
-    if (frame_idx < atomic_load(&ttd->first)) frame_idx += n_frames;
+    if (frame_idx < (unsigned)atomic_load(&ttd->first)) frame_idx += n_frames;
     unsigned last_idx = frame_idx;
     do {
         frame_idx = last_idx;
