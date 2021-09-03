@@ -336,7 +336,7 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
                 const int y = lowest_px[n][0] == INT_MIN ? INT_MIN :
                               lowest_px[n][0] + 8;
                 const int uv = lowest_px[n][1] == INT_MIN ? INT_MIN :
-                               (lowest_px[n][1] << ss_ver) + 8;
+                               lowest_px[n][1] * (1 << ss_ver) + 8;
                 const int max = imax(y, uv);
                 if (max == INT_MIN) continue;
                 lowest = iclip(max, 1, f->refp[n].p.p.h);
