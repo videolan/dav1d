@@ -549,6 +549,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
 
         // clean-up threading stuff
         if (c->n_fc > 1) {
+            freep(&f->tile_thread.lowest_pixel_mem);
             freep(&f->frame_thread.b);
             dav1d_freep_aligned(&f->frame_thread.pal_idx);
             dav1d_freep_aligned(&f->frame_thread.cf);
@@ -558,6 +559,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
             pthread_cond_destroy(&f->task_thread.cond);
         }
         freep(&f->task_thread.tasks);
+        freep(&f->task_thread.tile_tasks[0]);
         dav1d_free_aligned(f->ts);
         dav1d_free_aligned(f->ipred_edge[0]);
         free(f->a);
