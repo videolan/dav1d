@@ -1559,13 +1559,15 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                                       &f->task_thread.ttd->lock);
                 Dav1dThreadPicture *const out_delayed =
                     &c->frame_thread.out_delayed[next];
-                if (out_delayed->p.data[0]) {
+                if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
                     if (atomic_load(&c->task_thread.first) + 1U < c->n_fc)
                         atomic_fetch_add(&c->task_thread.first, 1U);
                     else
                         atomic_store(&c->task_thread.first, 0);
                     if (c->task_thread.cur < c->n_fc)
                         c->task_thread.cur--;
+                }
+                if (out_delayed->p.data[0]) {
                     const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
                                                                    memory_order_relaxed);
                     if (out_delayed->visible && progress != FRAME_ERROR) {

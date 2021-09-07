@@ -3340,6 +3340,9 @@ error:
 void dav1d_decode_frame_exit(Dav1dFrameContext *const f, const int retval) {
     const Dav1dContext *const c = f->c;
 
+    if (f->sr_cur.p.data[0])
+        atomic_init(&f->task_thread.error, 0);
+
     if (c->n_fc > 1 && retval && f->frame_thread.cf) {
         memset(f->frame_thread.cf, 0,
                (size_t)f->frame_thread.cf_sz * 128 * 128 / 2);
@@ -3424,13 +3427,15 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             pthread_cond_wait(&f->task_thread.cond,
                               &f->task_thread.ttd->lock);
         out_delayed = &c->frame_thread.out_delayed[next];
-        if (out_delayed->p.data[0]) {
+        if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
             if (atomic_load(&c->task_thread.first) + 1U < c->n_fc)
                 atomic_fetch_add(&c->task_thread.first, 1U);
             else
                 atomic_store(&c->task_thread.first, 0);
             if (c->task_thread.cur < c->n_fc)
                 c->task_thread.cur--;
+        }
+        if (out_delayed->p.data[0]) {
             const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
                                                            memory_order_relaxed);
             if (out_delayed->visible && progress != FRAME_ERROR) {
@@ -3626,7 +3631,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     f->sbh = (f->bh + f->sb_step - 1) >> f->sb_shift;
     f->b4_stride = (f->bw + 31) & ~31;
     f->bitdepth_max = (1 << f->cur.p.bpc) - 1;
-    f->task_thread.error = 0;
+    atomic_init(&f->task_thread.error, 0);
     const int uses_2pass = c->n_fc > 1;
     const int cols = f->frame_hdr->tiling.cols;
     const int rows = f->frame_hdr->tiling.rows;
@@ -3779,6 +3784,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     return 0;
 error:
+    atomic_init(&f->task_thread.error, 1);
     dav1d_cdf_thread_unref(&f->in_cdf);
     if (f->frame_hdr->refresh_context)
         dav1d_cdf_thread_unref(&f->out_cdf);

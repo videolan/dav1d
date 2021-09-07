@@ -354,7 +354,7 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
                               &f->task_thread.ttd->lock);
         Dav1dThreadPicture *const out_delayed =
             &c->frame_thread.out_delayed[next];
-        if (out_delayed->p.data[0]) {
+        if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
             if (atomic_load(&c->task_thread.first) + 1U < c->n_fc)
                 atomic_fetch_add(&c->task_thread.first, 1U);
             else
