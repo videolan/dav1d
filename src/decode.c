@@ -3082,26 +3082,6 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         f->lf.cdef_line_sz[1] = (int) uv_stride;
     }
 
-    const int num_lines = c->n_tc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
-    const int lr_line_sz = ((f->sr_cur.p.p.w + 31) & ~31) << hbd;
-    const size_t lr_plane_sz = num_lines * lr_line_sz;
-    if (lr_plane_sz != f->lf.lr_plane_sz) {
-        dav1d_freep_aligned(&f->lf.lr_lpf_line[0]);
-        // lr simd may overread the input, so slightly over-allocate the lpf buffer
-        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_plane_sz * 3 + 64, 32);
-        if (!lr_ptr) {
-            f->lf.lr_plane_sz = 0;
-            goto error;
-        }
-
-        for (int pl = 0; pl <= 2; pl++) {
-            f->lf.lr_lpf_line[pl] = lr_ptr;
-            lr_ptr += lr_plane_sz;
-        }
-
-        f->lf.lr_plane_sz = lr_plane_sz;
-    }
-
     // update allocation for loopfilter masks
     if (num_sb128 != f->lf.mask_sz) {
         freep(&f->lf.mask);
@@ -3139,7 +3119,19 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
             goto error;
         }
         f->lf.lr_mask_sz = lr_mask_sz;
+
+        const int lr_line_sz = f->sr_sb128w << (7 + hbd);
+        const int num_lines = c->n_tc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
+        dav1d_freep_aligned(&f->lf.lr_lpf_line[0]);
+        // lr simd may overread the input, so slightly over-allocate the lpf buffer
+        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * num_lines * 3 + 64, 32);
+        if (!lr_ptr) goto error;
+        for (int pl = 0; pl <= 2; pl++) {
+            f->lf.lr_lpf_line[pl] = lr_ptr;
+            lr_ptr += lr_line_sz * num_lines;
+        }
     }
+
     f->lf.restore_planes =
         ((f->frame_hdr->restoration.type[0] != DAV1D_RESTORATION_NONE) << 0) +
         ((f->frame_hdr->restoration.type[1] != DAV1D_RESTORATION_NONE) << 1) +

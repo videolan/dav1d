@@ -111,7 +111,7 @@ void bytefn(dav1d_lr_copy_lpf)(Dav1dFrameContext *const f,
     const int have_tt = f->c->n_tc > 1;
     const int offset = 8 * !!sby;
     const ptrdiff_t *const src_stride = f->cur.stride;
-    const ptrdiff_t lr_stride = ((f->sr_cur.p.p.w + 31) & ~31) * sizeof(pixel);
+    const ptrdiff_t lr_stride = f->sr_sb128w * 128 * sizeof(pixel);
     const ptrdiff_t tt_off = have_tt * sby * (4 << f->seq_hdr->sb128) * PXSTRIDE(lr_stride);
     pixel *const dst[3] = {
         f->lf.lr_lpf_line[0] + tt_off,
@@ -161,7 +161,7 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     const int chroma = !!plane;
     const int ss_ver = chroma & (f->sr_cur.p.p.layout == DAV1D_PIXEL_LAYOUT_I420);
     const ptrdiff_t p_stride = f->sr_cur.p.stride[chroma];
-    const ptrdiff_t lpf_stride = sizeof(pixel) * ((f->sr_cur.p.p.w + 31) & ~31);
+    const ptrdiff_t lpf_stride = sizeof(pixel) * f->sr_sb128w * 128;
     const int sby = (y + (y ? 8 << ss_ver : 0)) >> (6 - ss_ver + f->seq_hdr->sb128);
     const int have_tt = f->c->n_tc > 1;
     const pixel *lpf = f->lf.lr_lpf_line[plane] +
