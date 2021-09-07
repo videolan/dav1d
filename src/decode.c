@@ -3082,23 +3082,24 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         f->lf.cdef_line_sz[1] = (int) uv_stride;
     }
 
+    const int num_lines = c->n_tc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
     const int lr_line_sz = ((f->sr_cur.p.p.w + 31) & ~31) << hbd;
-    if (lr_line_sz != f->lf.lr_line_sz) {
+    const size_t lr_plane_sz = num_lines * lr_line_sz;
+    if (lr_plane_sz != f->lf.lr_plane_sz) {
         dav1d_freep_aligned(&f->lf.lr_lpf_line[0]);
-        const int num_lines = c->n_tc > 1 ? f->sbh * (4 << f->seq_hdr->sb128) : 12;
         // lr simd may overread the input, so slightly over-allocate the lpf buffer
-        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_line_sz * num_lines * 3 + 64, 32);
+        uint8_t *lr_ptr = dav1d_alloc_aligned(lr_plane_sz * 3 + 64, 32);
         if (!lr_ptr) {
-            f->lf.lr_line_sz = 0;
+            f->lf.lr_plane_sz = 0;
             goto error;
         }
 
         for (int pl = 0; pl <= 2; pl++) {
             f->lf.lr_lpf_line[pl] = lr_ptr;
-            lr_ptr += lr_line_sz * num_lines;
+            lr_ptr += lr_plane_sz;
         }
 
-        f->lf.lr_line_sz = lr_line_sz;
+        f->lf.lr_plane_sz = lr_plane_sz;
     }
 
     // update allocation for loopfilter masks

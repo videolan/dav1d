@@ -272,7 +272,8 @@ struct Dav1dFrameContext {
         Av1Restoration *lr_mask;
         int top_pre_cdef_toggle;
         int mask_sz /* w*h */, lr_mask_sz, cdef_line_sz[2] /* stride */;
-        int lr_line_sz, re_sz /* h */;
+        size_t lr_plane_sz; /* w*sbh*4*is_sb128 if n_tc > 1, else w*12 */
+        int re_sz /* h */;
         ALIGN(Av1FilterLUT lim_lut, 16);
         int last_sharpness;
         uint8_t lvl[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
