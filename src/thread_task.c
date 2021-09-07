@@ -50,8 +50,8 @@ static inline int reset_task_cur(const Dav1dContext *const c,
     const unsigned first = atomic_load(&ttd->first);
     if (!ttd->cur && c->fc[first].task_thread.task_cur_prev == NULL)
         return 0;
-    unsigned reset_frame_idx = atomic_exchange(&ttd->reset_task_cur, INT_MAX);
-    if (reset_frame_idx != INT_MAX) {
+    unsigned reset_frame_idx = atomic_exchange(&ttd->reset_task_cur, UINT_MAX);
+    if (reset_frame_idx != UINT_MAX) {
         if (frame_idx == UINT_MAX) {
             if (reset_frame_idx > first + ttd->cur)
                 return 0;

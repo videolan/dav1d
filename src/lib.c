@@ -478,9 +478,9 @@ void dav1d_flush(Dav1dContext *const c) {
     if (c->n_tc > 1) {
         pthread_mutex_lock(&c->task_thread.lock);
         for (unsigned i = 0; i < c->n_tc; i++) {
-            Dav1dTaskContext *const pf = &c->tc[i];
-            while (!pf->task_thread.flushed) {
-                pthread_cond_wait(&pf->task_thread.td.cond, &c->task_thread.lock);
+            Dav1dTaskContext *const tc = &c->tc[i];
+            while (!tc->task_thread.flushed) {
+                pthread_cond_wait(&tc->task_thread.td.cond, &c->task_thread.lock);
             }
         }
         for (unsigned i = 0; i < c->n_fc; i++) {
@@ -490,7 +490,7 @@ void dav1d_flush(Dav1dContext *const c) {
         }
         atomic_init(&c->task_thread.first, 0);
         c->task_thread.cur = c->n_fc;
-        atomic_store(&c->task_thread.reset_task_cur, INT_MAX);
+        atomic_store(&c->task_thread.reset_task_cur, UINT_MAX);
         atomic_store(&c->task_thread.cond_signaled, 0);
         pthread_mutex_unlock(&c->task_thread.lock);
     }

@@ -3425,7 +3425,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         f = &c->fc[next];
         while (f->n_tile_data > 0)
             pthread_cond_wait(&f->task_thread.cond,
-                              &f->task_thread.ttd->lock);
+                              &c->task_thread.lock);
         out_delayed = &c->frame_thread.out_delayed[next];
         if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
             if (atomic_load(&c->task_thread.first) + 1U < c->n_fc)
@@ -3808,7 +3808,7 @@ error:
     f->n_tile_data = 0;
 
     if (c->n_fc > 1)
-        pthread_mutex_unlock(&f->task_thread.ttd->lock);
+        pthread_mutex_unlock(&c->task_thread.lock);
 
     return res;
 }
