@@ -434,6 +434,7 @@ build-debian-ppc64le:
         - test -d cache/dav1d-test-data.git && GIT_DIR=cache/dav1d-test-data.git git fetch --refmap=refs/heads/master:refs/heads/master origin master
         - test -d cache/dav1d-test-data.git || git clone --bare https://code.videolan.org/videolan/dav1d-test-data.git cache/dav1d-test-data.git
         - git clone cache/dav1d-test-data.git tests/dav1d-test-data
+        - git -C tests/dav1d-test-data describe --always --long
     dependencies: []
 
 .test-asm-common:
