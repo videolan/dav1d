@@ -2011,8 +2011,8 @@ static int decode_b(Dav1dTaskContext *const t,
                 }
 
                 if (DEBUG_BLOCK_INFO)
-                    printf("Post-motionmode[%d]: r=%d [mask: 0x%" PRIu64 "x/0x%"
-                           PRIu64 "x]\n", b->motion_mode, ts->msac.rng, mask[0],
+                    printf("Post-motionmode[%d]: r=%d [mask: 0x%" PRIx64 "/0x%"
+                           PRIx64 "]\n", b->motion_mode, ts->msac.rng, mask[0],
                             mask[1]);
             } else {
                 b->motion_mode = MM_TRANSLATION;
