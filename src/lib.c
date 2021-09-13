@@ -290,45 +290,24 @@ error:
     return res;
 }
 
+static int has_grain(const Dav1dPicture *const pic)
+{
+    const Dav1dFilmGrainData *fgdata = &pic->frame_hdr->film_grain.data;
+    return fgdata->num_y_points || fgdata->num_uv_points[0] ||
+           fgdata->num_uv_points[1];
+}
+
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
                         Dav1dPicture *const in)
 {
-    const Dav1dFilmGrainData *fgdata = &in->frame_hdr->film_grain.data;
-    int has_grain = fgdata->num_y_points || fgdata->num_uv_points[0] ||
-                    fgdata->num_uv_points[1];
-
-    // If there is nothing to be done, skip the allocation/copy
-    if (!c->apply_grain || !has_grain) {
+    if (!c->apply_grain || !has_grain(in)) {
         dav1d_picture_move_ref(out, in);
         return 0;
     }
 
-    // Apply film grain to a new copy of the image to avoid corrupting refs
-    int res = dav1d_picture_alloc_copy(c, out, in->p.w, in);
-    if (res < 0) {
-        dav1d_picture_unref_internal(in);
-        dav1d_picture_unref_internal(out);
-        return res;
-    }
-
-    switch (out->p.bpc) {
-#if CONFIG_8BPC
-    case 8:
-        dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
-        break;
-#endif
-#if CONFIG_16BPC
-    case 10:
-    case 12:
-        dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
-        break;
-#endif
-    default:
-        assert(0);
-    }
-
+    int res = dav1d_apply_grain(c, out, in);
     dav1d_picture_unref_internal(in);
-    return 0;
+    return res;
 }
 
 static int output_picture_ready(Dav1dContext *const c) {
@@ -451,6 +430,43 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
         return drain_picture(c, out);
 
     return DAV1D_ERR(EAGAIN);
+}
+
+int dav1d_apply_grain(Dav1dContext *const c, Dav1dPicture *const out,
+                      const Dav1dPicture *const in)
+{
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
+
+    if (!has_grain(in)) {
+        dav1d_picture_ref(out, in);
+        return 0;
+    }
+
+    int res = dav1d_picture_alloc_copy(c, out, in->p.w, in);
+    if (res < 0) {
+        dav1d_picture_unref_internal(out);
+        return res;
+    }
+
+    switch (out->p.bpc) {
+#if CONFIG_8BPC
+    case 8:
+        dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
+        break;
+#endif
+#if CONFIG_16BPC
+    case 10:
+    case 12:
+        dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
+        break;
+#endif
+    default:
+        assert(0);
+    }
+
+    return 0;
 }
 
 void dav1d_flush(Dav1dContext *const c) {

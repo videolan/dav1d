@@ -91,7 +91,7 @@ static void generate_scaling(const int bitdepth,
 #ifndef UNIT_TEST
 void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
                               Dav1dPicture *const out,
-                              Dav1dPicture *const in)
+                              const Dav1dPicture *const in)
 {
     const Dav1dFilmGrainData *const data = &out->frame_hdr->film_grain.data;
 
