@@ -382,7 +382,11 @@ endif
 
 cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
 
-if cc.symbols_have_underscore_prefix()
+# meson's cc.symbols_have_underscore_prefix() is unfortunately unrelieably
+# when additional flags like '-fprofile-instr-generate' are passed via CFLAGS
+# see following meson issue https://github.com/mesonbuild/meson/issues/5482
+if (host_machine.system() == 'darwin' or
+   (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86'))
     cdata.set10('PREFIX', true)
     cdata_asm.set10('PREFIX', true)
 endif
