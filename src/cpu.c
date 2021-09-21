@@ -33,12 +33,19 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#elif defined(__linux__)
-#include <sched.h>
-#include <unistd.h>
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
 #include <sys/types.h>
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+#if defined(__FreeBSD__)
+#define cpu_set_t cpuset_t
 #endif
 
 static unsigned flags = 0;
@@ -88,19 +95,17 @@ COLD int dav1d_num_logical_processors(Dav1dContext *const c) {
     GetNativeSystemInfo(&system_info);
     return system_info.dwNumberOfProcessors;
 #endif
-#elif defined(__linux__)
-#ifdef CPU_COUNT
+#elif (defined(__linux__) || defined(__DragonFly__) || defined(__FreeBSD__)) && defined(CPU_COUNT)
     cpu_set_t affinity;
-    if (!sched_getaffinity(0, sizeof(affinity), &affinity))
+    if (!pthread_getaffinity_np(pthread_self(), sizeof(affinity), &affinity))
         return CPU_COUNT(&affinity);
-#else
-    return (int)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
 #elif defined(__APPLE__)
     int num_processors;
     size_t length = sizeof(num_processors);
     if (!sysctlbyname("hw.logicalcpu", &num_processors, &length, NULL, 0))
         return num_processors;
+#elif defined(_SC_NPROCESSORS_ONLN)
+    return (int)sysconf(_SC_NPROCESSORS_ONLN);
 #endif
     dav1d_log(c, "Unable to detect thread count, defaulting to single-threaded mode\n");
     return 1;
