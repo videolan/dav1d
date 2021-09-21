@@ -32,9 +32,8 @@
 
 #include "common/attributes.h"
 
-#include "src/internal.h"
-
 #include "dav1d/common.h"
+#include "dav1d/dav1d.h"
 
 #if ARCH_AARCH64 || ARCH_ARM
 #include "src/arm/cpu.h"
