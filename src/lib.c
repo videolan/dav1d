@@ -575,7 +575,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         free(f->lf.start_of_tile_row);
         dav1d_refmvs_clear(&f->rf);
         dav1d_free_aligned(f->lf.cdef_line_buf);
-        dav1d_free_aligned(f->lf.lr_lpf_line[0]);
+        dav1d_free_aligned(f->lf.lr_line_buf);
     }
     dav1d_free_aligned(c->fc);
     dav1d_data_unref_internal(&c->in);
