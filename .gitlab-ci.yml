@@ -18,21 +18,21 @@ stages:
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-buster-aarch64:20200218203017
+    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20211001193249
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-unstable-armv7:20190202101732
+    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20211004204031
     stage: build
     tags:
         - docker
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20190606105121
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20211001190437
     stage: build
     tags:
         - docker
@@ -371,7 +371,7 @@ build-macos:
 build-debian-werror:
     extends: .debian-aarch64-common
     variables:
-        CC: clang-7
+        CC: clang
     script:
         - meson build --buildtype debug
                       --werror
