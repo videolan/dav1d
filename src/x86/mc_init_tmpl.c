@@ -264,6 +264,8 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
         return;
 
 #if BITDEPTH == 8
+    init_mc_fn (FILTER_2D_BILINEAR,            bilin,               avx512icl);
+
     init_mct_fn(FILTER_2D_8TAP_REGULAR,        8tap_regular,        avx512icl);
     init_mct_fn(FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, avx512icl);
     init_mct_fn(FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  avx512icl);
