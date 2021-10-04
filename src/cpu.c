@@ -53,9 +53,6 @@ static unsigned flags = 0;
 #if __has_feature(memory_sanitizer)
 // memory sanitizer is inherently incompatible with asm
 static unsigned flags_mask = 0;
-#elif ARCH_X86
-/* Disable AVX-512 by default for the time being */
-static unsigned flags_mask = ~DAV1D_X86_CPU_FLAG_AVX512ICL;
 #else
 static unsigned flags_mask = -1;
 #endif
