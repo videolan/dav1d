@@ -410,14 +410,9 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
         out = nasm_r.stdout().strip().split()
         if out[1].to_lower() == 'version'
-            if out[2].version_compare('<2.13.02')
-                error('nasm 2.13.02 or later is required, found nasm @0@'.format(out[2]))
-            elif out[2].version_compare('<2.14') and get_option('enable_avx512')
-                error('nasm 2.14 or later is required for AVX-512 asm.\n' +
-                       'AVX-512 asm can be disabled with \'-Denable_avx512=false\'')
+            if out[2].version_compare('<2.14')
+                error('nasm 2.14 or later is required, found nasm @0@'.format(out[2]))
             endif
-            cdata.set10('HAVE_AVX512ICL', get_option('enable_avx512'))
-            cdata_asm.set10('HAVE_AVX512ICL', get_option('enable_avx512'))
         else
             error('unexpected nasm version string: @0@'.format(nasm_r.stdout()))
         endif
