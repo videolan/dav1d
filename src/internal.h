@@ -388,7 +388,7 @@ struct Dav1dTaskContext {
             int16_t ac[32 * 32];
             uint8_t pal_idx[2 * 64 * 64];
             uint16_t pal[3 /* plane */][8 /* palette_idx */];
-            ALIGN(union, 32) {
+            ALIGN(union, 64) {
                 struct {
                     uint8_t interintra_8bpc[64 * 64];
                     uint8_t edge_8bpc[257];
