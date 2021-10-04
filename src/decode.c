@@ -2304,6 +2304,7 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
                      const EdgeNode *const node)
 {
     const Dav1dFrameContext *const f = t->f;
+    Dav1dTileState *const ts = t->ts;
     const int hsz = 16 >> bl;
     const int have_h_split = f->bw > t->bx + hsz;
     const int have_v_split = f->bh > t->by + hsz;
@@ -2319,11 +2320,11 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
     if (t->frame_thread.pass != 2) {
         if (0 && bl == BL_64X64)
             printf("poc=%d,y=%d,x=%d,bl=%d,r=%d\n",
-                   f->frame_hdr->frame_offset, t->by, t->bx, bl, t->ts->msac.rng);
+                   f->frame_hdr->frame_offset, t->by, t->bx, bl, ts->msac.rng);
         bx8 = (t->bx & 31) >> 1;
         by8 = (t->by & 31) >> 1;
         ctx = get_partition_ctx(t->a, &t->l, bl, by8, bx8);
-        pc = t->ts->cdf.m.partition[bl][ctx];
+        pc = ts->cdf.m.partition[bl][ctx];
     }
 
     if (have_h_split && have_v_split) {
@@ -2331,7 +2332,7 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             const Av1Block *const b = &f->frame_thread.b[t->by * f->b4_stride + t->bx];
             bp = b->bl == bl ? b->bp : PARTITION_SPLIT;
         } else {
-            bp = dav1d_msac_decode_symbol_adapt16(&t->ts->msac, pc,
+            bp = dav1d_msac_decode_symbol_adapt16(&ts->msac, pc,
                                                   dav1d_partition_type_count[bl]);
             if (f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I422 &&
                 (bp == PARTITION_V || bp == PARTITION_V4 ||
@@ -2342,7 +2343,7 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             if (DEBUG_BLOCK_INFO)
                 printf("poc=%d,y=%d,x=%d,bl=%d,ctx=%d,bp=%d: r=%d\n",
                        f->frame_hdr->frame_offset, t->by, t->bx, bl, ctx, bp,
-                       t->ts->msac.rng);
+                       ts->msac.rng);
         }
         const uint8_t *const b = dav1d_block_sizes[bl][bp];
 
@@ -2387,6 +2388,16 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
                     return -1;
                 t->bx--;
                 t->by--;
+#if ARCH_X86_64
+                if (t->frame_thread.pass) {
+                    /* In 8-bit mode with 2-pass decoding the coefficient buffer
+                     * can end up misaligned due to skips here. Work around
+                     * the issue by explicitly realigning the buffer. */
+                    const int p = t->frame_thread.pass & 1;
+                    ts->frame_thread[p].cf =
+                        (void*)(((uintptr_t)ts->frame_thread[p].cf + 63) & ~63);
+                }
+#endif
             } else {
                 const EdgeBranch *const branch = (const EdgeBranch *) node;
                 if (decode_sb(t, bl + 1, branch->split[0]))
@@ -2503,12 +2514,12 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             const Av1Block *const b = &f->frame_thread.b[t->by * f->b4_stride + t->bx];
             is_split = b->bl != bl;
         } else {
-            is_split = dav1d_msac_decode_bool(&t->ts->msac,
+            is_split = dav1d_msac_decode_bool(&ts->msac,
                            gather_top_partition_prob(pc, bl));
             if (DEBUG_BLOCK_INFO)
                 printf("poc=%d,y=%d,x=%d,bl=%d,ctx=%d,bp=%d: r=%d\n",
                        f->frame_hdr->frame_offset, t->by, t->bx, bl, ctx,
-                       is_split ? PARTITION_SPLIT : PARTITION_H, t->ts->msac.rng);
+                       is_split ? PARTITION_SPLIT : PARTITION_H, ts->msac.rng);
         }
 
         assert(bl < BL_8X8);
@@ -2532,14 +2543,14 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             const Av1Block *const b = &f->frame_thread.b[t->by * f->b4_stride + t->bx];
             is_split = b->bl != bl;
         } else {
-            is_split = dav1d_msac_decode_bool(&t->ts->msac,
+            is_split = dav1d_msac_decode_bool(&ts->msac,
                            gather_left_partition_prob(pc, bl));
             if (f->cur.p.layout == DAV1D_PIXEL_LAYOUT_I422 && !is_split)
                 return 1;
             if (DEBUG_BLOCK_INFO)
                 printf("poc=%d,y=%d,x=%d,bl=%d,ctx=%d,bp=%d: r=%d\n",
                        f->frame_hdr->frame_offset, t->by, t->bx, bl, ctx,
-                       is_split ? PARTITION_SPLIT : PARTITION_V, t->ts->msac.rng);
+                       is_split ? PARTITION_SPLIT : PARTITION_V, ts->msac.rng);
         }
 
         assert(bl < BL_8X8);
@@ -3002,7 +3013,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         if (cf_sz != f->frame_thread.cf_sz) {
             dav1d_freep_aligned(&f->frame_thread.cf);
             f->frame_thread.cf =
-                dav1d_alloc_aligned((size_t)cf_sz * 128 * 128 / 2, 32);
+                dav1d_alloc_aligned((size_t)cf_sz * 128 * 128 / 2, 64);
             if (!f->frame_thread.cf) {
                 f->frame_thread.cf_sz = 0;
                 goto error;
