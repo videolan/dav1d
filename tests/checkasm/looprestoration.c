@@ -119,9 +119,9 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c, const int bpc)
 }
 
 static void check_sgr(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
-    ALIGN_STK_64(pixel, c_src, 448 * 64,), *const c_dst = c_src + 32;
-    ALIGN_STK_64(pixel, a_src, 448 * 64,), *const a_dst = a_src + 32;
-    ALIGN_STK_64(pixel, edge_buf, 448 * 8,), *const h_edge = edge_buf + 32;
+    ALIGN_STK_64(pixel, c_src, 448 * 64 + 64,), *const c_dst = c_src + 64;
+    ALIGN_STK_64(pixel, a_src, 448 * 64 + 64,), *const a_dst = a_src + 64;
+    ALIGN_STK_64(pixel, edge_buf, 448 * 8 + 64,), *const h_edge = edge_buf + 64;
     pixel left[64][4];
     LooprestorationParams params;
 

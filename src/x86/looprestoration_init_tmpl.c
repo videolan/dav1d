@@ -45,6 +45,7 @@ decl_wiener_filter_fns(avx2);
 decl_wiener_filter_fns(avx512icl);
 decl_sgr_filter_fns(ssse3);
 decl_sgr_filter_fns(avx2);
+decl_sgr_filter_fns(avx512icl);
 
 COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPContext *const c,
                                                      const int bpc)
@@ -82,6 +83,9 @@ COLD void bitfn(dav1d_loop_restoration_dsp_init_x86)(Dav1dLoopRestorationDSPCont
 #if BITDEPTH == 8
     /* With VNNI we don't need a 5-tap version. */
     c->wiener[0] = c->wiener[1] = BF(dav1d_wiener_filter7, avx512icl);
+    c->sgr[0] = BF(dav1d_sgr_filter_5x5, avx512icl);
+    c->sgr[1] = BF(dav1d_sgr_filter_3x3, avx512icl);
+    c->sgr[2] = BF(dav1d_sgr_filter_mix, avx512icl);
 #endif
 #endif
 }
