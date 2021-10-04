@@ -208,6 +208,7 @@ if is_asm_enabled
                 'x86/cdef_avx512.asm',
                 'x86/ipred_avx512.asm',
                 'x86/itx_avx512.asm',
+                'x86/loopfilter_avx512.asm',
                 'x86/looprestoration_avx512.asm',
                 'x86/mc_avx512.asm',
                 'x86/mc_avx2.asm',
