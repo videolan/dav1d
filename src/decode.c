@@ -3027,7 +3027,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
                 dav1d_freep_aligned(&f->frame_thread.pal);
                 f->frame_thread.pal =
                     dav1d_alloc_aligned(sizeof(*f->frame_thread.pal) *
-                                        num_sb128 * 16 * 16, 32);
+                                        num_sb128 * 16 * 16, 64);
                 if (!f->frame_thread.pal) {
                     f->frame_thread.pal_sz = 0;
                     goto error;
@@ -3040,7 +3040,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
                 dav1d_freep_aligned(&f->frame_thread.pal_idx);
                 f->frame_thread.pal_idx =
                     dav1d_alloc_aligned(sizeof(*f->frame_thread.pal_idx) *
-                                        pal_idx_sz * 128 * 128 / 4, 32);
+                                        pal_idx_sz * 128 * 128 / 4, 64);
                 if (!f->frame_thread.pal_idx) {
                     f->frame_thread.pal_idx_sz = 0;
                     goto error;
@@ -3166,7 +3166,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
     if (ipred_edge_sz != f->ipred_edge_sz) {
         dav1d_freep_aligned(&f->ipred_edge[0]);
         uint8_t *ptr = f->ipred_edge[0] =
-            dav1d_alloc_aligned(ipred_edge_sz * 128 * 3, 32);
+            dav1d_alloc_aligned(ipred_edge_sz * 128 * 3, 64);
         if (!ptr) {
             f->ipred_edge_sz = 0;
             goto error;
