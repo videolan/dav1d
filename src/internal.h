@@ -351,7 +351,8 @@ struct Dav1dTaskContext {
     Dav1dTileState *ts;
     int bx, by;
     BlockContext l, *a;
-    ALIGN(union, 32) {
+    refmvs_tile rt;
+    ALIGN(union, 64) {
         int16_t cf_8bpc [32 * 32];
         int32_t cf_16bpc[32 * 32];
     };
@@ -360,7 +361,6 @@ struct Dav1dTaskContext {
     uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
     uint8_t txtp_map[32 * 32]; // inter-only
-    refmvs_tile rt;
     ALIGN(union, 64) {
         struct {
             union {

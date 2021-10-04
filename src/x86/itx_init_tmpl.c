@@ -77,6 +77,7 @@ decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x16, ext)); \
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x32, ext)); \
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x64, ext))
 
+decl_itx_fns(avx512icl);
 decl_itx_fns(avx2);
 decl_itx_fns(sse4);
 decl_itx_fns(ssse3);
@@ -178,15 +179,13 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
     }
 #endif
 
+#if ARCH_X86_64
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
-#if ARCH_X86_64
     assign_itx_fn(, 4, 4, wht_wht, WHT_WHT, avx2);
-#endif
 
     if (bpc > 10) return;
 
-#if ARCH_X86_64
     assign_itx17_fn( ,  4,  4, avx2);
     assign_itx16_fn(R,  4,  8, avx2);
     assign_itx16_fn(R,  4, 16, avx2);
@@ -206,5 +205,29 @@ COLD void bitfn(dav1d_itx_dsp_init_x86)(Dav1dInvTxfmDSPContext *const c,
     assign_itx1_fn (R, 64, 16, avx2);
     assign_itx1_fn (R, 64, 32, avx2);
     assign_itx1_fn ( , 64, 64, avx2);
+
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL)) return;
+
+#if BITDEPTH == 8
+    assign_itx16_fn( ,  4,  4, avx512icl); // no wht
+    assign_itx16_fn(R,  4,  8, avx512icl);
+    assign_itx16_fn(R,  4, 16, avx512icl);
+    assign_itx16_fn(R,  8,  4, avx512icl);
+    assign_itx16_fn( ,  8,  8, avx512icl);
+    assign_itx16_fn(R,  8, 16, avx512icl);
+    assign_itx2_fn (R,  8, 32, avx512icl);
+    assign_itx16_fn(R, 16,  4, avx512icl);
+    assign_itx16_fn(R, 16,  8, avx512icl);
+    assign_itx12_fn( , 16, 16, avx512icl);
+    assign_itx2_fn (R, 16, 32, avx512icl);
+    assign_itx1_fn (R, 16, 64, avx512icl);
+    assign_itx2_fn (R, 32,  8, avx512icl);
+    assign_itx2_fn (R, 32, 16, avx512icl);
+    assign_itx2_fn ( , 32, 32, avx512icl);
+    assign_itx1_fn (R, 32, 64, avx512icl);
+    assign_itx1_fn (R, 64, 16, avx512icl);
+    assign_itx1_fn (R, 64, 32, avx512icl);
+    assign_itx1_fn ( , 64, 64, avx512icl);
+#endif
 #endif
 }
