@@ -63,8 +63,8 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c, const int bpc)
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride,
                  const pixel (*const left)[4],
-                 const pixel *lpf, ptrdiff_t lpf_stride,
-                 int w, int h, const LooprestorationParams *params,
+                 const pixel *lpf, int w, int h,
+                 const LooprestorationParams *params,
                  enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
     for (int t = 0; t < 2; t++) {
@@ -97,11 +97,9 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c, const int bpc)
                 memcpy(a_src, c_src, 448 * 64 * sizeof(pixel));
 
                 call_ref(c_dst, 448 * sizeof(pixel), left,
-                         h_edge, 448 * sizeof(pixel),
-                         w, h, &params, edges HIGHBD_TAIL_SUFFIX);
+                         h_edge, w, h, &params, edges HIGHBD_TAIL_SUFFIX);
                 call_new(a_dst, 448 * sizeof(pixel), left,
-                         h_edge, 448 * sizeof(pixel),
-                         w, h, &params, edges HIGHBD_TAIL_SUFFIX);
+                         h_edge, w, h, &params, edges HIGHBD_TAIL_SUFFIX);
                 if (checkasm_check_pixel(c_dst, 448 * sizeof(pixel),
                                          a_dst, 448 * sizeof(pixel),
                                          w, h, "dst"))
@@ -111,8 +109,7 @@ static void check_wiener(Dav1dLoopRestorationDSPContext *const c, const int bpc)
                     break;
                 }
             }
-            bench_new(a_dst, 448 * sizeof(pixel), left,
-                      h_edge, 448 * sizeof(pixel),
+            bench_new(a_dst, 448 * sizeof(pixel), left, h_edge,
                       256, 64, &params, 0xf HIGHBD_TAIL_SUFFIX);
         }
     }
@@ -127,8 +124,8 @@ static void check_sgr(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
 
     declare_func(void, pixel *dst, ptrdiff_t dst_stride,
                  const pixel (*const left)[4],
-                 const pixel *lpf, ptrdiff_t lpf_stride,
-                 int w, int h, const LooprestorationParams *params,
+                 const pixel *lpf, int w, int h,
+                 const LooprestorationParams *params,
                  enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
     static const struct { char name[4]; uint8_t idx; } sgr_data[3] = {
@@ -159,11 +156,9 @@ static void check_sgr(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
 
                 memcpy(a_src, c_src, 448 * 64 * sizeof(pixel));
 
-                call_ref(c_dst, 448 * sizeof(pixel), left,
-                         h_edge, 448 * sizeof(pixel),
+                call_ref(c_dst, 448 * sizeof(pixel), left, h_edge,
                          w, h, &params, edges HIGHBD_TAIL_SUFFIX);
-                call_new(a_dst, 448 * sizeof(pixel), left,
-                         h_edge, 448 * sizeof(pixel),
+                call_new(a_dst, 448 * sizeof(pixel), left, h_edge,
                          w, h, &params, edges HIGHBD_TAIL_SUFFIX);
                 if (checkasm_check_pixel(c_dst, 448 * sizeof(pixel),
                                          a_dst, 448 * sizeof(pixel),
@@ -174,8 +169,7 @@ static void check_sgr(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
                     break;
                 }
             }
-            bench_new(a_dst, 448 * sizeof(pixel), left,
-                      h_edge, 448 * sizeof(pixel),
+            bench_new(a_dst, 448 * sizeof(pixel), left, h_edge,
                       256, 64, &params, 0xf HIGHBD_TAIL_SUFFIX);
         }
     }

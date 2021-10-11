@@ -84,8 +84,7 @@ static void lr_stripe(const Dav1dFrameContext *const f, pixel *p,
     while (y + stripe_h <= row_h) {
         // Change the HAVE_BOTTOM bit in edges to (sby + 1 != f->sbh || y + stripe_h != row_h)
         edges ^= (-(sby + 1 != f->sbh || y + stripe_h != row_h) ^ edges) & LR_HAVE_BOTTOM;
-        lr_fn(p, stride, left, lpf, stride, unit_w, stripe_h,
-              &params, edges HIGHBD_CALL_SUFFIX);
+        lr_fn(p, stride, left, lpf, unit_w, stripe_h, &params, edges HIGHBD_CALL_SUFFIX);
 
         left += stripe_h;
         y += stripe_h;
