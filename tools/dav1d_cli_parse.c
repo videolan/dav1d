@@ -58,6 +58,7 @@ enum {
     ARG_ALL_LAYERS,
     ARG_SIZE_LIMIT,
     ARG_CPU_MASK,
+    ARG_NEG_STRIDE,
 };
 
 static const struct option long_opts[] = {
@@ -80,6 +81,7 @@ static const struct option long_opts[] = {
     { "alllayers",      1, NULL, ARG_ALL_LAYERS },
     { "sizelimit",      1, NULL, ARG_SIZE_LIMIT },
     { "cpumask",        1, NULL, ARG_CPU_MASK },
+    { "negstride",      0, NULL, ARG_NEG_STRIDE },
     { NULL,             0, NULL, 0 },
 };
 
@@ -130,7 +132,9 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
-            " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n");
+            " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n"
+            " --negstride:          use negative picture strides\n"
+            "                       this is mostly meant as a developer option\n");
     exit(1);
 }
 
@@ -337,6 +341,9 @@ void parse(const int argc, char *const *const argv,
         case ARG_CPU_MASK:
             dav1d_set_cpu_flags_mask(parse_enum(optarg, cpu_mask_tbl, ARRAY_SIZE(cpu_mask_tbl),
                                                 ARG_CPU_MASK, argv[0]));
+            break;
+        case ARG_NEG_STRIDE:
+            cli_settings->neg_stride = 1;
             break;
         default:
             usage(argv[0], NULL);
