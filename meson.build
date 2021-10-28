@@ -203,6 +203,11 @@ if cc.check_header('io.h')
     cdata.set('HAVE_IO_H', 1)
 endif
 
+if cc.check_header('pthread_np.h')
+    cdata.set('HAVE_PTHREAD_NP_H', 1)
+    test_args += '-DHAVE_PTHREAD_NP_H'
+endif
+
 
 # Function checks
 
@@ -232,6 +237,16 @@ if (host_machine.cpu_family() == 'aarch64' or
     if cc.has_function('elf_aux_info', prefix : '#include <sys/auxv.h>', args : test_args)
         cdata.set('HAVE_ELF_AUX_INFO', 1)
     endif
+endif
+
+pthread_np_prefix = '''
+#include <pthread.h>
+#ifdef HAVE_PTHREAD_NP_H
+#include <pthread_np.h>
+#endif
+'''
+if cc.has_function('pthread_getaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
+    cdata.set('HAVE_PTHREAD_GETAFFINITY_NP', 1)
 endif
 
 # Compiler flag tests
