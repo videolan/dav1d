@@ -374,7 +374,7 @@ static int placebo_alloc_pic(Dav1dPicture *const pic, void *cookie)
     assert(rd_priv_ctx != NULL);
 
     SDL_LockMutex(rd_priv_ctx->lock);
-    int ret = pl_allocate_dav1dpicture(pic, rd_priv_ctx->gpu);
+    int ret = pl_allocate_dav1dpicture(pic, (void *) rd_priv_ctx->gpu);
     SDL_UnlockMutex(rd_priv_ctx->lock);
     return ret;
 }
@@ -385,7 +385,7 @@ static void placebo_release_pic(Dav1dPicture *pic, void *cookie)
     assert(rd_priv_ctx != NULL);
 
     SDL_LockMutex(rd_priv_ctx->lock);
-    pl_release_dav1dpicture(pic, rd_priv_ctx->gpu);
+    pl_release_dav1dpicture(pic, (void *) rd_priv_ctx->gpu);
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
 
