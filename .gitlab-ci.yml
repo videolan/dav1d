@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20211008082222
+    image: registry.videolan.org/dav1d-debian-unstable:20211102173310
     stage: build
     tags:
         - docker
@@ -65,6 +65,7 @@ style-check:
                   exit 1;
               fi;
           done
+        - rg '[\u061c\u2000-\u200f\u2028-\u202f\u205f-\u206f]' ./ && echo "Invisible Unicode characters" && exit 1
         - git remote rm upstream 2> /dev/null || true
         - git remote add upstream https://code.videolan.org/videolan/dav1d.git
         - git fetch -q upstream master
