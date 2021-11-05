@@ -285,13 +285,13 @@ COLD void bitfn(dav1d_mc_dsp_init_x86)(Dav1dMCDSPContext *const c) {
     init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          avx512icl);
     init_mct_fn(FILTER_2D_BILINEAR,            bilin,               avx512icl);
 
-#if BITDEPTH == 8
     c->avg = BF(dav1d_avg, avx512icl);
     c->w_avg = BF(dav1d_w_avg, avx512icl);
     c->mask = BF(dav1d_mask, avx512icl);
     c->w_mask[0] = BF(dav1d_w_mask_444, avx512icl);
     c->w_mask[1] = BF(dav1d_w_mask_422, avx512icl);
     c->w_mask[2] = BF(dav1d_w_mask_420, avx512icl);
+#if BITDEPTH == 8
     c->blend = BF(dav1d_blend, avx512icl);
     c->blend_v = BF(dav1d_blend_v, avx512icl);
     c->blend_h = BF(dav1d_blend_h, avx512icl);
