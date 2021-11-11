@@ -3060,7 +3060,8 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
     const int need_cdef_lpf_copy = c->n_tc > 1 && has_resize;
     if (y_stride * f->sbh * 4 != f->lf.cdef_buf_plane_sz[0] ||
         uv_stride * f->sbh * 8 != f->lf.cdef_buf_plane_sz[1] ||
-        need_cdef_lpf_copy != f->lf.need_cdef_lpf_copy)
+        need_cdef_lpf_copy != f->lf.need_cdef_lpf_copy ||
+        f->sbh != f->lf.cdef_buf_sbh)
     {
         dav1d_free_aligned(f->lf.cdef_line_buf);
         size_t alloc_sz = 64;
@@ -3112,6 +3113,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         f->lf.cdef_buf_plane_sz[0] = (int) y_stride * f->sbh * 4;
         f->lf.cdef_buf_plane_sz[1] = (int) uv_stride * f->sbh * 8;
         f->lf.need_cdef_lpf_copy = need_cdef_lpf_copy;
+        f->lf.cdef_buf_sbh = f->sbh;
     }
 
     const int sb128 = f->seq_hdr->sb128;
