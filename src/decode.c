@@ -3124,7 +3124,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
     {
         dav1d_free_aligned(f->lf.lr_line_buf);
         // lr simd may overread the input, so slightly over-allocate the lpf buffer
-        size_t alloc_sz = 64;
+        size_t alloc_sz = 128;
         alloc_sz += (size_t)llabs(y_stride) * num_lines;
         alloc_sz += (size_t)llabs(uv_stride) * num_lines * 2;
         uint8_t *ptr = f->lf.lr_line_buf = dav1d_alloc_aligned(alloc_sz, 64);
@@ -3133,6 +3133,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
             goto error;
         }
 
+        ptr += 64;
         if (y_stride < 0)
             f->lf.lr_lpf_line[0] = ptr - y_stride * (num_lines - 1);
         else
