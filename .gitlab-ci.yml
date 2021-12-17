@@ -674,6 +674,7 @@ test-debian-armv7-clang-5:
     script:
         - meson build --buildtype release
                       --werror
+                      -Denable_docs=true
         - ninja -C build doc/html
         - mv build/doc/html public
     artifacts:
