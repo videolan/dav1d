@@ -105,6 +105,14 @@ For 32-bit linux, run
 meson build --cross-file=package/crossfiles/i686-linux32.meson
 ```
 
+## Build documentation
+
+1. Install [doxygen](https://www.doxygen.nl/) and [graphviz](https://www.graphviz.org/)
+2. Run `meson build -Denable_docs=true` to create the build directory
+3. Run `ninja -C build doc/html` to build the docs
+
+The result can be found in `build/doc/html/`. An online version built from master can be found [here](https://videolan.videolan.me/dav1d/).
+
 # Run tests
 
 1. In the root directory, run `git clone https://code.videolan.org/videolan/dav1d-test-data.git tests/dav1d-test-data` to fetch the test data repository
@@ -146,6 +154,3 @@ Please read the [AV1 patent license](doc/PATENTS) that applies to the AV1 specif
 ## Will you care about <my_arch>? <my_os>?
 
 - We do, but we don't have either the time or the knowledge. Therefore, patches and contributions welcome.
-
-## Where can I find documentation?
-- The current library documentation, built from master, can be found [here](https://videolan.videolan.me/dav1d/).
