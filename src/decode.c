@@ -2949,14 +2949,10 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
                 goto error;
             }
         }
-        Dav1dTileState *ts_new = dav1d_alloc_aligned(sizeof(*f->ts) * n_ts, 32);
-        if (!ts_new) goto error;
-        if (f->ts) {
-            memcpy(ts_new, f->ts, sizeof(*f->ts) * imin(n_ts, f->n_ts));
-            dav1d_free_aligned(f->ts);
-        }
+        dav1d_free_aligned(f->ts);
+        f->ts = dav1d_alloc_aligned(sizeof(*f->ts) * n_ts, 32);
+        if (!f->ts) goto error;
         f->n_ts = n_ts;
-        f->ts = ts_new;
     }
 
     const int a_sz = f->sb128w * f->frame_hdr->tiling.rows * (1 + (c->n_fc > 1 && c->n_tc > 1));
