@@ -351,6 +351,18 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
     return 0;
 }
 
+static inline void abort_frame(Dav1dFrameContext *const f) {
+    atomic_store(&f->task_thread.error, 1);
+    f->task_thread.task_counter = 0;
+    f->task_thread.done[0] = 1;
+    f->task_thread.done[1] = 1;
+    atomic_store(&f->sr_cur.progress[0], FRAME_ERROR);
+    atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
+    dav1d_decode_frame_exit(f, -1);
+    f->n_tile_data = 0;
+    pthread_cond_signal(&f->task_thread.cond);
+}
+
 void *dav1d_worker_task(void *data) {
     Dav1dTaskContext *const tc = data;
     const Dav1dContext *const c = tc->c;
@@ -371,6 +383,8 @@ void *dav1d_worker_task(void *data) {
             t = prev_t ? prev_t->next : f->task_thread.task_head;
             while (t) {
                 if (t->type == DAV1D_TASK_TYPE_INIT) {
+                    goto found;
+                } else if (t->type == DAV1D_TASK_TYPE_INIT_CDF) {
                     const int p1 = f->in_cdf.progress ?
                         atomic_load(f->in_cdf.progress) : 1;
                     if (p1) {
@@ -467,9 +481,25 @@ void *dav1d_worker_task(void *data) {
         switch (t->type) {
         case DAV1D_TASK_TYPE_INIT: {
             assert(c->n_fc > 1);
+            int res = dav1d_decode_frame_init(f);
+            int p1 = f->in_cdf.progress ? atomic_load(f->in_cdf.progress) : 1;
+            if (res || p1 == TILE_ERROR) {
+                pthread_mutex_lock(&ttd->lock);
+                abort_frame(f);
+            } else if (!res) {
+                t->type = DAV1D_TASK_TYPE_INIT_CDF;
+                if (p1) goto found_unlocked;
+                pthread_mutex_lock(&ttd->lock);
+                insert_task(f, t, 0);
+            }
+            reset_task_cur(c, ttd, t->frame_idx);
+            continue;
+        }
+        case DAV1D_TASK_TYPE_INIT_CDF: {
+            assert(c->n_fc > 1);
             int res = -1;
             if (!atomic_load(&f->task_thread.error))
-                res = dav1d_decode_frame_init(f);
+                res = dav1d_decode_frame_init_cdf(f);
             pthread_mutex_lock(&ttd->lock);
             if (f->frame_hdr->refresh_context && !f->task_thread.update_set) {
                 atomic_store(f->out_cdf.progress, res < 0 ? TILE_ERROR : 1);
@@ -493,18 +523,7 @@ void *dav1d_worker_task(void *data) {
                         }
                     }
                 }
-            } else {
-                // init failed, signal completion
-                atomic_store(&f->task_thread.error, 1);
-                f->task_thread.task_counter = 0;
-                f->task_thread.done[0] = 1;
-                f->task_thread.done[1] = 1;
-                atomic_store(&f->sr_cur.progress[0], FRAME_ERROR);
-                atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
-                dav1d_decode_frame_exit(f, -1);
-                f->n_tile_data = 0;
-                pthread_cond_signal(&f->task_thread.cond);
-            }
+            } else abort_frame(f);
             reset_task_cur(c, ttd, t->frame_idx);
             continue;
         }

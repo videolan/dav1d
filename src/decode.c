@@ -3295,6 +3295,15 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
     f->lf.sr_p[1] = f->sr_cur.p.data[has_chroma ? 1 : 0];
     f->lf.sr_p[2] = f->sr_cur.p.data[has_chroma ? 2 : 0];
 
+    retval = 0;
+error:
+    return retval;
+}
+
+int dav1d_decode_frame_init_cdf(Dav1dFrameContext *const f) {
+    const Dav1dContext *const c = f->c;
+    int retval = DAV1D_ERR(EINVAL);
+
     if (f->frame_hdr->refresh_context)
         dav1d_cdf_thread_copy(f->out_cdf.data.cdf, &f->in_cdf);
 
@@ -3430,6 +3439,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     // if n_tc > 1 (but n_fc == 1), we could run init/exit in the task
     // threads also. Not sure it makes a measurable difference.
     int res = dav1d_decode_frame_init(f);
+    if (!res) res = dav1d_decode_frame_init_cdf(f);
     // wait until all threads have completed
     if (!res) {
         if (f->c->n_tc > 1) {
