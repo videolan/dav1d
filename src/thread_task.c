@@ -141,7 +141,8 @@ static void insert_tasks(Dav1dFrameContext *const f,
         }
 
         // sort by tile-id
-        assert(first->type <= DAV1D_TASK_TYPE_TILE_RECONSTRUCTION);
+        assert(first->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION ||
+               first->type == DAV1D_TASK_TYPE_TILE_ENTROPY);
         assert(first->type == t_ptr->type);
         assert(t_ptr->sby == first->sby);
         const int p = first->type == DAV1D_TASK_TYPE_TILE_ENTROPY;
@@ -376,7 +377,9 @@ void *dav1d_worker_task(void *data) {
                         atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
                         goto found;
                     }
-                } else if (t->type <= DAV1D_TASK_TYPE_TILE_RECONSTRUCTION) {
+                } else if (t->type == DAV1D_TASK_TYPE_TILE_ENTROPY ||
+                           t->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION)
+                {
                     // if not bottom sbrow of tile, this task will be re-added
                     // after it's finished
                     if (!check_tile(t, f, c->n_fc > 1))
