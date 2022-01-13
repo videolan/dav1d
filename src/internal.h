@@ -305,6 +305,7 @@ struct Dav1dFrameContext {
         struct TaskThreadData *ttd;
         struct Dav1dTask *tasks, *tile_tasks[2], init_task;
         int num_tasks, num_tile_tasks;
+        int init_done;
         int done[2];
         int retval;
         int update_set; // whether we need to update CDF reference

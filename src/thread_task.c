@@ -271,6 +271,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
 void dav1d_task_frame_init(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
 
+    f->task_thread.init_done = 0;
     // schedule init task, which will schedule the remaining tasks
     Dav1dTask *const t = &f->task_thread.init_task;
     t->type = DAV1D_TASK_TYPE_INIT;
@@ -373,26 +374,36 @@ void *dav1d_worker_task(void *data) {
     pthread_mutex_lock(&ttd->lock);
     for (;;) {
         Dav1dFrameContext *f;
-        Dav1dTask *t, *prev_t;
+        Dav1dTask *t, *prev_t = NULL;
         if (tc->task_thread.die) break;
         if (atomic_load(c->flush)) goto park;
-        while (ttd->cur < c->n_fc) {
-            const unsigned first = atomic_load(&ttd->first);
-            f = &c->fc[(first + ttd->cur) % c->n_fc];
-            prev_t = f->task_thread.task_cur_prev;
-            t = prev_t ? prev_t->next : f->task_thread.task_head;
-            while (t) {
-                if (t->type == DAV1D_TASK_TYPE_INIT) {
-                    goto found;
-                } else if (t->type == DAV1D_TASK_TYPE_INIT_CDF) {
+        if (c->n_fc > 1) { // run init tasks first
+            for (unsigned i = 0; i < c->n_fc; i++) {
+                const unsigned first = atomic_load(&ttd->first);
+                f = &c->fc[(first + i) % c->n_fc];
+                if (f->task_thread.init_done) continue;
+                t = f->task_thread.task_head;
+                if (!t) continue;
+                if (t->type == DAV1D_TASK_TYPE_INIT) goto found;
+                if (t->type == DAV1D_TASK_TYPE_INIT_CDF) {
                     const int p1 = f->in_cdf.progress ?
                         atomic_load(f->in_cdf.progress) : 1;
                     if (p1) {
                         atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
                         goto found;
                     }
-                } else if (t->type == DAV1D_TASK_TYPE_TILE_ENTROPY ||
-                           t->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION)
+                }
+            }
+        }
+        while (ttd->cur < c->n_fc) {
+            const unsigned first = atomic_load(&ttd->first);
+            f = &c->fc[(first + ttd->cur) % c->n_fc];
+            prev_t = f->task_thread.task_cur_prev;
+            t = prev_t ? prev_t->next : f->task_thread.task_head;
+            while (t) {
+                if (t->type == DAV1D_TASK_TYPE_INIT_CDF) goto next;
+                else if (t->type == DAV1D_TASK_TYPE_TILE_ENTROPY ||
+                         t->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION)
                 {
                     // if not bottom sbrow of tile, this task will be re-added
                     // after it's finished
@@ -464,7 +475,8 @@ void *dav1d_worker_task(void *data) {
         if (prev_t) prev_t->next = t->next;
         else f->task_thread.task_head = t->next;
         if (!t->next) f->task_thread.task_tail = prev_t;
-        if (!f->task_thread.task_head) ttd->cur++;
+        if (t->type > DAV1D_TASK_TYPE_INIT_CDF && !f->task_thread.task_head)
+            ttd->cur++;
         // we don't need to check cond_signaled here, since we found a task
         // after the last signal so we want to re-signal the next waiting thread
         // and again won't need to signal after that
@@ -525,6 +537,7 @@ void *dav1d_worker_task(void *data) {
                 }
             } else abort_frame(f);
             reset_task_cur(c, ttd, t->frame_idx);
+            f->task_thread.init_done = 1;
             continue;
         }
         case DAV1D_TASK_TYPE_TILE_ENTROPY:
