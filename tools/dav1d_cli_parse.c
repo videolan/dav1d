@@ -372,7 +372,7 @@ void parse(const int argc, char *const *const argv,
             break;
         case ARG_NEG_STRIDE:
             cli_settings->neg_stride = 1;
-                break;
+            break;
         case ARG_OUTPUT_INVISIBLE:
             lib_settings->output_invisible_frames =
                 !!parse_unsigned(optarg, ARG_OUTPUT_INVISIBLE, argv[0]);
