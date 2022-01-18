@@ -721,7 +721,7 @@ static int get_upscale_x0(const int in_w, const int out_w, const int step) {
 static void check_resize(Dav1dMCDSPContext *const c) {
     PIXEL_RECT(c_dst, 1024, 64);
     PIXEL_RECT(a_dst, 1024, 64);
-    ALIGN_STK_64(pixel, src,   512 * 64,);
+    ALIGN_STK_64(pixel, src, 512 * 64,);
 
     const int height = 64;
     const int max_src_width = 512;
@@ -759,7 +759,7 @@ static void check_resize(Dav1dMCDSPContext *const c) {
         call_new(a_dst, a_dst_stride, src, src_stride,
                  dst_w, height, src_w, dx, mx0 HIGHBD_TAIL_SUFFIX);
         checkasm_check_pixel_padded_align(c_dst, c_dst_stride, a_dst, a_dst_stride,
-                                          dst_w, height, "dst", 8, 1);
+                                          dst_w, height, "dst", 16, 1);
 
         bench_new(a_dst, a_dst_stride, src, src_stride,
                   512, height, 512 * 8 / w_den, dx, mx0 HIGHBD_TAIL_SUFFIX);
