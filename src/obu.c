@@ -1569,7 +1569,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                         atomic_fetch_add(&c->task_thread.first, 1U);
                     else
                         atomic_store(&c->task_thread.first, 0);
-                    if (c->task_thread.cur < c->n_fc)
+                    if (c->task_thread.cur && c->task_thread.cur < c->n_fc)
                         c->task_thread.cur--;
                 }
                 if (out_delayed->p.data[0]) {
