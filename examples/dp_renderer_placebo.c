@@ -49,31 +49,31 @@ typedef struct renderer_priv_ctx
 {
     // SDL window
     SDL_Window *win;
-    // Placebo context
-    struct pl_context *ctx;
+    // Placebo log
+    pl_log log;
     // Placebo renderer
-    struct pl_renderer *renderer;
+    pl_renderer renderer;
 #ifdef HAVE_PLACEBO_VULKAN
     // Placebo Vulkan handle
-    const struct pl_vulkan *vk;
+    pl_vulkan vk;
     // Placebo Vulkan instance
-    const struct pl_vk_inst *vk_inst;
+    pl_vk_inst vk_inst;
     // Vulkan surface
     VkSurfaceKHR surf;
 #endif
 #ifdef HAVE_PLACEBO_OPENGL
     // Placebo OpenGL handle
-    const struct pl_opengl *gl;
+    pl_opengl gl;
 #endif
     // Placebo GPU
-    const struct pl_gpu *gpu;
+    pl_gpu gpu;
     // Placebo swapchain
-    const struct pl_swapchain *swapchain;
+    pl_swapchain swapchain;
     // Lock protecting access to the texture
     SDL_mutex *lock;
     // Image to render, and planes backing them
     struct pl_frame image;
-    const struct pl_tex *plane_tex[3];
+    pl_tex plane_tex[3];
 } Dav1dPlayRendererPrivateContext;
 
 static Dav1dPlayRendererPrivateContext*
@@ -85,24 +85,23 @@ static Dav1dPlayRendererPrivateContext*
         return NULL;
 
     // Alloc
-    Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
-    if (rd_priv_ctx == NULL) {
+    Dav1dPlayRendererPrivateContext *const rd_priv_ctx =
+        calloc(1, sizeof(Dav1dPlayRendererPrivateContext));
+    if (rd_priv_ctx == NULL)
         return NULL;
-    }
 
-    *rd_priv_ctx = (Dav1dPlayRendererPrivateContext) {0};
     rd_priv_ctx->win = sdlwin;
 
     // Init libplacebo
-    rd_priv_ctx->ctx = pl_context_create(PL_API_VER, &(struct pl_context_params) {
+    rd_priv_ctx->log = pl_log_create(PL_API_VER, pl_log_params(
         .log_cb     = pl_log_color,
 #ifndef NDEBUG
         .log_level  = PL_LOG_DEBUG,
 #else
         .log_level  = PL_LOG_WARN,
 #endif
-    });
-    if (rd_priv_ctx->ctx == NULL) {
+    ));
+    if (rd_priv_ctx->log == NULL) {
         free(rd_priv_ctx);
         return NULL;
     }
@@ -111,7 +110,7 @@ static Dav1dPlayRendererPrivateContext*
     rd_priv_ctx->lock = SDL_CreateMutex();
     if (rd_priv_ctx->lock == NULL) {
         fprintf(stderr, "SDL_CreateMutex failed: %s\n", SDL_GetError());
-        pl_context_destroy(&(rd_priv_ctx->ctx));
+        pl_log_destroy(&rd_priv_ctx->log);
         free(rd_priv_ctx);
         return NULL;
     }
@@ -133,26 +132,24 @@ static void *placebo_renderer_create_gl(void)
         return NULL;
     sdlwin = rd_priv_ctx->win;
 
-    // Init OpenGL
-    struct pl_opengl_params params = { 0 };
-# ifndef NDEBUG
-    params.debug = true;
-# endif
-
     SDL_GLContext glcontext = SDL_GL_CreateContext(sdlwin);
     SDL_GL_MakeCurrent(sdlwin, glcontext);
 
-    rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->ctx, &params);
+    rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->log, pl_opengl_params(
+#ifndef NDEBUG
+        .debug = true,
+#endif
+    ));
     if (!rd_priv_ctx->gl) {
         fprintf(stderr, "Failed creating opengl device!\n");
         exit(2);
     }
 
     rd_priv_ctx->swapchain = pl_opengl_create_swapchain(rd_priv_ctx->gl,
-        &(struct pl_opengl_swapchain_params) {
+        pl_opengl_swapchain_params(
             .swap_buffers = (void (*)(void *)) SDL_GL_SwapWindow,
             .priv = sdlwin,
-        });
+        ));
 
     if (!rd_priv_ctx->swapchain) {
         fprintf(stderr, "Failed creating opengl swapchain!\n");
@@ -211,11 +208,10 @@ static void *placebo_renderer_create_vk(void)
             printf("    %s\n", extensions[i]);
     }
 
-    struct pl_vk_inst_params iparams = { 0 };
-    iparams.extensions = extensions;
-    iparams.num_extensions = num;
-
-    rd_priv_ctx->vk_inst = pl_vk_inst_create(rd_priv_ctx->ctx, &iparams);
+    rd_priv_ctx->vk_inst = pl_vk_inst_create(rd_priv_ctx->log, pl_vk_inst_params(
+        .extensions = extensions,
+        .num_extensions = num,
+    ));
     if (!rd_priv_ctx->vk_inst) {
         fprintf(stderr, "Failed creating Vulkan instance!\n");
         exit(1);
@@ -227,12 +223,11 @@ static void *placebo_renderer_create_vk(void)
         exit(1);
     }
 
-    struct pl_vulkan_params params = pl_vulkan_default_params;
-    params.instance = rd_priv_ctx->vk_inst->instance;
-    params.surface = rd_priv_ctx->surf;
-    params.allow_software = true;
-
-    rd_priv_ctx->vk = pl_vulkan_create(rd_priv_ctx->ctx, &params);
+    rd_priv_ctx->vk = pl_vulkan_create(rd_priv_ctx->log, pl_vulkan_params(
+        .instance = rd_priv_ctx->vk_inst->instance,
+        .surface = rd_priv_ctx->surf,
+        .allow_software = true,
+    ));
     if (!rd_priv_ctx->vk) {
         fprintf(stderr, "Failed creating vulkan device!\n");
         exit(2);
@@ -240,10 +235,10 @@ static void *placebo_renderer_create_vk(void)
 
     // Create swapchain
     rd_priv_ctx->swapchain = pl_vulkan_create_swapchain(rd_priv_ctx->vk,
-        &(struct pl_vulkan_swapchain_params) {
+        pl_vulkan_swapchain_params(
             .surface = rd_priv_ctx->surf,
             .present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR,
-        });
+        ));
 
     if (!rd_priv_ctx->swapchain) {
         fprintf(stderr, "Failed creating vulkan swapchain!\n");
@@ -289,7 +284,7 @@ static void placebo_renderer_destroy(void *cookie)
 
     SDL_DestroyWindow(rd_priv_ctx->win);
 
-    pl_context_destroy(&(rd_priv_ctx->ctx));
+    pl_log_destroy(&rd_priv_ctx->log);
 }
 
 static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
@@ -305,7 +300,7 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
 
     // Prepare rendering
     if (rd_priv_ctx->renderer == NULL) {
-        rd_priv_ctx->renderer = pl_renderer_create(rd_priv_ctx->ctx, rd_priv_ctx->gpu);
+        rd_priv_ctx->renderer = pl_renderer_create(rd_priv_ctx->log, rd_priv_ctx->gpu);
     }
 
     struct pl_swapchain_frame frame;
@@ -315,17 +310,16 @@ static void placebo_render(void *cookie, const Dav1dPlaySettings *settings)
         return;
     }
 
-    struct pl_render_params render_params = {0};
-    if (settings->highquality)
-        render_params = pl_render_default_params;
-
     struct pl_frame target;
     pl_frame_from_swapchain(&target, &frame);
     pl_rect2df_aspect_copy(&target.crop, &rd_priv_ctx->image.crop, 0.0);
     if (pl_frame_is_cropped(&target))
         pl_tex_clear(rd_priv_ctx->gpu, frame.fbo, (float[4]){ 0.0 });
 
-    if (!pl_render_image(rd_priv_ctx->renderer, &rd_priv_ctx->image, &target, &render_params)) {
+    if (!pl_render_image(rd_priv_ctx->renderer, &rd_priv_ctx->image, &target,
+                         settings->highquality ? &pl_render_default_params
+                                               : &pl_render_fast_params))
+    {
         fprintf(stderr, "Failed rendering frame!\n");
         pl_tex_clear(rd_priv_ctx->gpu, frame.fbo, (float[4]){ 1.0 });
     }
@@ -351,15 +345,14 @@ static int placebo_upload_image(void *cookie, Dav1dPicture *dav1d_pic,
     if (!dav1d_pic)
         return ret;
 
-    struct pl_dav1d_upload_params params = {
+    SDL_LockMutex(p->lock);
+    if (!pl_upload_dav1dpicture(p->gpu, &p->image, p->plane_tex, pl_dav1d_upload_params(
         .picture = dav1d_pic,
         .film_grain = settings->gpugrain,
         .gpu_allocated = settings->zerocopy,
         .asynchronous = true,
-    };
-
-    SDL_LockMutex(p->lock);
-    if (!pl_upload_dav1dpicture(p->gpu, &p->image, p->plane_tex, &params)) {
+    )))
+    {
         fprintf(stderr, "Failed uploading planes!\n");
         p->image = (struct pl_frame) {0};
         ret = -1;

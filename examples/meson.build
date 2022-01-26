@@ -46,7 +46,7 @@ if sdl2_dependency.found()
     dav1dplay_deps = [sdl2_dependency, libm_dependency]
     dav1dplay_cflags = []
 
-    placebo_dependency = dependency('libplacebo', version: '>= 3.110.0', required: false)
+    placebo_dependency = dependency('libplacebo', version: '>= 4.160.0', required: false)
 
     if placebo_dependency.found()
         dav1dplay_deps += placebo_dependency
