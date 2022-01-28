@@ -398,12 +398,14 @@ sum_\lag\()_\type\()_\edge\()_start:
         st1             {v0.16b}, [x0], #16
 .endif
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 .endif
 .endm
 
 .macro sum_lag1_func type, uv_layout, edge, elems=16
 function sum_\type\()_lag1_\edge\()_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
         sum_lag_n_body  lag1, \type, \uv_layout, \edge, \elems, store=0
 endfunc
@@ -541,6 +543,7 @@ endfunc
 
 .macro sum_lag2_func type, uv_layout, edge, elems=16
 function sum_\type\()_lag2_\edge\()_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
 .ifc \edge, left
         sub             x12, x0,  #2*GRAIN_WIDTH
@@ -752,6 +755,7 @@ endfunc
 
 .macro sum_lag3_func type, uv_layout, edge, elems=16
 function sum_\type\()_lag3_\edge\()_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
 .ifc \edge, left
         sub             x11, x0,  #3*GRAIN_WIDTH
@@ -779,6 +783,7 @@ sum_lag3_func uv_420, 420, mid
 sum_lag3_func uv_420, 420, right, 9
 
 function generate_grain_rows_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
 1:
         get_grain_row   v16, v17, v18, v19, v20, v21
@@ -786,10 +791,12 @@ function generate_grain_rows_neon
         store_grain_row v16, v17, v18, v19, v20, v21
         b.gt            1b
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 endfunc
 
 function generate_grain_rows_44_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
 1:
         get_grain_row_44 v16, v17, v18
@@ -797,20 +804,25 @@ function generate_grain_rows_44_neon
         store_grain_row_44 v16, v17, v18
         b.gt            1b
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 endfunc
 
 function get_grain_row_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
         get_grain_row   v16, v17, v18, v19, v20, v21
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 endfunc
 
 function get_grain_row_44_neon
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
         get_grain_row_44 v16, v17, v18
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 endfunc
 
@@ -854,6 +866,7 @@ endfunc
 
 .macro gen_grain_82 type
 function generate_grain_\type\()_8bpc_neon, export=1
+        AARCH64_SIGN_LINK_REGISTER
         stp             x30, x19, [sp, #-96]!
 
 .ifc \type, uv_444
@@ -950,6 +963,7 @@ L(generate_grain_\type\()_lag0):
         b.gt            1b
 .endif
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag1):
@@ -990,6 +1004,7 @@ L(generate_grain_\type\()_lag1):
         b.gt            1b
 
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag2):
@@ -1018,6 +1033,7 @@ L(generate_grain_\type\()_lag2):
         b.gt            1b
 
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag3):
@@ -1057,6 +1073,7 @@ L(generate_grain_\type\()_lag3):
         ldp             d10, d11, [sp, #32]
         ldp             d8,  d9,  [sp, #16]
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(gen_grain_\type\()_tbl):
@@ -1088,6 +1105,7 @@ gen_grain_82 uv_444
 
 .macro gen_grain_44 type
 function generate_grain_\type\()_8bpc_neon, export=1
+        AARCH64_SIGN_LINK_REGISTER
         stp             x30, x19, [sp, #-96]!
 
         mov             w13, w3
@@ -1164,6 +1182,7 @@ L(generate_grain_\type\()_lag0):
         b.gt            1b
 
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag1):
@@ -1191,6 +1210,7 @@ L(generate_grain_\type\()_lag1):
         b.gt            1b
 
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag2):
@@ -1214,6 +1234,7 @@ L(generate_grain_\type\()_lag2):
         b.gt            1b
 
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(generate_grain_\type\()_lag3):
@@ -1249,6 +1270,7 @@ L(generate_grain_\type\()_lag3):
         ldp             d10, d11, [sp, #32]
         ldp             d8,  d9,  [sp, #16]
         ldp             x30, x19, [sp], #96
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(gen_grain_\type\()_tbl):
@@ -1343,6 +1365,7 @@ endconst
 //                                const int h, const ptrdiff_t clip,
 //                                const ptrdiff_t type);
 function fgy_32x32_8bpc_neon, export=1
+        AARCH64_SIGN_LINK_REGISTER
         str             x30, [sp, #-16]!
         ldr             w11, [x6, #8]          // offsets[1][0]
         ldr             w13, [x6, #4]          // offsets[0][1]
@@ -1524,6 +1547,7 @@ L(loop_\ox\oy):
         b.gt            L(loop_\ox\()0)
 .endif
         ldr             x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 .endm
 
@@ -1553,6 +1577,7 @@ endfunc
 //                                     const ptrdiff_t type);
 .macro fguv layout, sx, sy
 function fguv_32x32_\layout\()_8bpc_neon, export=1
+        AARCH64_SIGN_LINK_REGISTER
         str             x30,      [sp, #-32]!
         str             d8,       [sp, #16]
         ldp             x8,  x9,  [sp, #32]    // offsets, h
@@ -1821,6 +1846,7 @@ L(fguv_loop_sx0_csfl\csfl\()_\ox\oy):
 9:
         ldr             d8,       [sp, #16]
         ldr             x30,      [sp], #32
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(fguv_loop_sx0_tbl):
@@ -1969,6 +1995,7 @@ L(fguv_loop_sx1_csfl\csfl\()_\ox\oy):
 9:
         ldr             d8,       [sp, #16]
         ldr             x30,      [sp], #32
+        AARCH64_VALIDATE_LINK_REGISTER
         ret
 
 L(fguv_loop_sx1_tbl):
