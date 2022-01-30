@@ -273,7 +273,7 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(int argc, char **argv)
     renderer_info = dp_get_renderer(rd_ctx->settings.renderer_name);
 
     if (renderer_info == NULL) {
-        printf("No suitable rendered matching %s found.\n",
+        printf("No suitable renderer matching %s found.\n",
             (rd_ctx->settings.renderer_name) ? rd_ctx->settings.renderer_name : "auto");
     } else {
         printf("Using %s renderer\n", renderer_info->name);
