@@ -109,10 +109,6 @@ if host_machine.system() == 'windows'
         cdata.set('ftello', '_ftelli64')
     endif
 
-    if (host_machine.cpu_family() == 'x86_64' and cc.get_id() == 'gcc')
-        optional_arguments += '-mcmodel=small'
-    endif
-
     # On Windows, we use a compatibility layer to emulate pthread
     thread_dependency = []
     thread_compat_dep = declare_dependency(sources : files('src/win32/thread.c'))
