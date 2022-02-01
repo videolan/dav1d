@@ -197,6 +197,11 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
             pthread_mutex_destroy(&c->task_thread.lock);
             goto error;
         }
+        if (pthread_cond_init(&c->task_thread.delayed_fg.cond, NULL)) {
+            pthread_cond_destroy(&c->task_thread.cond);
+            pthread_mutex_destroy(&c->task_thread.lock);
+            goto error;
+        }
         c->task_thread.cur = c->n_fc;
         atomic_init(&c->task_thread.reset_task_cur, UINT_MAX);
         atomic_init(&c->task_thread.cond_signaled, 0);
@@ -491,28 +496,32 @@ int dav1d_apply_grain(Dav1dContext *const c, Dav1dPicture *const out,
     }
 
     int res = dav1d_picture_alloc_copy(c, out, in->p.w, in);
-    if (res < 0) {
-        dav1d_picture_unref_internal(out);
-        return res;
-    }
+    if (res < 0) goto error;
 
-    switch (out->p.bpc) {
+    if (c->n_tc > 1) {
+        dav1d_task_delayed_fg(c, out, in);
+    } else {
+        switch (out->p.bpc) {
 #if CONFIG_8BPC
-    case 8:
-        dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
-        break;
+        case 8:
+            dav1d_apply_grain_8bpc(&c->dsp[0].fg, out, in);
+            break;
 #endif
 #if CONFIG_16BPC
-    case 10:
-    case 12:
-        dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
-        break;
+        case 10:
+        case 12:
+            dav1d_apply_grain_16bpc(&c->dsp[(out->p.bpc >> 1) - 4].fg, out, in);
+            break;
 #endif
-    default:
-        assert(0);
+        default: abort();
+        }
     }
 
     return 0;
+
+error:
+    dav1d_picture_unref_internal(out);
+    return res;
 }
 
 void dav1d_flush(Dav1dContext *const c) {
@@ -609,6 +618,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
                 pthread_cond_destroy(&pf->task_thread.td.cond);
                 pthread_mutex_destroy(&pf->task_thread.td.lock);
             }
+            pthread_cond_destroy(&ttd->delayed_fg.cond);
             pthread_cond_destroy(&ttd->cond);
             pthread_mutex_destroy(&ttd->lock);
         }

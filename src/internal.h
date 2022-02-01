@@ -73,6 +73,22 @@ struct Dav1dTileGroup {
     int start, end;
 };
 
+enum TaskType {
+    DAV1D_TASK_TYPE_INIT,
+    DAV1D_TASK_TYPE_INIT_CDF,
+    DAV1D_TASK_TYPE_TILE_ENTROPY,
+    DAV1D_TASK_TYPE_ENTROPY_PROGRESS,
+    DAV1D_TASK_TYPE_TILE_RECONSTRUCTION,
+    DAV1D_TASK_TYPE_DEBLOCK_COLS,
+    DAV1D_TASK_TYPE_DEBLOCK_ROWS,
+    DAV1D_TASK_TYPE_CDEF,
+    DAV1D_TASK_TYPE_SUPER_RESOLUTION,
+    DAV1D_TASK_TYPE_LOOP_RESTORATION,
+    DAV1D_TASK_TYPE_RECONSTRUCTION_PROGRESS,
+    DAV1D_TASK_TYPE_FG_PREP,
+    DAV1D_TASK_TYPE_FG_APPLY,
+};
+
 struct Dav1dContext {
     Dav1dFrameContext *fc;
     unsigned n_fc;
@@ -123,6 +139,24 @@ struct Dav1dContext {
         // See src/thread_task.c:reset_task_cur().
         atomic_uint reset_task_cur;
         atomic_int cond_signaled;
+        struct {
+            int exec;
+            pthread_cond_t cond;
+            const Dav1dPicture *in;
+            Dav1dPicture *out;
+            enum TaskType type;
+            atomic_int progress[2]; /* [0]=started, [1]=completed */
+            union {
+                struct {
+                    ALIGN(int8_t grain_lut_8bpc[3][GRAIN_HEIGHT + 1][GRAIN_WIDTH], 16);
+                    uint8_t scaling_8bpc[3][256];
+                };
+                struct {
+                    ALIGN(int16_t grain_lut_16bpc[3][GRAIN_HEIGHT + 1][GRAIN_WIDTH], 16);
+                    uint8_t scaling_16bpc[3][4096];
+                };
+            };
+        } delayed_fg;
         int inited;
     } task_thread;
 
@@ -167,20 +201,6 @@ struct Dav1dContext {
     Dav1dLogger logger;
 
     Dav1dMemPool *picture_pool;
-};
-
-enum TaskType {
-    DAV1D_TASK_TYPE_INIT,
-    DAV1D_TASK_TYPE_INIT_CDF,
-    DAV1D_TASK_TYPE_TILE_ENTROPY,
-    DAV1D_TASK_TYPE_ENTROPY_PROGRESS,
-    DAV1D_TASK_TYPE_TILE_RECONSTRUCTION,
-    DAV1D_TASK_TYPE_DEBLOCK_COLS,
-    DAV1D_TASK_TYPE_DEBLOCK_ROWS,
-    DAV1D_TASK_TYPE_CDEF,
-    DAV1D_TASK_TYPE_SUPER_RESOLUTION,
-    DAV1D_TASK_TYPE_LOOP_RESTORATION,
-    DAV1D_TASK_TYPE_RECONSTRUCTION_PROGRESS,
 };
 
 struct Dav1dTask {
