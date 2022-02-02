@@ -142,7 +142,7 @@ COLD void bitfn(dav1d_intra_pred_dsp_init_x86)(Dav1dIntraPredDSPContext *const c
 #if BITDEPTH == 8
     init_angular_ipred_fn(FILTER_PRED,   ipred_filter,   avx512icl);
 
-    c->pal_pred = BF(dav1d_pal_pred, avx512icl);
 #endif
+    c->pal_pred = BF(dav1d_pal_pred, avx512icl);
 #endif
 }
