@@ -3506,7 +3506,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             if ((out_delayed->visible || c->output_invisible_frames) &&
                 progress != FRAME_ERROR)
             {
-                dav1d_picture_ref(&c->out, &out_delayed->p);
+                dav1d_thread_picture_ref(&c->out, out_delayed);
                 c->event_flags |= dav1d_picture_get_event_flags(out_delayed);
             }
             dav1d_thread_picture_unref(out_delayed);
@@ -3680,7 +3680,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     // move f->cur into output queue
     if (c->n_fc == 1) {
         if (f->frame_hdr->show_frame || c->output_invisible_frames) {
-            dav1d_picture_ref(&c->out, &f->sr_cur.p);
+            dav1d_thread_picture_ref(&c->out, &f->sr_cur);
             c->event_flags |= dav1d_picture_get_event_flags(&f->sr_cur);
         }
     } else {
@@ -3832,7 +3832,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
 
     if (c->n_fc == 1) {
         if ((res = dav1d_decode_frame(f)) < 0) {
-            dav1d_picture_unref_internal(&c->out);
+            dav1d_thread_picture_unref(&c->out);
             for (int i = 0; i < 8; i++) {
                 if (refresh_frame_flags & (1 << i)) {
                     if (c->refs[i].p.p.data[0])
@@ -3861,7 +3861,7 @@ error:
         dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }
     if (c->n_fc == 1)
-        dav1d_picture_unref_internal(&c->out);
+        dav1d_thread_picture_unref(&c->out);
     else
         dav1d_thread_picture_unref(out_delayed);
     dav1d_picture_unref_internal(&f->cur);

@@ -314,27 +314,28 @@ static int has_grain(const Dav1dPicture *const pic)
 }
 
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
-                        Dav1dPicture *const in)
+                        Dav1dThreadPicture *const in)
 {
-    if (!c->apply_grain || !has_grain(in)) {
-        dav1d_picture_move_ref(out, in);
+    if (!c->apply_grain || !has_grain(&in->p)) {
+        dav1d_picture_move_ref(out, &in->p);
+        dav1d_thread_picture_unref(in);
         return 0;
     }
 
-    int res = dav1d_apply_grain(c, out, in);
-    dav1d_picture_unref_internal(in);
+    int res = dav1d_apply_grain(c, out, &in->p);
+    dav1d_thread_picture_unref(in);
     return res;
 }
 
 static int output_picture_ready(Dav1dContext *const c) {
 
-    if (!c->out.data[0]) return 0;
+    if (!c->out.p.data[0]) return 0;
 
     // skip lower spatial layers
     if (c->operating_point_idc && !c->all_layers) {
         const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
-        if (max_spatial_id > c->out.frame_hdr->spatial_id) {
-            dav1d_picture_unref_internal(&c->out);
+        if (max_spatial_id > c->out.p.frame_hdr->spatial_id) {
+            dav1d_thread_picture_unref(&c->out);
             return 0;
         }
     }
@@ -371,7 +372,7 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
             if ((out_delayed->visible || c->output_invisible_frames) &&
                 progress != FRAME_ERROR)
             {
-                dav1d_picture_ref(&c->out, &out_delayed->p);
+                dav1d_thread_picture_ref(&c->out, out_delayed);
                 c->event_flags |= dav1d_picture_get_event_flags(out_delayed);
             }
             dav1d_thread_picture_unref(out_delayed);
