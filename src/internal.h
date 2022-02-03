@@ -102,7 +102,7 @@ struct Dav1dContext {
 
     // decoded output picture queue
     Dav1dData in;
-    Dav1dThreadPicture out;
+    Dav1dThreadPicture out, cache;
     // dummy is a pointer to prevent compiler errors about atomic_load()
     // not taking const arguments
     atomic_int flush_mem, *flush;

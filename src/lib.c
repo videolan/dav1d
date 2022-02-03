@@ -313,34 +313,46 @@ static int has_grain(const Dav1dPicture *const pic)
            fgdata->num_uv_points[1];
 }
 
-static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
-                        Dav1dThreadPicture *const in)
+static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
 {
+    int res = 0;
+
+    Dav1dThreadPicture *const in = c->all_layers ? &c->out : &c->cache;
     if (!c->apply_grain || !has_grain(&in->p)) {
         dav1d_picture_move_ref(out, &in->p);
         dav1d_thread_picture_unref(in);
-        return 0;
+        goto end;
     }
 
-    int res = dav1d_apply_grain(c, out, &in->p);
+    res = dav1d_apply_grain(c, out, &in->p);
     dav1d_thread_picture_unref(in);
+end:
+    if (!c->all_layers && c->out.p.data[0]) {
+        dav1d_thread_picture_move_ref(in, &c->out);
+    }
     return res;
 }
 
-static int output_picture_ready(Dav1dContext *const c) {
-
-    if (!c->out.p.data[0]) return 0;
-
-    // skip lower spatial layers
-    if (c->operating_point_idc && !c->all_layers) {
-        const int max_spatial_id = ulog2(c->operating_point_idc >> 8);
-        if (max_spatial_id > c->out.p.frame_hdr->spatial_id) {
-            dav1d_thread_picture_unref(&c->out);
+static int output_picture_ready(Dav1dContext *const c, const int drain) {
+    if (!c->all_layers) {
+        if (c->out.p.data[0] && c->cache.p.data[0]) {
+            const unsigned spatial_mask = c->operating_point_idc >> 8;
+            const int max_spatial_id = spatial_mask ? ulog2(spatial_mask) : 0;
+            if (max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
+                c->out.flags & PICTURE_FLAG_NEW_TEMPORAL_UNIT)
+                return 1;
+            dav1d_thread_picture_unref(&c->cache);
+            dav1d_thread_picture_move_ref(&c->cache, &c->out);
+            return 0;
+        } else if (c->cache.p.data[0] && drain) {
+            return 1;
+        } else if (c->out.p.data[0]) {
+            dav1d_thread_picture_move_ref(&c->cache, &c->out);
             return 0;
         }
     }
 
-    return 1;
+    return !!c->out.p.data[0];
 }
 
 static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
@@ -376,10 +388,13 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
                 c->event_flags |= dav1d_picture_get_event_flags(out_delayed);
             }
             dav1d_thread_picture_unref(out_delayed);
-            if (output_picture_ready(c))
-                return output_image(c, out, &c->out);
+            if (output_picture_ready(c, 0))
+                return output_image(c, out);
         }
     } while (++drain_count < c->n_fc);
+
+    if (output_picture_ready(c, 1))
+        return output_image(c, out);
 
     return DAV1D_ERR(EAGAIN);
 }
@@ -389,7 +404,7 @@ static int gen_picture(Dav1dContext *const c)
     int res;
     Dav1dData *const in = &c->in;
 
-    if (output_picture_ready(c))
+    if (output_picture_ready(c, 0))
         return 0;
 
     while (in->sz > 0) {
@@ -402,7 +417,7 @@ static int gen_picture(Dav1dContext *const c)
             in->data += res;
             if (!in->sz) dav1d_data_unref_internal(in);
         }
-        if (output_picture_ready(c))
+        if (output_picture_ready(c, 0))
             break;
         if (res < 0)
             return res;
@@ -442,8 +457,8 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     if (res < 0)
         return res;
 
-    if (output_picture_ready(c))
-        return output_image(c, out, &c->out);
+    if (output_picture_ready(c, drain && c->n_fc == 1))
+        return output_image(c, out);
 
     if (c->n_fc > 1 && drain)
         return drain_picture(c, out);
