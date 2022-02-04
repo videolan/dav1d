@@ -30,13 +30,13 @@
 
 #include <stdint.h>
 
+#include "dav1d/common.h"
 #include "dav1d/picture.h"
 
-#include "common.h"
 #include "common/intops.h"
 #include "common/bitdepth.h"
 
-#include "fg_apply.h"
+#include "src/fg_apply.h"
 
 static void generate_scaling(const int bitdepth,
                              const uint8_t points[][2], const int num,
@@ -44,14 +44,15 @@ static void generate_scaling(const int bitdepth,
 {
 #if BITDEPTH == 8
     const int shift_x = 0;
+    const int scaling_size = SCALING_SIZE;
 #else
+    assert(bitdepth > 8);
     const int shift_x = bitdepth - 8;
-#endif
     const int scaling_size = 1 << bitdepth;
+#endif
 
     // Fill up the preceding entries with the initial value
-    for (int i = 0; i < points[0][0] << shift_x; i++)
-        scaling[i] = points[0][1];
+    memset(scaling, points[0][1], points[0][0] << shift_x);
 
     // Linearly interpolate the values in the middle
     for (int i = 0; i < num - 1; i++) {
@@ -61,16 +62,17 @@ static void generate_scaling(const int bitdepth,
         const int ey = points[i+1][1];
         const int dx = ex - bx;
         const int dy = ey - by;
+        assert(dx > 0);
         const int delta = dy * ((0x10000 + (dx >> 1)) / dx);
-        for (int x = 0; x < dx; x++) {
-            const int v = by + ((x * delta + 0x8000) >> 16);
-            scaling[(bx + x) << shift_x] = v;
+        for (int x = 0, d = 0x8000; x < dx; x++) {
+            scaling[(bx + x) << shift_x] = by + (d >> 16);
+            d += delta;
         }
     }
 
     // Fill up the remaining entries with the final value
-    for (int i = points[num - 1][0] << shift_x; i < scaling_size; i++)
-        scaling[i] = points[num - 1][1];
+    const int n = points[num - 1][0] << shift_x;
+    memset(&scaling[n], points[num - 1][1], scaling_size - n);
 
 #if BITDEPTH != 8
     const int pad = 1 << shift_x, rnd = pad >> 1;
@@ -80,8 +82,9 @@ static void generate_scaling(const int bitdepth,
         const int dx = ex - bx;
         for (int x = 0; x < dx; x += pad) {
             const int range = scaling[bx + x + pad] - scaling[bx + x];
-            for (int n = 1; n < pad; n++) {
-                scaling[bx + x + n] = scaling[bx + x] + ((range * n + rnd) >> shift_x);
+            for (int n = 1, r = rnd; n < pad; n++) {
+                r += range;
+                scaling[bx + x + n] = scaling[bx + x] + (r >> shift_x);
             }
         }
     }
