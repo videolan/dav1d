@@ -43,7 +43,7 @@ typedef struct Dav1dTask Dav1dTask;
 #include "src/cdf.h"
 #include "src/data.h"
 #include "src/env.h"
-#include "src/film_grain.h"
+#include "src/filmgrain.h"
 #include "src/intra_edge.h"
 #include "src/ipred.h"
 #include "src/itx.h"

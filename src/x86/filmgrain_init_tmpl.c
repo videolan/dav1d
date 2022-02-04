@@ -26,7 +26,7 @@
  */
 
 #include "src/cpu.h"
-#include "src/film_grain.h"
+#include "src/filmgrain.h"
 
 decl_generate_grain_y_fn(BF(dav1d_generate_grain_y, ssse3));
 decl_generate_grain_uv_fn(BF(dav1d_generate_grain_uv_420, ssse3));

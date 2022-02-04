@@ -32,7 +32,7 @@
 
 #include "common/bitdepth.h"
 
-#include "src/film_grain.h"
+#include "src/filmgrain.h"
 
 #ifdef BITDEPTH
 # define array_decl(type, name, sz) type name sz

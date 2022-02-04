@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "src/levels.h"
-#include "src/film_grain.h"
+#include "src/filmgrain.h"
 #define UNIT_TEST 1
 #include "src/fg_apply_tmpl.c"
 

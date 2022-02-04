@@ -29,8 +29,8 @@
 #include "common/attributes.h"
 #include "common/intops.h"
 
-#include "film_grain.h"
-#include "tables.h"
+#include "src/filmgrain.h"
+#include "src/tables.h"
 
 #define SUB_GRAIN_WIDTH 44
 #define SUB_GRAIN_HEIGHT 38

@@ -42,7 +42,7 @@
 #include "src/decode.h"
 #include "src/dequant_tables.h"
 #include "src/env.h"
-#include "src/film_grain.h"
+#include "src/filmgrain.h"
 #include "src/log.h"
 #include "src/qm.h"
 #include "src/recon.h"
