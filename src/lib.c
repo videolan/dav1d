@@ -457,7 +457,7 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     if (res < 0)
         return res;
 
-    if (output_picture_ready(c, drain && c->n_fc == 1))
+    if (output_picture_ready(c, c->n_fc == 1))
         return output_image(c, out);
 
     if (c->n_fc > 1 && drain)
