@@ -272,7 +272,7 @@ int main(const int argc, char *const *const argv) {
             if (res != DAV1D_ERR(EAGAIN)) {
                 fprintf(stderr, "Error decoding frame: %s\n",
                         strerror(DAV1D_ERR(res)));
-                break;
+                if (res != DAV1D_ERR(EINVAL)) break;
             }
         }
 
@@ -280,7 +280,7 @@ int main(const int argc, char *const *const argv) {
             if (res != DAV1D_ERR(EAGAIN)) {
                 fprintf(stderr, "Error decoding frame: %s\n",
                         strerror(DAV1D_ERR(res)));
-                break;
+                if (res == DAV1D_ERR(EINVAL)) break;
             }
             res = 0;
         } else {
@@ -316,6 +316,7 @@ int main(const int argc, char *const *const argv) {
             if (res != DAV1D_ERR(EAGAIN)) {
                 fprintf(stderr, "Error decoding frame: %s\n",
                         strerror(DAV1D_ERR(res)));
+                if (res != DAV1D_ERR(EINVAL)) break;
             } else {
                 res = 0;
                 break;
