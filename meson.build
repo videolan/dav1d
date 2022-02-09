@@ -413,11 +413,7 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     # check NASM version
     if nasm.found()
-        nasm_r = run_command(nasm, '-v')
-
-        if nasm_r.returncode() != 0
-            error('failed running nasm to obtain its version')
-        endif
+        nasm_r = run_command(nasm, '-v', check: true)
 
         out = nasm_r.stdout().strip().split()
         if out[1].to_lower() == 'version'
