@@ -3356,7 +3356,7 @@ error:
 
 int dav1d_decode_frame_main(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
-    int retval = DAV1D_ERR(ENOMEM);
+    int retval = DAV1D_ERR(EINVAL);
 
     assert(f->c->n_tc == 1);
 
