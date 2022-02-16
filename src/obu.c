@@ -1574,7 +1574,12 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                     if (c->task_thread.cur && c->task_thread.cur < c->n_fc)
                         c->task_thread.cur--;
                 }
-                if (out_delayed->p.data[0]) {
+                const int error = f->task_thread.retval;
+                if (error) {
+                    c->cached_error = error;
+                    f->task_thread.retval = 0;
+                    dav1d_thread_picture_unref(out_delayed);
+                } else if (out_delayed->p.data[0]) {
                     const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
                                                                    memory_order_relaxed);
                     if ((out_delayed->visible || c->output_invisible_frames) &&

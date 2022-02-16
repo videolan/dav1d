@@ -377,6 +377,12 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
         if (++c->frame_thread.next == c->n_fc)
             c->frame_thread.next = 0;
         pthread_mutex_unlock(&c->task_thread.lock);
+        const int error = f->task_thread.retval;
+        if (error) {
+            f->task_thread.retval = 0;
+            dav1d_thread_picture_unref(out_delayed);
+            return error;
+        }
         if (out_delayed->p.data[0]) {
             const unsigned progress =
                 atomic_load_explicit(&out_delayed->progress[1],
@@ -449,6 +455,12 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
 {
     validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+
+    if (c->cached_error) {
+        const int res = c->cached_error;
+        c->cached_error = 0;
+        return res;
+    }
 
     const int drain = c->drain;
     c->drain = 1;
