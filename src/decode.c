@@ -3231,8 +3231,6 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         if (ret < 0) goto error;
     }
 
-    retval = DAV1D_ERR(EINVAL);
-
     // setup dequant tables
     init_quant_tables(f->seq_hdr, f->frame_hdr, f->frame_hdr->quant.yac, f->dq);
     if (f->frame_hdr->quant.qm)
