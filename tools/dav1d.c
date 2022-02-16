@@ -270,6 +270,7 @@ int main(const int argc, char *const *const argv) {
         memset(&p, 0, sizeof(p));
         if ((res = dav1d_send_data(c, &data)) < 0) {
             if (res != DAV1D_ERR(EAGAIN)) {
+                dav1d_data_unref(&data);
                 fprintf(stderr, "Error decoding frame: %s\n",
                         strerror(DAV1D_ERR(res)));
                 if (res != DAV1D_ERR(EINVAL)) break;
