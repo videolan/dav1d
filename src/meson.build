@@ -206,15 +206,16 @@ if is_asm_enabled
         if dav1d_bitdepths.contains('8')
             libdav1d_sources_asm += files(
                 'x86/cdef_avx512.asm',
+                'x86/filmgrain_avx512.asm',
                 'x86/ipred_avx512.asm',
                 'x86/itx_avx512.asm',
                 'x86/loopfilter_avx512.asm',
                 'x86/looprestoration_avx512.asm',
                 'x86/mc_avx512.asm',
-                'x86/mc_avx2.asm',
                 'x86/filmgrain_avx2.asm',
                 'x86/ipred_avx2.asm',
                 'x86/loopfilter_avx2.asm',
+                'x86/mc_avx2.asm',
                 'x86/filmgrain_sse.asm',
                 'x86/ipred_sse.asm',
                 'x86/loopfilter_sse.asm',

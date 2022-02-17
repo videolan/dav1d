@@ -223,7 +223,11 @@ void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
                               const Dav1dPicture *const in)
 {
     ALIGN_STK_16(entry, grain_lut, 3,[GRAIN_HEIGHT + 1][GRAIN_WIDTH]);
+#if ARCH_X86_64 && BITDEPTH == 8
+    ALIGN_STK_64(uint8_t, scaling, 3,[SCALING_SIZE]);
+#else
     uint8_t scaling[3][SCALING_SIZE];
+#endif
     const int rows = (out->p.h + 31) >> 5;
 
     bitfn(dav1d_prep_grain)(dsp, out, in, scaling, grain_lut);
