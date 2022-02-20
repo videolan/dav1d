@@ -132,5 +132,6 @@ void dav1d_data_unref_internal(Dav1dData *const buf) {
         dav1d_ref_dec(&buf->ref);
     }
     memset(buf, 0, sizeof(*buf));
+    dav1d_data_props_set_defaults(&buf->m);
     dav1d_ref_dec(&user_data_ref);
 }
