@@ -649,7 +649,6 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         dav1d_free_aligned(f->lf.lr_line_buf);
     }
     dav1d_free_aligned(c->fc);
-    dav1d_data_unref_internal(&c->in);
     if (c->n_fc > 1 && c->frame_thread.out_delayed) {
         for (unsigned n = 0; n < c->n_fc; n++)
             if (c->frame_thread.out_delayed[n].p.data[0])
