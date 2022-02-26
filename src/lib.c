@@ -517,12 +517,11 @@ int dav1d_apply_grain(Dav1dContext *const c, Dav1dPicture *const out,
 
 void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_unref_internal(&c->in);
-    if (c->out.p.data[0]) {
+    if (c->out.p.data[0])
         dav1d_thread_picture_unref(&c->out);
-    }
-    if (c->cache.p.data[0]) {
+    if (c->cache.p.data[0])
         dav1d_thread_picture_unref(&c->cache);
-    }
+
     c->drain = 0;
 
     for (int i = 0; i < 8; i++) {
