@@ -532,6 +532,7 @@ void dav1d_flush(Dav1dContext *const c) {
         dav1d_thread_picture_unref(&c->cache);
 
     c->drain = 0;
+    c->cached_error = 0;
 
     for (int i = 0; i < 8; i++) {
         if (c->refs[i].p.p.data[0])
