@@ -580,7 +580,7 @@ void dav1d_flush(Dav1dContext *const c) {
         for (unsigned n = 0, next = c->frame_thread.next; n < c->n_fc; n++, next++) {
             if (next == c->n_fc) next = 0;
             Dav1dFrameContext *const f = &c->fc[next];
-            dav1d_decode_frame_exit(f, -1);
+            dav1d_decode_frame_exit(f, 0);
             f->n_tile_data = 0;
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
             if (out_delayed->p.data[0]) {
