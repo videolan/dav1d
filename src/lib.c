@@ -322,7 +322,7 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res = 0;
 
-    Dav1dThreadPicture *const in = c->all_layers || !c->max_spatial_id
+    Dav1dThreadPicture *const in = (c->all_layers || !c->max_spatial_id)
                                    ? &c->out : &c->cache;
     if (!c->apply_grain || !has_grain(&in->p)) {
         dav1d_picture_move_ref(out, &in->p);
