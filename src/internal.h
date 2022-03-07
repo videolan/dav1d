@@ -149,11 +149,11 @@ struct Dav1dContext {
             union {
                 struct {
                     ALIGN(int8_t grain_lut_8bpc[3][GRAIN_HEIGHT + 1][GRAIN_WIDTH], 16);
-                    uint8_t scaling_8bpc[3][256];
+                    ALIGN(uint8_t scaling_8bpc[3][256], 64);
                 };
                 struct {
                     ALIGN(int16_t grain_lut_16bpc[3][GRAIN_HEIGHT + 1][GRAIN_WIDTH], 16);
-                    uint8_t scaling_16bpc[3][4096];
+                    ALIGN(uint8_t scaling_16bpc[3][4096], 64);
                 };
             };
         } delayed_fg;

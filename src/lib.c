@@ -120,7 +120,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     pthread_attr_setstacksize(&thread_attr, stack_size);
 
-    Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
+    Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 64);
     if (!c) goto error;
     memset(c, 0, sizeof(*c));
 
