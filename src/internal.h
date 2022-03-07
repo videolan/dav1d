@@ -189,6 +189,7 @@ struct Dav1dContext {
     int operating_point;
     unsigned operating_point_idc;
     int all_layers;
+    int max_spatial_id;
     unsigned frame_size_limit;
     int strict_std_compliance;
     int output_invisible_frames;

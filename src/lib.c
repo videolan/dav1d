@@ -322,7 +322,8 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
 {
     int res = 0;
 
-    Dav1dThreadPicture *const in = c->all_layers ? &c->out : &c->cache;
+    Dav1dThreadPicture *const in = c->all_layers || !c->max_spatial_id
+                                   ? &c->out : &c->cache;
     if (!c->apply_grain || !has_grain(&in->p)) {
         dav1d_picture_move_ref(out, &in->p);
         dav1d_thread_picture_unref(in);
@@ -332,18 +333,16 @@ static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
     res = dav1d_apply_grain(c, out, &in->p);
     dav1d_thread_picture_unref(in);
 end:
-    if (!c->all_layers && c->out.p.data[0]) {
+    if (!c->all_layers && c->max_spatial_id && c->out.p.data[0]) {
         dav1d_thread_picture_move_ref(in, &c->out);
     }
     return res;
 }
 
 static int output_picture_ready(Dav1dContext *const c, const int drain) {
-    if (!c->all_layers) {
+    if (!c->all_layers && c->max_spatial_id) {
         if (c->out.p.data[0] && c->cache.p.data[0]) {
-            const unsigned spatial_mask = c->operating_point_idc >> 8;
-            const int max_spatial_id = spatial_mask ? ulog2(spatial_mask) : 0;
-            if (max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
+            if (c->max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
                 c->out.flags & PICTURE_FLAG_NEW_TEMPORAL_UNIT)
                 return 1;
             dav1d_thread_picture_unref(&c->cache);

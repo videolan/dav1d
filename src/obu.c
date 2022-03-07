@@ -138,6 +138,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         const int op_idx =
             c->operating_point < hdr->num_operating_points ? c->operating_point : 0;
         c->operating_point_idc = hdr->operating_points[op_idx].idc;
+        const unsigned spatial_mask = c->operating_point_idc >> 8;
+        c->max_spatial_id = spatial_mask ? ulog2(spatial_mask) : 0;
 #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-operating-points: off=%u\n",
                dav1d_get_bits_pos(gb) - init_bit_pos);
