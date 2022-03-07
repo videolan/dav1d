@@ -517,6 +517,7 @@ test-debian-avx512:
                       -Dtestdata_tests=true
         - ninja -C build
         - cd build && time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx512icl"
+        - time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 2 --cpumask avx512icl"
 
 test-debian-unaligned-stack:
     extends:
