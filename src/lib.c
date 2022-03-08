@@ -134,6 +134,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->output_invisible_frames = s->output_invisible_frames;
     c->inloop_filters = s->inloop_filters;
 
+    dav1d_data_props_set_defaults(&c->cached_error_props);
+
     if (dav1d_mem_pool_init(&c->seq_hdr_pool) ||
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||
         dav1d_mem_pool_init(&c->segmap_pool) ||
@@ -385,6 +387,7 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
         const int error = f->task_thread.retval;
         if (error) {
             f->task_thread.retval = 0;
+            dav1d_data_props_copy(&c->cached_error_props, &out_delayed->p.m);
             dav1d_thread_picture_unref(out_delayed);
             return error;
         }
@@ -552,6 +555,8 @@ void dav1d_flush(Dav1dContext *const c) {
     dav1d_ref_dec(&c->content_light_ref);
     dav1d_ref_dec(&c->itut_t35_ref);
 
+    dav1d_data_props_unref_internal(&c->cached_error_props);
+
     if (c->n_fc == 1 && c->n_tc == 1) return;
     atomic_store(c->flush, 1);
 
@@ -699,6 +704,17 @@ int dav1d_get_event_flags(Dav1dContext *const c, enum Dav1dEventFlags *const fla
 
     *flags = c->event_flags;
     c->event_flags = 0;
+    return 0;
+}
+
+int dav1d_get_decode_error_data_props(Dav1dContext *const c, Dav1dDataProps *const out) {
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+
+    dav1d_data_props_unref_internal(out);
+    *out = c->cached_error_props;
+    dav1d_data_props_set_defaults(&c->cached_error_props);
+
     return 0;
 }
 

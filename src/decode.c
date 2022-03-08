@@ -3501,6 +3501,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (error) {
             f->task_thread.retval = 0;
             c->cached_error = error;
+            dav1d_data_props_copy(&c->cached_error_props, &out_delayed->p.m);
             dav1d_thread_picture_unref(out_delayed);
         } else if (out_delayed->p.data[0]) {
             const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
@@ -3844,7 +3845,7 @@ int dav1d_submit_frame(Dav1dContext *const c) {
                     dav1d_ref_dec(&c->refs[i].refmvs);
                 }
             }
-            return res;
+            goto error;
         }
     } else {
         dav1d_task_frame_init(f);
@@ -3871,6 +3872,7 @@ error:
     dav1d_ref_dec(&f->mvs_ref);
     dav1d_ref_dec(&f->seq_hdr_ref);
     dav1d_ref_dec(&f->frame_hdr_ref);
+    dav1d_data_props_copy(&c->cached_error_props, &c->in.m);
 
     for (int i = 0; i < f->n_tile_data; i++)
         dav1d_data_unref_internal(&f->tile[i].data);

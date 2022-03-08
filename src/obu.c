@@ -1581,6 +1581,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                 if (error) {
                     c->cached_error = error;
                     f->task_thread.retval = 0;
+                    dav1d_data_props_copy(&c->cached_error_props, &out_delayed->p.m);
                     dav1d_thread_picture_unref(out_delayed);
                 } else if (out_delayed->p.data[0]) {
                     const unsigned progress = atomic_load_explicit(&out_delayed->progress[1],
@@ -1633,6 +1634,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
     return len + init_byte_pos;
 
 error:
+    dav1d_data_props_copy(&c->cached_error_props, &in->m);
     dav1d_log(c, "Error parsing OBU data\n");
     return DAV1D_ERR(EINVAL);
 }

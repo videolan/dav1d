@@ -197,6 +197,7 @@ struct Dav1dContext {
     int drain;
     enum PictureFlags frame_flags;
     enum Dav1dEventFlags event_flags;
+    Dav1dDataProps cached_error_props;
     int cached_error;
 
     Dav1dLogger logger;
