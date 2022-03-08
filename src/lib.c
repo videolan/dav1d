@@ -734,3 +734,7 @@ int dav1d_data_wrap_user_data(Dav1dData *const buf,
 void dav1d_data_unref(Dav1dData *const buf) {
     dav1d_data_unref_internal(buf);
 }
+
+void dav1d_data_props_unref(Dav1dDataProps *const props) {
+    dav1d_data_props_unref_internal(props);
+}
