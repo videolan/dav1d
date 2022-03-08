@@ -340,6 +340,7 @@ end:
 }
 
 static int output_picture_ready(Dav1dContext *const c, const int drain) {
+    if (c->cached_error) return 1;
     if (!c->all_layers && c->max_spatial_id) {
         if (c->out.p.data[0] && c->cache.p.data[0]) {
             if (c->max_spatial_id == c->cache.p.frame_hdr->spatial_id ||
@@ -460,18 +461,18 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
     validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
 
-    if (c->cached_error) {
-        const int res = c->cached_error;
-        c->cached_error = 0;
-        return res;
-    }
-
     const int drain = c->drain;
     c->drain = 1;
 
     int res = gen_picture(c);
     if (res < 0)
         return res;
+
+    if (c->cached_error) {
+        const int res = c->cached_error;
+        c->cached_error = 0;
+        return res;
+    }
 
     if (output_picture_ready(c, c->n_fc == 1))
         return output_image(c, out);
