@@ -588,11 +588,11 @@ void dav1d_flush(Dav1dContext *const c) {
             Dav1dFrameContext *const f = &c->fc[next];
             dav1d_decode_frame_exit(f, -1);
             f->n_tile_data = 0;
+            f->task_thread.retval = 0;
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
             if (out_delayed->p.data[0]) {
                 dav1d_thread_picture_unref(out_delayed);
             }
-            f->task_thread.retval = 0;
         }
         c->frame_thread.next = 0;
     }
