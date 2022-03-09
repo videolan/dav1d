@@ -3463,6 +3463,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
     }
     dav1d_decode_frame_exit(f, res);
+    f->n_tile_data = 0;
     return res;
 }
 
