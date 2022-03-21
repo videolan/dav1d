@@ -476,7 +476,8 @@ use_gaspp = false
 if (is_asm_enabled and
     (host_machine.cpu_family() == 'aarch64' or
      host_machine.cpu_family().startswith('arm')) and
-    cc.get_argument_syntax() == 'msvc')
+    cc.get_argument_syntax() == 'msvc' and
+    (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
     gaspp = find_program('gas-preprocessor.pl')
     use_gaspp = true
     gaspp_gen = generator(gaspp,
