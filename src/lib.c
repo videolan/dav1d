@@ -116,6 +116,18 @@ static COLD void get_num_threads(Dav1dContext *const c, const Dav1dSettings *con
             *n_tc < 50 ? fc_lut[*n_tc - 1] : 8; // min(8, ceil(sqrt(n)))
 }
 
+COLD int dav1d_get_frame_delay(const Dav1dSettings *const s) {
+    unsigned n_tc, n_fc;
+    validate_input_or_ret(s != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->n_threads >= 0 &&
+                          s->n_threads <= DAV1D_MAX_THREADS, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->max_frame_delay >= 0 &&
+                          s->max_frame_delay <= DAV1D_MAX_FRAME_DELAY, DAV1D_ERR(EINVAL));
+
+    get_num_threads(NULL, s, &n_tc, &n_fc);
+    return n_fc;
+}
+
 COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
