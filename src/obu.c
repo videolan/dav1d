@@ -454,6 +454,11 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         if (hdr->refresh_frame_flags != 0xff && hdr->error_resilient_mode && seqhdr->order_hint)
             for (int i = 0; i < 8; i++)
                 dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
+        if (c->strict_std_compliance &&
+            hdr->frame_type == DAV1D_FRAME_TYPE_INTRA && hdr->refresh_frame_flags == 0xff)
+        {
+            goto error;
+        }
         if (read_frame_size(c, gb, 0) < 0) goto error;
         hdr->allow_intrabc = hdr->allow_screen_content_tools &&
                              !hdr->super_res.enabled && dav1d_get_bits(gb, 1);
