@@ -202,6 +202,7 @@ int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f
     c->frame_flags &= flags_mask;
 
     p->visible = f->frame_hdr->show_frame;
+    p->showable = f->frame_hdr->showable_frame;
     if (have_frame_mt) {
         atomic_init(&p->progress[0], 0);
         atomic_init(&p->progress[1], 0);
@@ -259,6 +260,7 @@ void dav1d_thread_picture_ref(Dav1dThreadPicture *const dst,
 {
     dav1d_picture_ref(&dst->p, &src->p);
     dst->visible = src->visible;
+    dst->showable = src->showable;
     dst->progress = src->progress;
     dst->flags = src->flags;
 }
@@ -268,6 +270,7 @@ void dav1d_thread_picture_move_ref(Dav1dThreadPicture *const dst,
 {
     dav1d_picture_move_ref(&dst->p, &src->p);
     dst->visible = src->visible;
+    dst->showable = src->showable;
     dst->progress = src->progress;
     dst->flags = src->flags;
     memset(src, 0, sizeof(*src));

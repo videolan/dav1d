@@ -1558,7 +1558,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
         if (c->frame_hdr->show_existing_frame) {
             if (!c->refs[c->frame_hdr->existing_frame_idx].p.p.data[0]) goto error;
             if (c->strict_std_compliance &&
-                !c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->showable_frame)
+                !c->refs[c->frame_hdr->existing_frame_idx].p.showable)
             {
                 goto error;
             }
@@ -1613,6 +1613,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             }
             if (c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {
                 const int r = c->frame_hdr->existing_frame_idx;
+                c->refs[r].p.showable = 0;
                 for (int i = 0; i < 8; i++) {
                     if (i == r) continue;
 
