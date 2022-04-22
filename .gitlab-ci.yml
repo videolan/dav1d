@@ -10,6 +10,13 @@ stages:
         - docker
         - amd64
 
+.debian-amd64-experimental:
+    image: registry.videolan.org/dav1d-debian-experimental:20220427173740
+    stage: build
+    tags:
+        - docker
+        - amd64
+
 .debian-llvm-mingw-common:
     image: registry.videolan.org/vlc-debian-llvm-mingw:20201201162707
     stage: build
@@ -207,6 +214,23 @@ build-debian-avx512:
         - ninja -C build
         - cd build
         - time meson test -v --suite checkasm
+
+.build-debian-experimental:
+    extends: .debian-amd64-experimental
+    script:
+        - meson build --buildtype release
+                      --werror
+                      -Dc_link_args='-fuse-ld=mold'
+        - ninja -C build
+        - cd build && meson test -v
+
+build-debian-gcc12:
+    extends: .build-debian-experimental
+
+build-debian-clang14:
+    extends: .build-debian-experimental
+    variables:
+        CC: clang
 
 build-win32:
     extends: .debian-amd64-common
