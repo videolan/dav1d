@@ -292,7 +292,7 @@ DAV1D_API int dav1d_get_decode_error_data_props(Dav1dContext *c, Dav1dDataProps 
  * including reference frames.
  * This value is guaranteed to be >= 1 and <= max_frame_delay.
  *
- * @param c Input settings context.
+ * @param s Input settings context.
  *
  * @return Decoder frame delay on success, or < 0 (a negative DAV1D_ERR code) on
  *         error.
