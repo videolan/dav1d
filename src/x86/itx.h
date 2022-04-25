@@ -317,6 +317,7 @@ static ALWAYS_INLINE void itx_dsp_init_x86(Dav1dInvTxfmDSPContext *const c, cons
         assign_itx16_bpc_fn(R, 16,  8, 12, avx2);
         assign_itx12_bpc_fn( , 16, 16, 12, avx2);
         assign_itx2_bpc_fn (R, 32,  8, 12, avx2);
+        assign_itx_bpc_fn(R, 16, 32, identity_identity, IDTX, 12, avx2);
     }
 #endif
 
