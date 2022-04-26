@@ -688,14 +688,14 @@ test-debian-armv7-clang-5:
 
 build-pages:
     extends: .pages-common
-    except:
-        refs:
-            - master
+    rules:
+        - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
 
 pages:
     extends: .pages-common
-    only:
-        refs:
-            - master
-        changes:
-            - include/dav1d/*
+    rules:
+        - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+          changes:
+              - include/dav1d/*
+              - doc/meson.build
+              - doc/Doxyfile.in.in
