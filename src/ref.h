@@ -54,7 +54,7 @@ void dav1d_ref_dec(Dav1dRef **ref);
 int dav1d_ref_is_writable(Dav1dRef *ref);
 
 static inline void dav1d_ref_inc(Dav1dRef *const ref) {
-    atomic_fetch_add(&ref->ref_cnt, 1);
+    atomic_fetch_add_explicit(&ref->ref_cnt, 1, memory_order_relaxed);
 }
 
 #endif /* DAV1D_SRC_REF_H */
