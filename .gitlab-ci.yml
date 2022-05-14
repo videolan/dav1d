@@ -530,7 +530,9 @@ test-debian:
         paths:
             - coverage/
         reports:
-            cobertura: build/meson-logs/coverage.xml
+            coverage_report:
+                coverage_format: cobertura
+                path: build/meson-logs/coverage.xml
 
 test-debian-asm:
     extends:
