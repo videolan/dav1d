@@ -526,7 +526,7 @@ int main(int argc, char *argv[]) {
 
     while (argc > 1) {
         if (!strncmp(argv[1], "--help", 6)) {
-            fprintf(stdout,
+            fprintf(stderr,
                     "checkasm [options] <random seed>\n"
                     "    <random seed>       Numeric value to seed the rng\n"
                     "Options:\n"
