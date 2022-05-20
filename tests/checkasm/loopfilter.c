@@ -174,18 +174,18 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
             }
             memcpy(a_dst_mem, c_dst_mem, 128 * sizeof(pixel) * 16);
 
-            call_ref(c_dst, stride,
-                     vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
-                     &lut, n_blks HIGHBD_TAIL_SUFFIX);
-            call_new(a_dst, stride,
-                     vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
-                     &lut, n_blks HIGHBD_TAIL_SUFFIX);
+            call_ref(c_dst, stride, vmask,
+                     (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx],
+                     b4_stride, &lut, n_blks HIGHBD_TAIL_SUFFIX);
+            call_new(a_dst, stride, vmask,
+                     (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx],
+                     b4_stride, &lut, n_blks HIGHBD_TAIL_SUFFIX);
 
             checkasm_check_pixel(c_dst_mem, stride, a_dst_mem, stride,
                                  w, h, "dst");
-            bench_new(a_dst, stride,
-                      vmask, (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx], b4_stride,
-                      &lut, n_blks HIGHBD_TAIL_SUFFIX);
+            bench_new(alternate(c_dst, a_dst), stride, vmask,
+                      (const uint8_t(*)[4]) &l[dir ? 32 : 1][lf_idx],
+                      b4_stride, &lut, n_blks HIGHBD_TAIL_SUFFIX);
         }
     }
     report(name);
