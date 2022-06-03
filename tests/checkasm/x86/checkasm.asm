@@ -55,6 +55,11 @@ n14: dq 0x249214109d5d1c88
 %endif
 
 errmsg_stack: db "stack corruption", 0
+errmsg_vzeroupper: db "missing vzeroupper", 0
+
+SECTION .bss
+
+check_vzeroupper: resd 1
 
 SECTION .text
 
@@ -64,8 +69,44 @@ cextern fail_func
 ; (max_args % 4) must equal 3 for stack alignment
 %define max_args 15
 
+;-----------------------------------------------------------------------------
+; void checkasm_init_x86(void)
+;-----------------------------------------------------------------------------
+cglobal init_x86, 0, 4
 %if ARCH_X86_64
+    push          rbx
+%endif
+    xor           eax, eax
+    cpuid
+    cmp           eax, 13
+    jb .end ; leaf 13 not supported
+    mov           eax, 1
+    cpuid
+    and           ecx, 0x18000000
+    cmp           ecx, 0x18000000
+    jne .end ; osxsave/avx not supported
+    mov           eax, 13
+    mov           ecx, 1
+    cpuid
+    test           al, 0x04
+    jz .end ; xcr1 not supported
+    mov           ecx, 1
+    xgetbv
+    test           al, 0x04
+    jnz .end ; always-dirty ymm state
+%if ARCH_X86_64 == 0 && PIC
+    LEA           eax, check_vzeroupper
+    mov         [eax], ecx
+%else
+    mov [check_vzeroupper], ecx
+%endif
+.end:
+%if ARCH_X86_64
+    pop           rbx
+%endif
+    RET
 
+%if ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; int checkasm_stack_clobber(uint64_t clobber, ...)
 ;-----------------------------------------------------------------------------
@@ -96,7 +137,6 @@ cglobal stack_clobber, 1, 2
 ;-----------------------------------------------------------------------------
 ; void checkasm_checked_call(void *func, ...)
 ;-----------------------------------------------------------------------------
-INIT_XMM
 cglobal checked_call, 2, 15, 16, max_args*8+64+8
     mov            t0, r0
 
@@ -165,7 +205,7 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     xor            r3, [stack_param+(r0+7)*8]
     lea            r0, [errmsg_stack]
     or             r4, r3
-    jnz .fail
+    jnz .save_retval_and_fail
 
     ; check for failure to preserve registers
 %assign i 14
@@ -182,7 +222,7 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     jz .gpr_ok
 %else
     test          r3d, r3d
-    jz .ok
+    jz .gpr_xmm_ok
     lea            r0, [rsp+28]
 %endif
 %assign i free_regs
@@ -238,7 +278,7 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
 %endrep
 .xmm_ok:
     cmp            r0, r5
-    je .ok
+    je .gpr_xmm_ok
     mov     byte [r0], 0
     lea            r0, [r5-28]
 %else
@@ -252,15 +292,30 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     mov dword [r0+16], "ve r"
     mov dword [r0+20], "egis"
     mov dword [r0+24], "ter:"
+.save_retval_and_fail:
+    ; Save the return value located in rdx:rax first to prevent clobbering.
+    mov           r10, rax
+    mov           r11, rdx
+    jmp .fail
+.gpr_xmm_ok:
+    ; Check for dirty YMM state, i.e. missing vzeroupper
+    mov           ecx, [check_vzeroupper]
+    test          ecx, ecx
+    jz .ok ; not supported, skip
+    mov           r10, rax
+    mov           r11, rdx
+    xgetbv
+    test           al, 0x04
+    jz .restore_retval ; clean ymm state
+    lea            r0, [errmsg_vzeroupper]
+    vzeroupper
 .fail:
     ; Call fail_func() with a descriptive message to mark it as a failure.
-    ; Save the return value located in rdx:rax first to prevent clobbering.
-    mov            r9, rax
-    mov           r10, rdx
     xor           eax, eax
     call fail_func
-    mov           rdx, r10
-    mov           rax, r9
+.restore_retval:
+    mov           rax, r10
+    mov           rdx, r11
 .ok:
     RET
 
@@ -338,6 +393,8 @@ cglobal checked_call, 1, 7
     %assign i i+1
 %endrep
     mov     byte [r4], 0
+    mov            r5, eax
+    mov            r6, edx
     jmp .fail
 .gpr_ok:
     ; check for stack corruption
@@ -353,18 +410,30 @@ cglobal checked_call, 1, 7
     or             r4, r5
     inc            r3
     jl .check_canary
+    mov            r5, eax
+    mov            r6, edx
     test           r4, r4
-    jz .ok
+    jz .stack_ok
     LEA            r1, errmsg_stack
+    jmp .fail
+.stack_ok:
+    ; check for dirty YMM state, i.e. missing vzeroupper
+    LEA           ecx, check_vzeroupper
+    mov           ecx, [ecx]
+    test          ecx, ecx
+    jz .ok ; not supported, skip
+    xgetbv
+    test           al, 0x04
+    jz .ok ; clean ymm state
+    LEA            r1, errmsg_vzeroupper
+    vzeroupper
 .fail:
-    mov            r3, eax
-    mov            r4, edx
     mov         [esp], r1
     call fail_func
-    mov           edx, r4
-    mov           eax, r3
 .ok:
     add           esp, 27*4
+    mov           eax, r5
+    mov           edx, r6
     RET
 
 %endif ; ARCH_X86_64

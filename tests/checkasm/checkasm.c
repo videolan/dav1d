@@ -600,6 +600,10 @@ int main(int argc, char *argv[]) {
             state.simd_warmup = checkasm_warmup_avx2;
         checkasm_simd_warmup();
 #endif
+#if ARCH_X86
+        void checkasm_init_x86(void);
+        checkasm_init_x86();
+#endif
     }
 
     check_cpu_flag(NULL, 0);
