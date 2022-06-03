@@ -589,7 +589,6 @@ int main(int argc, char *argv[]) {
     int ret = 0;
 
     if (!state.function_listing) {
-        fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
 #if ARCH_X86_64
         void checkasm_warmup_avx2(void);
         void checkasm_warmup_avx512(void);
@@ -601,8 +600,14 @@ int main(int argc, char *argv[]) {
         checkasm_simd_warmup();
 #endif
 #if ARCH_X86
-        void checkasm_init_x86(void);
-        checkasm_init_x86();
+        unsigned checkasm_init_x86(char *name);
+        char name[48];
+        const unsigned cpuid = checkasm_init_x86(name);
+        for (size_t len = strlen(name); len && name[len-1] == ' '; len--)
+            name[len-1] = '\0'; /* trim trailing whitespace */
+        fprintf(stderr, "checkasm: %s (%08X) using random seed %u\n", name, cpuid, state.seed);
+#else
+        fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
 #endif
     }
 
