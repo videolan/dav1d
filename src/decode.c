@@ -3743,9 +3743,10 @@ int dav1d_submit_frame(Dav1dContext *const c) {
         if (f->frame_hdr->use_ref_frame_mvs) {
             for (int i = 0; i < 7; i++) {
                 const int refidx = f->frame_hdr->refidx[i];
+                const int ref_w = ((ref_coded_width[i] + 7) >> 3) << 1;
+                const int ref_h = ((f->refp[i].p.p.h + 7) >> 3) << 1;
                 if (c->refs[refidx].refmvs != NULL &&
-                    ref_coded_width[i] == f->cur.p.w &&
-                    f->refp[i].p.p.h == f->cur.p.h)
+                    ref_w == f->bw && ref_h == f->bh)
                 {
                     f->ref_mvs_ref[i] = c->refs[refidx].refmvs;
                     dav1d_ref_inc(f->ref_mvs_ref[i]);
