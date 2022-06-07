@@ -335,7 +335,8 @@ static int has_grain(const Dav1dPicture *const pic)
 {
     const Dav1dFilmGrainData *fgdata = &pic->frame_hdr->film_grain.data;
     return fgdata->num_y_points || fgdata->num_uv_points[0] ||
-           fgdata->num_uv_points[1];
+           fgdata->num_uv_points[1] || (fgdata->clip_to_restricted_range &&
+                                        fgdata->chroma_scaling_from_luma);
 }
 
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out)
