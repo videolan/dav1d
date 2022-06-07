@@ -1096,9 +1096,10 @@ static int obmc(Dav1dTaskContext *const t,
             // only odd blocks are considered for overlap handling, hence +1
             const refmvs_block *const a_r = &r[-1][t->bx + x + 1];
             const uint8_t *const a_b_dim = dav1d_block_dimensions[a_r->bs];
+            const int step4 = iclip(a_b_dim[0], 2, 16);
 
             if (a_r->ref.ref[0] > 0) {
-                const int ow4 = iclip(a_b_dim[0], 2, b_dim[0]);
+                const int ow4 = imin(step4, b_dim[0]);
                 const int oh4 = imin(b_dim[1], 16) >> 1;
                 res = mc(t, lap, NULL, ow4 * h_mul * sizeof(pixel), ow4, (oh4 * 3 + 3) >> 2,
                          t->bx + x, t->by, pl, a_r->mv.mv[0],
@@ -1109,7 +1110,7 @@ static int obmc(Dav1dTaskContext *const t,
                                    h_mul * ow4, v_mul * oh4);
                 i++;
             }
-            x += imax(a_b_dim[0], 2);
+            x += step4;
         }
     }
 
@@ -1118,10 +1119,11 @@ static int obmc(Dav1dTaskContext *const t,
             // only odd blocks are considered for overlap handling, hence +1
             const refmvs_block *const l_r = &r[y + 1][t->bx - 1];
             const uint8_t *const l_b_dim = dav1d_block_dimensions[l_r->bs];
+            const int step4 = iclip(l_b_dim[1], 2, 16);
 
             if (l_r->ref.ref[0] > 0) {
                 const int ow4 = imin(b_dim[0], 16) >> 1;
-                const int oh4 = iclip(l_b_dim[1], 2, b_dim[1]);
+                const int oh4 = imin(step4, b_dim[1]);
                 res = mc(t, lap, NULL, h_mul * ow4 * sizeof(pixel), ow4, oh4,
                          t->bx, t->by + y, pl, l_r->mv.mv[0],
                          &f->refp[l_r->ref.ref[0] - 1], l_r->ref.ref[0] - 1,
@@ -1131,7 +1133,7 @@ static int obmc(Dav1dTaskContext *const t,
                                    dst_stride, lap, h_mul * ow4, v_mul * oh4);
                 i++;
             }
-            y += imax(l_b_dim[1], 2);
+            y += step4;
         }
     return 0;
 }
