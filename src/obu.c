@@ -1509,7 +1509,7 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
 
             if (payload_size <= 0) {
                 dav1d_log(c, "Malformed ITU-T T.35 metadata message format\n");
-                goto error;
+                break;
             }
 
             Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dITUTT35) + payload_size * sizeof(uint8_t));
