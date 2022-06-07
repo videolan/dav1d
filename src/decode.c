@@ -3483,7 +3483,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
 
 static int get_upscale_x0(const int in_w, const int out_w, const int step) {
     const int err = out_w * step - (in_w << 14);
-    const int x0 = (-((out_w - in_w) << 13) + (out_w >> 1)) / out_w + 128 - (err >> 1);
+    const int x0 = (-((out_w - in_w) << 13) + (out_w >> 1)) / out_w + 128 - (err / 2);
     return x0 & 0x3fff;
 }
 
