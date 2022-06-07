@@ -2087,11 +2087,14 @@ static int decode_b(Dav1dTaskContext *const t,
             const uint8_t (*const lf_lvls)[8][2] = (const uint8_t (*)[8][2])
                 &ts->lflvl[b->seg_id][0][b->ref[0] + 1][!is_globalmv];
             const uint16_t tx_split[2] = { b->tx_split0, b->tx_split1 };
+            enum RectTxfmSize ytx = b->max_ytx, uvtx = b->uvtx;
+            if (f->frame_hdr->segmentation.lossless[b->seg_id]) {
+                ytx  = (enum RectTxfmSize) TX_4X4;
+                uvtx = (enum RectTxfmSize) TX_4X4;
+            }
             dav1d_create_lf_mask_inter(t->lf_mask, f->lf.level, f->b4_stride, lf_lvls,
                                        t->bx, t->by, f->w4, f->h4, b->skip, bs,
-                                       f->frame_hdr->segmentation.lossless[b->seg_id] ?
-                                           (enum RectTxfmSize) TX_4X4 : b->max_ytx,
-                                       tx_split, b->uvtx, f->cur.p.layout,
+                                       ytx, tx_split, uvtx, f->cur.p.layout,
                                        &t->a->tx_lpf_y[bx4], &t->l.tx_lpf_y[by4],
                                        has_chroma ? &t->a->tx_lpf_uv[cbx4] : NULL,
                                        has_chroma ? &t->l.tx_lpf_uv[cby4] : NULL);
