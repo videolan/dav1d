@@ -133,6 +133,7 @@ static struct {
     int bench_c;
     int verbose;
     int function_listing;
+    int catch_signals;
 #if ARCH_X86_64
     void (*simd_warmup)(void);
 #endif
@@ -443,6 +444,9 @@ checkasm_context checkasm_context_buf;
  * gracefully instead of just aborting abruptly. */
 #ifdef _WIN32
 static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
+    if (!state.catch_signals)
+        return EXCEPTION_CONTINUE_SEARCH;
+
     const char *err;
     switch (e->ExceptionRecord->ExceptionCode) {
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
@@ -463,18 +467,25 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     default:
         return EXCEPTION_CONTINUE_SEARCH;
     }
-    RemoveVectoredExceptionHandler(signal_handler);
+    state.catch_signals = 0;
     checkasm_fail_func(err);
     checkasm_load_context();
     return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
 }
 #else
 static void signal_handler(const int s) {
-    checkasm_set_signal_handler_state(0);
-    checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
-                       s == SIGILL ? "illegal instruction" :
-                                     "segmentation fault");
-    checkasm_load_context();
+    if (state.catch_signals) {
+        state.catch_signals = 0;
+        checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
+                           s == SIGILL ? "illegal instruction" :
+                                         "segmentation fault");
+        checkasm_load_context();
+    } else {
+        /* fall back to the default signal handler */
+        static const struct sigaction default_sa = { .sa_handler = SIG_DFL };
+        sigaction(s, &default_sa, NULL);
+        raise(s);
+    }
 }
 #endif
 
@@ -569,6 +580,21 @@ int main(int argc, char *argv[]) {
     }
 
     dav1d_init_cpu();
+
+#ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    AddVectoredExceptionHandler(0, signal_handler);
+#endif
+#else
+    const struct sigaction sa = {
+        .sa_handler = signal_handler,
+        .sa_flags = SA_NODEFER,
+    };
+    sigaction(SIGBUS,  &sa, NULL);
+    sigaction(SIGFPE,  &sa, NULL);
+    sigaction(SIGILL,  &sa, NULL);
+    sigaction(SIGSEGV, &sa, NULL);
+#endif
 
 #ifdef readtime
     if (state.bench_pattern) {
@@ -767,20 +793,7 @@ void checkasm_report(const char *const name, ...) {
 }
 
 void checkasm_set_signal_handler_state(const int enabled) {
-#ifdef _WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    if (enabled)
-        AddVectoredExceptionHandler(0, signal_handler);
-    else
-        RemoveVectoredExceptionHandler(signal_handler);
-#endif
-#else
-    void (*const handler)(int) = enabled ? signal_handler : SIG_DFL;
-    signal(SIGBUS,  handler);
-    signal(SIGFPE,  handler);
-    signal(SIGILL,  handler);
-    signal(SIGSEGV, handler);
-#endif
+    state.catch_signals = enabled;
 }
 
 static int check_err(const char *const file, const int line,
