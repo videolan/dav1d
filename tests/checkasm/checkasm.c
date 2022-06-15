@@ -38,10 +38,6 @@
 #define COLOR_RED    FOREGROUND_RED
 #define COLOR_GREEN  FOREGROUND_GREEN
 #define COLOR_YELLOW (FOREGROUND_RED|FOREGROUND_GREEN)
-
-static unsigned get_seed(void) {
-    return GetTickCount();
-}
 #else
 #include <unistd.h>
 #include <signal.h>
@@ -52,16 +48,6 @@ static unsigned get_seed(void) {
 #define COLOR_RED    1
 #define COLOR_GREEN  2
 #define COLOR_YELLOW 3
-
-static unsigned get_seed(void) {
-#ifdef __APPLE__
-    return (unsigned) mach_absolute_time();
-#elif defined(HAVE_CLOCK_GETTIME)
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (unsigned) (1000000000ULL * ts.tv_sec + ts.tv_nsec);
-#endif
-}
 #endif
 
 /* List of tests to invoke */
@@ -519,6 +505,20 @@ static void print_cpu_name(void) {
         color_printf(COLOR_YELLOW, "%s:\n", state.cpu_flag_name);
         state.cpu_flag_name = NULL;
     }
+}
+
+static unsigned get_seed(void) {
+#ifdef _WIN32
+    LARGE_INTEGER i;
+    QueryPerformanceCounter(&i);
+    return i.LowPart;
+#elif defined(__APPLE__)
+    return (unsigned) mach_absolute_time();
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned) (1000000000ULL * ts.tv_sec + ts.tv_nsec);
+#endif
 }
 
 int main(int argc, char *argv[]) {
