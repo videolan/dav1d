@@ -402,7 +402,7 @@ build-macos:
     stage: build
     tags:
         - amd64
-        - catalina
+        - macos
     script:
         - meson build --buildtype release
                       -Ddefault_library=both
