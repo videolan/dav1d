@@ -3459,11 +3459,12 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
     // wait until all threads have completed
     if (!res) {
         if (f->c->n_tc > 1) {
-            pthread_mutex_lock(&f->task_thread.ttd->lock);
             res = dav1d_task_create_tile_sbrow(f, 0, 1);
+            pthread_mutex_lock(&f->task_thread.ttd->lock);
+            pthread_cond_signal(&f->task_thread.ttd->cond);
             if (!res) {
                 while (!f->task_thread.done[0] ||
-                       f->task_thread.task_counter > 0)
+                       atomic_load(&f->task_thread.task_counter) > 0)
                 {
                     pthread_cond_wait(&f->task_thread.cond,
                                       &f->task_thread.ttd->lock);
@@ -3726,7 +3727,8 @@ int dav1d_submit_frame(Dav1dContext *const c) {
     const int uses_2pass = c->n_fc > 1;
     const int cols = f->frame_hdr->tiling.cols;
     const int rows = f->frame_hdr->tiling.rows;
-    f->task_thread.task_counter = (cols * rows + f->sbh) << uses_2pass;
+    atomic_store(&f->task_thread.task_counter,
+                 (cols * rows + f->sbh) << uses_2pass);
 
     // ref_mvs
     if (IS_INTER_OR_SWITCH(f->frame_hdr) || f->frame_hdr->allow_intrabc) {

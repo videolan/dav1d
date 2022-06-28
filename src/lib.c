@@ -235,8 +235,18 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     }
     for (unsigned n = 0; n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
-        if (c->n_tc > 1)
-            if (pthread_cond_init(&f->task_thread.cond, NULL)) goto error;
+        if (c->n_tc > 1) {
+            if (pthread_mutex_init(&f->task_thread.lock, NULL)) goto error;
+            if (pthread_cond_init(&f->task_thread.cond, NULL)) {
+                pthread_mutex_destroy(&f->task_thread.lock);
+                goto error;
+            }
+            if (pthread_mutex_init(&f->task_thread.pending_tasks.lock, NULL)) {
+                pthread_cond_destroy(&f->task_thread.cond);
+                pthread_mutex_destroy(&f->task_thread.lock);
+                goto error;
+            }
+        }
         f->c = c;
         f->task_thread.ttd = &c->task_thread;
         f->lf.last_sharpness = -1;
@@ -595,6 +605,9 @@ void dav1d_flush(Dav1dContext *const c) {
             c->fc[i].task_thread.task_head = NULL;
             c->fc[i].task_thread.task_tail = NULL;
             c->fc[i].task_thread.task_cur_prev = NULL;
+            c->fc[i].task_thread.pending_tasks.head = NULL;
+            c->fc[i].task_thread.pending_tasks.tail = NULL;
+            atomic_init(&c->fc[i].task_thread.pending_tasks.merge, 0);
         }
         atomic_init(&c->task_thread.first, 0);
         c->task_thread.cur = c->n_fc;
@@ -668,7 +681,9 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
             freep(&f->frame_thread.cbi);
         }
         if (c->n_tc > 1) {
+            pthread_mutex_destroy(&f->task_thread.pending_tasks.lock);
             pthread_cond_destroy(&f->task_thread.cond);
+            pthread_mutex_destroy(&f->task_thread.lock);
         }
         freep(&f->frame_thread.frame_progress);
         freep(&f->task_thread.tasks);
