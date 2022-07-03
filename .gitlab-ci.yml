@@ -52,13 +52,6 @@ stages:
         - docker
         - ppc64le
 
-.ubuntu-common:
-    image: registry.videolan.org/dav1d-ubuntu-bionic:20220427160715
-    stage: build
-    tags:
-        - docker
-        - amd64
-
 .android-common:
     image: registry.videolan.org/vlc-debian-android:20220427160831
     stage: build
@@ -444,26 +437,6 @@ build-debian-armv7-clang-5:
         - linux32 meson build --buildtype release
         - ninja -C build
         - cd build && meson test -v
-
-build-ubuntu-snap:
-    extends: .ubuntu-common
-    script:
-        - git config --global --add safe.directory '*'
-        - cd package/snap && snapcraft snap
-        - |
-           if [ "$CI_PROJECT_NAMESPACE" = "videolan" ]; then
-            SNAP_CHANNEL=edge
-            if [ "$CI_COMMIT_TAG" ]; then SNAP_CHANNEL=stable; fi
-            echo $SNAP_LOGIN | base64 --decode | snapcraft login --with -
-            snapcraft push dav1d_*.snap --release $SNAP_CHANNEL
-            snapcraft logout
-           fi
-    artifacts:
-        name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-        paths:
-            - package/snap/dav1d_*.snap
-        expire_in: 1 week
-    allow_failure: true
 
 build-debian-ppc64le:
     extends: .debian-ppc64le-common
