@@ -38,7 +38,7 @@ decl_loopfilter_sb_fns(ssse3);
 decl_loopfilter_sb_fns(avx2);
 decl_loopfilter_sb_fns(avx512icl);
 
-COLD void bitfn(dav1d_loop_filter_dsp_init_x86)(Dav1dLoopFilterDSPContext *const c) {
+static ALWAYS_INLINE void loop_filter_dsp_init_x86(Dav1dLoopFilterDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;

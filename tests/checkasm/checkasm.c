@@ -579,6 +579,11 @@ int main(int argc, char *argv[]) {
         argv++;
     }
 
+#if TRIM_DSP_FUNCTIONS
+    fprintf(stderr, "checkasm: reference functions unavailable\n");
+    return 0;
+#endif
+
     dav1d_init_cpu();
 
 #ifdef _WIN32

@@ -117,6 +117,7 @@ build-debian:
         - amd64
     script:
         - meson build --buildtype release
+                      -Dtrim_dsp=false
                       --werror
         - ninja -C build
         - cd build && meson test -v
@@ -259,6 +260,7 @@ build-win32:
                       --prefix "$(pwd)/build/dav1d_install"
                       --cross-file package/crossfiles/i686-w64-mingw32.meson
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
         - cd build && meson test -v
@@ -277,6 +279,7 @@ build-win32-unaligned-stack:
                       --werror
                       --cross-file package/crossfiles/i686-w64-mingw32.meson
                       -Dstack_alignment=4
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && meson test -v
 
@@ -290,6 +293,7 @@ build-win64:
                       --prefix "$(pwd)/build/dav1d_install"
                       --cross-file package/crossfiles/x86_64-w64-mingw32.meson
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
         - cd build && meson test -v
@@ -309,6 +313,7 @@ build-win-arm32:
                       --prefix "$(pwd)/build/dav1d_install"
                       --cross-file /opt/crossfiles/armv7-w64-mingw32.meson
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
         - ninja -C build
         - armv7-w64-mingw32-nm -A -g build/src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
 
@@ -321,6 +326,7 @@ build-win-arm64:
                       --prefix "$(pwd)/build/dav1d_install"
                       --cross-file /opt/crossfiles/aarch64-w64-mingw32.meson
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
         - aarch64-w64-mingw32-nm -A -g build/src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
@@ -339,6 +345,7 @@ build-win-arm64:
                       --prefix "$(pwd)/build/dav1d_install"
                       --cross-file $CROSSFILE
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
 
@@ -406,6 +413,7 @@ build-macos:
     script:
         - meson build --buildtype release
                       -Ddefault_library=both
+                      -Dtrim_dsp=false
                       --werror
         - ninja -C build
         - cd build && meson test -v
@@ -461,6 +469,7 @@ build-debian-ppc64le:
     extends: .debian-ppc64le-common
     script:
         - meson build --buildtype release
+                      -Dtrim_dsp=false
                       --werror
         - ninja -C build
         - cd build && meson test -v
@@ -514,6 +523,7 @@ test-debian:
                       -Dtestdata_tests=true
                       -Dlogging=false
                       -Db_coverage=true
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
         - ninja coverage-html
@@ -559,6 +569,7 @@ test-debian-avx512:
     script:
         - meson build --buildtype release
                       -Dtestdata_tests=true
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx512icl"
         - time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 2 --cpumask avx512icl"
@@ -577,6 +588,7 @@ test-debian-unaligned-stack:
                       -Dtestdata_tests=true
                       -Dlogging=false
                       -Dstack_alignment=16
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
 
@@ -674,6 +686,7 @@ test-win64:
         - meson build --buildtype release
                       -Dtestdata_tests=true
                       -Dlogging=false
+                      -Dtrim_dsp=false
                       --cross-file package/crossfiles/x86_64-w64-mingw32.meson
         - ninja -C build
         - cd build && time meson test -v
