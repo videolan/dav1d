@@ -43,9 +43,15 @@
 #include "src/x86/cpu.h"
 #endif
 
+extern unsigned dav1d_cpu_flags;
+extern unsigned dav1d_cpu_flags_mask;
+
 void dav1d_init_cpu(void);
-unsigned dav1d_get_cpu_flags(void);
 DAV1D_API void dav1d_set_cpu_flags_mask(unsigned mask);
 int dav1d_num_logical_processors(Dav1dContext *c);
+
+static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
+    return dav1d_cpu_flags & dav1d_cpu_flags_mask;
+}
 
 #endif /* DAV1D_SRC_CPU_H */
