@@ -129,6 +129,7 @@ static struct {
     unsigned cpu_flag;
     const char *cpu_flag_name;
     const char *test_name;
+    const char *function_pattern;
     unsigned seed;
     int bench_c;
     int verbose;
@@ -489,6 +490,21 @@ static void signal_handler(const int s) {
 }
 #endif
 
+/* Compares a string with a wildcard pattern. */
+static int wildstrcmp(const char *str, const char *pattern) {
+    const char *wild = strchr(pattern, '*');
+    if (wild) {
+        const size_t len = wild - pattern;
+        if (strncmp(str, pattern, len)) return 1;
+        while (*++wild == '*');
+        if (!*wild) return 0;
+        str += len;
+        while (*str && wildstrcmp(str, wild)) str++;
+        return !*str;
+    }
+    return strcmp(str, pattern);
+}
+
 /* Perform tests and benchmarks for the specified
  * cpu flag if supported by the host */
 static void check_cpu_flag(const char *const name, unsigned flag) {
@@ -539,14 +555,15 @@ int main(int argc, char *argv[]) {
         if (!strncmp(argv[1], "--help", 6)) {
             fprintf(stderr,
                     "checkasm [options] <random seed>\n"
-                    "    <random seed>       Numeric value to seed the rng\n"
+                    "    <random seed>          Numeric value to seed the rng\n"
                     "Options:\n"
-                    "    --test=<test_name>  Test only <test_name>\n"
-                    "    --bench=<pattern>   Test and benchmark the functions matching <pattern>\n"
-                    "    --list-functions    List available functions\n"
-                    "    --list-tests        List available tests\n"
-                    "    --bench-c           Benchmark the C-only functions\n"
-                    "    --verbose -v        Print failures verbosely\n");
+                    "    --test=<test_name>     Test only <test_name>\n"
+                    "    --function=<pattern>   Test only the functions matching <pattern>\n"
+                    "    --bench=<pattern>      Test and benchmark the functions matching <pattern>\n"
+                    "    --list-functions       List available functions\n"
+                    "    --list-tests           List available tests\n"
+                    "    --bench-c              Benchmark the C-only functions\n"
+                    "    --verbose -v           Print failures verbosely\n");
             return 0;
         } else if (!strncmp(argv[1], "--bench-c", 9)) {
             state.bench_c = 1;
@@ -563,6 +580,8 @@ int main(int argc, char *argv[]) {
                 state.bench_pattern = "";
         } else if (!strncmp(argv[1], "--test=", 7)) {
             state.test_name = argv[1] + 7;
+        } else if (!strncmp(argv[1], "--function=", 11)) {
+            state.function_pattern = argv[1] + 11;
         } else if (!strcmp(argv[1], "--list-functions")) {
             state.function_listing = 1;
         } else if (!strcmp(argv[1], "--list-tests")) {
@@ -682,8 +701,11 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
     const int name_length = vsnprintf(name_buf, sizeof(name_buf), name, arg);
     va_end(arg);
 
-    if (!func || name_length <= 0 || (size_t)name_length >= sizeof(name_buf))
+    if (!func || name_length <= 0 || (size_t)name_length >= sizeof(name_buf) ||
+        (state.function_pattern && wildstrcmp(name_buf, state.function_pattern)))
+    {
         return NULL;
+    }
 
     state.current_func = get_func(&state.funcs, name_buf);
 
