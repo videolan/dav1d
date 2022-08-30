@@ -200,6 +200,7 @@ build-debian-minimum:
     script:
         - meson build --buildtype release
                       --werror
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && meson test -v
 
@@ -659,6 +660,7 @@ test-debian-aarch64:
         - meson build --buildtype release
                       -Dtestdata_tests=true
                       -Dlogging=false
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
 
@@ -671,6 +673,7 @@ test-debian-ppc64le:
         - meson build --buildtype release
                       -Dtestdata_tests=true
                       -Dlogging=false
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
 
@@ -686,6 +689,7 @@ test-debian-armv7-clang-5:
         - linux32 meson build --buildtype release
                               -Dtestdata_tests=true
                               -Dlogging=false
+                              -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
 
