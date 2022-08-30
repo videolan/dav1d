@@ -4,56 +4,49 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20220516081238
-    stage: build
-    tags:
-        - docker
-        - amd64
-
-.debian-amd64-experimental:
-    image: registry.videolan.org/dav1d-debian-experimental:20220427173740
+    image: registry.videolan.org/dav1d-debian-unstable:20220811102309
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-amd64-minimum:
-    image: registry.videolan.org/dav1d-debian-minimum:20220505192540
+    image: registry.videolan.org/dav1d-debian-minimum:20220811102156
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-mingw:20220427162150
+    image: registry.videolan.org/vlc-debian-llvm-mingw:20220819151034
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20220428175939
+    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20220822160907
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20220428180611
+    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20220823100731
     stage: build
     tags:
         - docker
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20220505191710
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20220812184538
     stage: build
     tags:
         - docker
         - ppc64le
 
 .android-common:
-    image: registry.videolan.org/vlc-debian-android:20220427160831
+    image: registry.videolan.org/vlc-debian-android:20220811103057
     stage: build
     tags:
         - docker
@@ -226,22 +219,17 @@ build-debian-avx512:
         - cd build
         - time meson test -v --suite checkasm
 
-.build-debian-experimental:
-    extends: .debian-amd64-experimental
+build-debian-clang14:
+    extends: .debian-amd64-common
+    variables:
+        CC: clang
+        CC_LD: mold
     script:
         - meson build --buildtype release
                       --werror
-                      -Dc_link_args='-fuse-ld=mold'
+                      -Dtrim_dsp=false
         - ninja -C build
         - cd build && meson test -v
-
-build-debian-gcc12:
-    extends: .build-debian-experimental
-
-build-debian-clang14:
-    extends: .build-debian-experimental
-    variables:
-        CC: clang
 
 build-win32:
     extends: .debian-amd64-common
