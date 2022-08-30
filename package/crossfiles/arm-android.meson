@@ -1,10 +1,9 @@
 [binaries]
-c = 'armv7a-linux-androideabi16-clang'
-cpp = 'armv7a-linux-androideabi16-clang++'
-ar = 'arm-linux-androideabi-ar'
-strip = 'arm-linux-androideabi-strip'
+c = 'armv7a-linux-androideabi19-clang'
+cpp = 'armv7a-linux-androideabi19-clang++'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
 pkgconfig = 'pkg-config'
-windres = 'arm-linux-androideabi-windres'
 
 [properties]
 needs_exe_wrapper = true
