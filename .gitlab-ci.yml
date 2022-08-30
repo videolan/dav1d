@@ -57,7 +57,6 @@ style-check:
     extends: .debian-amd64-common
     stage: style
     script:
-        - git config --global --add safe.directory '*'
         - git grep -I -n -P "\t|\r| $" -- . ':(exclude)*/compat/*' && echo "Trailing whitespace" && exit 1
         - git grep -I -n -i -e 'david' --and --not -e 'copyright' -- . ':(exclude)THANKS.md' ':(exclude).gitlab-ci.yml' && echo "Misspelled dav1d" && exit 1
         - git grep -I -l -z "" -- . ':(exclude)*/compat/*' | while IFS= read -r -d '' i; do
@@ -87,7 +86,6 @@ x86inc-check:
     extends: .debian-amd64-common
     stage: style
     script:
-        - git config --global --add safe.directory '*'
         - git remote rm x86inc 2> /dev/null || true
         - git remote add x86inc https://code.videolan.org/videolan/x86inc.asm.git
         - git fetch -q x86inc master
