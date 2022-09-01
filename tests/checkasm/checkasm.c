@@ -126,7 +126,7 @@ static struct {
     int nop_time;
     unsigned cpu_flag;
     const char *cpu_flag_name;
-    const char *test_name;
+    const char *test_pattern;
     const char *function_pattern;
     unsigned seed;
     int bench;
@@ -516,7 +516,7 @@ static void check_cpu_flag(const char *const name, unsigned flag) {
     if (!flag || state.cpu_flag != old_cpu_flag) {
         state.cpu_flag_name = name;
         for (int i = 0; tests[i].func; i++) {
-            if (state.test_name && strcmp(tests[i].name, state.test_name))
+            if (state.test_pattern && wildstrcmp(tests[i].name, state.test_pattern))
                 continue;
             xor128_srand(state.seed);
             state.current_test_name = tests[i].name;
@@ -556,7 +556,7 @@ int main(int argc, char *argv[]) {
                     "checkasm [options] <random seed>\n"
                     "    <random seed>          Numeric value to seed the rng\n"
                     "Options:\n"
-                    "    --test=<test_name>     Test only <test_name>\n"
+                    "    --test=<pattern>       Test only <pattern>\n"
                     "    --function=<pattern>   Test only the functions matching <pattern>\n"
                     "    --bench                Benchmark the tested functions\n"
                     "    --list-functions       List available functions\n"
@@ -574,7 +574,7 @@ int main(int argc, char *argv[]) {
 #endif
             state.bench = 1;
         } else if (!strncmp(argv[1], "--test=", 7)) {
-            state.test_name = argv[1] + 7;
+            state.test_pattern = argv[1] + 7;
         } else if (!strncmp(argv[1], "--function=", 11)) {
             state.function_pattern = argv[1] + 11;
         } else if (!strcmp(argv[1], "--list-functions")) {
