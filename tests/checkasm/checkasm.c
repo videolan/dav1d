@@ -551,22 +551,22 @@ int main(int argc, char *argv[]) {
     state.seed = get_seed();
 
     while (argc > 1) {
-        if (!strncmp(argv[1], "--help", 6)) {
+        if (!strncmp(argv[1], "--help", 6) || !strcmp(argv[1], "-h")) {
             fprintf(stderr,
                     "checkasm [options] <random seed>\n"
-                    "    <random seed>          Numeric value to seed the rng\n"
+                    "    <random seed>              Numeric value to seed the rng\n"
                     "Options:\n"
-                    "    --test=<pattern>       Test only <pattern>\n"
-                    "    --function=<pattern>   Test only the functions matching <pattern>\n"
-                    "    --bench                Benchmark the tested functions\n"
-                    "    --list-functions       List available functions\n"
-                    "    --list-tests           List available tests\n"
-                    "    --bench-c              Benchmark the C-only functions\n"
-                    "    --verbose -v           Print failures verbosely\n");
+                    "    --test=<pattern>           Test only <pattern>\n"
+                    "    --function=<pattern> -f    Test only the functions matching <pattern>\n"
+                    "    --bench -b                 Benchmark the tested functions\n"
+                    "    --list-functions           List available functions\n"
+                    "    --list-tests               List available tests\n"
+                    "    --bench-c -c               Benchmark the C-only functions\n"
+                    "    --verbose -v               Print failures verbosely\n");
             return 0;
-        } else if (!strncmp(argv[1], "--bench-c", 9)) {
+        } else if (!strcmp(argv[1], "--bench-c") || !strcmp(argv[1], "-c")) {
             state.bench_c = 1;
-        } else if (!strcmp(argv[1], "--bench")) {
+        } else if (!strcmp(argv[1], "--bench") || !strcmp(argv[1], "-b")) {
 #ifndef readtime
             fprintf(stderr,
                     "checkasm: --bench is not supported on your system\n");
@@ -575,8 +575,16 @@ int main(int argc, char *argv[]) {
             state.bench = 1;
         } else if (!strncmp(argv[1], "--test=", 7)) {
             state.test_pattern = argv[1] + 7;
+        } else if (!strcmp(argv[1], "-t")) {
+            state.test_pattern = argc > 1 ? argv[2] : "";
+            argc--;
+            argv++;
         } else if (!strncmp(argv[1], "--function=", 11)) {
             state.function_pattern = argv[1] + 11;
+        } else if (!strcmp(argv[1], "-f")) {
+            state.function_pattern = argc > 1 ? argv[2] : "";
+            argc--;
+            argv++;
         } else if (!strcmp(argv[1], "--list-functions")) {
             state.function_listing = 1;
         } else if (!strcmp(argv[1], "--list-tests")) {
