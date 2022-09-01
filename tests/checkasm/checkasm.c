@@ -121,8 +121,6 @@ static struct {
     CheckasmFunc *current_func;
     CheckasmFuncVersion *current_func_ver;
     const char *current_test_name;
-    const char *bench_pattern;
-    size_t bench_pattern_len;
     int num_checked;
     int num_failed;
     int nop_time;
@@ -131,6 +129,7 @@ static struct {
     const char *test_name;
     const char *function_pattern;
     unsigned seed;
+    int bench;
     int bench_c;
     int verbose;
     int function_listing;
@@ -559,7 +558,7 @@ int main(int argc, char *argv[]) {
                     "Options:\n"
                     "    --test=<test_name>     Test only <test_name>\n"
                     "    --function=<pattern>   Test only the functions matching <pattern>\n"
-                    "    --bench=<pattern>      Test and benchmark the functions matching <pattern>\n"
+                    "    --bench                Benchmark the tested functions\n"
                     "    --list-functions       List available functions\n"
                     "    --list-tests           List available tests\n"
                     "    --bench-c              Benchmark the C-only functions\n"
@@ -567,17 +566,13 @@ int main(int argc, char *argv[]) {
             return 0;
         } else if (!strncmp(argv[1], "--bench-c", 9)) {
             state.bench_c = 1;
-        } else if (!strncmp(argv[1], "--bench", 7)) {
+        } else if (!strcmp(argv[1], "--bench")) {
 #ifndef readtime
             fprintf(stderr,
                     "checkasm: --bench is not supported on your system\n");
             return 1;
 #endif
-            if (argv[1][7] == '=') {
-                state.bench_pattern = argv[1] + 8;
-                state.bench_pattern_len = strlen(state.bench_pattern);
-            } else
-                state.bench_pattern = "";
+            state.bench = 1;
         } else if (!strncmp(argv[1], "--test=", 7)) {
             state.test_name = argv[1] + 7;
         } else if (!strncmp(argv[1], "--function=", 11)) {
@@ -621,7 +616,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef readtime
-    if (state.bench_pattern) {
+    if (state.bench) {
         static int testing = 0;
         checkasm_save_context();
         if (!testing) {
@@ -677,7 +672,7 @@ int main(int argc, char *argv[]) {
         } else {
             fprintf(stderr, "checkasm: all %d tests passed\n", state.num_checked);
 #ifdef readtime
-            if (state.bench_pattern) {
+            if (state.bench) {
                 state.nop_time = measure_nop_time();
                 printf("nop: %d.%d\n", state.nop_time/10, state.nop_time%10);
                 print_benchs(state.funcs);
@@ -746,9 +741,7 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
 
 /* Decide whether or not the current function needs to be benchmarked */
 int checkasm_bench_func(void) {
-    return !state.num_failed && state.bench_pattern &&
-           !strncmp(state.current_func->name, state.bench_pattern,
-                    state.bench_pattern_len);
+    return !state.num_failed && state.bench;
 }
 
 /* Indicate that the current test has failed, return whether verbose printing
