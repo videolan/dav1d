@@ -39,7 +39,7 @@
 #include "input/demuxer.h"
 #include "input/parse.h"
 
-#define PROBE_SIZE 1024
+#define PROBE_SIZE 2048
 
 static int section5_probe(const uint8_t *data) {
     int ret, cnt = 0;
@@ -77,7 +77,7 @@ static int section5_probe(const uint8_t *data) {
         }
     }
 
-    return 0;
+    return seq;
 }
 
 typedef struct DemuxerPriv {
