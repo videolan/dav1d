@@ -87,6 +87,7 @@ cdata.set10('CONFIG_LOG', get_option('logging'))
 test_args = []
 
 optional_arguments = []
+optional_link_arguments = []
 
 if host_machine.system() == 'linux'
     test_args += '-D_GNU_SOURCE'
@@ -110,6 +111,18 @@ if host_machine.system() == 'windows'
     else
         cdata.set('fseeko', '_fseeki64')
         cdata.set('ftello', '_ftelli64')
+    endif
+
+    if host_machine.cpu_family() == 'x86_64'
+        if cc.get_argument_syntax() != 'msvc'
+            optional_link_arguments += '-Wl,--dynamicbase,--nxcompat,--tsaware,--high-entropy-va'
+        endif
+    elif host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'arm'
+        if cc.get_argument_syntax() == 'msvc'
+            optional_link_arguments += '/largeaddressaware'
+        else
+            optional_link_arguments += '-Wl,--dynamicbase,--nxcompat,--tsaware,--large-address-aware'
+        endif
     endif
 
     # On Windows, we use a compatibility layer to emulate pthread
@@ -296,6 +309,7 @@ if (host_machine.system() == 'darwin' and cc.get_id() == 'clang' and
 endif
 
 add_project_arguments(cc.get_supported_arguments(optional_arguments), language : 'c')
+add_project_link_arguments(cc.get_supported_link_arguments(optional_link_arguments), language : 'c')
 
 # libFuzzer related things
 fuzzing_engine = get_option('fuzzing_engine')
