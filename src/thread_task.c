@@ -196,8 +196,8 @@ static int create_filter_sbrow(Dav1dFrameContext *const f,
             if (!prog) return -1;
             f->frame_thread.frame_progress = prog;
             f->frame_thread.copy_lpf_progress = prog + prog_sz;
-            f->frame_thread.prog_sz = prog_sz;
         }
+        f->frame_thread.prog_sz = prog_sz;
         memset(f->frame_thread.frame_progress, 0, prog_sz * sizeof(atomic_uint));
         memset(f->frame_thread.copy_lpf_progress, 0, prog_sz * sizeof(atomic_uint));
         atomic_store(&f->frame_thread.deblock_progress, 0);
