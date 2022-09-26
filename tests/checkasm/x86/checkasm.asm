@@ -55,6 +55,7 @@ n14: dq 0x249214109d5d1c88
 %endif
 
 errmsg_stack: db "stack corruption", 0
+errmsg_register: db "failed to preserve register:%s", 0
 errmsg_vzeroupper: db "missing vzeroupper", 0
 
 SECTION .bss
@@ -246,27 +247,32 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     %assign i i+1
 %endrep
     xor            r3, [stack_param+(r0+7)*8]
-    lea            r0, [errmsg_stack]
     or             r4, r3
-    jnz .save_retval_and_fail
+    jz .stack_ok
+    ; Save the return value located in rdx:rax first to prevent clobbering.
+    mov           r10, rax
+    mov           r11, rdx
+    lea            r0, [errmsg_stack]
+    jmp .fail
+.stack_ok:
 
     ; check for failure to preserve registers
 %assign i 14
 %rep 15-free_regs
-    cmp        r %+ i, [r0-errmsg_stack+n %+ i]
+    cmp        r %+ i, [n %+ i]
     setne         r4b
     lea           r3d, [r4+r3*2]
     %assign i i-1
 %endrep
 %if WIN64
-    lea            r0, [rsp+60] ; account for shadow space
+    lea            r0, [rsp+32] ; account for shadow space
     mov            r5, r0
     test          r3d, r3d
     jz .gpr_ok
 %else
     test          r3d, r3d
     jz .gpr_xmm_ok
-    lea            r0, [rsp+28]
+    mov            r0, rsp
 %endif
 %assign i free_regs
 %rep 15-free_regs
@@ -323,22 +329,15 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     cmp            r0, r5
     je .gpr_xmm_ok
     mov     byte [r0], 0
-    lea            r0, [r5-28]
+    mov           r11, rdx
+    mov            r1, r5
 %else
     mov     byte [r0], 0
-    mov            r0, rsp
-%endif
-    mov dword [r0+ 0], "fail"
-    mov dword [r0+ 4], "ed t"
-    mov dword [r0+ 8], "o pr"
-    mov dword [r0+12], "eser"
-    mov dword [r0+16], "ve r"
-    mov dword [r0+20], "egis"
-    mov dword [r0+24], "ter:"
-.save_retval_and_fail:
-    ; Save the return value located in rdx:rax first to prevent clobbering.
-    mov           r10, rax
     mov           r11, rdx
+    mov            r1, rsp
+%endif
+    mov           r10, rax
+    lea            r0, [errmsg_register]
     jmp .fail
 .gpr_xmm_ok:
     ; Check for dirty YMM state, i.e. missing vzeroupper
@@ -419,25 +418,19 @@ cglobal checked_call, 1, 7
     test           r3, r3
     jz .gpr_ok
     lea            r1, [esp+16]
-    mov dword [r1+ 0], "fail"
-    mov dword [r1+ 4], "ed t"
-    mov dword [r1+ 8], "o pr"
-    mov dword [r1+12], "eser"
-    mov dword [r1+16], "ve r"
-    mov dword [r1+20], "egis"
-    mov dword [r1+24], "ter:"
-    lea            r4, [r1+28]
+    mov       [esp+4], r1
 %assign i 3
 %rep 4
-    mov dword    [r4], " r0" + (i << 16)
-    lea            r5, [r4+3]
+    mov    dword [r1], " r0" + (i << 16)
+    lea            r4, [r1+3]
     test           r3, 1 << ((6 - i) * 8)
-    cmovnz         r4, r5
+    cmovnz         r1, r4
     %assign i i+1
 %endrep
-    mov     byte [r4], 0
+    mov     byte [r1], 0
     mov            r5, eax
     mov            r6, edx
+    LEA            r1, errmsg_register
     jmp .fail
 .gpr_ok:
     ; check for stack corruption
