@@ -151,56 +151,44 @@ cglobal init_x86, 0, 5
     RET
 
 %if ARCH_X86_64
-;-----------------------------------------------------------------------------
-; int checkasm_stack_clobber(uint64_t clobber, ...)
-;-----------------------------------------------------------------------------
-cglobal stack_clobber, 1, 2
-    ; Clobber the stack with junk below the stack pointer
-    %define argsize (max_args+6)*8
-    SUB  rsp, argsize
-    mov   r1, argsize-8
-.loop:
-    mov [rsp+r1], r0
-    sub   r1, 8
-    jge .loop
-    ADD  rsp, argsize
-    RET
-
 %if WIN64
-    %assign free_regs 7
     %define stack_param rsp+32 ; shadow space
-    %define num_stack_params rsp+stack_offset+22*8
+    %define num_fn_args rsp+stack_offset+17*8
+    %assign num_reg_args 4
+    %assign free_regs 7
+    %assign clobber_mask_stack_bit 16
     DECLARE_REG_TMP 4
 %else
-    %assign free_regs 9
     %define stack_param rsp
-    %define num_stack_params rsp+stack_offset+16*8
+    %define num_fn_args rsp+stack_offset+11*8
+    %assign num_reg_args 6
+    %assign free_regs 9
+    %assign clobber_mask_stack_bit 64
     DECLARE_REG_TMP 7
 %endif
 
-;-----------------------------------------------------------------------------
-; void checkasm_checked_call(void *func, ...)
-;-----------------------------------------------------------------------------
+%macro CLOBBER_UPPER 2 ; reg, mask_bit
+    mov          r13d, %1d
+    or            r13, r8
+    test          r9b, %2
+    cmovnz         %1, r13
+%endmacro
+
 cglobal checked_call, 2, 15, 16, max_args*8+64+8
-    mov            t0, r0
+    mov          r10d, [num_fn_args]
+    mov            r8, 0xdeadbeef00000000
+    mov           r9d, [num_fn_args+r10*8+8] ; clobber_mask
+    mov            t0, [num_fn_args+r10*8]   ; func
 
-    ; All arguments have been pushed on the stack instead of registers in
-    ; order to test for incorrect assumptions that 32-bit ints are
-    ; zero-extended to 64-bit.
-    mov            r0, r6mp
-    mov            r1, r7mp
-    mov            r2, r8mp
-    mov            r3, r9mp
+    ; Clobber the upper halves of 32-bit parameters
+    CLOBBER_UPPER  r0, 1
+    CLOBBER_UPPER  r1, 2
+    CLOBBER_UPPER  r2, 4
+    CLOBBER_UPPER  r3, 8
 %if UNIX64
-    mov            r4, r10mp
-    mov            r5, r11mp
+    CLOBBER_UPPER  r4, 16
+    CLOBBER_UPPER  r5, 32
 %else ; WIN64
-    ; Move possible floating-point arguments to the correct registers
-    movq           m0, r0
-    movq           m1, r1
-    movq           m2, r2
-    movq           m3, r3
-
 %assign i 6
 %rep 16-6
     mova       m %+ i, [x %+ i]
@@ -208,22 +196,29 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
 %endrep
 %endif
 
+    xor          r11d, r11d
+    sub          r10d, num_reg_args
+    cmovs        r10d, r11d ; num stack args
+
     ; write stack canaries to the area above parameters passed on the stack
-    mov           r9d, [num_stack_params]
-    mov            r8, [rsp+stack_offset] ; return address
-    not            r8
+    mov           r12, [rsp+stack_offset] ; return address
+    not           r12
 %assign i 0
 %rep 8 ; 64 bytes
-    mov [stack_param+(r9+i)*8], r8
+    mov [stack_param+(r10+i)*8], r12
     %assign i i+1
 %endrep
-    dec           r9d
-    jl .stack_setup_done ; no stack parameters
+
+    test         r10d, r10d
+    jz .stack_setup_done ; no stack parameters
 .copy_stack_parameter:
-    mov            r8, [stack_param+stack_offset+7*8+r9*8]
-    mov [stack_param+r9*8], r8
-    dec           r9d
-    jge .copy_stack_parameter
+    mov           r12, [stack_param+stack_offset+8+r11*8]
+    CLOBBER_UPPER r12, clobber_mask_stack_bit
+    shr           r9d, 1
+    mov [stack_param+r11*8], r12
+    inc          r11d
+    cmp          r11d, r10d
+    jl .copy_stack_parameter
 .stack_setup_done:
 
 %assign i 14
@@ -234,7 +229,11 @@ cglobal checked_call, 2, 15, 16, max_args*8+64+8
     call           t0
 
     ; check for stack corruption
-    mov           r0d, [num_stack_params]
+    mov           r0d, [num_fn_args]
+    xor           r3d, r3d
+    sub           r0d, num_reg_args
+    cmovs         r0d, r3d ; num stack args
+
     mov            r3, [rsp+stack_offset]
     mov            r4, [stack_param+r0*8]
     not            r3

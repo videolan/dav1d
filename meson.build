@@ -261,6 +261,10 @@ if cc.has_function('pthread_getaffinity_np', prefix : pthread_np_prefix, args : 
     cdata.set('HAVE_PTHREAD_GETAFFINITY_NP', 1)
 endif
 
+if cc.compiles('int x = _Generic(0, default: 0);', name: '_Generic', args: test_args)
+    cdata.set('HAVE_C11_GENERIC', 1)
+endif
+
 # Compiler flag tests
 
 if cc.has_argument('-fvisibility=hidden')
