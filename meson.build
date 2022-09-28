@@ -63,7 +63,7 @@ endforeach
 # ASM option
 is_asm_enabled = (get_option('enable_asm') == true and
     (host_machine.cpu_family() == 'x86' or
-     (host_machine.cpu_family() == 'x86_64' and cc.get_define('__ILP32__') == '') or
+     (host_machine.cpu_family() == 'x86_64' and cc.get_define('__ILP32__').strip() == '') or
      host_machine.cpu_family() == 'aarch64'      or
      host_machine.cpu_family().startswith('arm') or
      host_machine.cpu() == 'ppc64le'))
@@ -409,7 +409,7 @@ if host_machine.cpu_family().startswith('x86')
     cdata_asm.set10('PIC', true)
 
     # Convert SSE asm into (128-bit) AVX when compiler flags are set to use AVX instructions
-    cdata_asm.set10('FORCE_VEX_ENCODING', cc.get_define('__AVX__') != '')
+    cdata_asm.set10('FORCE_VEX_ENCODING', cc.get_define('__AVX__').strip() != '')
 endif
 
 cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
