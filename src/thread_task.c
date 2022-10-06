@@ -49,9 +49,13 @@ static inline int reset_task_cur(const Dav1dContext *const c,
                                  unsigned frame_idx)
 {
     const unsigned first = atomic_load(&ttd->first);
+    unsigned reset_frame_idx = atomic_exchange(&ttd->reset_task_cur, UINT_MAX);
+    if (reset_frame_idx < first) {
+        if (frame_idx == UINT_MAX) return 0;
+        reset_frame_idx = UINT_MAX;
+    }
     if (!ttd->cur && c->fc[first].task_thread.task_cur_prev == NULL)
         return 0;
-    unsigned reset_frame_idx = atomic_exchange(&ttd->reset_task_cur, UINT_MAX);
     if (reset_frame_idx != UINT_MAX) {
         if (frame_idx == UINT_MAX) {
             if (reset_frame_idx > first + ttd->cur)
@@ -78,12 +82,17 @@ cur_found:
 static inline void reset_task_cur_async(struct TaskThreadData *const ttd,
                                         unsigned frame_idx, unsigned n_frames)
 {
-    if (frame_idx < (unsigned)atomic_load(&ttd->first)) frame_idx += n_frames;
+    const unsigned first = atomic_load(&ttd->first);
+    if (frame_idx < first) frame_idx += n_frames;
     unsigned last_idx = frame_idx;
     do {
         frame_idx = last_idx;
         last_idx = atomic_exchange(&ttd->reset_task_cur, frame_idx);
     } while (last_idx < frame_idx);
+    if (frame_idx == first && atomic_load(&ttd->first) != first) {
+        unsigned expected = frame_idx;
+        atomic_compare_exchange_strong(&ttd->reset_task_cur, &expected, UINT_MAX);
+    }
 }
 
 static void insert_tasks_between(Dav1dFrameContext *const f,
