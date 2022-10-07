@@ -92,7 +92,7 @@ optional_link_arguments = []
 if host_machine.system() == 'linux'
     test_args += '-D_GNU_SOURCE'
     add_project_arguments('-D_GNU_SOURCE', language: 'c')
-elif host_machine.system() == 'darwin'
+elif host_machine.system() in ['darwin', 'ios', 'tvos']
     test_args += '-D_DARWIN_C_SOURCE'
     add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
 else
@@ -148,7 +148,7 @@ else
     rt_dependency = []
     if cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
         cdata.set('HAVE_CLOCK_GETTIME', 1)
-    elif host_machine.system() != 'darwin'
+    elif host_machine.system() not in ['darwin', 'ios', 'tvos']
         rt_dependency = cc.find_library('rt', required: false)
         if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
             error('clock_gettime not found')
@@ -306,7 +306,7 @@ if (get_option('buildtype') != 'debug' and get_option('buildtype') != 'plain')
     optional_arguments += '-ffast-math'
 endif
 
-if (host_machine.system() == 'darwin' and cc.get_id() == 'clang' and
+if (host_machine.system() in ['darwin', 'ios', 'tvos'] and cc.get_id() == 'clang' and
     cc.version().startswith('11'))
     # Workaround for Xcode 11 -fstack-check bug, see #301
     optional_arguments += '-fno-stack-check'
@@ -348,7 +348,7 @@ if host_machine.cpu_family().startswith('x86')
             stack_alignment = 16
         endif
     else
-        if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
+        if host_machine.system() == 'linux' or host_machine.system() in ['darwin', 'ios', 'tvos']
             stack_alignment = 16
         elif cc.has_argument('-mpreferred-stack-boundary=4')
             stackalign_flag = ['-mpreferred-stack-boundary=4']
@@ -417,7 +417,7 @@ cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
 # meson's cc.symbols_have_underscore_prefix() is unfortunately unrelieably
 # when additional flags like '-fprofile-instr-generate' are passed via CFLAGS
 # see following meson issue https://github.com/mesonbuild/meson/issues/5482
-if (host_machine.system() == 'darwin' or
+if (host_machine.system() in ['darwin', 'ios', 'tvos'] or
    (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86'))
     cdata.set10('PREFIX', true)
     cdata_asm.set10('PREFIX', true)
@@ -451,7 +451,7 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     if host_machine.system() == 'windows'
         nasm_format = 'win'
-    elif host_machine.system() == 'darwin'
+    elif host_machine.system() in ['darwin', 'ios', 'tvos']
         nasm_format = 'macho'
     else
         nasm_format = 'elf'
