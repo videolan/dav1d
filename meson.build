@@ -67,6 +67,7 @@ is_asm_enabled = (get_option('enable_asm') == true and
      host_machine.cpu_family() == 'aarch64'      or
      host_machine.cpu_family().startswith('arm') or
      host_machine.cpu() == 'ppc64le' or
+     host_machine.cpu_family().startswith('riscv') or
      host_machine.cpu_family().startswith('loongarch')))
 cdata.set10('HAVE_ASM', is_asm_enabled)
 
@@ -234,6 +235,7 @@ endif
 if (host_machine.cpu_family() == 'aarch64' or
     host_machine.cpu_family().startswith('arm') or
     host_machine.cpu() == 'ppc64le' or
+    host_machine.cpu_family().startswith('riscv') or
     host_machine.cpu_family().startswith('loongarch'))
     if cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
         cdata.set('HAVE_GETAUXVAL', 1)
@@ -380,6 +382,10 @@ if host_machine.cpu_family().startswith('x86')
 endif
 
 cdata.set10('ARCH_PPC64LE', host_machine.cpu() == 'ppc64le')
+
+cdata.set10('ARCH_RISCV', host_machine.cpu_family().startswith('riscv'))
+cdata.set10('ARCH_RV32', host_machine.cpu_family() == 'riscv32')
+cdata.set10('ARCH_RV64', host_machine.cpu_family() == 'riscv64')
 
 cdata.set10('ARCH_LOONGARCH', host_machine.cpu_family().startswith('loongarch'))
 cdata.set10('ARCH_LOONGARCH32', host_machine.cpu_family() == 'loongarch32')

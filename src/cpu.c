@@ -60,6 +60,8 @@ COLD void dav1d_init_cpu(void) {
     dav1d_cpu_flags = dav1d_get_cpu_flags_loongarch();
 #elif ARCH_PPC64LE
     dav1d_cpu_flags = dav1d_get_cpu_flags_ppc();
+#elif ARCH_RISCV
+    dav1d_cpu_flags = dav1d_get_cpu_flags_riscv();
 #elif ARCH_X86
     dav1d_cpu_flags = dav1d_get_cpu_flags_x86();
 #endif
