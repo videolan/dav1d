@@ -89,15 +89,12 @@ test_args = []
 optional_arguments = []
 optional_link_arguments = []
 
-if host_machine.system() == 'linux'
+if host_machine.system() in ['linux', 'gnu']
     test_args += '-D_GNU_SOURCE'
     add_project_arguments('-D_GNU_SOURCE', language: 'c')
 elif host_machine.system() in ['darwin', 'ios', 'tvos']
     test_args += '-D_DARWIN_C_SOURCE'
     add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
-else
-    test_args += '-D_POSIX_C_SOURCE=200112L'
-    add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
 endif
 
 if host_machine.system() == 'windows'
