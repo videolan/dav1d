@@ -456,7 +456,7 @@ void dav1d_cdef_filter_##w##x##h##_vsx(pixel *const dst, \
                                        const int damping, \
                                        const enum CdefEdgeFlags edges) \
 { \
-    ALIGN_STK_16(uint16_t, tmp_buf, 12 * tmp_stride,); \
+    ALIGN_STK_16(uint16_t, tmp_buf, 12 * tmp_stride + 8,); \
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 2; \
     filter_##w##xN(dst, dst_stride, left, top, bottom, w, h, pri_strength, \
                    sec_strength, dir, damping, edges, tmp_stride, tmp); \
