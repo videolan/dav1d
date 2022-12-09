@@ -53,6 +53,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     const unsigned init_bit_pos = dav1d_get_bits_pos(gb);
 #endif
 
+    memset(hdr, 0, sizeof(*hdr));
     hdr->profile = dav1d_get_bits(gb, 3);
     if (hdr->profile > 2) goto error;
 #if DEBUG_SEQ_HDR
@@ -69,16 +70,9 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
 #endif
 
     if (hdr->reduced_still_picture_header) {
-        hdr->timing_info_present = 0;
-        hdr->decoder_model_info_present = 0;
-        hdr->display_model_info_present = 0;
         hdr->num_operating_points = 1;
-        hdr->operating_points[0].idc = 0;
         hdr->operating_points[0].major_level = dav1d_get_bits(gb, 3);
         hdr->operating_points[0].minor_level = dav1d_get_bits(gb, 2);
-        hdr->operating_points[0].tier = 0;
-        hdr->operating_points[0].decoder_model_param_present = 0;
-        hdr->operating_points[0].display_model_param_present = 0;
         hdr->operating_points[0].initial_display_delay = 10;
     } else {
         hdr->timing_info_present = dav1d_get_bits(gb, 1);
@@ -100,8 +94,6 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                 hdr->buffer_removal_delay_length = dav1d_get_bits(gb, 5) + 1;
                 hdr->frame_presentation_delay_length = dav1d_get_bits(gb, 5) + 1;
             }
-        } else {
-            hdr->decoder_model_info_present = 0;
         }
 #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-timinginfo: off=%u\n",
@@ -118,23 +110,24 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                 goto error;
             op->major_level = 2 + dav1d_get_bits(gb, 3);
             op->minor_level = dav1d_get_bits(gb, 2);
-            op->tier = op->major_level > 3 ? dav1d_get_bits(gb, 1) : 0;
-            op->decoder_model_param_present =
-                hdr->decoder_model_info_present && dav1d_get_bits(gb, 1);
-            if (op->decoder_model_param_present) {
-                struct Dav1dSequenceHeaderOperatingParameterInfo *const opi =
-                    &hdr->operating_parameter_info[i];
-                opi->decoder_buffer_delay =
-                    dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
-                opi->encoder_buffer_delay =
-                    dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
-                opi->low_delay_mode = dav1d_get_bits(gb, 1);
+            if (op->major_level > 3)
+                op->tier = dav1d_get_bits(gb, 1);
+            if (hdr->decoder_model_info_present) {
+                op->decoder_model_param_present = dav1d_get_bits(gb, 1);
+                if (op->decoder_model_param_present) {
+                    struct Dav1dSequenceHeaderOperatingParameterInfo *const opi =
+                        &hdr->operating_parameter_info[i];
+                    opi->decoder_buffer_delay =
+                        dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
+                    opi->encoder_buffer_delay =
+                        dav1d_get_bits(gb, hdr->encoder_decoder_buffer_delay_length);
+                    opi->low_delay_mode = dav1d_get_bits(gb, 1);
+                }
             }
-            op->display_model_param_present =
-                hdr->display_model_info_present && dav1d_get_bits(gb, 1);
+            if (hdr->display_model_info_present)
+                op->display_model_param_present = dav1d_get_bits(gb, 1);
             op->initial_display_delay =
                 op->display_model_param_present ? dav1d_get_bits(gb, 4) + 1 : 10;
-
         }
 #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-operating-points: off=%u\n",
@@ -156,11 +149,12 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     printf("SEQHDR: post-size: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
 #endif
-    hdr->frame_id_numbers_present =
-        hdr->reduced_still_picture_header ? 0 : dav1d_get_bits(gb, 1);
-    if (hdr->frame_id_numbers_present) {
-        hdr->delta_frame_id_n_bits = dav1d_get_bits(gb, 4) + 2;
-        hdr->frame_id_n_bits = dav1d_get_bits(gb, 3) + hdr->delta_frame_id_n_bits + 1;
+    if (!hdr->reduced_still_picture_header) {
+        hdr->frame_id_numbers_present = dav1d_get_bits(gb, 1);
+        if (hdr->frame_id_numbers_present) {
+            hdr->delta_frame_id_n_bits = dav1d_get_bits(gb, 4) + 2;
+            hdr->frame_id_n_bits = dav1d_get_bits(gb, 3) + hdr->delta_frame_id_n_bits + 1;
+        }
     }
 #if DEBUG_SEQ_HDR
     printf("SEQHDR: post-frame-id-numbers-present: off=%u\n",
@@ -171,14 +165,6 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     hdr->filter_intra = dav1d_get_bits(gb, 1);
     hdr->intra_edge_filter = dav1d_get_bits(gb, 1);
     if (hdr->reduced_still_picture_header) {
-        hdr->inter_intra = 0;
-        hdr->masked_compound = 0;
-        hdr->warped_motion = 0;
-        hdr->dual_filter = 0;
-        hdr->order_hint = 0;
-        hdr->jnt_comp = 0;
-        hdr->ref_frame_mvs = 0;
-        hdr->order_hint_n_bits = 0;
         hdr->screen_content_tools = DAV1D_ADAPTIVE;
         hdr->force_integer_mv = DAV1D_ADAPTIVE;
     } else {
@@ -190,10 +176,6 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         if (hdr->order_hint) {
             hdr->jnt_comp = dav1d_get_bits(gb, 1);
             hdr->ref_frame_mvs = dav1d_get_bits(gb, 1);
-        } else {
-            hdr->jnt_comp = 0;
-            hdr->ref_frame_mvs = 0;
-            hdr->order_hint_n_bits = 0;
         }
         hdr->screen_content_tools = dav1d_get_bits(gb, 1) ? DAV1D_ADAPTIVE : dav1d_get_bits(gb, 1);
     #if DEBUG_SEQ_HDR
@@ -215,7 +197,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
 
     hdr->hbd = dav1d_get_bits(gb, 1);
     if (hdr->profile == 2 && hdr->hbd) hdr->hbd += dav1d_get_bits(gb, 1);
-    hdr->monochrome = hdr->profile != 1 ? dav1d_get_bits(gb, 1) : 0;
+    if (hdr->profile != 1)
+        hdr->monochrome = dav1d_get_bits(gb, 1);
     hdr->color_description_present = dav1d_get_bits(gb, 1);
     if (hdr->color_description_present) {
         hdr->pri = dav1d_get_bits(gb, 8);
@@ -231,13 +214,11 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->layout = DAV1D_PIXEL_LAYOUT_I400;
         hdr->ss_hor = hdr->ss_ver = 1;
         hdr->chr = DAV1D_CHR_UNKNOWN;
-        hdr->separate_uv_delta_q = 0;
     } else if (hdr->pri == DAV1D_COLOR_PRI_BT709 &&
                hdr->trc == DAV1D_TRC_SRGB &&
                hdr->mtrx == DAV1D_MC_IDENTITY)
     {
         hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
-        hdr->ss_hor = hdr->ss_ver = 0;
         hdr->color_range = 1;
         if (hdr->profile != 1 && !(hdr->profile == 2 && hdr->hbd == 2))
             goto error;
@@ -248,23 +229,21 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
                 hdr->ss_hor = hdr->ss_ver = 1;
                 break;
         case 1: hdr->layout = DAV1D_PIXEL_LAYOUT_I444;
-                hdr->ss_hor = hdr->ss_ver = 0;
                 break;
         case 2:
             if (hdr->hbd == 2) {
                 hdr->ss_hor = dav1d_get_bits(gb, 1);
-                hdr->ss_ver = hdr->ss_hor && dav1d_get_bits(gb, 1);
-            } else {
+                if (hdr->ss_hor)
+                    hdr->ss_ver = dav1d_get_bits(gb, 1);
+            } else
                 hdr->ss_hor = 1;
-                hdr->ss_ver = 0;
-            }
             hdr->layout = hdr->ss_hor ?
                           hdr->ss_ver ? DAV1D_PIXEL_LAYOUT_I420 :
                                         DAV1D_PIXEL_LAYOUT_I422 :
                                         DAV1D_PIXEL_LAYOUT_I444;
             break;
         }
-        hdr->chr = hdr->ss_hor == 1 && hdr->ss_ver == 1 ?
+        hdr->chr = (hdr->ss_hor & hdr->ss_ver) ?
                    dav1d_get_bits(gb, 2) : DAV1D_CHR_UNKNOWN;
     }
     if (c->strict_std_compliance &&
@@ -272,7 +251,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
     {
         goto error;
     }
-    hdr->separate_uv_delta_q = !hdr->monochrome && dav1d_get_bits(gb, 1);
+    if (!hdr->monochrome)
+        hdr->separate_uv_delta_q = dav1d_get_bits(gb, 1);
 #if DEBUG_SEQ_HDR
     printf("SEQHDR: post-colorinfo: off=%u\n",
            dav1d_get_bits_pos(gb) - init_bit_pos);
@@ -1252,7 +1232,6 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                                                     sizeof(Dav1dSequenceHeader));
         if (!ref) return DAV1D_ERR(ENOMEM);
         Dav1dSequenceHeader *seq_hdr = ref->data;
-        memset(seq_hdr, 0, sizeof(*seq_hdr));
         if ((res = parse_seq_hdr(c, &gb, seq_hdr)) < 0) {
             dav1d_ref_dec(&ref);
             goto error;
