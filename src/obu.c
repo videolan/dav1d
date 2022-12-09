@@ -79,6 +79,7 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         hdr->operating_points[0].tier = 0;
         hdr->operating_points[0].decoder_model_param_present = 0;
         hdr->operating_points[0].display_model_param_present = 0;
+        hdr->operating_points[0].initial_display_delay = 10;
     } else {
         hdr->timing_info_present = dav1d_get_bits(gb, 1);
         if (hdr->timing_info_present) {
@@ -131,9 +132,9 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             }
             op->display_model_param_present =
                 hdr->display_model_info_present && dav1d_get_bits(gb, 1);
-            if (op->display_model_param_present) {
-                op->initial_display_delay = dav1d_get_bits(gb, 4) + 1;
-            }
+            op->initial_display_delay =
+                op->display_model_param_present ? dav1d_get_bits(gb, 4) + 1 : 10;
+
         }
 #if DEBUG_SEQ_HDR
         printf("SEQHDR: post-operating-points: off=%u\n",
