@@ -654,17 +654,17 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
 
     // quant data
     hdr->quant.yac = dav1d_get_bits(gb, 8);
-    hdr->quant.ydc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 6) : 0;
+    hdr->quant.ydc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 7) : 0;
     if (!seqhdr->monochrome) {
         // If the sequence header says that delta_q might be different
         // for U, V, we must check whether it actually is for this
         // frame.
         const int diff_uv_delta = seqhdr->separate_uv_delta_q ? dav1d_get_bit(gb) : 0;
-        hdr->quant.udc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 6) : 0;
-        hdr->quant.uac_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 6) : 0;
+        hdr->quant.udc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 7) : 0;
+        hdr->quant.uac_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 7) : 0;
         if (diff_uv_delta) {
-            hdr->quant.vdc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 6) : 0;
-            hdr->quant.vac_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 6) : 0;
+            hdr->quant.vdc_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 7) : 0;
+            hdr->quant.vac_delta = dav1d_get_bit(gb) ? dav1d_get_sbits(gb, 7) : 0;
         } else {
             hdr->quant.vdc_delta = hdr->quant.udc_delta;
             hdr->quant.vac_delta = hdr->quant.uac_delta;
@@ -708,31 +708,31 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 Dav1dSegmentationData *const seg =
                     &hdr->segmentation.seg_data.d[i];
                 if (dav1d_get_bit(gb)) {
-                    seg->delta_q = dav1d_get_sbits(gb, 8);
+                    seg->delta_q = dav1d_get_sbits(gb, 9);
                     hdr->segmentation.seg_data.last_active_segid = i;
                 } else {
                     seg->delta_q = 0;
                 }
                 if (dav1d_get_bit(gb)) {
-                    seg->delta_lf_y_v = dav1d_get_sbits(gb, 6);
+                    seg->delta_lf_y_v = dav1d_get_sbits(gb, 7);
                     hdr->segmentation.seg_data.last_active_segid = i;
                 } else {
                     seg->delta_lf_y_v = 0;
                 }
                 if (dav1d_get_bit(gb)) {
-                    seg->delta_lf_y_h = dav1d_get_sbits(gb, 6);
+                    seg->delta_lf_y_h = dav1d_get_sbits(gb, 7);
                     hdr->segmentation.seg_data.last_active_segid = i;
                 } else {
                     seg->delta_lf_y_h = 0;
                 }
                 if (dav1d_get_bit(gb)) {
-                    seg->delta_lf_u = dav1d_get_sbits(gb, 6);
+                    seg->delta_lf_u = dav1d_get_sbits(gb, 7);
                     hdr->segmentation.seg_data.last_active_segid = i;
                 } else {
                     seg->delta_lf_u = 0;
                 }
                 if (dav1d_get_bit(gb)) {
-                    seg->delta_lf_v = dav1d_get_sbits(gb, 6);
+                    seg->delta_lf_v = dav1d_get_sbits(gb, 7);
                     hdr->segmentation.seg_data.last_active_segid = i;
                 } else {
                     seg->delta_lf_v = 0;
@@ -831,11 +831,11 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 for (int i = 0; i < 8; i++)
                     if (dav1d_get_bit(gb))
                         hdr->loopfilter.mode_ref_deltas.ref_delta[i] =
-                            dav1d_get_sbits(gb, 6);
+                            dav1d_get_sbits(gb, 7);
                 for (int i = 0; i < 2; i++)
                     if (dav1d_get_bit(gb))
                         hdr->loopfilter.mode_ref_deltas.mode_delta[i] =
-                            dav1d_get_sbits(gb, 6);
+                            dav1d_get_sbits(gb, 7);
             }
         }
     }

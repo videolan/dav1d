@@ -66,40 +66,36 @@ unsigned dav1d_get_bit(GetBits *const c) {
     return (unsigned) (state >> 63);
 }
 
-static void refill(GetBits *const c, const unsigned n) {
+static inline void refill(GetBits *const c, const unsigned n) {
     assert(c->bits_left <= 56);
-    uint64_t state = 0;
+    unsigned state = 0;
     do {
         state <<= 8;
         c->bits_left += 8;
-        if (!c->eof)
-            state |= *c->ptr++;
-        if (c->ptr >= c->ptr_end) {
+        if (c->eof) {
             c->error = c->eof;
-            c->eof = 1;
+            break;
         }
+        state |= *c->ptr++;
+        if (c->ptr >= c->ptr_end)
+            c->eof = 1;
     } while (n > c->bits_left);
-    c->state |= state << (64 - c->bits_left);
+    c->state |= (uint64_t) state << (64 - c->bits_left);
 }
 
-unsigned dav1d_get_bits(GetBits *const c, const unsigned n) {
-    assert(n <= 32 /* can go up to 57 if we change return type */);
-    assert(n /* can't shift state by 64 */);
-
-    if (n > c->bits_left) refill(c, n);
-
-    const uint64_t state = c->state;
-    c->bits_left -= n;
-    c->state <<= n;
-
-    return (unsigned) (state >> (64 - n));
+#define GET_BITS(name, type, type64)            \
+type name(GetBits *const c, const unsigned n) { \
+    assert(n > 0 && n <= 32);                   \
+    if (n > c->bits_left)                       \
+        refill(c, n);                           \
+    const uint64_t state = c->state;            \
+    c->bits_left -= n;                          \
+    c->state = state << n;                      \
+    return (type) ((type64) state >> (64 - n)); \
 }
 
-int dav1d_get_sbits(GetBits *const c, const unsigned n) {
-    const int shift = 31 - n;
-    const int res = dav1d_get_bits(c, n + 1) << shift;
-    return res >> shift;
-}
+GET_BITS(dav1d_get_bits,  unsigned, uint64_t)
+GET_BITS(dav1d_get_sbits, int,      int64_t)
 
 unsigned dav1d_get_uleb128(GetBits *const c) {
     uint64_t val = 0;
@@ -132,11 +128,16 @@ unsigned dav1d_get_uniform(GetBits *const c, const unsigned max) {
 }
 
 unsigned dav1d_get_vlc(GetBits *const c) {
+    if (dav1d_get_bit(c))
+        return 0;
+
     int n_bits = 0;
-    while (!dav1d_get_bit(c))
+    do {
         if (++n_bits == 32)
             return 0xFFFFFFFFU;
-    return n_bits ? ((1U << n_bits) - 1) + dav1d_get_bits(c, n_bits) : 0;
+    } while (!dav1d_get_bit(c));
+
+    return ((1U << n_bits) - 1) + dav1d_get_bits(c, n_bits);
 }
 
 static unsigned get_bits_subexp_u(GetBits *const c, const unsigned ref,
