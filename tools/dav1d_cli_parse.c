@@ -233,7 +233,6 @@ static const EnumParseTable inloop_filters_tbl[] = {
     { "restoration",   DAV1D_INLOOPFILTER_RESTORATION },
     { "norestoration", DAV1D_INLOOPFILTER_ALL - DAV1D_INLOOPFILTER_RESTORATION },
     { "all",           DAV1D_INLOOPFILTER_ALL },
-    { 0 },
 };
 
 #define ARRAY_SIZE(n) (sizeof(n)/sizeof(*(n)))
