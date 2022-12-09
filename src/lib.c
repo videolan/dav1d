@@ -77,6 +77,7 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->strict_std_compliance = 0;
     s->output_invisible_frames = 0;
     s->inloop_filters = DAV1D_INLOOPFILTER_ALL;
+    s->decode_frame_type = DAV1D_DECODEFRAMETYPE_ALL;
 }
 
 static void close_internal(Dav1dContext **const c_out, int flush);
@@ -144,6 +145,8 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
                           DAV1D_ERR(EINVAL));
     validate_input_or_ret(s->operating_point >= 0 &&
                           s->operating_point <= 31, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(s->decode_frame_type >= DAV1D_DECODEFRAMETYPE_ALL &&
+                          s->decode_frame_type <= DAV1D_DECODEFRAMETYPE_KEY, DAV1D_ERR(EINVAL));
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
@@ -164,6 +167,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     c->strict_std_compliance = s->strict_std_compliance;
     c->output_invisible_frames = s->output_invisible_frames;
     c->inloop_filters = s->inloop_filters;
+    c->decode_frame_type = s->decode_frame_type;
 
     dav1d_data_props_set_defaults(&c->cached_error_props);
 

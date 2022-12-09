@@ -289,9 +289,9 @@ static int read_frame_size(Dav1dContext *const c, GetBits *const gb,
             if (dav1d_get_bit(gb)) {
                 const Dav1dThreadPicture *const ref =
                     &c->refs[c->frame_hdr->refidx[i]].p;
-                if (!ref->p.data[0]) return -1;
-                hdr->width[1] = ref->p.p.w;
-                hdr->height = ref->p.p.h;
+                if (!ref->p.frame_hdr) return -1;
+                hdr->width[1] = ref->p.frame_hdr->width[1];
+                hdr->height = ref->p.frame_hdr->height;
                 hdr->render_width = ref->p.frame_hdr->render_width;
                 hdr->render_height = ref->p.frame_hdr->render_height;
                 hdr->super_res.enabled = seqhdr->super_res && dav1d_get_bit(gb);
@@ -923,7 +923,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         int off_after = -1;
         int off_before_idx, off_after_idx;
         for (int i = 0; i < 7; i++) {
-            if (!c->refs[hdr->refidx[i]].p.p.data[0]) goto error;
+            if (!c->refs[hdr->refidx[i]].p.p.frame_hdr) goto error;
             const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.frame_hdr->frame_offset;
 
             const int diff = get_poc_diff(seqhdr->order_hint_n_bits, refpoc, poc);
@@ -951,7 +951,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             unsigned off_before2 = 0xFFFFFFFFU;
             int off_before2_idx;
             for (int i = 0; i < 7; i++) {
-                if (!c->refs[hdr->refidx[i]].p.p.data[0]) goto error;
+                if (!c->refs[hdr->refidx[i]].p.p.frame_hdr) goto error;
                 const unsigned refpoc = c->refs[hdr->refidx[i]].p.p.frame_hdr->frame_offset;
                 if (get_poc_diff(seqhdr->order_hint_n_bits,
                                  refpoc, off_before) < 0) {
@@ -1537,6 +1537,20 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
 
     if (c->seq_hdr && c->frame_hdr) {
         if (c->frame_hdr->show_existing_frame) {
+            if (!c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr) goto error;
+            switch (c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->frame_type) {
+            case DAV1D_FRAME_TYPE_INTER:
+            case DAV1D_FRAME_TYPE_SWITCH:
+                if (c->decode_frame_type > DAV1D_DECODEFRAMETYPE_REFERENCE)
+                    goto skip;
+                break;
+            case DAV1D_FRAME_TYPE_INTRA:
+                if (c->decode_frame_type > DAV1D_DECODEFRAMETYPE_INTRA)
+                    goto skip;
+                // fall-through
+            default:
+                break;
+            }
             if (!c->refs[c->frame_hdr->existing_frame_idx].p.p.data[0]) goto error;
             if (c->strict_std_compliance &&
                 !c->refs[c->frame_hdr->existing_frame_idx].p.showable)
@@ -1617,6 +1631,23 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             }
             c->frame_hdr = NULL;
         } else if (c->n_tiles == c->frame_hdr->tiling.cols * c->frame_hdr->tiling.rows) {
+            switch (c->frame_hdr->frame_type) {
+            case DAV1D_FRAME_TYPE_INTER:
+            case DAV1D_FRAME_TYPE_SWITCH:
+                if (c->decode_frame_type > DAV1D_DECODEFRAMETYPE_REFERENCE ||
+                    (c->decode_frame_type == DAV1D_DECODEFRAMETYPE_REFERENCE &&
+                     !c->frame_hdr->refresh_frame_flags))
+                    goto skip;
+                break;
+            case DAV1D_FRAME_TYPE_INTRA:
+                if (c->decode_frame_type > DAV1D_DECODEFRAMETYPE_INTRA ||
+                    (c->decode_frame_type == DAV1D_DECODEFRAMETYPE_REFERENCE &&
+                     !c->frame_hdr->refresh_frame_flags))
+                    goto skip;
+                // fall-through
+            default:
+                break;
+            }
             if (!c->n_tile_data)
                 goto error;
             if ((res = dav1d_submit_frame(c)) < 0)
@@ -1626,6 +1657,26 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             c->n_tiles = 0;
         }
     }
+
+    return len + init_byte_pos;
+
+skip:
+    // update refs with only the headers in case we skip the frame
+    for (int i = 0; i < 8; i++) {
+        if (c->frame_hdr->refresh_frame_flags & (1 << i)) {
+            dav1d_thread_picture_unref(&c->refs[i].p);
+            c->refs[i].p.p.frame_hdr = c->frame_hdr;
+            c->refs[i].p.p.seq_hdr = c->seq_hdr;
+            c->refs[i].p.p.frame_hdr_ref = c->frame_hdr_ref;
+            c->refs[i].p.p.seq_hdr_ref = c->seq_hdr_ref;
+            dav1d_ref_inc(c->frame_hdr_ref);
+            dav1d_ref_inc(c->seq_hdr_ref);
+        }
+    }
+
+    dav1d_ref_dec(&c->frame_hdr_ref);
+    c->frame_hdr = NULL;
+    c->n_tiles = 0;
 
     return len + init_byte_pos;
 
