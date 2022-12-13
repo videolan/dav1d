@@ -36,28 +36,24 @@
 void dav1d_init_get_bits(GetBits *const c, const uint8_t *const data,
                          const size_t sz)
 {
-    // If sz were 0, c->eof would need to be initialized to 1.
     assert(sz);
     c->ptr = c->ptr_start = data;
     c->ptr_end = &c->ptr_start[sz];
-    c->bits_left = 0;
     c->state = 0;
+    c->bits_left = 0;
     c->error = 0;
-    c->eof = 0;
 }
 
 unsigned dav1d_get_bit(GetBits *const c) {
     if (!c->bits_left) {
-        if (c->eof) {
-            c->error = c->eof;
-            return 0;
+        if (c->ptr >= c->ptr_end) {
+            c->error = 1;
+        } else {
+            const unsigned state = *c->ptr++;
+            c->bits_left = 7;
+            c->state = (uint64_t) state << 57;
+            return state >> 7;
         }
-        const unsigned state = *c->ptr++;
-        if (c->ptr >= c->ptr_end)
-            c->eof = 1;
-        c->bits_left = 7;
-        c->state = (uint64_t) state << 57;
-        return state >> 7;
     }
 
     const uint64_t state = c->state;
@@ -66,27 +62,26 @@ unsigned dav1d_get_bit(GetBits *const c) {
     return (unsigned) (state >> 63);
 }
 
-static inline void refill(GetBits *const c, const unsigned n) {
-    assert(c->bits_left <= 56);
+static inline void refill(GetBits *const c, const int n) {
+    assert(c->bits_left >= 0 && c->bits_left < 32);
     unsigned state = 0;
     do {
-        state <<= 8;
-        c->bits_left += 8;
-        if (c->eof) {
-            c->error = c->eof;
-            break;
+        if (c->ptr >= c->ptr_end) {
+            c->error = 1;
+            if (state) break;
+            return;
         }
-        state |= *c->ptr++;
-        if (c->ptr >= c->ptr_end)
-            c->eof = 1;
+        state = (state << 8) | *c->ptr++;
+        c->bits_left += 8;
     } while (n > c->bits_left);
     c->state |= (uint64_t) state << (64 - c->bits_left);
 }
 
 #define GET_BITS(name, type, type64)            \
-type name(GetBits *const c, const unsigned n) { \
+type name(GetBits *const c, const int n) {      \
     assert(n > 0 && n <= 32);                   \
-    if (n > c->bits_left)                       \
+    /* Unsigned cast avoids refill after eob */ \
+    if ((unsigned) n > (unsigned) c->bits_left) \
         refill(c, n);                           \
     const uint64_t state = c->state;            \
     c->bits_left -= n;                          \
