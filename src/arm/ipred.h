@@ -110,6 +110,76 @@ static void ipred_z1_neon(pixel *dst, const ptrdiff_t stride,
         BF(dav1d_ipred_z1_fill1, neon)(dst, stride, top_out, width, height,
                                        dx, max_base_x);
 }
+
+void BF(dav1d_ipred_z3_fill1, neon)(pixel *dst, ptrdiff_t stride,
+                                    const pixel *const left, const int width,
+                                    const int height, const int dy,
+                                    const int max_base_y);
+void BF(dav1d_ipred_z3_fill2, neon)(pixel *dst, ptrdiff_t stride,
+                                    const pixel *const left, const int width,
+                                    const int height, const int dy,
+                                    const int max_base_y);
+
+void BF(dav1d_ipred_reverse, neon)(pixel *dst, const pixel *const src,
+                                   const int n);
+
+static void ipred_z3_neon(pixel *dst, const ptrdiff_t stride,
+                          const pixel *const topleft_in,
+                          const int width, const int height, int angle,
+                          const int max_width, const int max_height
+                          HIGHBD_DECL_SUFFIX)
+{
+    const int is_sm = (angle >> 9) & 0x1;
+    const int enable_intra_edge_filter = angle >> 10;
+    angle &= 511;
+    assert(angle > 180);
+    int dy = dav1d_dr_intra_derivative[(270 - angle) >> 1];
+    pixel flipped[64 + 64 + 16];
+    pixel left_out[64 + 64 + (64+15)*2];
+    int max_base_y;
+    const int upsample_left = enable_intra_edge_filter ?
+        get_upsample(width + height, angle - 180, is_sm) : 0;
+    if (upsample_left) {
+            flipped[0] = topleft_in[0];
+        BF(dav1d_ipred_reverse, neon)(&flipped[1], &topleft_in[0],
+                                      height + imax(width, height));
+        BF(dav1d_ipred_z1_upsample_edge, neon)(left_out, width + height,
+                                               flipped,
+                                               height + imin(width, height));
+        max_base_y = 2 * (width + height) - 2;
+        dy <<= 1;
+    } else {
+        const int filter_strength = enable_intra_edge_filter ?
+            get_filter_strength(width + height, angle - 180, is_sm) : 0;
+
+        if (filter_strength) {
+            flipped[0] = topleft_in[0];
+            BF(dav1d_ipred_reverse, neon)(&flipped[1], &topleft_in[0],
+                                          height + imax(width, height));
+            BF(dav1d_ipred_z1_filter_edge, neon)(left_out, width + height,
+                                                 flipped,
+                                                 height + imin(width, height),
+                                                 filter_strength);
+            max_base_y = width + height - 1;
+        } else {
+            BF(dav1d_ipred_reverse, neon)(left_out, &topleft_in[0],
+                                          height + imin(width, height));
+            max_base_y = height + imin(width, height) - 1;
+        }
+    }
+    const int base_inc = 1 + upsample_left;
+    // The tbx based implementation needs left[] to have 64 bytes intitialized,
+    // the other implementation can read height + max(dy >> 6) past the end.
+    int pad_pixels = imax(64 - max_base_y - 1, height + 15);
+
+    pixel_set(&left_out[max_base_y + 1], left_out[max_base_y], pad_pixels * base_inc);
+    if (upsample_left)
+        BF(dav1d_ipred_z3_fill2, neon)(dst, stride, left_out, width, height,
+                                       dy, max_base_y);
+    else
+        BF(dav1d_ipred_z3_fill1, neon)(dst, stride, left_out, width, height,
+                                       dy, max_base_y);
+}
 #endif
 
 static ALWAYS_INLINE void intra_pred_dsp_init_arm(Dav1dIntraPredDSPContext *const c) {
@@ -129,6 +199,7 @@ static ALWAYS_INLINE void intra_pred_dsp_init_arm(Dav1dIntraPredDSPContext *cons
     c->intra_pred[SMOOTH_H_PRED] = BF(dav1d_ipred_smooth_h, neon);
 #if ARCH_AARCH64 && BITDEPTH == 8
     c->intra_pred[Z1_PRED]       = ipred_z1_neon;
+    c->intra_pred[Z3_PRED]       = ipred_z3_neon;
 #endif
     c->intra_pred[FILTER_PRED]   = BF(dav1d_ipred_filter, neon);
 
