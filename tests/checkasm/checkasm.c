@@ -42,6 +42,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include <pthread.h>
+#ifdef HAVE_PTHREAD_NP_H
+#include <pthread_np.h>
+#endif
 #ifdef __APPLE__
 #include <mach/mach_time.h>
 #endif
@@ -556,6 +560,7 @@ int main(int argc, char *argv[]) {
                     "checkasm [options] <random seed>\n"
                     "    <random seed>              Numeric value to seed the rng\n"
                     "Options:\n"
+                    "    --affinity=<cpu>           Run the process on CPU <cpu>\n"
                     "    --test=<pattern>           Test only <pattern>\n"
                     "    --function=<pattern> -f    Test only the functions matching <pattern>\n"
                     "    --bench -b                 Benchmark the tested functions\n"
@@ -593,6 +598,43 @@ int main(int argc, char *argv[]) {
             return 0;
         } else if (!strcmp(argv[1], "--verbose") || !strcmp(argv[1], "-v")) {
             state.verbose = 1;
+        } else if (!strncmp(argv[1], "--affinity=", 11)) {
+            unsigned long affinity = strtoul(argv[1] + 11, NULL, 16);
+#ifdef _WIN32
+            BOOL (WINAPI *spdcs)(HANDLE, const ULONG*, ULONG) =
+                (void*)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetProcessDefaultCpuSets");
+            HANDLE process = GetCurrentProcess();
+            int affinity_err;
+            if (spdcs) {
+                affinity_err = !spdcs(process, (ULONG[]){ affinity + 256 }, 1);
+            } else {
+                if (affinity < sizeof(DWORD_PTR) * 8)
+                    affinity_err = !SetProcessAffinityMask(process, (DWORD_PTR)1 << affinity);
+                else
+                    affinity_err = 1;
+            }
+            if (affinity_err) {
+                fprintf(stderr, "checkasm: invalid cpu affinity (%lu)\n", affinity);
+                return 1;
+            } else {
+                fprintf(stderr, "checkasm: running on cpu %lu\n", affinity);
+            }
+#elif defined(HAVE_PTHREAD_SETAFFINITY_NP) && defined(CPU_SET)
+            cpu_set_t set;
+            CPU_ZERO(&set);
+            CPU_SET(affinity, &set);
+            if (pthread_setaffinity_np(pthread_self(), sizeof(set), &set)) {
+                fprintf(stderr, "checkasm: invalid cpu affinity (%lu)\n", affinity);
+                return 1;
+            } else {
+                fprintf(stderr, "checkasm: running on cpu %lu\n", affinity);
+            }
+#else
+            (void)affinity;
+            fprintf(stderr,
+                    "checkasm: --affinity is not supported on your system\n");
+            return 1;
+#endif
         } else {
             state.seed = (unsigned) strtoul(argv[1], NULL, 10);
         }
