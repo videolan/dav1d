@@ -397,6 +397,7 @@ static int output_picture_ready(Dav1dContext *const c, const int drain) {
 
 static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
     unsigned drain_count = 0;
+    int drained = 0;
     do {
         const unsigned next = c->frame_thread.next;
         Dav1dFrameContext *const f = &c->fc[next];
@@ -416,6 +417,10 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
                                            &first, UINT_MAX);
             if (c->task_thread.cur && c->task_thread.cur < c->n_fc)
                 c->task_thread.cur--;
+            drained = 1;
+        } else if (drained) {
+            pthread_mutex_unlock(&c->task_thread.lock);
+            break;
         }
         if (++c->frame_thread.next == c->n_fc)
             c->frame_thread.next = 0;
