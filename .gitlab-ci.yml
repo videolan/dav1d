@@ -333,22 +333,20 @@ build-android-armv7:
     extends: .build-android-common
     variables:
         CROSSFILE: package/crossfiles/arm-android.meson
-    except:
-        - tags
+    rules:
+        - if: '$CI_COMMIT_BRANCH'
 
 build-android-aarch64:
     extends: .build-android-common
     variables:
         CROSSFILE: package/crossfiles/aarch64-android.meson
-    except:
-        - tags
+    rules:
+        - if: '$CI_COMMIT_BRANCH'
 
 build-android-armv7-release:
     extends: build-android-armv7
-    except:
-    only:
-        refs:
-            - tags@videolan/dav1d
+    rules:
+        - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "videolan/dav1d"'
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
@@ -357,10 +355,8 @@ build-android-armv7-release:
 
 build-android-aarch64-release:
     extends: build-android-aarch64
-    except:
-    only:
-        refs:
-            - tags@videolan/dav1d
+    rules:
+        - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "videolan/dav1d"'
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
