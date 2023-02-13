@@ -4,49 +4,49 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20220811102309
+    image: registry.videolan.org/dav1d-debian-unstable:20230213200113
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-amd64-minimum:
-    image: registry.videolan.org/dav1d-debian-minimum:20220811102156
+    image: registry.videolan.org/dav1d-debian-minimum:20230211045249
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-mingw:20220819151034
+    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20230212072216
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20220822160907
+    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20230211050329
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20220823100731
+    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20230211045904
     stage: build
     tags:
         - docker
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20220812184538
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20230211050439
     stage: build
     tags:
         - docker
         - ppc64le
 
 .android-common:
-    image: registry.videolan.org/vlc-debian-android:20220811103057
+    image: registry.videolan.org/vlc-debian-android:20230212071537
     stage: build
     tags:
         - docker
