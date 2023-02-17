@@ -786,8 +786,10 @@ static void save_tmvs_c(refmvs_temporal_block *rp, const ptrdiff_t stride,
                     rp[x] = (refmvs_temporal_block) { .mv = cand_b->mv.mv[0],
                                                       .ref = cand_b->ref.ref[0] };
             } else {
-                for (int n = 0; n < bw8; n++, x++)
+                for (int n = 0; n < bw8; n++, x++) {
+                    rp[x].mv.n = 0;
                     rp[x].ref = 0; // "invalid"
+                }
             }
         }
         rp += stride;

@@ -28,6 +28,8 @@
 #include "src/cpu.h"
 #include "src/refmvs.h"
 
+decl_save_tmvs_fn(dav1d_save_tmvs_avx2);
+
 decl_splat_mv_fn(dav1d_splat_mv_sse2);
 decl_splat_mv_fn(dav1d_splat_mv_avx2);
 decl_splat_mv_fn(dav1d_splat_mv_avx512icl);
@@ -42,6 +44,7 @@ static ALWAYS_INLINE void refmvs_dsp_init_x86(Dav1dRefmvsDSPContext *const c) {
 #if ARCH_X86_64
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
+    c->save_tmvs = dav1d_save_tmvs_avx2;
     c->splat_mv = dav1d_splat_mv_avx2;
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL)) return;

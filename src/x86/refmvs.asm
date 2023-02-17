@@ -38,11 +38,33 @@ SECTION_RODATA 64
     %endrep
 %endmacro
 
+%macro SAVE_TMVS_TABLE 3 ; num_entries, w, suffix
+    %rep %1
+        db %2*3
+        db mangle(private_prefix %+ _save_tmvs_%3).write%2 - \
+           mangle(private_prefix %+ _save_tmvs_%3).write1
+    %endrep
+%endmacro
+
 %if ARCH_X86_64
 splat_mv_shuf: db  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,  0,  1,  2,  3
                db  4,  5,  6,  7,  8,  9, 10, 11,  0,  1,  2,  3,  4,  5,  6,  7
                db  8,  9, 10, 11,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11
                db  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,  0,  1,  2,  3
+save_pack0:    db  0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  0
+               db  1,  2,  3,  4,  0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  0,  1
+save_pack1:    db  2,  3,  4,  0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  0,  1,  2
+               db  3,  4,  0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  0,  1,  2,  3
+save_ref_shuf: db  0, -1, -1, -1,  1, -1, -1, -1,  8, -1, -1, -1,  9, -1, -1, -1
+save_cond0:    db  0x80, 0x81, 0x82, 0x83, 0x89, 0x00, 0x00, 0x00
+save_cond1:    db  0x84, 0x85, 0x86, 0x87, 0x88, 0x00, 0x00, 0x00
+pb_128:        times 4 db 128
+
+save_tmvs_avx2_table: SAVE_TMVS_TABLE 2, 16, avx2
+                      SAVE_TMVS_TABLE 4,  8, avx2
+                      SAVE_TMVS_TABLE 4,  4, avx2
+                      SAVE_TMVS_TABLE 5,  2, avx2
+                      SAVE_TMVS_TABLE 7,  1, avx2
 
 JMP_TABLE splat_mv_avx512icl, 1, 2, 4, 8, 16, 32
 JMP_TABLE splat_mv_avx2,      1, 2, 4, 8, 16, 32
@@ -116,6 +138,138 @@ cglobal splat_mv, 4, 5, 3, rr, a, bx4, bw4, bh4
 
 %if ARCH_X86_64
 INIT_YMM avx2
+; refmvs_temporal_block *rp, ptrdiff_t stride,
+; refmvs_block **rr, uint8_t *ref_sign,
+; int col_end8, int row_end8, int col_start8, int row_start8
+cglobal save_tmvs, 4, 15, 11, rp, stride, rr, ref_sign, \
+                              xend, yend, xstart, ystart
+%define base r14-.write1
+    lea            r14, [.write1]
+    movifnidn    xendd, xendm
+    movifnidn    yendd, yendm
+    mov        xstartd, xstartm
+    mov        ystartd, ystartm
+    vpbroadcastq    m5, [ref_signq]
+    vbroadcasti128  m4, [base+save_ref_shuf]
+    vpbroadcastq    m6, [base+save_cond0]
+    vpbroadcastq    m7, [base+save_cond1]
+    vpbroadcastd    m8, [base+pb_128]
+    mova            m9, [base+save_pack0]
+    mova           m10, [base+save_pack1]
+    psllq           m5, 8
+    lea            r9d, [xendq*5]
+    lea        xstartd, [xstartq*5]
+    sub          yendd, ystartd
+    add        ystartd, ystartd
+    lea        strideq, [strideq*5]
+    sub        xstartq, r9
+    add          xendd, r9d
+    add            rpq, r9
+ DEFINE_ARGS rp, stride, rr, x, xend, h, xstart, ystart, b, cand
+.loop_y:
+    and        ystartd, 30
+    mov             xq, xstartq
+    mov             bq, [rrq+ystartq*8]
+    add        ystartd, 2
+    lea             bq, [bq+xendq*4]
+.loop_x:
+    imul         candq, xq, 0x9999
+    sar          candq, 16                   ; x / 5 * 3
+    movzx         r10d, byte [bq+candq*8+22] ; cand_b->bs
+    movu           xm0, [bq+candq*8+12]      ; cand_b
+    movzx         r11d, byte [base+save_tmvs_avx2_table+r10*2+0]
+    movzx         r10d, byte [base+save_tmvs_avx2_table+r10*2+1]
+    add            r10, r14
+    add          candq, r11
+    jge .calc
+    movzx         r11d, byte [bq+candq*8+22]
+    movu           xm1, [bq+candq*8+12]
+    movzx         r12d, byte [base+save_tmvs_avx2_table+r11*2+0]
+    movzx         r11d, byte [base+save_tmvs_avx2_table+r11*2+1]
+    add            r11, r14
+    add          candq, r12
+    jge .calc
+    movzx         r12d, byte [bq+candq*8+22]
+    vinserti128     m0, [bq+candq*8+12], 1
+    movzx         r13d, byte [base+save_tmvs_avx2_table+r12*2+0]
+    movzx         r12d, byte [base+save_tmvs_avx2_table+r12*2+1]
+    add            r12, r14
+    add          candq, r13
+    jge .calc
+    vinserti128     m1, [bq+candq*8+12], 1
+    movzx         r13d, byte [bq+candq*8+22]
+    movzx         r13d, byte [base+save_tmvs_avx2_table+r13*2+1]
+    add            r13, r14
+.calc:
+    ; mv check
+    punpcklqdq      m2, m0, m1  ; b0.mv0 b0.mv1 b1.mv0 b1.mv1 | ...
+    pabsw           m2, m2
+    psrlw           m2, 12      ; (abs(mv.x) | abs(mv.y)) < 4096
+    ; ref check
+    punpckhqdq      m3, m0, m1
+    pshufb          m3, m4      ; b0.ref0 b0.ref1 b1.ref0 b1.ref1 | ...
+    pshufb          m3, m5, m3  ; ref > 0 && res_sign[ref - 1]
+    ; res
+    pcmpgtd         m3, m2
+    pshufd          m2, m3, q2301
+    pand            m3, m6      ; b0.cond0 b1.cond0 | ...
+    pand            m2, m7      ; b0.cond1 b1.cond1 | ...
+    por             m3, m2      ; b0.shuf b1.shuf | ...
+    pxor            m3, m8      ; if cond0|cond1 == 0 => zero out
+    pshufb          m0, m3
+    pshufb          m1, m3
+    vpbroadcastq    m2, xm0
+    call           r10
+    jge .next_line
+    vpermq          m2, m1, q1111
+    call           r11
+    jge .next_line
+    vpermq          m2, m0, q2222
+    call           r12
+    jge .next_line
+    vpermq          m2, m1, q3333
+    call           r13
+    jl .loop_x
+.next_line:
+    add            rpq, strideq
+    dec             hd
+    jg .loop_y
+    RET
+.write1:
+    movd   [rpq+xq+ 0], xm2
+    pextrb [rpq+xq+ 4], xm2, 4
+    add             xq, 5*1
+    ret
+.write2:
+    pshufb         xm2, xm9
+    movq   [rpq+xq+ 0], xm2
+    pextrw [rpq+xq+ 8], xm2, 4
+    add             xq, 5*2
+    ret
+.write4:
+    pshufb         xm2, xm9
+    movu   [rpq+xq+ 0], xm2
+    psrlq          xm2, 8
+    movd   [rpq+xq+16], xm2
+    add             xq, 5*4
+    ret
+.write8:
+    pshufb          m3, m2, m9
+    movu   [rpq+xq+ 0], m3
+    pshufb         xm2, xm10
+    movq   [rpq+xq+32], xm2
+    add             xq, 5*8
+    ret
+.write16:
+    pshufb          m3, m2, m9
+    movu   [rpq+xq+ 0], m3
+    pshufb          m2, m10
+    movu   [rpq+xq+32], m2
+    shufps         xm3, xm2, q1021
+    movu   [rpq+xq+64], xm3
+    add             xq, 5*16
+    ret
+
 cglobal splat_mv, 4, 5, 3, rr, a, bx4, bw4, bh4
     add           bx4d, bw4d
     tzcnt         bw4d, bw4d
