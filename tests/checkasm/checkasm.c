@@ -367,7 +367,11 @@ static void print_benchs(const CheckasmFunc *const f) {
 static void print_functions(const CheckasmFunc *const f) {
     if (f) {
         print_functions(f->child[0]);
-        printf("%s\n", f->name);
+        const CheckasmFuncVersion *v = &f->versions;
+        printf("%s (%s", f->name, cpu_suffix(v->cpu));
+        while ((v = v->next))
+            printf(", %s", cpu_suffix(v->cpu));
+        printf(")\n");
         print_functions(f->child[1]);
     }
 }
@@ -707,12 +711,12 @@ int main(int argc, char *argv[]) {
     }
 
     check_cpu_flag(NULL, 0);
+    for (int i = 0; cpus[i].flag; i++)
+        check_cpu_flag(cpus[i].name, cpus[i].flag);
 
     if (state.function_listing) {
         print_functions(state.funcs);
     } else {
-        for (int i = 0; cpus[i].flag; i++)
-            check_cpu_flag(cpus[i].name, cpus[i].flag);
         if (!state.num_checked) {
             fprintf(stderr, "checkasm: no tests to perform\n");
         } else if (state.num_failed) {
@@ -754,9 +758,6 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
 
     state.current_func = get_func(&state.funcs, name_buf);
 
-    if (state.function_listing) /* Save function names without running tests */
-        return NULL;
-
     state.funcs->color = 1;
     CheckasmFuncVersion *v = &state.current_func->versions;
     void *ref = func;
@@ -781,6 +782,9 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
     v->ok = 1;
     v->cpu = state.cpu_flag;
     state.current_func_ver = v;
+    if (state.function_listing) /* Save function names without running tests */
+        return NULL;
+
     xor128_srand(state.seed);
 
     if (state.cpu_flag || state.bench_c)
