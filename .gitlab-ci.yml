@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20230213200113
+    image: registry.videolan.org/dav1d-debian-unstable:20230512061205
     stage: build
     tags:
         - docker
@@ -25,14 +25,14 @@ stages:
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20230211050329
+    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20230512061045
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20230211045904
+    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20230513182209
     stage: build
     tags:
         - docker
@@ -457,6 +457,25 @@ build-debian-wasm:
         - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx2"  || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
+.test-argon:
+    stage: test
+    cache:
+        key: argon-20230512
+        paths:
+            - cache/argon/
+    variables:
+        ARGON_URL: https://streams.videolan.org/argon/argon.tar.zst
+    before_script:
+        - test -d cache/argon || mkdir -p cache/argon
+        - test -f cache/argon/argon.tar.zst ||
+          (cd cache/argon && curl --remote-name "${ARGON_URL}" --remote-name "${ARGON_URL}.sha512sum" &&
+          sha512sum --check argon.tar.zst.sha512sum )
+        - tar -xf cache/argon/argon.tar.zst -C tests
+    dependencies: []
+    allow_failure: true
+    rules:
+        - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
 test-debian:
     extends:
         - .debian-amd64-common
@@ -676,6 +695,87 @@ test-debian-armv7-clang-5:
                                     -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
+
+.test-argon-script: &test-argon-script
+        - meson setup build --buildtype release
+                            -Dlogging=false
+                            -Dtrim_dsp=false
+        - cd build && ninja
+        - exit_code=0
+
+test-debian-argon:
+    extends:
+        - .debian-amd64-common
+        - .test-argon
+    needs: ["build-debian"]
+    tags:
+        - docker
+        - amd64
+        - avx2
+    script:
+        - *test-argon-script
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse2 -g 0 || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c ssse3     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse41     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c avx2      || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
+
+test-debian32-argon:
+    extends:
+        - .debian-amd64-common
+        - .test-argon
+    needs: ["build-debian32"]
+    script:
+        - meson setup build --buildtype release
+                            -Dlogging=false
+                            -Dtrim_dsp=false
+                            --cross-file package/crossfiles/i686-linux32.meson
+        - cd build && ninja
+        - exit_code=0
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse2       || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c ssse3      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse41 -g 0 || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
+
+test-debian-argon-avx512:
+    extends:
+        - .debian-amd64-common
+        - .test-argon
+    needs: ["build-debian-avx512"]
+    tags:
+        - docker
+        - amd64-avx512
+    script:
+        - *test-argon-script
+        - ../tests/dav1d_argon.bash -t 2 -j 1 -c avx512icl || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
+
+.test-debian-arm-argon:
+    extends:
+        - .test-argon
+    script:
+        - meson setup build --buildtype release
+                            -Dlogging=false
+                            -Dtrim_dsp=false
+        - cd build && ninja
+        - exit_code=0
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c neon      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -j 4 -c neon -g 0 || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
+
+test-debian-armv7-argon:
+    extends:
+        - .debian-armv7-common
+        - .test-debian-arm-argon
+    needs: ["build-debian-armv7"]
+
+test-debian-aarch64-argon:
+    extends:
+        - .debian-aarch64-common
+        - .test-debian-arm-argon
+    needs: ["build-debian-aarch64"]
 
 
 .pages-common:
