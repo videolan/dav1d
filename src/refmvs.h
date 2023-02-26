@@ -39,10 +39,10 @@
 
 #define INVALID_MV 0x80008000
 
-typedef struct refmvs_temporal_block {
+PACKED(typedef struct refmvs_temporal_block {
     mv mv;
     int8_t ref;
-} refmvs_temporal_block;
+}) refmvs_temporal_block;
 
 typedef union refmvs_refpair {
     int8_t ref[2]; // [0] = 0: intra=1, [1] = -1: comp=0
