@@ -716,23 +716,22 @@ int main(int argc, char *argv[]) {
 
     if (state.function_listing) {
         print_functions(state.funcs);
+    } else if (state.num_failed) {
+        fprintf(stderr, "checkasm: %d of %d tests failed\n",
+                state.num_failed, state.num_checked);
+        ret = 1;
     } else {
-        if (!state.num_checked) {
-            fprintf(stderr, "checkasm: no tests to perform\n");
-        } else if (state.num_failed) {
-            fprintf(stderr, "checkasm: %d of %d tests have failed\n",
-                    state.num_failed, state.num_checked);
-            ret = 1;
-        } else {
+        if (state.num_checked)
             fprintf(stderr, "checkasm: all %d tests passed\n", state.num_checked);
+        else
+            fprintf(stderr, "checkasm: no tests to perform\n");
 #ifdef readtime
-            if (state.bench) {
-                state.nop_time = measure_nop_time();
-                printf("nop: %d.%d\n", state.nop_time/10, state.nop_time%10);
-                print_benchs(state.funcs);
-            }
-#endif
+        if (state.bench) {
+            state.nop_time = measure_nop_time();
+            printf("nop: %d.%d\n", state.nop_time/10, state.nop_time%10);
+            print_benchs(state.funcs);
         }
+#endif
     }
 
     destroy_func_tree(state.funcs);
@@ -787,7 +786,7 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
 
     xor128_srand(state.seed);
 
-    if (state.cpu_flag || state.bench_c)
+    if (state.cpu_flag)
         state.num_checked++;
 
     return ref;
