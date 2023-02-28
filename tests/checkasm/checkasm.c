@@ -583,7 +583,7 @@ int main(int argc, char *argv[]) {
                     "    --list-functions           List available functions\n"
                     "    --list-tests               List available tests\n"
                     "    --bench-c -c               Benchmark the C-only functions\n"
-                    "    --verbose -v               Print failures verbosely\n");
+                    "    --verbose -v               Print verbose output\n");
             return 0;
         } else if (!strcmp(argv[1], "--bench-c") || !strcmp(argv[1], "-c")) {
             state.bench_c = 1;
@@ -740,7 +740,8 @@ int main(int argc, char *argv[]) {
 #ifdef readtime
         if (state.bench && state.max_function_name_length) {
             state.nop_time = measure_nop_time();
-            printf("nop:%*.1f\n", state.max_function_name_length + 6, state.nop_time);
+            if (state.verbose)
+                printf("nop:%*.1f\n", state.max_function_name_length + 6, state.nop_time);
             print_benchs(state.funcs);
         }
 #endif
