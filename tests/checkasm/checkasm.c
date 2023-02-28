@@ -127,7 +127,7 @@ static struct {
     const char *current_test_name;
     int num_checked;
     int num_failed;
-    int nop_time;
+    double nop_time;
     unsigned cpu_flag;
     const char *cpu_flag_name;
     const char *test_pattern;
@@ -325,7 +325,7 @@ static int cmp_nop(const void *a, const void *b) {
 }
 
 /* Measure the overhead of the timing code (in decicycles) */
-static int measure_nop_time(void) {
+static double measure_nop_time(void) {
     uint16_t nops[10000];
     int nop_sum = 0;
 
@@ -338,7 +338,16 @@ static int measure_nop_time(void) {
     for (int i = 2500; i < 7500; i++)
         nop_sum += nops[i];
 
-    return nop_sum / 500;
+    return nop_sum / 5000.0;
+}
+
+static double avg_cycles_per_call(const CheckasmFuncVersion *const v) {
+    if (v->iterations) {
+        const double cycles = (double)v->cycles / v->iterations - state.nop_time;
+        if (cycles > 0.0)
+            return cycles / 4.0; /* 4 calls per iteration */
+    }
+    return 0.0;
 }
 
 /* Print benchmark results */
@@ -347,15 +356,14 @@ static void print_benchs(const CheckasmFunc *const f) {
         print_benchs(f->child[0]);
 
         /* Only print functions with at least one assembly version */
-        if (state.bench_c || f->versions.cpu || f->versions.next) {
-            const CheckasmFuncVersion *v = &f->versions;
+        const CheckasmFuncVersion *v = &f->versions;
+        if ((state.bench_c || v->cpu || v->next) && v->iterations) {
+            const double baseline = avg_cycles_per_call(v);
             do {
-                if (v->iterations) {
-                    const int decicycles = (int) (10*v->cycles/v->iterations -
-                                                  state.nop_time) / 4;
-                    printf("%s_%s: %d.%d\n", f->name, cpu_suffix(v->cpu),
-                           decicycles/10, decicycles%10);
-                }
+                const double cycles = avg_cycles_per_call(v);
+                const double ratio = cycles ? baseline / cycles : 0.0;
+                printf("%s_%s: %.1f (%.2fx)\n", f->name,
+                       cpu_suffix(v->cpu), cycles, ratio);
             } while ((v = v->next));
         }
 
@@ -728,7 +736,7 @@ int main(int argc, char *argv[]) {
 #ifdef readtime
         if (state.bench) {
             state.nop_time = measure_nop_time();
-            printf("nop: %d.%d\n", state.nop_time/10, state.nop_time%10);
+            printf("nop: %.1f\n", state.nop_time);
             print_benchs(state.funcs);
         }
 #endif
