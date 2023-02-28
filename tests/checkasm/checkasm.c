@@ -138,6 +138,8 @@ static struct {
     int verbose;
     int function_listing;
     int catch_signals;
+    int suffix_length;
+    int max_function_name_length;
 #if ARCH_X86_64
     void (*simd_warmup)(void);
 #endif
@@ -360,10 +362,11 @@ static void print_benchs(const CheckasmFunc *const f) {
         if ((state.bench_c || v->cpu || v->next) && v->iterations) {
             const double baseline = avg_cycles_per_call(v);
             do {
+                const int pad_length = 10 + state.max_function_name_length -
+                    printf("%s_%s:", f->name, cpu_suffix(v->cpu));
                 const double cycles = avg_cycles_per_call(v);
                 const double ratio = cycles ? baseline / cycles : 0.0;
-                printf("%s_%s: %.1f (%.2fx)\n", f->name,
-                       cpu_suffix(v->cpu), cycles, ratio);
+                printf("%*.1f (%5.2fx)\n", imax(pad_length, 0), cycles, ratio);
             } while ((v = v->next));
         }
 
@@ -531,6 +534,7 @@ static void check_cpu_flag(const char *const name, unsigned flag) {
 
     if (!flag || state.cpu_flag != old_cpu_flag) {
         state.cpu_flag_name = name;
+        state.suffix_length = (int)strlen(cpu_suffix(flag)) + 1;
         for (int i = 0; tests[i].func; i++) {
             if (state.test_pattern && wildstrcmp(tests[i].name, state.test_pattern))
                 continue;
@@ -734,9 +738,9 @@ int main(int argc, char *argv[]) {
         else
             fprintf(stderr, "checkasm: no tests to perform\n");
 #ifdef readtime
-        if (state.bench) {
+        if (state.bench && state.max_function_name_length) {
             state.nop_time = measure_nop_time();
-            printf("nop: %.1f\n", state.nop_time);
+            printf("nop:%*.1f\n", state.max_function_name_length + 6, state.nop_time);
             print_benchs(state.funcs);
         }
 #endif
@@ -754,7 +758,7 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
     va_list arg;
 
     va_start(arg, name);
-    const int name_length = vsnprintf(name_buf, sizeof(name_buf), name, arg);
+    int name_length = vsnprintf(name_buf, sizeof(name_buf), name, arg);
     va_end(arg);
 
     if (!func || name_length <= 0 || (size_t)name_length >= sizeof(name_buf) ||
@@ -784,6 +788,10 @@ void *checkasm_check_func(void *const func, const char *const name, ...) {
 
         v = prev->next = checkasm_malloc(sizeof(CheckasmFuncVersion));
     }
+
+    name_length += state.suffix_length;
+    if (name_length > state.max_function_name_length)
+        state.max_function_name_length = name_length;
 
     v->func = func;
     v->ok = 1;
