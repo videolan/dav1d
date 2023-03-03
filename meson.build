@@ -89,7 +89,7 @@ test_args = []
 optional_arguments = []
 optional_link_arguments = []
 
-if host_machine.system() in ['linux', 'gnu']
+if host_machine.system() in ['linux', 'gnu', 'emscripten']
     test_args += '-D_GNU_SOURCE'
     add_project_arguments('-D_GNU_SOURCE', language: 'c')
 endif
