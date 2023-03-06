@@ -52,6 +52,13 @@ stages:
         - docker
         - amd64
 
+.debian-wasm-emscripten-common:
+    image: registry.videolan.org/vlc-debian-wasm-emscripten:20221213104631
+    stage: build
+    tags:
+        - docker
+        - amd64
+
 
 style-check:
     extends: .debian-amd64-common
@@ -429,6 +436,20 @@ build-debian-ppc64le:
                             --werror
         - ninja -C build
         - cd build && meson test -v
+
+build-debian-wasm:
+    extends: .debian-wasm-emscripten-common
+    script:
+        - source $EMSCRIPTEN_SDK/emsdk_env.sh
+        - meson setup build --buildtype release
+                            --werror
+                            --default-library static
+                            --cross-file package/crossfiles/${CROSSFILE}.meson
+        - ninja -C build
+        - cd build && meson test -v
+    parallel:
+      matrix:
+        - CROSSFILE: [wasm32, wasm64]
 
 
 .test-common:
