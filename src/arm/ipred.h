@@ -140,7 +140,7 @@ static void ipred_z3_neon(pixel *dst, const ptrdiff_t stride,
     const int upsample_left = enable_intra_edge_filter ?
         get_upsample(width + height, angle - 180, is_sm) : 0;
     if (upsample_left) {
-            flipped[0] = topleft_in[0];
+        flipped[0] = topleft_in[0];
         BF(dav1d_ipred_reverse, neon)(&flipped[1], &topleft_in[0],
                                       height + imax(width, height));
         BF(dav1d_ipred_z1_upsample_edge, neon)(left_out, width + height,
