@@ -115,7 +115,6 @@ static void ipred_z1_neon(pixel *dst, const ptrdiff_t stride,
                                        dx, max_base_x);
 }
 
-#if BITDEPTH == 8
 void BF(dav1d_ipred_z3_fill1, neon)(pixel *dst, ptrdiff_t stride,
                                     const pixel *const left, const int width,
                                     const int height, const int dy,
@@ -150,7 +149,8 @@ static void ipred_z3_neon(pixel *dst, const ptrdiff_t stride,
                                       height + imax(width, height));
         BF(dav1d_ipred_z1_upsample_edge, neon)(left_out, width + height,
                                                flipped,
-                                               height + imin(width, height));
+                                               height + imin(width, height)
+                                               HIGHBD_TAIL_SUFFIX);
         max_base_y = 2 * (width + height) - 2;
         dy <<= 1;
     } else {
@@ -187,7 +187,6 @@ static void ipred_z3_neon(pixel *dst, const ptrdiff_t stride,
                                        dy, max_base_y);
 }
 #endif
-#endif
 
 static ALWAYS_INLINE void intra_pred_dsp_init_arm(Dav1dIntraPredDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -206,9 +205,7 @@ static ALWAYS_INLINE void intra_pred_dsp_init_arm(Dav1dIntraPredDSPContext *cons
     c->intra_pred[SMOOTH_H_PRED] = BF(dav1d_ipred_smooth_h, neon);
 #if ARCH_AARCH64
     c->intra_pred[Z1_PRED]       = ipred_z1_neon;
-#if BITDEPTH == 8
     c->intra_pred[Z3_PRED]       = ipred_z3_neon;
-#endif
 #endif
     c->intra_pred[FILTER_PRED]   = BF(dav1d_ipred_filter, neon);
 
