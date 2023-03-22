@@ -90,9 +90,6 @@ typedef struct Dav1dPicture {
 
     struct Dav1dRef *frame_hdr_ref; ///< Dav1dFrameHeader allocation origin
     struct Dav1dRef *seq_hdr_ref; ///< Dav1dSequenceHeader allocation origin
-    struct Dav1dRef *content_light_ref; ///< Dav1dContentLightLevel allocation origin
-    struct Dav1dRef *mastering_display_ref; ///< Dav1dMasteringDisplay allocation origin
-    uintptr_t reserved_ref[4]; ///< reserved for future use
     struct Dav1dRef *ref; ///< Frame data allocation origin
 
     void *allocator_data; ///< pointer managed by the allocator

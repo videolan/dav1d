@@ -88,8 +88,10 @@ void dav1d_default_picture_release(Dav1dPicture *const p, void *const cookie) {
 
 struct pic_ctx_context {
     struct Dav1dRef *plane_ref[3]; /* MUST BE FIRST */
-    enum Dav1dPixelLayout layout;
+    struct Dav1dRef *content_light_ref;
+    struct Dav1dRef *mastering_display_ref;
     struct Dav1dRef *itut_t35_ref;
+    enum Dav1dPixelLayout layout;
     void *extra_ptr; /* MUST BE AT THE END */
 };
 
@@ -109,6 +111,8 @@ static void free_buffer(const uint8_t *const data, void *const user_data) {
 
     for (int i = 0; i < planes; i++)
         dav1d_ref_dec(&pic_ctx->plane_ref[i]);
+    dav1d_ref_dec(&pic_ctx->content_light_ref);
+    dav1d_ref_dec(&pic_ctx->mastering_display_ref);
     dav1d_ref_dec(&pic_ctx->itut_t35_ref);
     free(pic_ctx);
 }
@@ -221,13 +225,13 @@ static int picture_copy_props(Dav1dPicture *const p,
     int res = 0, n_itut_t35 = *pn_itut_t35;
     dav1d_data_props_copy(&p->m, props);
 
-    dav1d_ref_dec(&p->content_light_ref);
-    p->content_light_ref = content_light_ref;
+    dav1d_ref_dec(&pic_ctx->content_light_ref);
+    pic_ctx->content_light_ref = content_light_ref;
     p->content_light = content_light;
     if (content_light_ref) dav1d_ref_inc(content_light_ref);
 
-    dav1d_ref_dec(&p->mastering_display_ref);
-    p->mastering_display_ref = mastering_display_ref;
+    dav1d_ref_dec(&pic_ctx->mastering_display_ref);
+    pic_ctx->mastering_display_ref = mastering_display_ref;
     p->mastering_display = mastering_display;
     if (mastering_display_ref) dav1d_ref_inc(mastering_display_ref);
 
@@ -340,8 +344,8 @@ int dav1d_picture_alloc_copy(Dav1dContext *const c, Dav1dPicture *const dst, con
                                              0, NULL);
     if (res) return res;
 
-    return picture_copy_props(dst, src->content_light, src->content_light_ref,
-                              src->mastering_display, src->mastering_display_ref,
+    return picture_copy_props(dst, src->content_light, pic_ctx->content_light_ref,
+                              src->mastering_display, pic_ctx->mastering_display_ref,
                               (Dav1dITUTT35 **)&src->itut_t35,
                               (int *)&src->n_itut_t35, &src->m, 1);
 }
@@ -358,8 +362,6 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
     if (src->frame_hdr_ref) dav1d_ref_inc(src->frame_hdr_ref);
     if (src->seq_hdr_ref) dav1d_ref_inc(src->seq_hdr_ref);
     if (src->m.user_data.ref) dav1d_ref_inc(src->m.user_data.ref);
-    if (src->content_light_ref) dav1d_ref_inc(src->content_light_ref);
-    if (src->mastering_display_ref) dav1d_ref_inc(src->mastering_display_ref);
     *dst = *src;
 }
 
@@ -406,8 +408,6 @@ void dav1d_picture_unref_internal(Dav1dPicture *const p) {
     dav1d_ref_dec(&p->seq_hdr_ref);
     dav1d_ref_dec(&p->frame_hdr_ref);
     dav1d_ref_dec(&p->m.user_data.ref);
-    dav1d_ref_dec(&p->content_light_ref);
-    dav1d_ref_dec(&p->mastering_display_ref);
     memset(p, 0, sizeof(*p));
     dav1d_data_props_set_defaults(&p->m);
 }
