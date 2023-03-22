@@ -113,8 +113,8 @@ struct Dav1dContext {
     Dav1dContentLightLevel *content_light;
     Dav1dRef *mastering_display_ref;
     Dav1dMasteringDisplay *mastering_display;
-    Dav1dRef *itut_t35_ref;
     Dav1dITUTT35 *itut_t35;
+    int n_itut_t35;
 
     // decoded output picture queue
     Dav1dData in;

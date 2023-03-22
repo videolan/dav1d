@@ -1493,22 +1493,24 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                 break;
             }
 
-            Dav1dRef *ref = dav1d_ref_create(sizeof(Dav1dITUTT35) + payload_size * sizeof(uint8_t));
-            if (!ref) return DAV1D_ERR(ENOMEM);
-            Dav1dITUTT35 *const itut_t35_metadata = ref->data;
+            if ((c->n_itut_t35 + 1) > INT_MAX / (int)sizeof(*c->itut_t35)) goto error;
+            struct Dav1dITUTT35 *itut_t35 = realloc(c->itut_t35, (c->n_itut_t35 + 1) * sizeof(*c->itut_t35));
+            if (!itut_t35) goto error;
+            c->itut_t35 = itut_t35;
+            memset(c->itut_t35 + c->n_itut_t35, 0, sizeof(*c->itut_t35));
 
-            // We need our public headers to be C++ compatible, so payload can't be
-            // a flexible array member
-            itut_t35_metadata->payload = (uint8_t *) &itut_t35_metadata[1];
+            Dav1dITUTT35 *const itut_t35_metadata = &c->itut_t35[c->n_itut_t35];
+            itut_t35_metadata->ref = dav1d_ref_create(payload_size * sizeof(uint8_t));
+            if (!itut_t35_metadata->ref) return DAV1D_ERR(ENOMEM);
+
+            itut_t35_metadata->payload = itut_t35_metadata->ref->data;
             itut_t35_metadata->country_code = country_code;
             itut_t35_metadata->country_code_extension_byte = country_code_extension_byte;
             for (int i = 0; i < payload_size; i++)
                 itut_t35_metadata->payload[i] = dav1d_get_bits(&gb, 8);
             itut_t35_metadata->payload_size = payload_size;
 
-            dav1d_ref_dec(&c->itut_t35_ref);
-            c->itut_t35 = itut_t35_metadata;
-            c->itut_t35_ref = ref;
+            c->n_itut_t35++;
             break;
         }
         case OBU_META_SCALABILITY:
@@ -1560,14 +1562,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
             if (c->n_fc == 1) {
                 dav1d_thread_picture_ref(&c->out,
                                          &c->refs[c->frame_hdr->existing_frame_idx].p);
-                dav1d_picture_copy_props(&c->out.p,
+                dav1d_picture_move_props(&c->out.p,
                                          c->content_light, c->content_light_ref,
                                          c->mastering_display, c->mastering_display_ref,
-                                         c->itut_t35, c->itut_t35_ref,
+                                         &c->itut_t35, &c->n_itut_t35,
                                          &in->m);
-                // Must be removed from the context after being attached to the frame
-                dav1d_ref_dec(&c->itut_t35_ref);
-                c->itut_t35 = NULL;
                 c->event_flags |= dav1d_picture_get_event_flags(&c->refs[c->frame_hdr->existing_frame_idx].p);
             } else {
                 pthread_mutex_lock(&c->task_thread.lock);
@@ -1613,15 +1612,11 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                 dav1d_thread_picture_ref(out_delayed,
                                          &c->refs[c->frame_hdr->existing_frame_idx].p);
                 out_delayed->visible = 1;
-                dav1d_picture_copy_props(&out_delayed->p,
+                dav1d_picture_move_props(&out_delayed->p,
                                          c->content_light, c->content_light_ref,
                                          c->mastering_display, c->mastering_display_ref,
-                                         c->itut_t35, c->itut_t35_ref,
+                                         &c->itut_t35, &c->n_itut_t35,
                                          &in->m);
-                // Must be removed from the context after being attached to the frame
-                dav1d_ref_dec(&c->itut_t35_ref);
-                c->itut_t35 = NULL;
-
                 pthread_mutex_unlock(&c->task_thread.lock);
             }
             if (c->refs[c->frame_hdr->existing_frame_idx].p.p.frame_hdr->frame_type == DAV1D_FRAME_TYPE_KEY) {

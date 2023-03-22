@@ -198,6 +198,7 @@ typedef struct Dav1dITUTT35 {
     uint8_t  country_code_extension_byte;
     size_t   payload_size;
     uint8_t *payload;
+    struct Dav1dRef *ref; ///< allocation origin
 } Dav1dITUTT35;
 
 typedef struct Dav1dSequenceHeader {
