@@ -171,21 +171,16 @@ build-debian-no-tools:
                             -Denable_tools=false
         - ninja -C build
 
-build-debian-bitdepth-8:
+build-debian-bitdepth:
     extends: .debian-amd64-common
     script:
         - meson setup build --buildtype release
                             --werror
-                            -Dbitdepths=8
+                            -Dbitdepths=$DEPTH
         - ninja -C build
-
-build-debian-bitdepth-16:
-    extends: .debian-amd64-common
-    script:
-        - meson setup build --buildtype release
-                            --werror
-                            -Dbitdepths=16
-        - ninja -C build
+    parallel:
+      matrix:
+        - DEPTH: [8, 16]
 
 build-debian-avx:
     extends: .debian-amd64-common
@@ -237,7 +232,7 @@ build-debian-clang14:
         - ninja -C build
         - cd build && meson test -v
 
-build-win32:
+build-win:
     extends: .debian-amd64-common
     script:
         - wineserver -p && wine wineboot
@@ -245,18 +240,21 @@ build-win32:
                             --werror
                             --libdir lib
                             --prefix "$(pwd)/build/dav1d_install"
-                            --cross-file package/crossfiles/i686-w64-mingw32.meson
+                            --cross-file package/crossfiles/${CROSSFILE}.meson
                             -Ddefault_library=both
                             -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
         - cd build && meson test -v
-        - i686-w64-mingw32-nm -A -g src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
+        - ${CROSSFILE}-nm -A -g src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
             - build/dav1d_install/
         expire_in: 1 week
+    parallel:
+      matrix:
+        - CROSSFILE: [i686-w64-mingw32, x86_64-w64-mingw32]
 
 build-win32-unaligned-stack:
     extends: .debian-llvm-mingw-common
@@ -270,58 +268,27 @@ build-win32-unaligned-stack:
         - ninja -C build
         - cd build && meson test -v
 
-build-win64:
-    extends: .debian-amd64-common
-    script:
-        - wineserver -p && wine wineboot
-        - meson setup build --buildtype release
-                            --werror
-                            --libdir lib
-                            --prefix "$(pwd)/build/dav1d_install"
-                            --cross-file package/crossfiles/x86_64-w64-mingw32.meson
-                            -Ddefault_library=both
-                            -Dtrim_dsp=false
-        - ninja -C build
-        - ninja -C build install
-        - cd build && meson test -v
-        - x86_64-w64-mingw32-nm -A -g src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
-    artifacts:
-        name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-        paths:
-            - build/dav1d_install/
-        expire_in: 1 week
-
-build-win-arm32:
+build-win-arm:
     extends: .debian-llvm-mingw-common
     script:
         - meson setup build --buildtype release
                             --werror
                             --libdir lib
                             --prefix "$(pwd)/build/dav1d_install"
-                            --cross-file /opt/crossfiles/armv7-w64-mingw32.meson
-                            -Ddefault_library=both
-                            -Dtrim_dsp=false
-        - ninja -C build
-        - armv7-w64-mingw32-nm -A -g build/src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
-
-build-win-arm64:
-    extends: .debian-llvm-mingw-common
-    script:
-        - meson setup build --buildtype release
-                            --werror
-                            --libdir lib
-                            --prefix "$(pwd)/build/dav1d_install"
-                            --cross-file /opt/crossfiles/aarch64-w64-mingw32.meson
+                            --cross-file /opt/crossfiles/${CROSSFILE}.meson
                             -Ddefault_library=both
                             -Dtrim_dsp=false
         - ninja -C build
         - ninja -C build install
-        - aarch64-w64-mingw32-nm -A -g build/src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
+        - ${CROSSFILE}-nm -A -g build/src/libdav1d.a | grep " [ABCDGRST] " | (! grep -E -v " \.| _*dav1d_")
     artifacts:
         name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
         paths:
             - build/dav1d_install/
         expire_in: 1 week
+    parallel:
+      matrix:
+        - CROSSFILE: [armv7-w64-mingw32, aarch64-w64-mingw32]
 
 .build-android-common:
     extends: .android-common
@@ -653,7 +620,7 @@ test-win64:
     extends:
         - .debian-amd64-common
         - .test-common
-    needs: ["build-win64"]
+    needs: ["build-win: [x86_64-w64-mingw32]"]
     tags:
         - docker
         - avx2
