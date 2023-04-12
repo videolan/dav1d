@@ -11,5 +11,5 @@ needs_exe_wrapper = true
 [host_machine]
 system = 'android'
 cpu_family = 'aarch64'
-endian = 'little'
 cpu = 'aarch64'
+endian = 'little'
