@@ -78,11 +78,16 @@ typedef struct Dav1dPicture {
      */
     Dav1dMasteringDisplay *mastering_display;
     /**
-     * ITU-T T.35 metadata as defined in section 5.8.2 and 6.7.2
+     * Array of ITU-T T.35 metadata as defined in section 5.8.2 and 6.7.2
      */
     Dav1dITUTT35 *itut_t35;
 
-    uintptr_t reserved[4]; ///< reserved for future use
+    /**
+     * Number of ITU-T T35 metadata entries in the array
+     */
+    size_t n_itut_t35;
+
+    uintptr_t reserved[3]; ///< reserved for future use
 
     struct Dav1dRef *frame_hdr_ref; ///< Dav1dFrameHeader allocation origin
     struct Dav1dRef *seq_hdr_ref; ///< Dav1dSequenceHeader allocation origin

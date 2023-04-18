@@ -592,6 +592,7 @@ void dav1d_flush(Dav1dContext *const c) {
     c->mastering_display = NULL;
     c->content_light = NULL;
     c->itut_t35 = NULL;
+    c->n_itut_t35 = 0;
     dav1d_ref_dec(&c->mastering_display_ref);
     dav1d_ref_dec(&c->content_light_ref);
     dav1d_ref_dec(&c->itut_t35_ref);
