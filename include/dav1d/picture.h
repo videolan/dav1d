@@ -34,6 +34,10 @@
 #include "common.h"
 #include "headers.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Number of bytes to align AND pad picture memory buffers by, so that SIMD
  * implementations can over-read by a few bytes, and use aligned read/write
  * instructions. */
@@ -145,5 +149,9 @@ typedef struct Dav1dPicAllocator {
  * Release reference to a picture.
  */
 DAV1D_API void dav1d_picture_unref(Dav1dPicture *p);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* DAV1D_PICTURE_H */
