@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018-2023, VideoLAN and dav1d authors
+ * Copyright © 2018-2023, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,8 @@
 #ifndef DAV1D_SRC_INTRA_EDGE_H
 #define DAV1D_SRC_INTRA_EDGE_H
 
+#include <stdint.h>
+
 enum EdgeFlags {
     EDGE_I444_TOP_HAS_RIGHT = 1 << 0,
     EDGE_I422_TOP_HAS_RIGHT = 1 << 1,
@@ -37,17 +39,18 @@ enum EdgeFlags {
     EDGE_I420_LEFT_HAS_BOTTOM = 1 << 5,
 };
 
-typedef struct EdgeNode EdgeNode;
-struct EdgeNode {
-    enum EdgeFlags o, h[2], v[2];
-};
+typedef struct EdgeNode {
+    uint8_t /* enum EdgeFlags */ o, h[2], v[2];
+} EdgeNode;
+
 typedef struct EdgeTip {
     EdgeNode node;
-    enum EdgeFlags split[4];
+    uint8_t /* enum EdgeFlags */ split[4];
 } EdgeTip;
+
 typedef struct EdgeBranch {
     EdgeNode node;
-    enum EdgeFlags tts[3], tbs[3], tls[3], trs[3], h4[4], v4[4];
+    uint8_t /* enum EdgeFlags */ tts[3], tbs[3], tls[3], trs[3], h4[4], v4[4];
     EdgeNode *split[4];
 } EdgeBranch;
 
