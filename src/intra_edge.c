@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2018-2023, VideoLAN and dav1d authors
+ * Copyright © 2018-2023, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,9 +39,18 @@ struct ModeSelMem {
     EdgeTip *nt;
 };
 
-static void init_edges(EdgeNode *const node,
-                       const enum BlockLevel bl,
-                       const enum EdgeFlags edge_flags)
+static EdgeBranch branch_sb128[1 + 4 + 16 + 64];
+static EdgeBranch branch_sb64[1 + 4 + 16];
+static EdgeTip tip_sb128[256];
+static EdgeTip tip_sb64[64];
+
+const EdgeNode *dav1d_intra_edge_tree[2] = {
+    (EdgeNode*)branch_sb128, (EdgeNode*)branch_sb64
+};
+
+static COLD void init_edges(EdgeNode *const node,
+                            const enum BlockLevel bl,
+                            const enum EdgeFlags edge_flags)
 {
     node->o = edge_flags;
 
@@ -107,11 +116,11 @@ static void init_edges(EdgeNode *const node,
     }
 }
 
-static void init_mode_node(EdgeBranch *const nwc,
-                           const enum BlockLevel bl,
-                           struct ModeSelMem *const mem,
-                           const int top_has_right,
-                           const int left_has_bottom)
+static COLD void init_mode_node(EdgeBranch *const nwc,
+                               const enum BlockLevel bl,
+                               struct ModeSelMem *const mem,
+                               const int top_has_right,
+                               const int left_has_bottom)
 {
     init_edges(&nwc->node, bl,
                (top_has_right ? ALL_FL(TOP_HAS_RIGHT) : 0) |
@@ -137,29 +146,26 @@ static void init_mode_node(EdgeBranch *const nwc,
     }
 }
 
-void dav1d_init_mode_tree(EdgeNode *const root_node, EdgeTip *const nt,
-                          const int allow_sb128)
-{
-    EdgeBranch *const root = (EdgeBranch *) root_node;
+COLD void dav1d_init_intra_edge_tree(void) {
+    // This function is guaranteed to be called only once
     struct ModeSelMem mem;
-    mem.nt = nt;
 
-    if (allow_sb128) {
-        mem.nwc[BL_128X128] = &root[1];
-        mem.nwc[BL_64X64] = &root[1 + 4];
-        mem.nwc[BL_32X32] = &root[1 + 4 + 16];
-        init_mode_node(root, BL_128X128, &mem, 1, 0);
-        assert(mem.nwc[BL_128X128] == &root[1 + 4]);
-        assert(mem.nwc[BL_64X64] == &root[1 + 4 + 16]);
-        assert(mem.nwc[BL_32X32] == &root[1 + 4 + 16 + 64]);
-        assert(mem.nt == &nt[256]);
-    } else {
-        mem.nwc[BL_128X128] = NULL;
-        mem.nwc[BL_64X64] = &root[1];
-        mem.nwc[BL_32X32] = &root[1 + 4];
-        init_mode_node(root, BL_64X64, &mem, 1, 0);
-        assert(mem.nwc[BL_64X64] == &root[1 + 4]);
-        assert(mem.nwc[BL_32X32] == &root[1 + 4 + 16]);
-        assert(mem.nt == &nt[64]);
-    }
+    mem.nwc[BL_128X128] = &branch_sb128[1];
+    mem.nwc[BL_64X64] = &branch_sb128[1 + 4];
+    mem.nwc[BL_32X32] = &branch_sb128[1 + 4 + 16];
+    mem.nt = tip_sb128;
+    init_mode_node(branch_sb128, BL_128X128, &mem, 1, 0);
+    assert(mem.nwc[BL_128X128] == &branch_sb128[1 + 4]);
+    assert(mem.nwc[BL_64X64] == &branch_sb128[1 + 4 + 16]);
+    assert(mem.nwc[BL_32X32] == &branch_sb128[1 + 4 + 16 + 64]);
+    assert(mem.nt == &tip_sb128[256]);
+
+    mem.nwc[BL_128X128] = NULL;
+    mem.nwc[BL_64X64] = &branch_sb64[1];
+    mem.nwc[BL_32X32] = &branch_sb64[1 + 4];
+    mem.nt = tip_sb64;
+    init_mode_node(branch_sb64, BL_64X64, &mem, 1, 0);
+    assert(mem.nwc[BL_64X64] == &branch_sb64[1 + 4]);
+    assert(mem.nwc[BL_32X32] == &branch_sb64[1 + 4 + 16]);
+    assert(mem.nt == &tip_sb64[64]);
 }

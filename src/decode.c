@@ -2816,7 +2816,7 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
         {
             if (atomic_load_explicit(c->flush, memory_order_acquire))
                 return 1;
-            if (decode_sb(t, root_bl, c->intra_edge.root[root_bl]))
+            if (decode_sb(t, root_bl, dav1d_intra_edge_tree[root_bl]))
                 return 1;
             if (t->bx & 16 || f->seq_hdr->sb128)
                 t->a++;
@@ -2905,7 +2905,7 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
                 read_restoration_info(t, lr, p, frame_type);
             }
         }
-        if (decode_sb(t, root_bl, c->intra_edge.root[root_bl]))
+        if (decode_sb(t, root_bl, dav1d_intra_edge_tree[root_bl]))
             return 1;
         if (t->bx & 16 || f->seq_hdr->sb128) {
             t->a++;

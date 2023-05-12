@@ -53,6 +53,7 @@
 static COLD void init_internal(void) {
     dav1d_init_cpu();
     dav1d_init_interintra_masks();
+    dav1d_init_intra_edge_tree();
     dav1d_init_qm_tables();
     dav1d_init_thread();
     dav1d_init_wedge_masks();
@@ -278,12 +279,6 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         }
     }
     dav1d_refmvs_dsp_init(&c->refmvs_dsp);
-
-    // intra edge tree
-    c->intra_edge.root[BL_128X128] = &c->intra_edge.branch_sb128[0].node;
-    dav1d_init_mode_tree(c->intra_edge.root[BL_128X128], c->intra_edge.tip_sb128, 1);
-    c->intra_edge.root[BL_64X64] = &c->intra_edge.branch_sb64[0].node;
-    dav1d_init_mode_tree(c->intra_edge.root[BL_64X64], c->intra_edge.tip_sb64, 0);
 
     pthread_attr_destroy(&thread_attr);
 
