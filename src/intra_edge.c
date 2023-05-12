@@ -53,66 +53,37 @@ static COLD void init_edges(EdgeNode *const node,
                             const enum EdgeFlags edge_flags)
 {
     node->o = edge_flags;
+    node->h[0] = edge_flags | EDGE_ALL_LEFT_HAS_BOTTOM;
+    node->v[0] = edge_flags | EDGE_ALL_TOP_HAS_RIGHT;
 
-#define ALL_FL(t) (EDGE_I444_##t | EDGE_I422_##t | EDGE_I420_##t)
     if (bl == BL_8X8) {
         EdgeTip *const nt = (EdgeTip *) node;
 
-        node->h[0] = edge_flags | ALL_FL(LEFT_HAS_BOTTOM);
-        node->h[1] = edge_flags & (ALL_FL(LEFT_HAS_BOTTOM) |
+        node->h[1] = edge_flags & (EDGE_ALL_LEFT_HAS_BOTTOM |
                                    EDGE_I420_TOP_HAS_RIGHT);
-
-        node->v[0] = edge_flags | ALL_FL(TOP_HAS_RIGHT);
-        node->v[1] = edge_flags & (ALL_FL(TOP_HAS_RIGHT) |
+        node->v[1] = edge_flags & (EDGE_ALL_TOP_HAS_RIGHT |
                                    EDGE_I420_LEFT_HAS_BOTTOM |
                                    EDGE_I422_LEFT_HAS_BOTTOM);
 
-        nt->split[0] = ALL_FL(TOP_HAS_RIGHT) | ALL_FL(LEFT_HAS_BOTTOM);
-        nt->split[1] = (edge_flags & ALL_FL(TOP_HAS_RIGHT)) |
+        nt->split[0] = (edge_flags & EDGE_ALL_TOP_HAS_RIGHT) |
                        EDGE_I422_LEFT_HAS_BOTTOM;
-        nt->split[2] = edge_flags | EDGE_I444_TOP_HAS_RIGHT;
-        nt->split[3] = edge_flags & (EDGE_I420_TOP_HAS_RIGHT |
+        nt->split[1] = edge_flags | EDGE_I444_TOP_HAS_RIGHT;
+        nt->split[2] = edge_flags & (EDGE_I420_TOP_HAS_RIGHT |
                                      EDGE_I420_LEFT_HAS_BOTTOM |
                                      EDGE_I422_LEFT_HAS_BOTTOM);
     } else {
         EdgeBranch *const nwc = (EdgeBranch *) node;
 
-        node->h[0] = edge_flags | ALL_FL(LEFT_HAS_BOTTOM);
-        node->h[1] = edge_flags & ALL_FL(LEFT_HAS_BOTTOM);
+        node->h[1] = edge_flags & EDGE_ALL_LEFT_HAS_BOTTOM;
+        node->v[1] = edge_flags & EDGE_ALL_TOP_HAS_RIGHT;
 
-        node->v[0] = edge_flags | ALL_FL(TOP_HAS_RIGHT);
-        node->v[1] = edge_flags & ALL_FL(TOP_HAS_RIGHT);
-
-        nwc->h4[0] = edge_flags | ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->h4[1] =
-        nwc->h4[2] = ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->h4[3] = edge_flags & ALL_FL(LEFT_HAS_BOTTOM);
-        if (bl == BL_16X16)
-            nwc->h4[1] |= edge_flags & EDGE_I420_TOP_HAS_RIGHT;
-
-        nwc->v4[0] = edge_flags | ALL_FL(TOP_HAS_RIGHT);
-        nwc->v4[1] =
-        nwc->v4[2] = ALL_FL(TOP_HAS_RIGHT);
-        nwc->v4[3] = edge_flags & ALL_FL(TOP_HAS_RIGHT);
-        if (bl == BL_16X16)
-            nwc->v4[1] |= edge_flags & (EDGE_I420_LEFT_HAS_BOTTOM |
-                                        EDGE_I422_LEFT_HAS_BOTTOM);
-
-        nwc->tls[0] = ALL_FL(TOP_HAS_RIGHT) | ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->tls[1] = edge_flags & ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->tls[2] = edge_flags & ALL_FL(TOP_HAS_RIGHT);
-
-        nwc->trs[0] = edge_flags | ALL_FL(TOP_HAS_RIGHT);
-        nwc->trs[1] = edge_flags | ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->trs[2] = 0;
-
-        nwc->tts[0] = ALL_FL(TOP_HAS_RIGHT) | ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->tts[1] = edge_flags & ALL_FL(TOP_HAS_RIGHT);
-        nwc->tts[2] = edge_flags & ALL_FL(LEFT_HAS_BOTTOM);
-
-        nwc->tbs[0] = edge_flags | ALL_FL(LEFT_HAS_BOTTOM);
-        nwc->tbs[1] = edge_flags | ALL_FL(TOP_HAS_RIGHT);
-        nwc->tbs[2] = 0;
+        nwc->h4 = EDGE_ALL_LEFT_HAS_BOTTOM;
+        nwc->v4 = EDGE_ALL_TOP_HAS_RIGHT;
+        if (bl == BL_16X16) {
+            nwc->h4 |= edge_flags & EDGE_I420_TOP_HAS_RIGHT;
+            nwc->v4 |= edge_flags & (EDGE_I420_LEFT_HAS_BOTTOM |
+                                     EDGE_I422_LEFT_HAS_BOTTOM);
+        }
     }
 }
 
@@ -123,17 +94,17 @@ static COLD void init_mode_node(EdgeBranch *const nwc,
                                const int left_has_bottom)
 {
     init_edges(&nwc->node, bl,
-               (top_has_right ? ALL_FL(TOP_HAS_RIGHT) : 0) |
-               (left_has_bottom ? ALL_FL(LEFT_HAS_BOTTOM) : 0));
+               (top_has_right ? EDGE_ALL_TOP_HAS_RIGHT : 0) |
+               (left_has_bottom ? EDGE_ALL_LEFT_HAS_BOTTOM : 0));
     if (bl == BL_16X16) {
         for (int n = 0; n < 4; n++) {
             EdgeTip *const nt = mem->nt++;
             nwc->split[n] = &nt->node;
             init_edges(&nt->node, bl + 1,
                        ((n == 3 || (n == 1 && !top_has_right)) ? 0 :
-                        ALL_FL(TOP_HAS_RIGHT)) |
+                        EDGE_ALL_TOP_HAS_RIGHT) |
                        (!(n == 0 || (n == 2 && left_has_bottom)) ? 0 :
-                        ALL_FL(LEFT_HAS_BOTTOM)));
+                        EDGE_ALL_LEFT_HAS_BOTTOM));
         }
     } else {
         for (int n = 0; n < 4; n++) {

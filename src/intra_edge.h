@@ -31,12 +31,20 @@
 #include <stdint.h>
 
 enum EdgeFlags {
-    EDGE_I444_TOP_HAS_RIGHT = 1 << 0,
-    EDGE_I422_TOP_HAS_RIGHT = 1 << 1,
-    EDGE_I420_TOP_HAS_RIGHT = 1 << 2,
+    EDGE_I444_TOP_HAS_RIGHT   = 1 << 0,
+    EDGE_I422_TOP_HAS_RIGHT   = 1 << 1,
+    EDGE_I420_TOP_HAS_RIGHT   = 1 << 2,
     EDGE_I444_LEFT_HAS_BOTTOM = 1 << 3,
     EDGE_I422_LEFT_HAS_BOTTOM = 1 << 4,
     EDGE_I420_LEFT_HAS_BOTTOM = 1 << 5,
+    EDGE_ALL_TOP_HAS_RIGHT    = EDGE_I444_TOP_HAS_RIGHT |
+                                EDGE_I422_TOP_HAS_RIGHT |
+                                EDGE_I420_TOP_HAS_RIGHT,
+    EDGE_ALL_LEFT_HAS_BOTTOM  = EDGE_I444_LEFT_HAS_BOTTOM |
+                                EDGE_I422_LEFT_HAS_BOTTOM |
+                                EDGE_I420_LEFT_HAS_BOTTOM,
+    EDGE_ALL_TR_AND_BL        = EDGE_ALL_TOP_HAS_RIGHT |
+                                EDGE_ALL_LEFT_HAS_BOTTOM,
 };
 
 typedef struct EdgeNode {
@@ -45,12 +53,12 @@ typedef struct EdgeNode {
 
 typedef struct EdgeTip {
     EdgeNode node;
-    uint8_t /* enum EdgeFlags */ split[4];
+    uint8_t /* enum EdgeFlags */ split[3];
 } EdgeTip;
 
 typedef struct EdgeBranch {
     EdgeNode node;
-    uint8_t /* enum EdgeFlags */ tts[3], tbs[3], tls[3], trs[3], h4[4], v4[4];
+    uint8_t /* enum EdgeFlags */ h4, v4;
     const EdgeNode *split[4];
 } EdgeBranch;
 

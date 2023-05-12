@@ -2390,19 +2390,19 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             if (bl == BL_8X8) {
                 const EdgeTip *const tip = (const EdgeTip *) node;
                 assert(hsz == 1);
-                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[0]))
+                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, EDGE_ALL_TR_AND_BL))
                     return -1;
                 const enum Filter2d tl_filter = t->tl_4x4_filter;
                 t->bx++;
-                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[1]))
+                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[0]))
                     return -1;
                 t->bx--;
                 t->by++;
-                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[2]))
+                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[1]))
                     return -1;
                 t->bx++;
                 t->tl_4x4_filter = tl_filter;
-                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[3]))
+                if (decode_b(t, bl, BS_4x4, PARTITION_SPLIT, tip->split[2]))
                     return -1;
                 t->bx--;
                 t->by--;
@@ -2435,56 +2435,52 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
             }
             break;
         case PARTITION_T_TOP_SPLIT: {
-            const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_T_TOP_SPLIT, branch->tts[0]))
+            if (decode_b(t, bl, b[0], PARTITION_T_TOP_SPLIT, EDGE_ALL_TR_AND_BL))
                 return -1;
             t->bx += hsz;
-            if (decode_b(t, bl, b[0], PARTITION_T_TOP_SPLIT, branch->tts[1]))
+            if (decode_b(t, bl, b[0], PARTITION_T_TOP_SPLIT, node->v[1]))
                 return -1;
             t->bx -= hsz;
             t->by += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_TOP_SPLIT, branch->tts[2]))
+            if (decode_b(t, bl, b[1], PARTITION_T_TOP_SPLIT, node->h[1]))
                 return -1;
             t->by -= hsz;
             break;
         }
         case PARTITION_T_BOTTOM_SPLIT: {
-            const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_T_BOTTOM_SPLIT, branch->tbs[0]))
+            if (decode_b(t, bl, b[0], PARTITION_T_BOTTOM_SPLIT, node->h[0]))
                 return -1;
             t->by += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_BOTTOM_SPLIT, branch->tbs[1]))
+            if (decode_b(t, bl, b[1], PARTITION_T_BOTTOM_SPLIT, node->v[0]))
                 return -1;
             t->bx += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_BOTTOM_SPLIT, branch->tbs[2]))
+            if (decode_b(t, bl, b[1], PARTITION_T_BOTTOM_SPLIT, 0))
                 return -1;
             t->bx -= hsz;
             t->by -= hsz;
             break;
         }
         case PARTITION_T_LEFT_SPLIT: {
-            const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_T_LEFT_SPLIT, branch->tls[0]))
+            if (decode_b(t, bl, b[0], PARTITION_T_LEFT_SPLIT, EDGE_ALL_TR_AND_BL))
                 return -1;
             t->by += hsz;
-            if (decode_b(t, bl, b[0], PARTITION_T_LEFT_SPLIT, branch->tls[1]))
+            if (decode_b(t, bl, b[0], PARTITION_T_LEFT_SPLIT, node->h[1]))
                 return -1;
             t->by -= hsz;
             t->bx += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_LEFT_SPLIT, branch->tls[2]))
+            if (decode_b(t, bl, b[1], PARTITION_T_LEFT_SPLIT, node->v[1]))
                 return -1;
             t->bx -= hsz;
             break;
         }
         case PARTITION_T_RIGHT_SPLIT: {
-            const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_T_RIGHT_SPLIT, branch->trs[0]))
+            if (decode_b(t, bl, b[0], PARTITION_T_RIGHT_SPLIT, node->v[0]))
                 return -1;
             t->bx += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_RIGHT_SPLIT, branch->trs[1]))
+            if (decode_b(t, bl, b[1], PARTITION_T_RIGHT_SPLIT, node->h[0]))
                 return -1;
             t->by += hsz;
-            if (decode_b(t, bl, b[1], PARTITION_T_RIGHT_SPLIT, branch->trs[2]))
+            if (decode_b(t, bl, b[1], PARTITION_T_RIGHT_SPLIT, 0))
                 return -1;
             t->by -= hsz;
             t->bx -= hsz;
@@ -2492,34 +2488,34 @@ static int decode_sb(Dav1dTaskContext *const t, const enum BlockLevel bl,
         }
         case PARTITION_H4: {
             const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_H4, branch->h4[0]))
+            if (decode_b(t, bl, b[0], PARTITION_H4, node->h[0]))
                 return -1;
             t->by += hsz >> 1;
-            if (decode_b(t, bl, b[0], PARTITION_H4, branch->h4[1]))
+            if (decode_b(t, bl, b[0], PARTITION_H4, branch->h4))
                 return -1;
             t->by += hsz >> 1;
-            if (decode_b(t, bl, b[0], PARTITION_H4, branch->h4[2]))
+            if (decode_b(t, bl, b[0], PARTITION_H4, EDGE_ALL_LEFT_HAS_BOTTOM))
                 return -1;
             t->by += hsz >> 1;
             if (t->by < f->bh)
-                if (decode_b(t, bl, b[0], PARTITION_H4, branch->h4[3]))
+                if (decode_b(t, bl, b[0], PARTITION_H4, node->h[1]))
                     return -1;
             t->by -= hsz * 3 >> 1;
             break;
         }
         case PARTITION_V4: {
             const EdgeBranch *const branch = (const EdgeBranch *) node;
-            if (decode_b(t, bl, b[0], PARTITION_V4, branch->v4[0]))
+            if (decode_b(t, bl, b[0], PARTITION_V4, node->v[0]))
                 return -1;
             t->bx += hsz >> 1;
-            if (decode_b(t, bl, b[0], PARTITION_V4, branch->v4[1]))
+            if (decode_b(t, bl, b[0], PARTITION_V4, branch->v4))
                 return -1;
             t->bx += hsz >> 1;
-            if (decode_b(t, bl, b[0], PARTITION_V4, branch->v4[2]))
+            if (decode_b(t, bl, b[0], PARTITION_V4, EDGE_ALL_TOP_HAS_RIGHT))
                 return -1;
             t->bx += hsz >> 1;
             if (t->bx < f->bw)
-                if (decode_b(t, bl, b[0], PARTITION_V4, branch->v4[3]))
+                if (decode_b(t, bl, b[0], PARTITION_V4, node->v[1]))
                     return -1;
             t->bx -= hsz * 3 >> 1;
             break;
