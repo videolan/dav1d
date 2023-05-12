@@ -39,13 +39,17 @@ struct ModeSelMem {
     EdgeTip *nt;
 };
 
-static EdgeBranch branch_sb128[1 + 4 + 16 + 64];
-static EdgeBranch branch_sb64[1 + 4 + 16];
-static EdgeTip tip_sb128[256];
-static EdgeTip tip_sb64[64];
+/* Because we're using 16-bit offsets to refer to other nodes those arrays
+ * are placed in a struct to ensure they're consecutive in memory. */
+static struct {
+    EdgeBranch branch_sb128[1 + 4 + 16 + 64];
+    EdgeTip tip_sb128[256];
+    EdgeBranch branch_sb64[1 + 4 + 16];
+    EdgeTip tip_sb64[64];
+} ALIGN(nodes, 16);
 
 const EdgeNode *dav1d_intra_edge_tree[2] = {
-    (EdgeNode*)branch_sb128, (EdgeNode*)branch_sb64
+    (EdgeNode*)nodes.branch_sb128, (EdgeNode*)nodes.branch_sb64
 };
 
 static COLD void init_edges(EdgeNode *const node,
@@ -87,6 +91,8 @@ static COLD void init_edges(EdgeNode *const node,
     }
 }
 
+#define PTR_OFFSET(a, b) ((uint16_t)((uintptr_t)(b) - (uintptr_t)(a)))
+
 static COLD void init_mode_node(EdgeBranch *const nwc,
                                const enum BlockLevel bl,
                                struct ModeSelMem *const mem,
@@ -99,7 +105,7 @@ static COLD void init_mode_node(EdgeBranch *const nwc,
     if (bl == BL_16X16) {
         for (int n = 0; n < 4; n++) {
             EdgeTip *const nt = mem->nt++;
-            nwc->split[n] = &nt->node;
+            nwc->split_offset[n] = PTR_OFFSET(nwc, nt);
             init_edges(&nt->node, bl + 1,
                        ((n == 3 || (n == 1 && !top_has_right)) ? 0 :
                         EDGE_ALL_TOP_HAS_RIGHT) |
@@ -109,7 +115,7 @@ static COLD void init_mode_node(EdgeBranch *const nwc,
     } else {
         for (int n = 0; n < 4; n++) {
             EdgeBranch *const nwc_child = mem->nwc[bl]++;
-            nwc->split[n] = &nwc_child->node;
+            nwc->split_offset[n] = PTR_OFFSET(nwc, nwc_child);
             init_mode_node(nwc_child, bl + 1, mem,
                            !(n == 3 || (n == 1 && !top_has_right)),
                            n == 0 || (n == 2 && left_has_bottom));
@@ -121,22 +127,22 @@ COLD void dav1d_init_intra_edge_tree(void) {
     // This function is guaranteed to be called only once
     struct ModeSelMem mem;
 
-    mem.nwc[BL_128X128] = &branch_sb128[1];
-    mem.nwc[BL_64X64] = &branch_sb128[1 + 4];
-    mem.nwc[BL_32X32] = &branch_sb128[1 + 4 + 16];
-    mem.nt = tip_sb128;
-    init_mode_node(branch_sb128, BL_128X128, &mem, 1, 0);
-    assert(mem.nwc[BL_128X128] == &branch_sb128[1 + 4]);
-    assert(mem.nwc[BL_64X64] == &branch_sb128[1 + 4 + 16]);
-    assert(mem.nwc[BL_32X32] == &branch_sb128[1 + 4 + 16 + 64]);
-    assert(mem.nt == &tip_sb128[256]);
+    mem.nwc[BL_128X128] = &nodes.branch_sb128[1];
+    mem.nwc[BL_64X64] = &nodes.branch_sb128[1 + 4];
+    mem.nwc[BL_32X32] = &nodes.branch_sb128[1 + 4 + 16];
+    mem.nt = nodes.tip_sb128;
+    init_mode_node(nodes.branch_sb128, BL_128X128, &mem, 1, 0);
+    assert(mem.nwc[BL_128X128] == &nodes.branch_sb128[1 + 4]);
+    assert(mem.nwc[BL_64X64] == &nodes.branch_sb128[1 + 4 + 16]);
+    assert(mem.nwc[BL_32X32] == &nodes.branch_sb128[1 + 4 + 16 + 64]);
+    assert(mem.nt == &nodes.tip_sb128[256]);
 
     mem.nwc[BL_128X128] = NULL;
-    mem.nwc[BL_64X64] = &branch_sb64[1];
-    mem.nwc[BL_32X32] = &branch_sb64[1 + 4];
-    mem.nt = tip_sb64;
-    init_mode_node(branch_sb64, BL_64X64, &mem, 1, 0);
-    assert(mem.nwc[BL_64X64] == &branch_sb64[1 + 4]);
-    assert(mem.nwc[BL_32X32] == &branch_sb64[1 + 4 + 16]);
-    assert(mem.nt == &tip_sb64[64]);
+    mem.nwc[BL_64X64] = &nodes.branch_sb64[1];
+    mem.nwc[BL_32X32] = &nodes.branch_sb64[1 + 4];
+    mem.nt = nodes.tip_sb64;
+    init_mode_node(nodes.branch_sb64, BL_64X64, &mem, 1, 0);
+    assert(mem.nwc[BL_64X64] == &nodes.branch_sb64[1 + 4]);
+    assert(mem.nwc[BL_32X32] == &nodes.branch_sb64[1 + 4 + 16]);
+    assert(mem.nt == &nodes.tip_sb64[64]);
 }

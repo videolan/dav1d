@@ -47,6 +47,9 @@ enum EdgeFlags {
                                 EDGE_ALL_LEFT_HAS_BOTTOM,
 };
 
+#define INTRA_EDGE_SPLIT(n, i) \
+    ((const EdgeNode*)((uintptr_t)(n) + ((const EdgeBranch*)(n))->split_offset[i]))
+
 typedef struct EdgeNode {
     uint8_t /* enum EdgeFlags */ o, h[2], v[2];
 } EdgeNode;
@@ -59,7 +62,7 @@ typedef struct EdgeTip {
 typedef struct EdgeBranch {
     EdgeNode node;
     uint8_t /* enum EdgeFlags */ h4, v4;
-    const EdgeNode *split[4];
+    uint16_t split_offset[4]; /* relative to the address of this node */
 } EdgeBranch;
 
 /* Tree to keep track of which edges are available. */
