@@ -63,6 +63,12 @@ COLD const char *dav1d_version(void) {
     return DAV1D_VERSION;
 }
 
+COLD unsigned dav1d_version_api(void) {
+    return (DAV1D_API_VERSION_MAJOR << 16) |
+           (DAV1D_API_VERSION_MINOR <<  8) |
+           (DAV1D_API_VERSION_PATCH <<  0);
+}
+
 COLD void dav1d_default_settings(Dav1dSettings *const s) {
     s->n_threads = 0;
     s->max_frame_delay = 0;

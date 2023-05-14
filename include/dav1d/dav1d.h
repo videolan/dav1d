@@ -104,6 +104,14 @@ typedef struct Dav1dSettings {
 DAV1D_API const char *dav1d_version(void);
 
 /**
+ * Get library API version.
+ *
+ * @return A value in the format 0x00XXYYZZ, where XX is the major version,
+ *         YY the minor version, and ZZ the patch version.
+ */
+DAV1D_API unsigned dav1d_version_api(void);
+
+/**
  * Initialize settings to default values.
  *
  * @param s Input settings context.
