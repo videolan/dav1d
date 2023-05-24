@@ -79,6 +79,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
         if (hdr->timing_info_present) {
             hdr->num_units_in_tick = dav1d_get_bits(gb, 32);
             hdr->time_scale = dav1d_get_bits(gb, 32);
+            if (c->strict_std_compliance && (!hdr->num_units_in_tick || !hdr->time_scale))
+                goto error;
             hdr->equal_picture_interval = dav1d_get_bit(gb);
             if (hdr->equal_picture_interval) {
                 const unsigned num_ticks_per_picture = dav1d_get_vlc(gb);
@@ -91,6 +93,8 @@ static int parse_seq_hdr(Dav1dContext *const c, GetBits *const gb,
             if (hdr->decoder_model_info_present) {
                 hdr->encoder_decoder_buffer_delay_length = dav1d_get_bits(gb, 5) + 1;
                 hdr->num_units_in_decoding_tick = dav1d_get_bits(gb, 32);
+                if (c->strict_std_compliance && !hdr->num_units_in_decoding_tick)
+                    goto error;
                 hdr->buffer_removal_delay_length = dav1d_get_bits(gb, 5) + 1;
                 hdr->frame_presentation_delay_length = dav1d_get_bits(gb, 5) + 1;
             }
