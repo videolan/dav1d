@@ -176,6 +176,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         dav1d_mem_pool_init(&c->frame_hdr_pool) ||
         dav1d_mem_pool_init(&c->segmap_pool) ||
         dav1d_mem_pool_init(&c->refmvs_pool) ||
+        dav1d_mem_pool_init(&c->pic_ctx_pool) ||
         dav1d_mem_pool_init(&c->cdf_pool))
     {
         goto error;
@@ -736,6 +737,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
     dav1d_mem_pool_end(c->refmvs_pool);
     dav1d_mem_pool_end(c->cdf_pool);
     dav1d_mem_pool_end(c->picture_pool);
+    dav1d_mem_pool_end(c->pic_ctx_pool);
 
     dav1d_freep_aligned(c_out);
 }

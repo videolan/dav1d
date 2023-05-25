@@ -196,6 +196,7 @@ struct Dav1dContext {
     Dav1dLogger logger;
 
     Dav1dMemPool *picture_pool;
+    Dav1dMemPool *pic_ctx_pool;
 };
 
 struct Dav1dTask {
