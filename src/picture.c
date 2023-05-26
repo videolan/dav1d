@@ -89,7 +89,8 @@ void dav1d_default_picture_release(Dav1dPicture *const p, void *const cookie) {
 struct pic_ctx_context {
     Dav1dPicAllocator allocator;
     Dav1dPicture pic;
-    void *extra_ptr; /* MUST BE AT THE END */
+    Dav1dRef ref;
+    void *extra_data[];
 };
 
 static void free_buffer(const uint8_t *const data, void *const user_data) {
@@ -149,13 +150,7 @@ static int picture_alloc_with_edges(Dav1dContext *const c,
 
     pic_ctx->allocator = *p_allocator;
     pic_ctx->pic = *p;
-
-    if (!(p->ref = dav1d_ref_wrap((const uint8_t *)buf, free_buffer, c->pic_ctx_pool))) {
-        p_allocator->release_picture_callback(p, p_allocator->cookie);
-        dav1d_mem_pool_push(c->pic_ctx_pool, buf);
-        dav1d_log(c, "Failed to wrap picture: %s\n", strerror(errno));
-        return DAV1D_ERR(ENOMEM);
-    }
+    p->ref = dav1d_ref_init(&pic_ctx->ref, buf, free_buffer, c->pic_ctx_pool, 0);
 
     p->seq_hdr_ref = seq_hdr_ref;
     if (seq_hdr_ref) dav1d_ref_inc(seq_hdr_ref);
@@ -164,7 +159,7 @@ static int picture_alloc_with_edges(Dav1dContext *const c,
     if (frame_hdr_ref) dav1d_ref_inc(frame_hdr_ref);
 
     if (extra && extra_ptr)
-        *extra_ptr = &pic_ctx->extra_ptr;
+        *extra_ptr = &pic_ctx->extra_data;
 
     return 0;
 }

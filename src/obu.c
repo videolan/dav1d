@@ -1508,12 +1508,8 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in, const int globa
                 assert(!c->itut_t35_ref);
                 itut_t35_ctx = malloc(sizeof(struct itut_t35_ctx_context));
                 if (!itut_t35_ctx) goto error;
-                c->itut_t35_ref = dav1d_ref_wrap((uint8_t *)c->itut_t35, dav1d_picture_free_itut_t35,
-                                                 itut_t35_ctx);
-                if (!c->itut_t35_ref) {
-                    free(itut_t35_ctx);
-                    goto error;
-                }
+                c->itut_t35_ref = dav1d_ref_init(&itut_t35_ctx->ref, c->itut_t35,
+                                                 dav1d_picture_free_itut_t35, itut_t35_ctx, 0);
             } else {
                 assert(c->itut_t35_ref && atomic_load(&c->itut_t35_ref->ref_cnt) == 1);
                 itut_t35_ctx = c->itut_t35_ref->user_data;
