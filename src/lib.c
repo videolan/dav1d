@@ -291,17 +291,14 @@ error:
     return DAV1D_ERR(ENOMEM);
 }
 
-static void dummy_free(const uint8_t *const data, void *const user_data) {
-    assert(data && !user_data);
-}
-
 int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
                                 const uint8_t *const ptr, const size_t sz)
 {
-    Dav1dData buf = { 0 };
-    int res;
-
     validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(ptr != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(sz > 0, DAV1D_ERR(EINVAL));
+
+    Dav1dData buf = { .data = ptr, .sz = sz };
 
     Dav1dSettings s;
     dav1d_default_settings(&s);
@@ -309,13 +306,8 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
     s.logger.callback = NULL;
 
     Dav1dContext *c;
-    res = dav1d_open(&c, &s);
+    int res = dav1d_open(&c, &s);
     if (res < 0) return res;
-
-    if (ptr) {
-        res = dav1d_data_wrap_internal(&buf, ptr, sz, dummy_free, NULL);
-        if (res < 0) goto error;
-    }
 
     while (buf.sz > 0) {
         res = dav1d_parse_obus(c, &buf, 1);
@@ -335,7 +327,6 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
 
     res = 0;
 error:
-    dav1d_data_unref_internal(&buf);
     dav1d_close(&c);
 
     return res;
