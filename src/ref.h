@@ -48,7 +48,6 @@ struct Dav1dRef {
 Dav1dRef *dav1d_ref_create(size_t size);
 Dav1dRef *dav1d_ref_create_using_pool(Dav1dMemPool *pool, size_t size);
 void dav1d_ref_dec(Dav1dRef **ref);
-int dav1d_ref_is_writable(Dav1dRef *ref);
 
 static inline Dav1dRef *dav1d_ref_init(Dav1dRef *const ref, const void *const ptr,
                                        void (*const free_callback)(const uint8_t *data, void *user_data),
@@ -65,6 +64,10 @@ static inline Dav1dRef *dav1d_ref_init(Dav1dRef *const ref, const void *const pt
 
 static inline void dav1d_ref_inc(Dav1dRef *const ref) {
     atomic_fetch_add_explicit(&ref->ref_cnt, 1, memory_order_relaxed);
+}
+
+static inline int dav1d_ref_is_writable(Dav1dRef *const ref) {
+    return atomic_load(&ref->ref_cnt) == 1 && ref->data;
 }
 
 #endif /* DAV1D_SRC_REF_H */
