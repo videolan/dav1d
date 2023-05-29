@@ -291,47 +291,6 @@ error:
     return DAV1D_ERR(ENOMEM);
 }
 
-int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
-                                const uint8_t *const ptr, const size_t sz)
-{
-    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(ptr != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(sz > 0, DAV1D_ERR(EINVAL));
-
-    Dav1dData buf = { .data = ptr, .sz = sz };
-
-    Dav1dSettings s;
-    dav1d_default_settings(&s);
-    s.n_threads = 1;
-    s.logger.callback = NULL;
-
-    Dav1dContext *c;
-    int res = dav1d_open(&c, &s);
-    if (res < 0) return res;
-
-    while (buf.sz > 0) {
-        res = dav1d_parse_obus(c, &buf, 1);
-        if (res < 0) goto error;
-
-        assert((size_t)res <= buf.sz);
-        buf.sz -= res;
-        buf.data += res;
-    }
-
-    if (!c->seq_hdr) {
-        res = DAV1D_ERR(ENOENT);
-        goto error;
-    }
-
-    memcpy(out, c->seq_hdr, sizeof(*out));
-
-    res = 0;
-error:
-    dav1d_close(&c);
-
-    return res;
-}
-
 static int has_grain(const Dav1dPicture *const pic)
 {
     const Dav1dFilmGrainData *fgdata = &pic->frame_hdr->film_grain.data;
@@ -450,7 +409,7 @@ static int gen_picture(Dav1dContext *const c)
         return 0;
 
     while (in->sz > 0) {
-        res = dav1d_parse_obus(c, in, 0);
+        res = dav1d_parse_obus(c, in);
         if (res < 0) {
             dav1d_data_unref_internal(in);
         } else {
