@@ -149,6 +149,10 @@ else
         endif
         cdata.set('HAVE_CLOCK_GETTIME', 1)
     endif
+
+    if cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
+        cdata.set('HAVE_POSIX_MEMALIGN', 1)
+    endif
 endif
 
 # check for fseeko on android. It is not always available if _FILE_OFFSET_BITS is defined to 64
@@ -224,14 +228,6 @@ if not cc.has_function('getopt_long', prefix : '#include <getopt.h>', args : tes
     )
 else
     getopt_dependency = []
-endif
-
-if cc.has_function('_aligned_malloc', prefix : '#include <malloc.h>', args : test_args)
-    cdata.set('HAVE_ALIGNED_MALLOC', 1)
-elif cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
-    cdata.set('HAVE_POSIX_MEMALIGN', 1)
-elif cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_args)
-    cdata.set('HAVE_MEMALIGN', 1)
 endif
 
 if (host_machine.cpu_family() == 'aarch64' or

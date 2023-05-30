@@ -30,7 +30,7 @@
 
 #include <stdlib.h>
 
-#if defined(HAVE_ALIGNED_MALLOC) || defined(HAVE_MEMALIGN)
+#if defined(_WIN32) || !defined(HAVE_POSIX_MEMALIGN)
 #include <malloc.h>
 #endif
 
@@ -59,32 +59,28 @@ void dav1d_mem_pool_end(Dav1dMemPool *pool);
  * Allocate align-byte aligned memory. The return value can be released
  * by calling the dav1d_free_aligned() function.
  */
-static inline void *dav1d_alloc_aligned(size_t sz, size_t align) {
+static inline void *dav1d_alloc_aligned(const size_t sz, const size_t align) {
     assert(!(align & (align - 1)));
-#ifdef HAVE_POSIX_MEMALIGN
+#ifdef _WIN32
+    return _aligned_malloc(sz, align);
+#elif defined(HAVE_POSIX_MEMALIGN)
     void *ptr;
     if (posix_memalign(&ptr, align, sz)) return NULL;
     return ptr;
-#elif defined(HAVE_ALIGNED_MALLOC)
-    return _aligned_malloc(sz, align);
-#elif defined(HAVE_MEMALIGN)
-    return memalign(align, sz);
 #else
-#error Missing aligned alloc implementation
+    return memalign(align, sz);
 #endif
 }
 
-static inline void dav1d_free_aligned(void* ptr) {
-#ifdef HAVE_POSIX_MEMALIGN
-    free(ptr);
-#elif defined(HAVE_ALIGNED_MALLOC)
+static inline void dav1d_free_aligned(void *ptr) {
+#ifdef _WIN32
     _aligned_free(ptr);
-#elif defined(HAVE_MEMALIGN)
+#else
     free(ptr);
 #endif
 }
 
-static inline void dav1d_freep_aligned(void* ptr) {
+static inline void dav1d_freep_aligned(void *ptr) {
     void **mem = (void **) ptr;
     if (*mem) {
         dav1d_free_aligned(*mem);
