@@ -106,9 +106,9 @@ void dav1d_picture_free_itut_t35(const uint8_t *const data, void *const user_dat
     struct itut_t35_ctx_context *itut_t35_ctx = user_data;
 
     for (size_t i = 0; i < itut_t35_ctx->n_itut_t35; i++)
-        free(itut_t35_ctx->itut_t35[i].payload);
-    free(itut_t35_ctx->itut_t35);
-    free(itut_t35_ctx);
+        dav1d_free(itut_t35_ctx->itut_t35[i].payload);
+    dav1d_free(itut_t35_ctx->itut_t35);
+    dav1d_free(itut_t35_ctx);
 }
 
 static int picture_alloc_with_edges(Dav1dContext *const c,
