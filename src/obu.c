@@ -1421,10 +1421,7 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
 
-            // Skip the trailing bit, align to the next byte boundary and check for overrun.
-            dav1d_get_bit(&gb);
-            dav1d_bytealign_get_bits(&gb);
-            if (gb.error) {
+            if (check_trailing_bits(&gb, c->strict_std_compliance) < 0) {
                 dav1d_ref_dec(&ref);
                 goto error;
             }
@@ -1473,10 +1470,7 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                    mastering_display->min_luminance,
                    (gb.ptr - init_ptr) * 8 - gb.bits_left);
 #endif
-            // Skip the trailing bit, align to the next byte boundary and check for overrun.
-            dav1d_get_bit(&gb);
-            dav1d_bytealign_get_bits(&gb);
-            if (gb.error) {
+            if (check_trailing_bits(&gb, c->strict_std_compliance) < 0) {
                 dav1d_ref_dec(&ref);
                 goto error;
             }
@@ -1501,7 +1495,7 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 payload_size--;
             }
 
-            if (payload_size <= 0) {
+            if (payload_size <= 0 || gb.ptr[payload_size] != 0x80) {
                 dav1d_log(c, "Malformed ITU-T T.35 metadata message format\n");
                 break;
             }
