@@ -1564,9 +1564,12 @@ int dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
 
             itut_t35_metadata->country_code = country_code;
             itut_t35_metadata->country_code_extension_byte = country_code_extension_byte;
-            for (int i = 0; i < payload_size; i++)
-                itut_t35_metadata->payload[i] = dav1d_get_bits(&gb, 8);
             itut_t35_metadata->payload_size = payload_size;
+
+            // We know that we've read a whole number of bytes and that the
+            // payload is within the OBU boundaries, so just use memcpy()
+            assert(gb.bits_left == 0);
+            memcpy(itut_t35_metadata->payload, gb.ptr, payload_size);
 
             c->n_itut_t35++;
             break;
