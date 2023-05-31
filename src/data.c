@@ -64,6 +64,7 @@ int dav1d_data_wrap_internal(Dav1dData *const buf, const uint8_t *const ptr,
     validate_input_or_ret(ptr != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(free_callback != NULL, DAV1D_ERR(EINVAL));
 
+    if (sz > SIZE_MAX / 2) return DAV1D_ERR(EINVAL);
     Dav1dRef *const ref = malloc(sizeof(Dav1dRef));
     if (!ref) return DAV1D_ERR(ENOMEM);
 

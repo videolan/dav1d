@@ -431,10 +431,11 @@ int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
 {
     validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
 
-    if (in->data)
+    if (in->data) {
+        validate_input_or_ret(in->sz > 0 && in->sz <= SIZE_MAX / 2, DAV1D_ERR(EINVAL));
         c->drain = 0;
+    }
     if (c->in.data)
         return DAV1D_ERR(EAGAIN);
     dav1d_data_ref(&c->in, in);
