@@ -210,7 +210,7 @@ typedef struct Dav1dSequenceHeader {
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
      * or 12 bits/component at any chroma subsampling.
      */
-    int profile;
+    uint8_t profile;
     /**
      * Maximum dimensions for this stream. In non-scalable streams, these
      * are often the actual dimensions of the stream, although that is not
@@ -229,60 +229,60 @@ typedef struct Dav1dSequenceHeader {
      * (twelve_bit) to distinguish between 10 and 12 bits/component. To get
      * the spec's hbd, use !!our_hbd, and to get twelve_bit, use hbd == 2.
      */
-    int hbd;
+    uint8_t hbd;
     /**
      * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
      * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
      */
-    int color_range;
+    uint8_t color_range;
 
-    int num_operating_points;
+    uint8_t num_operating_points;
     struct Dav1dSequenceHeaderOperatingPoint {
-        int major_level, minor_level;
-        int initial_display_delay;
-        int idc;
-        int tier;
-        int decoder_model_param_present;
-        int display_model_param_present;
+        uint8_t major_level, minor_level;
+        uint8_t initial_display_delay;
+        uint16_t idc;
+        uint8_t tier;
+        uint8_t decoder_model_param_present;
+        uint8_t display_model_param_present;
     } operating_points[DAV1D_MAX_OPERATING_POINTS];
 
-    int still_picture;
-    int reduced_still_picture_header;
-    int timing_info_present;
+    uint8_t still_picture;
+    uint8_t reduced_still_picture_header;
+    uint8_t timing_info_present;
     uint32_t num_units_in_tick;
     uint32_t time_scale;
-    int equal_picture_interval;
-    unsigned num_ticks_per_picture;
-    int decoder_model_info_present;
-    int encoder_decoder_buffer_delay_length;
+    uint8_t equal_picture_interval;
+    uint32_t num_ticks_per_picture;
+    uint8_t decoder_model_info_present;
+    uint8_t encoder_decoder_buffer_delay_length;
     uint32_t num_units_in_decoding_tick;
-    int buffer_removal_delay_length;
-    int frame_presentation_delay_length;
-    int display_model_info_present;
-    int width_n_bits, height_n_bits;
-    int frame_id_numbers_present;
-    int delta_frame_id_n_bits;
-    int frame_id_n_bits;
-    int sb128;
-    int filter_intra;
-    int intra_edge_filter;
-    int inter_intra;
-    int masked_compound;
-    int warped_motion;
-    int dual_filter;
-    int order_hint;
-    int jnt_comp;
-    int ref_frame_mvs;
+    uint8_t buffer_removal_delay_length;
+    uint8_t frame_presentation_delay_length;
+    uint8_t display_model_info_present;
+    uint8_t width_n_bits, height_n_bits;
+    uint8_t frame_id_numbers_present;
+    uint8_t delta_frame_id_n_bits;
+    uint8_t frame_id_n_bits;
+    uint8_t sb128;
+    uint8_t filter_intra;
+    uint8_t intra_edge_filter;
+    uint8_t inter_intra;
+    uint8_t masked_compound;
+    uint8_t warped_motion;
+    uint8_t dual_filter;
+    uint8_t order_hint;
+    uint8_t jnt_comp;
+    uint8_t ref_frame_mvs;
     enum Dav1dAdaptiveBoolean screen_content_tools;
     enum Dav1dAdaptiveBoolean force_integer_mv;
-    int order_hint_n_bits;
-    int super_res;
-    int cdef;
-    int restoration;
-    int ss_hor, ss_ver, monochrome;
-    int color_description_present;
-    int separate_uv_delta_q;
-    int film_grain_present;
+    uint8_t order_hint_n_bits;
+    uint8_t super_res;
+    uint8_t cdef;
+    uint8_t restoration;
+    uint8_t ss_hor, ss_ver, monochrome;
+    uint8_t color_description_present;
+    uint8_t separate_uv_delta_q;
+    uint8_t film_grain_present;
 
     // Dav1dSequenceHeaders of the same sequence are required to be
     // bit-identical until this offset. See 7.5 "Ordering of OBUs":
@@ -291,9 +291,9 @@ typedef struct Dav1dSequenceHeader {
     //   sequence header appears except for the contents of
     //   operating_parameters_info.
     struct Dav1dSequenceHeaderOperatingParameterInfo {
-        int decoder_buffer_delay;
-        int encoder_buffer_delay;
-        int low_delay_mode;
+        uint32_t decoder_buffer_delay;
+        uint32_t encoder_buffer_delay;
+        uint8_t low_delay_mode;
     } operating_parameter_info[DAV1D_MAX_OPERATING_POINTS];
 } Dav1dSequenceHeader;
 
