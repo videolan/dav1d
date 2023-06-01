@@ -609,8 +609,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             if (!hdr->frame_ref_short_signaling)
                 hdr->refidx[i] = dav1d_get_bits(gb, 3);
             if (seqhdr->frame_id_numbers_present) {
-                const int delta_ref_frame_id_minus_1 = dav1d_get_bits(gb, seqhdr->delta_frame_id_n_bits);
-                const int ref_frame_id = (hdr->frame_id + (1 << seqhdr->frame_id_n_bits) - delta_ref_frame_id_minus_1 - 1) & ((1 << seqhdr->frame_id_n_bits) - 1);
+                const unsigned delta_ref_frame_id = dav1d_get_bits(gb, seqhdr->delta_frame_id_n_bits) + 1;
+                const unsigned ref_frame_id = (hdr->frame_id + (1 << seqhdr->frame_id_n_bits) - delta_ref_frame_id) & ((1 << seqhdr->frame_id_n_bits) - 1);
                 Dav1dFrameHeader *const ref_frame_hdr = c->refs[hdr->refidx[i]].p.p.frame_hdr;
                 if (!ref_frame_hdr || ref_frame_hdr->frame_id != ref_frame_id) goto error;
             }
@@ -739,7 +739,7 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
         hdr->quant.qm_y = dav1d_get_bits(gb, 4);
         hdr->quant.qm_u = dav1d_get_bits(gb, 4);
         hdr->quant.qm_v =
-            seqhdr->separate_uv_delta_q ? (int)dav1d_get_bits(gb, 4) :
+            seqhdr->separate_uv_delta_q ? dav1d_get_bits(gb, 4) :
                                           hdr->quant.qm_u;
     }
 #if DEBUG_FRAME_HDR

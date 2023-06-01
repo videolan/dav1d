@@ -298,22 +298,22 @@ typedef struct Dav1dSequenceHeader {
 } Dav1dSequenceHeader;
 
 typedef struct Dav1dSegmentationData {
-    int delta_q;
-    int delta_lf_y_v, delta_lf_y_h, delta_lf_u, delta_lf_v;
-    int ref;
-    int skip;
-    int globalmv;
+    int16_t delta_q;
+    int8_t delta_lf_y_v, delta_lf_y_h, delta_lf_u, delta_lf_v;
+    int8_t ref;
+    uint8_t skip;
+    uint8_t globalmv;
 } Dav1dSegmentationData;
 
 typedef struct Dav1dSegmentationDataSet {
     Dav1dSegmentationData d[DAV1D_MAX_SEGMENTS];
-    int preskip;
-    int last_active_segid;
+    uint8_t preskip;
+    int8_t last_active_segid;
 } Dav1dSegmentationDataSet;
 
 typedef struct Dav1dLoopfilterModeRefDeltas {
-    int mode_delta[2 /* is_zeromv */];
-    int ref_delta[DAV1D_TOTAL_REFS_PER_FRAME];
+    int8_t mode_delta[2 /* is_zeromv */];
+    int8_t ref_delta[DAV1D_TOTAL_REFS_PER_FRAME];
 } Dav1dLoopfilterModeRefDeltas;
 
 typedef struct Dav1dFilmGrainData {
@@ -339,100 +339,101 @@ typedef struct Dav1dFilmGrainData {
 typedef struct Dav1dFrameHeader {
     struct {
         Dav1dFilmGrainData data;
-        int present, update;
+        uint8_t present, update;
     } film_grain; ///< film grain parameters
     enum Dav1dFrameType frame_type; ///< type of the picture
     int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
-    int frame_offset; ///< frame number
-    int temporal_id; ///< temporal id of the frame for SVC
-    int spatial_id; ///< spatial id of the frame for SVC
+    uint8_t frame_offset; ///< frame number
+    uint8_t temporal_id; ///< temporal id of the frame for SVC
+    uint8_t spatial_id; ///< spatial id of the frame for SVC
 
-    int show_existing_frame;
-    int existing_frame_idx;
-    int frame_id;
-    int frame_presentation_delay;
-    int show_frame;
-    int showable_frame;
-    int error_resilient_mode;
-    int disable_cdf_update;
-    int allow_screen_content_tools;
-    int force_integer_mv;
-    int frame_size_override;
-    int primary_ref_frame;
-    int buffer_removal_time_present;
+    uint8_t show_existing_frame;
+    uint8_t existing_frame_idx;
+    uint32_t frame_id;
+    uint32_t frame_presentation_delay;
+    uint8_t show_frame;
+    uint8_t showable_frame;
+    uint8_t error_resilient_mode;
+    uint8_t disable_cdf_update;
+    uint8_t allow_screen_content_tools;
+    uint8_t force_integer_mv;
+    uint8_t frame_size_override;
+    uint8_t primary_ref_frame;
+    uint8_t buffer_removal_time_present;
     struct Dav1dFrameHeaderOperatingPoint {
-        int buffer_removal_time;
+        uint32_t buffer_removal_time;
     } operating_points[DAV1D_MAX_OPERATING_POINTS];
-    int refresh_frame_flags;
+    uint8_t refresh_frame_flags;
     int render_width, render_height;
     struct {
-        int width_scale_denominator;
-        int enabled;
+        uint8_t width_scale_denominator;
+        uint8_t enabled;
     } super_res;
-    int have_render_size;
-    int allow_intrabc;
-    int frame_ref_short_signaling;
-    int refidx[DAV1D_REFS_PER_FRAME];
-    int hp;
+    uint8_t have_render_size;
+    uint8_t allow_intrabc;
+    uint8_t frame_ref_short_signaling;
+    int8_t refidx[DAV1D_REFS_PER_FRAME];
+    uint8_t hp;
     enum Dav1dFilterMode subpel_filter_mode;
-    int switchable_motion_mode;
-    int use_ref_frame_mvs;
-    int refresh_context;
+    uint8_t switchable_motion_mode;
+    uint8_t use_ref_frame_mvs;
+    uint8_t refresh_context;
     struct {
-        int uniform;
-        unsigned n_bytes;
-        int min_log2_cols, max_log2_cols, log2_cols, cols;
-        int min_log2_rows, max_log2_rows, log2_rows, rows;
+        uint8_t uniform;
+        uint8_t n_bytes;
+        uint8_t min_log2_cols, max_log2_cols, log2_cols, cols;
+        uint8_t min_log2_rows, max_log2_rows, log2_rows, rows;
         uint16_t col_start_sb[DAV1D_MAX_TILE_COLS + 1];
         uint16_t row_start_sb[DAV1D_MAX_TILE_ROWS + 1];
-        int update;
+        uint16_t update;
     } tiling;
     struct {
-        int yac;
-        int ydc_delta;
-        int udc_delta, uac_delta, vdc_delta, vac_delta;
-        int qm, qm_y, qm_u, qm_v;
+        uint8_t yac;
+        int8_t ydc_delta;
+        int8_t udc_delta, uac_delta, vdc_delta, vac_delta;
+        uint8_t qm, qm_y, qm_u, qm_v;
     } quant;
     struct {
-        int enabled, update_map, temporal, update_data;
+        uint8_t enabled, update_map, temporal, update_data;
         Dav1dSegmentationDataSet seg_data;
-        int lossless[DAV1D_MAX_SEGMENTS], qidx[DAV1D_MAX_SEGMENTS];
+        uint8_t lossless[DAV1D_MAX_SEGMENTS], qidx[DAV1D_MAX_SEGMENTS];
     } segmentation;
     struct {
         struct {
-            int present;
-            int res_log2;
+            uint8_t present;
+            uint8_t res_log2;
         } q;
         struct {
-            int present;
-            int res_log2;
-            int multi;
+            uint8_t present;
+            uint8_t res_log2;
+            uint8_t multi;
         } lf;
     } delta;
-    int all_lossless;
+    uint8_t all_lossless;
     struct {
-        int level_y[2 /* dir */];
-        int level_u, level_v;
-        int mode_ref_delta_enabled;
-        int mode_ref_delta_update;
+        uint8_t level_y[2 /* dir */];
+        uint8_t level_u, level_v;
+        uint8_t mode_ref_delta_enabled;
+        uint8_t mode_ref_delta_update;
         Dav1dLoopfilterModeRefDeltas mode_ref_deltas;
-        int sharpness;
+        uint8_t sharpness;
     } loopfilter;
     struct {
-        int damping;
-        int n_bits;
-        int y_strength[DAV1D_MAX_CDEF_STRENGTHS];
-        int uv_strength[DAV1D_MAX_CDEF_STRENGTHS];
+        uint8_t damping;
+        uint8_t n_bits;
+        uint8_t y_strength[DAV1D_MAX_CDEF_STRENGTHS];
+        uint8_t uv_strength[DAV1D_MAX_CDEF_STRENGTHS];
     } cdef;
     struct {
         enum Dav1dRestorationType type[3 /* plane */];
-        int unit_size[2 /* y, uv */];
+        uint8_t unit_size[2 /* y, uv */];
     } restoration;
     enum Dav1dTxfmMode txfm_mode;
-    int switchable_comp_refs;
-    int skip_mode_allowed, skip_mode_enabled, skip_mode_refs[2];
-    int warp_motion;
-    int reduced_txtp_set;
+    uint8_t switchable_comp_refs;
+    uint8_t skip_mode_allowed, skip_mode_enabled;
+    int8_t skip_mode_refs[2];
+    uint8_t warp_motion;
+    uint8_t reduced_txtp_set;
     Dav1dWarpedMotionParams gmv[DAV1D_REFS_PER_FRAME];
 } Dav1dFrameHeader;
 
