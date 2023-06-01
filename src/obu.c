@@ -48,11 +48,16 @@
 static int check_trailing_bits(GetBits *const gb,
                                const int strict_std_compliance)
 {
-    if (!dav1d_get_bit(gb) || gb->state || gb->error) // trailing_one_bit + trailing_zero_bit
+    const int trailing_one_bit = dav1d_get_bit(gb);
+
+    if (gb->error)
         return DAV1D_ERR(EINVAL);
 
     if (!strict_std_compliance)
         return 0;
+
+    if (!trailing_one_bit || gb->state)
+        return DAV1D_ERR(EINVAL);
 
     ptrdiff_t size = gb->ptr_end - gb->ptr;
     while (size > 0 && gb->ptr[size - 1] == 0)
