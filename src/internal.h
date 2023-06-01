@@ -274,10 +274,7 @@ struct Dav1dFrameContext {
         atomic_uint *frame_progress, *copy_lpf_progress;
         // indexed using t->by * f->b4_stride + t->bx
         Av1Block *b;
-        struct CodedBlockInfo {
-            int16_t eob[3 /* plane */];
-            uint8_t txtp[3 /* plane */];
-        } *cbi;
+        int16_t (*cbi)[3 /* plane */]; /* bits 0-4: txtp, bits 5-15: eob */
         // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
         uint16_t (*pal)[3 /* plane */][8 /* idx */];
         // iterated over inside tile state
