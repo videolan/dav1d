@@ -395,7 +395,6 @@ struct Dav1dTaskContext {
     // which would make copy/assign operations slightly faster?
     uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
-    uint8_t txtp_map[32 * 32]; // inter-only
     ALIGN(union, 64) {
         struct {
             union {
@@ -420,7 +419,10 @@ struct Dav1dTaskContext {
                     uint8_t pal_ctx[64];
                 };
             };
-            int16_t ac[32 * 32];
+            union {
+                int16_t ac[32 * 32]; // intra-only
+                uint8_t txtp_map[32 * 32]; // inter-only
+            };
             uint8_t pal_idx[2 * 64 * 64];
             uint16_t pal[3 /* plane */][8 /* palette_idx */];
             ALIGN(union, 64) {

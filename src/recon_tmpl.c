@@ -800,7 +800,7 @@ static void read_coef_tree(Dav1dTaskContext *const t,
                 rep_macro(type, txtp_map, 0, mul * txtp); \
                 txtp_map += 32; \
             }
-            uint8_t *txtp_map = &t->txtp_map[by4 * 32 + bx4];
+            uint8_t *txtp_map = &t->scratch.txtp_map[by4 * 32 + bx4];
             case_set_upto16(txw,,,);
 #undef set_ctx
             if (t->frame_thread.pass == 1) {
@@ -927,8 +927,8 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTaskContext *const t,
                         uint8_t cf_ctx = 0x40;
                         enum TxfmType txtp;
                         if (!b->intra)
-                            txtp = t->txtp_map[(by4 + (y << ss_ver)) * 32 +
-                                                bx4 + (x << ss_hor)];
+                            txtp = t->scratch.txtp_map[(by4 + (y << ss_ver)) * 32 +
+                                                        bx4 + (x << ss_hor)];
                         const int eob = cbi[t->bx].eob[1 + pl] =
                             decode_coefs(t, &t->a->ccoef[pl][cbx4 + x],
                                          &t->l.ccoef[pl][cby4 + y], b->uvtx, bs,
@@ -2004,8 +2004,8 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTaskContext *const t, const enum BlockSize 
                         } else {
                             uint8_t cf_ctx;
                             cf = bitfn(t->cf);
-                            txtp = t->txtp_map[(by4 + (y << ss_ver)) * 32 +
-                                                bx4 + (x << ss_hor)];
+                            txtp = t->scratch.txtp_map[(by4 + (y << ss_ver)) * 32 +
+                                                        bx4 + (x << ss_hor)];
                             eob = decode_coefs(t, &t->a->ccoef[pl][cbx4 + x],
                                                &t->l.ccoef[pl][cby4 + y],
                                                b->uvtx, bs, b, 0, 1 + pl,
