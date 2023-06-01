@@ -3294,7 +3294,6 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
      * dereference those pointers so it doesn't really matter what they
      * point at, as long as the pointers are valid. */
     const int has_chroma = f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I400;
-    f->lf.mask_ptr = f->lf.mask;
     f->lf.p[0] = f->cur.data[0];
     f->lf.p[1] = f->cur.data[has_chroma ? 1 : 0];
     f->lf.p[2] = f->cur.data[has_chroma ? 2 : 0];

@@ -313,7 +313,6 @@ struct Dav1dFrameContext {
         int start_of_tile_row_sz;
         int need_cdef_lpf_copy;
         pixel *p[3], *sr_p[3];
-        Av1Filter *mask_ptr, *prev_mask_ptr;
         int restore_planes; // enum LrRestorePlanes
     } lf;
 
