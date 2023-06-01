@@ -1263,10 +1263,6 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             dav1d_ref_dec(&ref);
             goto error;
         }
-        if (gb.error) {
-            dav1d_ref_dec(&ref);
-            goto error;
-        }
 
         const int op_idx =
             c->operating_point < seq_hdr->num_operating_points ? c->operating_point : 0;
