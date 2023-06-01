@@ -1,3 +1,19 @@
+Changes for 1.2.1 'Arctic Peregrine Falcon':
+-------------------------------------------
+
+1.2.1 is a small release of dav1d, adding more SIMD and fixes
+
+- Fix a threading race on task_thread.init_done
+- NEON z2 8bpc and high bit-depth optimizations
+- SSSE3 z2 high bit-depth optimziations
+- Fix a desynced luma/chroma planes issue with Film Grain
+- Reduce memory consumption
+- Improve dav1d_parse_sequence_header() speed
+- OBU: Improve header parsing and fix potential overflows
+- OBU: Improve ITU-T T.35 parsing speed
+- Misc buildsystems, CI and headers fixes
+
+
 Changes for 1.2.0 'Arctic Peregrine Falcon':
 -------------------------------------------
 
