@@ -249,13 +249,13 @@ typedef struct Dav1dSequenceHeader {
     int still_picture;
     int reduced_still_picture_header;
     int timing_info_present;
-    int num_units_in_tick;
-    int time_scale;
+    uint32_t num_units_in_tick;
+    uint32_t time_scale;
     int equal_picture_interval;
     unsigned num_ticks_per_picture;
     int decoder_model_info_present;
     int encoder_decoder_buffer_delay_length;
-    int num_units_in_decoding_tick;
+    uint32_t num_units_in_decoding_tick;
     int buffer_removal_delay_length;
     int frame_presentation_delay_length;
     int display_model_info_present;
