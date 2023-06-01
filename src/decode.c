@@ -2719,9 +2719,7 @@ static void read_restoration_info(Dav1dTaskContext *const t,
     if (frame_type == DAV1D_RESTORATION_SWITCHABLE) {
         const int filter = dav1d_msac_decode_symbol_adapt4(&ts->msac,
                                ts->cdf.m.restore_switchable, 2);
-        lr->type = filter ? filter == 2 ? DAV1D_RESTORATION_SGRPROJ :
-                                          DAV1D_RESTORATION_WIENER :
-                                          DAV1D_RESTORATION_NONE;
+        lr->type = filter + !!filter; /* NONE/WIENER/SGRPROJ */
     } else {
         const unsigned type =
             dav1d_msac_decode_bool_adapt(&ts->msac,
@@ -2760,7 +2758,7 @@ static void read_restoration_info(Dav1dTaskContext *const t,
     } else if (lr->type == DAV1D_RESTORATION_SGRPROJ) {
         const unsigned idx = dav1d_msac_decode_bools(&ts->msac, 4);
         const uint16_t *const sgr_params = dav1d_sgr_params[idx];
-        lr->sgr_idx = idx;
+        lr->type += idx;
         lr->sgr_weights[0] = sgr_params[0] ? dav1d_msac_decode_subexp(&ts->msac,
             ts->lr_ref[p]->sgr_weights[0] + 96, 128, 4) - 96 : 0;
         lr->sgr_weights[1] = sgr_params[1] ? dav1d_msac_decode_subexp(&ts->msac,
@@ -2770,7 +2768,7 @@ static void read_restoration_info(Dav1dTaskContext *const t,
         ts->lr_ref[p] = lr;
         if (DEBUG_BLOCK_INFO)
             printf("Post-lr_sgrproj[pl=%d,idx=%d,w[%d,%d]]: r=%d\n",
-                   p, lr->sgr_idx, lr->sgr_weights[0],
+                   p, idx, lr->sgr_weights[0],
                    lr->sgr_weights[1], ts->msac.rng);
     }
 }
