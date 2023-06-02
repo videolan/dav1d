@@ -195,11 +195,18 @@ int main(const int argc, char *const *const argv) {
     uint64_t nspf, tfirst, elapsed;
     double i_fps;
     FILE *frametimes = NULL;
-    const char *version = dav1d_version();
+    const unsigned version = dav1d_version_api();
+    const int major = (version >> 16) & 0xFF;
+    const int minor = (version >>  8) & 0xFF;
+    const int patch = (version >>  0) & 0xFF;
 
-    if (strcmp(version, DAV1D_VERSION)) {
-        fprintf(stderr, "Version mismatch (library: %s, executable: %s)\n",
-                version, DAV1D_VERSION);
+    if (DAV1D_API_VERSION_MAJOR != major ||
+        DAV1D_API_VERSION_MINOR  > minor) {
+        fprintf(stderr, "Version mismatch (library: %d.%d.%d, executable: %d.%d.%d)\n",
+                major, minor, patch,
+                DAV1D_API_VERSION_MAJOR,
+                DAV1D_API_VERSION_MINOR,
+                DAV1D_API_VERSION_PATCH);
         return EXIT_FAILURE;
     }
 
