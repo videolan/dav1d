@@ -182,8 +182,8 @@ enum Dav1dChromaSamplePosition {
 };
 
 typedef struct Dav1dContentLightLevel {
-    int max_content_light_level;
-    int max_frame_average_light_level;
+    uint16_t max_content_light_level;
+    uint16_t max_frame_average_light_level;
 } Dav1dContentLightLevel;
 
 typedef struct Dav1dMasteringDisplay {
