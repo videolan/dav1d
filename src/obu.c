@@ -304,7 +304,7 @@ int dav1d_parse_sequence_header(Dav1dSequenceHeader *const out,
 {
     validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
     validate_input_or_ret(ptr != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(sz > 0, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(sz > 0 && sz <= SIZE_MAX / 2, DAV1D_ERR(EINVAL));
 
     GetBits gb;
     dav1d_init_get_bits(&gb, ptr, sz);
