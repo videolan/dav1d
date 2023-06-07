@@ -95,14 +95,13 @@ int dav1d_data_wrap_user_data_internal(Dav1dData *const buf,
     return 0;
 }
 
-
 void dav1d_data_ref(Dav1dData *const dst, const Dav1dData *const src) {
-    validate_input(dst != NULL);
-    validate_input(dst->data == NULL);
-    validate_input(src != NULL);
+    assert(dst != NULL);
+    assert(dst->data == NULL);
+    assert(src != NULL);
 
     if (src->ref) {
-        validate_input(src->data != NULL);
+        assert(src->data != NULL);
         dav1d_ref_inc(src->ref);
     }
     if (src->m.user_data.ref) dav1d_ref_inc(src->m.user_data.ref);

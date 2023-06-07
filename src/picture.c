@@ -249,12 +249,12 @@ int dav1d_picture_alloc_copy(Dav1dContext *const c, Dav1dPicture *const dst, con
 }
 
 void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
-    validate_input(dst != NULL);
-    validate_input(dst->data[0] == NULL);
-    validate_input(src != NULL);
+    assert(dst != NULL);
+    assert(dst->data[0] == NULL);
+    assert(src != NULL);
 
     if (src->ref) {
-        validate_input(src->data[0] != NULL);
+        assert(src->data[0] != NULL);
         dav1d_ref_inc(src->ref);
     }
     if (src->frame_hdr_ref) dav1d_ref_inc(src->frame_hdr_ref);
@@ -267,12 +267,12 @@ void dav1d_picture_ref(Dav1dPicture *const dst, const Dav1dPicture *const src) {
 }
 
 void dav1d_picture_move_ref(Dav1dPicture *const dst, Dav1dPicture *const src) {
-    validate_input(dst != NULL);
-    validate_input(dst->data[0] == NULL);
-    validate_input(src != NULL);
+    assert(dst != NULL);
+    assert(dst->data[0] == NULL);
+    assert(src != NULL);
 
     if (src->ref)
-        validate_input(src->data[0] != NULL);
+        assert(src->data[0] != NULL);
 
     *dst = *src;
     memset(src, 0, sizeof(*src));
