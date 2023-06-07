@@ -705,7 +705,8 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
             goto error;
         hdr->tiling.n_bytes = dav1d_get_bits(gb, 2) + 1;
     } else {
-        hdr->tiling.n_bytes = hdr->tiling.update = 0;
+        hdr->tiling.n_bytes = 0;
+        hdr->tiling.update = 0;
     }
 #if DEBUG_FRAME_HDR
     printf("HDR: post-tiling: off=%td\n",
