@@ -196,9 +196,9 @@ int main(const int argc, char *const *const argv) {
     double i_fps;
     FILE *frametimes = NULL;
     const unsigned version = dav1d_version_api();
-    const int major = (version >> 16) & 0xFF;
-    const int minor = (version >>  8) & 0xFF;
-    const int patch = (version >>  0) & 0xFF;
+    const int major = DAV1D_API_MAJOR(version);
+    const int minor = DAV1D_API_MINOR(version);
+    const int patch = DAV1D_API_PATCH(version);
 
     if (DAV1D_API_VERSION_MAJOR != major ||
         DAV1D_API_VERSION_MINOR  > minor) {
