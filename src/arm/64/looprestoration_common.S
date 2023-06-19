@@ -363,7 +363,7 @@ function sgr_calc_ab_neon
         movi            v23.8b,   #169 // idx of last 2
         movi            v24.8b,   #254 // idx of last 1
         saddl           v7.4s,    v6.4h,   v6.4h  // -2*bitdepth_min_8
-        add             x2,  x2,  #2 // w += 2
+        add             w2,  w2,  #2 // w += 2
         add             x7,  x2,  #7
         bic             x7,  x7,  #7 // aligned w
         sub             x7,  x8,  x7 // increment between rows
@@ -372,12 +372,12 @@ function sgr_calc_ab_neon
         dup             v30.4s,   w5 // one_by_x
         sub             x0,  x0,  #(4*(SUM_STRIDE))
         sub             x1,  x1,  #(2*(SUM_STRIDE))
-        mov             x6,  x2   // backup of w
+        mov             w6,  w2   // backup of w
         sub             v16.16b, v16.16b, v19.16b
         sub             v17.16b, v17.16b, v19.16b
         sub             v18.16b, v18.16b, v19.16b
 1:
-        subs            x2,  x2,  #8
+        subs            w2,  w2,  #8
         ld1             {v0.4s, v1.4s}, [x0]   // a
         ld1             {v2.8h}, [x1]          // b
         srshl           v0.4s,  v0.4s,  v7.4s
@@ -421,11 +421,11 @@ function sgr_calc_ab_neon
         st1             {v2.8h}, [x1], #16
         b.gt            1b
 
-        subs            x3,  x3,  #1
+        subs            w3,  w3,  #1
         b.le            0f
         add             x0,  x0,  x7, lsl #2
         add             x1,  x1,  x7, lsl #1
-        mov             x2,  x6
+        mov             w2,  w6
         b               1b
 0:
         ret

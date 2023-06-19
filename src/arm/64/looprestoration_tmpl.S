@@ -52,7 +52,7 @@ function sgr_finish_filter1_\bpc\()bpc_neon, export=1
         sub             x11, x11, x13
         sub             x11, x11, #4 // We read 4 extra elements from a
         sub             x14, x11, #4 // We read 8 extra elements from b
-        mov             x13, x5
+        mov             w13, w5
         movi            v6.8h,  #3
         movi            v7.4s,  #3
 1:
@@ -64,7 +64,7 @@ function sgr_finish_filter1_\bpc\()bpc_neon, export=1
         ld1             {v22.4s, v23.4s, v24.4s}, [x8], #48
 
 2:
-        subs            x5,  x5,  #8
+        subs            w5,  w5,  #8
         ext             v25.16b, v0.16b,  v1.16b, #2  // -stride
         ext             v26.16b, v2.16b,  v3.16b, #2  // 0
         ext             v27.16b, v4.16b,  v5.16b, #2  // +stride
@@ -141,9 +141,9 @@ function sgr_finish_filter1_\bpc\()bpc_neon, export=1
         b               2b
 
 3:
-        subs            x6,  x6,  #1
+        subs            w6,  w6,  #1
         b.le            0f
-        mov             x5,  x13
+        mov             w5,  w13
         add             x0,  x0,  x12, lsl #1
         add             x1,  x1,  x2
         add             x3,  x3,  x11, lsl #2
@@ -179,7 +179,7 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         sub             x9,  x9,  x11
         sub             x9,  x9,  #4 // We read 4 extra elements from a
         sub             x12, x9,  #4 // We read 8 extra elements from b
-        mov             x11, x5
+        mov             w11, w5
         movi            v4.8h,  #5
         movi            v5.4s,  #5
         movi            v6.8h,  #6
@@ -191,7 +191,7 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         ld1             {v19.4s, v20.4s, v21.4s}, [x7], #48
 
 2:
-        subs            x5,  x5,  #8
+        subs            w5,  w5,  #8
         ext             v24.16b, v0.16b,  v1.16b, #4  // +1-stride
         ext             v25.16b, v2.16b,  v3.16b, #4  // +1+stride
         ext             v22.16b, v0.16b,  v1.16b, #2  // -stride
@@ -253,9 +253,9 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         b               2b
 
 3:
-        subs            x6,  x6,  #1
+        subs            w6,  w6,  #1
         b.le            0f
-        mov             x5,  x11
+        mov             w5,  w11
         add             x0,  x0,  x10, lsl #1
         add             x1,  x1,  x2
         add             x3,  x3,  x9, lsl #2
@@ -269,7 +269,7 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         ld1             {v16.4s, v17.4s, v18.4s}, [x3], #48
 
 4:
-        subs            x5,  x5,  #8
+        subs            w5,  w5,  #8
         ext             v23.16b, v0.16b,  v1.16b, #4  // +1
         ext             v22.16b, v0.16b,  v1.16b, #2  // 0
         add             v0.8h,   v0.8h,   v23.8h      // -1, +1
@@ -311,9 +311,9 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         b               4b
 
 5:
-        subs            x6,  x6,  #1
+        subs            w6,  w6,  #1
         b.le            0f
-        mov             x5,  x11
+        mov             w5,  w11
         add             x0,  x0,  x10, lsl #1
         add             x1,  x1,  x2
         mov             x3,  x13 // Rewind x3/x4 to where they started
@@ -332,7 +332,7 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
         ldr             w8,  [sp]
 .endif
         dup             v31.8h, w7
-        cmp             x6,  #2
+        cmp             w6,  #2
 .if \bpc == 16
         dup             v30.8h, w8
 .endif
@@ -352,7 +352,7 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
         sub             x3,  x3,  x8, lsl #1
 .endif
         sub             x7,  x7,  x8, lsl #1
-        mov             x8,  x5
+        mov             w8,  w5
         b.lt            2f
 1:
 .if \bpc == 8
@@ -364,7 +364,7 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
 .endif
         ld1             {v1.8h}, [x4],  #16
         ld1             {v5.8h}, [x11], #16
-        subs            x5,  x5,  #8
+        subs            w5,  w5,  #8
 .if \bpc == 8
         ushll           v0.8h,  v0.8b,  #4     // u
         ushll           v4.8h,  v4.8b,  #4     // u
@@ -403,10 +403,10 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
 .endif
         b.gt            1b
 
-        sub             x6,  x6,  #2
-        cmp             x6,  #1
+        sub             w6,  w6,  #2
+        cmp             w6,  #1
         b.lt            0f
-        mov             x5,  x8
+        mov             w5,  w8
         add             x0,  x0,  x1
         add             x9,  x9,  x1
         add             x2,  x2,  x3
@@ -423,7 +423,7 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
         ld1             {v0.8h}, [x2], #16
 .endif
         ld1             {v1.8h}, [x4], #16
-        subs            x5,  x5,  #8
+        subs            w5,  w5,  #8
 .if \bpc == 8
         ushll           v0.8h,  v0.8b,  #4     // u
 .else
@@ -461,7 +461,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
 .else
         ldp             x8,  x9,  [sp]
 .endif
-        cmp             x7,  #2
+        cmp             w7,  #2
         add             x10, x0,  x1
         add             x11, x2,  x3
         add             x12, x4,  #2*FILTER_OUT_STRIDE
@@ -483,7 +483,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         sub             x3,  x3,  x9, lsl #1
 .endif
         sub             x8,  x8,  x9, lsl #1
-        mov             x9,  x6
+        mov             w9,  w6
         b.lt            2f
 1:
 .if \bpc == 8
@@ -497,7 +497,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         ld1             {v17.8h}, [x12], #16
         ld1             {v2.8h},  [x5],  #16
         ld1             {v18.8h}, [x13], #16
-        subs            x6,  x6,  #8
+        subs            w6,  w6,  #8
 .if \bpc == 8
         ushll           v0.8h,  v0.8b,  #4     // u
         ushll           v16.8h, v16.8b, #4     // u
@@ -542,10 +542,10 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
 .endif
         b.gt            1b
 
-        subs            x7,  x7,  #2
-        cmp             x7,  #1
+        subs            w7,  w7,  #2
+        cmp             w7,  #1
         b.lt            0f
-        mov             x6,  x9
+        mov             w6,  w9
         add             x0,  x0,  x1
         add             x10, x10, x1
         add             x2,  x2,  x3
@@ -565,7 +565,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
 .endif
         ld1             {v1.8h}, [x4], #16
         ld1             {v2.8h}, [x5], #16
-        subs            x6,  x6,  #8
+        subs            w6,  w6,  #8
 .if \bpc == 8
         ushll           v0.8h,  v0.8b,  #4     // u
 .else
