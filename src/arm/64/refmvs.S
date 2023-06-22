@@ -106,6 +106,10 @@ endconst
 //                           int col_end8, int row_end8,
 //                           int col_start8, int row_start8)
 function save_tmvs_neon, export=1
+        AARCH64_SIGN_LINK_REGISTER
+        stp             x29, x30, [sp, #-16]!
+        mov             x29, sp
+
         movi            v30.8b, #0
         ld1             {v31.8b}, [x3]
         ext             v31.8b,  v30.8b,  v31.8b,  #7 // [0, ref_sign]
@@ -121,6 +125,7 @@ function save_tmvs_neon, export=1
         sub             w5,  w5,  w7              // h = row_end8 - row_start8
         lsl             w7,  w7,  #1              // row_start8 <<= 1
 1:
+        mov             w15, #5
         and             w9,  w7,  #30             // (y & 15) * 2
         ldr             x9,  [x2, w9, uxtw #3]    // b = rr[(y & 15) * 2]
         add             x9,  x9,  #12             // &b[... + 1]
@@ -132,31 +137,70 @@ function save_tmvs_neon, export=1
 2:
         ldrb            w11, [x9, #10]            // cand_b->bs
         ld1             {v0.16b}, [x9]            // cand_b->mv
-        ldr             h1,  [x9, #8]             // cand_b->ref
         add             x11, x8,  w11, uxtw #2
-
-        abs             v2.4h,   v0.4h            // abs(mv[].xy)
-        tbl             v1.8b, {v31.16b}, v1.8b   // ref_sign[ref]
+        ldr             h1,  [x9, #8]             // cand_b->ref
         ldrh            w12, [x11]                // bw8
-        ushr            v2.4h,   v2.4h,   #12     // abs(mv[].xy) >> 12
-        umull           v1.8h,   v1.8b,   v29.8b  // ref_sign[ref] * {1, 2}
-        cmeq            v2.2s,   v2.2s,   #0      // abs(mv[].xy) <= 4096
+        mov             x15, x8
         add             x9,  x9,  w12, uxtw #1    // cand_b += bw8*2
+        cmp             x9,  x10
+        mov             v2.8b,   v0.8b
+        b.ge            3f
+
+        ldrb            w15, [x9, #10]            // cand_b->bs
+        add             x16, x9,  #8
+        ld1             {v4.16b}, [x9]            // cand_b->mv
+        add             x15, x8,  w15, uxtw #2
+        ld1             {v1.h}[1], [x16]          // cand_b->ref
+        ldrh            w12, [x15]                // bw8
+        add             x9,  x9,  w12, uxtw #1    // cand_b += bw8*2
+        trn1            v2.2d,   v0.2d,  v4.2d
+
+3:
+        abs             v2.8h,   v2.8h            // abs(mv[].xy)
+        tbl             v1.8b, {v31.16b}, v1.8b   // ref_sign[ref]
+        ushr            v2.8h,   v2.8h,   #12     // abs(mv[].xy) >> 12
+        umull           v1.8h,   v1.8b,   v29.8b  // ref_sign[ref] * {1, 2}
+        cmeq            v2.4s,   v2.4s,   #0      // abs(mv[].xy) <= 4096
         xtn             v2.4h,   v2.4s            // abs() condition to 16 bit
-        and             v1.8b,   v1.8b,   v2.8b   // h[01] contains conditions for mv[0-1]
+        and             v1.8b,   v1.8b,   v2.8b   // h[0-3] contains conditions for mv[0-1]
         trn2            v2.4h,   v1.4h,   v1.4h
         add             v1.4h,   v1.4h,   v2.4h   // Combine condition for [1] and [0]
-        umov            w16, v1.h[0]              // Extract case
+        umov            w16, v1.h[0]              // Extract case for first block
+        umov            w17, v1.h[2]
         ldrh            w11, [x11, #2]            // Fetch jump table entry
+        ldrh            w15, [x15, #2]
         ldr             q1, [x13, w16, uxtw #4]   // Load permutation table base on case
+        ldr             q5, [x13, w17, uxtw #4]
         sub             x11, x8,  w11, uxtw       // Find jump table target
+        sub             x15, x8,  w15, uxtw
         tbl             v0.16b, {v0.16b}, v1.16b  // Permute cand_b to output refmvs_temporal_block
+        tbl             v4.16b, {v4.16b}, v5.16b
 
         // v1 follows on v0, with another 3 full repetitions of the pattern.
         ext             v1.16b,  v0.16b,  v0.16b,  #1
+        ext             v5.16b,  v4.16b,  v4.16b,  #1
         // v2 ends with 3 complete repetitions of the pattern.
         ext             v2.16b,  v0.16b,  v1.16b,  #4
-        br              x11
+        ext             v6.16b,  v4.16b,  v5.16b,  #4
+
+        blr             x11
+        b.ge            4f  // if (cand_b >= end)
+        mov             v0.16b,  v4.16b
+        mov             v1.16b,  v5.16b
+        mov             v2.16b,  v6.16b
+        cmp             x9,  x10
+        blr             x15
+        b.lt            2b  // if (cand_b < end)
+
+4:
+        subs            w5,  w5,  #1              // h--
+        add             w7,  w7,  #2              // y += 2
+        add             x0,  x0,  x1              // rp += stride
+        b.gt            1b
+
+        ldp             x29, x30, [sp], #16
+        AARCH64_VALIDATE_LINK_REGISTER
+        ret
 
 10:
         AARCH64_VALID_JUMP_TARGET
@@ -164,20 +208,20 @@ function save_tmvs_neon, export=1
         st1             {v0.s}[0], [x3]
         st1             {v0.b}[4], [x16]
         add             x3,  x3,  #5
-        b               999f
+        ret
 20:
         AARCH64_VALID_JUMP_TARGET
         add             x16, x3,  #8
         st1             {v0.d}[0], [x3]
         st1             {v0.h}[4], [x16]
         add             x3,  x3,  #2*5
-        b               999f
+        ret
 40:
         AARCH64_VALID_JUMP_TARGET
         st1             {v0.16b}, [x3]
         str             s1, [x3, #16]
         add             x3,  x3,  #4*5
-        b               999f
+        ret
 80:
         AARCH64_VALID_JUMP_TARGET
         // This writes 6 full entries plus 2 extra bytes
@@ -185,7 +229,7 @@ function save_tmvs_neon, export=1
         // Write the last few, overlapping with the first write.
         str             q2, [x3, #(8*5-16)]
         add             x3,  x3,  #8*5
-        b               999f
+        ret
 160:
         AARCH64_VALID_JUMP_TARGET
         add             x16, x3,  #6*5
@@ -199,16 +243,6 @@ function save_tmvs_neon, export=1
         // Write the last 3 entries
         str             q2, [x3, #(16*5-16)]
         add             x3,  x3,  #16*5
-        // Fallthrough
-
-999:
-        cmp             x9,  x10
-        b.lt            2b
-
-        subs            w5,  w5,  #1              // h--
-        add             w7,  w7,  #2              // y += 2
-        add             x0,  x0,  x1              // rp += stride
-        b.gt            1b
         ret
 
 L(save_tmvs_tbl):
