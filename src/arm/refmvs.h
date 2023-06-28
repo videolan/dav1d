@@ -36,8 +36,6 @@ static ALWAYS_INLINE void refmvs_dsp_init_arm(Dav1dRefmvsDSPContext *const c) {
 
     if (!(flags & DAV1D_ARM_CPU_FLAG_NEON)) return;
 
-#if ARCH_AARCH64
     c->save_tmvs = dav1d_save_tmvs_neon;
-#endif
     c->splat_mv = dav1d_splat_mv_neon;
 }
