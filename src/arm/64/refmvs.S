@@ -227,7 +227,7 @@ function save_tmvs_neon, export=1
         // This writes 6 full entries plus 2 extra bytes
         st1             {v0.16b, v1.16b}, [x3]
         // Write the last few, overlapping with the first write.
-        str             q2, [x3, #(8*5-16)]
+        stur            q2, [x3, #(8*5-16)]
         add             x3,  x3,  #8*5
         ret
 160:
