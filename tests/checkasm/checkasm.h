@@ -197,6 +197,23 @@ static inline uint64_t readtime(void) {
     return (((uint64_t)tbu) << 32) | (uint64_t)tbl;
 }
 #define readtime readtime
+#elif ARCH_LOONGARCH
+static inline uint64_t readtime(void) {
+#if ARCH_LOONGARCH64
+    uint64_t a, id;
+    __asm__ __volatile__("rdtime.d  %0, %1"
+                         : "=r"(a), "=r"(id)
+                         :: );
+    return a;
+#else
+    uint32_t a, id;
+    __asm__ __volatile__("rdtimel.w  %0, %1"
+                         : "=r"(a), "=r"(id)
+                         :: );
+    return (uint64_t)a;
+#endif
+}
+#define readtime readtime
 #endif
 
 /* Verifies that clobbered callee-saved registers

@@ -104,6 +104,9 @@ static const struct {
     { "NEON",               "neon",      DAV1D_ARM_CPU_FLAG_NEON },
 #elif ARCH_PPC64LE
     { "VSX",                "vsx",       DAV1D_PPC_CPU_FLAG_VSX },
+#elif ARCH_LOONGARCH
+    { "LSX",                "lsx",       DAV1D_LOONGARCH_CPU_FLAG_LSX },
+    { "LASX",               "lasx",      DAV1D_LOONGARCH_CPU_FLAG_LASX },
 #endif
     { 0 }
 };

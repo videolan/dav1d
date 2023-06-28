@@ -56,6 +56,8 @@ COLD void dav1d_init_cpu(void) {
 // memory sanitizer is inherently incompatible with asm
 #if ARCH_AARCH64 || ARCH_ARM
     dav1d_cpu_flags = dav1d_get_cpu_flags_arm();
+#elif ARCH_LOONGARCH
+    dav1d_cpu_flags = dav1d_get_cpu_flags_loongarch();
 #elif ARCH_PPC64LE
     dav1d_cpu_flags = dav1d_get_cpu_flags_ppc();
 #elif ARCH_X86
