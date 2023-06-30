@@ -110,13 +110,13 @@ function save_tmvs_neon, export=1
         stp             x29, x30, [sp, #-16]!
         mov             x29, sp
 
-        movi            v30.8b, #0
+        movi            v30.8b,  #0
         ld1             {v31.8b}, [x3]
-        ext             v31.8b,  v30.8b,  v31.8b,  #7 // [0, ref_sign]
         adr             x8,  L(save_tmvs_tbl)
         movrel          x16, mask_mult
         movrel          x13, mv_tbls
         ld1             {v29.8b}, [x16]
+        ext             v31.8b,  v30.8b,  v31.8b,  #7 // [0, ref_sign]
         mov             w15, #5
         mov             w14, #12*2
         sxtw            x4,  w4
@@ -153,7 +153,7 @@ function save_tmvs_neon, export=1
         ld1             {v1.h}[1], [x16]          // cand_b->ref
         ldrh            w12, [x15]                // bw8
         add             x9,  x9,  w12, uxtw #1    // cand_b += bw8*2
-        trn1            v2.2d,   v0.2d,  v4.2d
+        trn1            v2.2d,   v0.2d,   v4.2d
 
 3:
         abs             v2.8h,   v2.8h            // abs(mv[].xy)
@@ -163,10 +163,9 @@ function save_tmvs_neon, export=1
         cmeq            v2.4s,   v2.4s,   #0      // abs(mv[].xy) <= 4096
         xtn             v2.4h,   v2.4s            // abs() condition to 16 bit
         and             v1.8b,   v1.8b,   v2.8b   // h[0-3] contains conditions for mv[0-1]
-        trn2            v2.4h,   v1.4h,   v1.4h
-        add             v1.4h,   v1.4h,   v2.4h   // Combine condition for [1] and [0]
+        addp            v1.4h,   v1.4h,   v1.4h   // Combine condition for [1] and [0]
         umov            w16, v1.h[0]              // Extract case for first block
-        umov            w17, v1.h[2]
+        umov            w17, v1.h[1]
         ldrh            w11, [x11, #2]            // Fetch jump table entry
         ldrh            w15, [x15, #2]
         ldr             q1, [x13, w16, uxtw #4]   // Load permutation table base on case
