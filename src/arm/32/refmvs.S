@@ -213,6 +213,7 @@ function save_tmvs_neon, export=1
 
         pop             {r4-r11,pc}
 
+        .align 2
 L(save_tmvs_tbl):
         .word 16 * 12
         .word 160f - L(save_tmvs_tbl) + CONFIG_THUMB
