@@ -520,7 +520,7 @@ cdata.set10('ARCH_LOONGARCH64', host_machine.cpu_family() == 'loongarch64')
 # meson's cc.symbols_have_underscore_prefix() is unfortunately unrelieably
 # when additional flags like '-fprofile-instr-generate' are passed via CFLAGS
 # see following meson issue https://github.com/mesonbuild/meson/issues/5482
-if (host_machine.system() in ['darwin', 'ios', 'tvos'] or
+if (host_machine.system() in ['darwin', 'ios', 'tvos', 'os/2'] or
    (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86'))
     cdata.set10('PREFIX', true)
     cdata_asm.set10('PREFIX', true)
@@ -556,7 +556,13 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
     else
         nasm_format = 'elf'
     endif
-    if host_machine.cpu_family() == 'x86_64'
+    if host_machine.system() == 'os/2'
+        if get_option('os2_emxomf')
+            nasm_format = 'obj2'
+        else
+            nasm_format = 'aout'
+        endif
+    elif host_machine.cpu_family() == 'x86_64'
         nasm_format += '64'
     else
         nasm_format += '32'
