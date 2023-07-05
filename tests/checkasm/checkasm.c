@@ -578,7 +578,7 @@ int main(int argc, char *argv[]) {
                     "    <random seed>              Numeric value to seed the rng\n"
                     "Options:\n"
                     "    --affinity=<cpu>           Run the process on CPU <cpu>\n"
-                    "    --test=<pattern>           Test only <pattern>\n"
+                    "    --test=<pattern> -t        Test only <pattern>\n"
                     "    --function=<pattern> -f    Test only the functions matching <pattern>\n"
                     "    --bench -b                 Benchmark the tested functions\n"
                     "    --list-functions           List available functions\n"
