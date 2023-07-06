@@ -25,53 +25,26 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
+#include "src/cpu.h"
 
-#include <string.h>
+decl_pal_idx_finish_fn(dav1d_pal_idx_finish_ssse3);
+decl_pal_idx_finish_fn(dav1d_pal_idx_finish_avx2);
+decl_pal_idx_finish_fn(dav1d_pal_idx_finish_avx512icl);
 
-#include "common/attributes.h"
+static ALWAYS_INLINE void pal_dsp_init_x86(Dav1dPalDSPContext *const c) {
+    const unsigned flags = dav1d_get_cpu_flags();
 
-#include "src/pal.h"
+    if (!(flags & DAV1D_X86_CPU_FLAG_SSSE3)) return;
 
-// fill invisible edges and pack to 4-bit (2 pixels per byte)
-static void pal_idx_finish_c(uint8_t *dst, const uint8_t *src,
-                             const int bw, const int bh,
-                             const int w, const int h)
-{
-    assert(bw >= 4 && bw <= 64 && !(bw & (bw - 1)));
-    assert(bh >= 4 && bh <= 64 && !(bh & (bh - 1)));
-    assert(w  >= 4 && w <= bw && !(w & 3));
-    assert(h  >= 4 && h <= bh && !(h & 3));
+    c->pal_idx_finish = dav1d_pal_idx_finish_ssse3;
 
-    const int dst_w = w / 2;
-    const int dst_bw = bw / 2;
+#if ARCH_X86_64
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
 
-    for (int y = 0; y < h; y++, src += bw, dst += dst_bw) {
-        for (int x = 0; x < dst_w; x++)
-            dst[x] = src[x * 2 + 0] | (src[x * 2 + 1] << 4);
-        if (dst_w < dst_bw)
-            memset(dst + dst_w, src[w - 1] * 0x11, dst_bw - dst_w);
-    }
+    c->pal_idx_finish = dav1d_pal_idx_finish_avx2;
 
-    if (h < bh) {
-        const uint8_t *const last_row = &dst[-dst_bw];
-        for (int y = h; y < bh; y++, dst += dst_bw)
-            memcpy(dst, last_row, dst_bw);
-    }
-}
+    if (!(flags & DAV1D_X86_CPU_FLAG_AVX512ICL)) return;
 
-#if HAVE_ASM
-#if ARCH_X86
-#include "src/x86/pal.h"
-#endif
-#endif
-
-COLD void dav1d_pal_dsp_init(Dav1dPalDSPContext *const c) {
-    c->pal_idx_finish = pal_idx_finish_c;
-
-#if HAVE_ASM
-#if ARCH_X86
-    pal_dsp_init_x86(c);
-#endif
+    c->pal_idx_finish = dav1d_pal_idx_finish_avx512icl;
 #endif
 }
