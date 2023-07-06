@@ -106,22 +106,23 @@ static void hflip(uint8_t *const dst, const uint8_t *const src) {
             dst[y_off + 64 - 1 - x] = src[y_off + x];
 }
 
-static void invert(uint8_t *const dst, const uint8_t *const src,
-                   const int w, const int h)
-{
-    for (int y = 0, y_off = 0; y < h; y++, y_off += w)
-        for (int x = 0; x < w; x++)
-            dst[y_off + x] = 64 - src[y_off + x];
-}
-
-static void copy2d(uint8_t *dst, const uint8_t *src,
+static void copy2d(uint8_t *dst, const uint8_t *src, int sign,
                    const int w, const int h, const int x_off, const int y_off)
 {
     src += y_off * 64 + x_off;
-    for (int y = 0; y < h; y++) {
-        memcpy(dst, src, w);
-        src += 64;
-        dst += w;
+    if (sign) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++)
+                dst[x] = 64 - src[x];
+            src += 64;
+            dst += w;
+        }
+    } else {
+        for (int y = 0; y < h; y++) {
+            memcpy(dst, src, w);
+            src += 64;
+            dst += w;
+        }
     }
 }
 
@@ -148,43 +149,36 @@ static COLD void fill2d_16x2(const int w, const int h, const enum BlockSize bs,
                              const uint8_t (*const master)[64 * 64],
                              const wedge_code_type *const cb,
                              uint8_t *masks_444, uint8_t *masks_422,
-                             uint8_t *masks_420, const unsigned signs)
+                             uint8_t *masks_420, unsigned signs)
 {
-    uint8_t *ptr = masks_444;
-    for (int n = 0; n < 16; n++) {
-        copy2d(ptr, master[cb[n].direction], w, h,
-               32 - (w * cb[n].x_offset >> 3), 32 - (h * cb[n].y_offset >> 3));
-        ptr += w * h;
-    }
-    for (int n = 0, off = 0; n < 16; n++, off += w * h)
-        invert(ptr + off, masks_444 + off, w, h);
-
     const int n_stride_444 = (w * h);
     const int n_stride_422 = n_stride_444 >> 1;
     const int n_stride_420 = n_stride_444 >> 2;
-    const int sign_stride_444 = 16 * n_stride_444;
     const int sign_stride_422 = 16 * n_stride_422;
     const int sign_stride_420 = 16 * n_stride_420;
 
     // assign pointer offsets in lookup table
     for (int n = 0; n < 16; n++) {
-        const int sign = (signs >> n) & 1;
-        uint8_t *const luma = &masks_444[ sign * sign_stride_444];
+        const int sign = signs & 1;
+
+        copy2d(masks_444, master[cb[n].direction], sign, w, h,
+               32 - (w * cb[n].x_offset >> 3), 32 - (h * cb[n].y_offset >> 3));
 
         // not using !sign is intentional here, since 444 does not require
         // any rounding since no chroma subsampling is applied.
         dav1d_masks.offsets[0][bs].wedge[0][n] =
-        dav1d_masks.offsets[0][bs].wedge[1][n] = MASK_OFFSET(luma);
+        dav1d_masks.offsets[0][bs].wedge[1][n] = MASK_OFFSET(masks_444);
 
         dav1d_masks.offsets[1][bs].wedge[0][n] =
-            init_chroma(&masks_422[ sign * sign_stride_422], luma, 0, w, h, 0);
+            init_chroma(&masks_422[ sign * sign_stride_422], masks_444, 0, w, h, 0);
         dav1d_masks.offsets[1][bs].wedge[1][n] =
-            init_chroma(&masks_422[!sign * sign_stride_422], luma, 1, w, h, 0);
+            init_chroma(&masks_422[!sign * sign_stride_422], masks_444, 1, w, h, 0);
         dav1d_masks.offsets[2][bs].wedge[0][n] =
-            init_chroma(&masks_420[ sign * sign_stride_420], luma, 0, w, h, 1);
+            init_chroma(&masks_420[ sign * sign_stride_420], masks_444, 0, w, h, 1);
         dav1d_masks.offsets[2][bs].wedge[1][n] =
-            init_chroma(&masks_420[!sign * sign_stride_420], luma, 1, w, h, 1);
+            init_chroma(&masks_420[!sign * sign_stride_420], masks_444, 1, w, h, 1);
 
+        signs >>= 1;
         masks_444 += n_stride_444;
         masks_422 += n_stride_422;
         masks_420 += n_stride_420;

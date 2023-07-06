@@ -37,15 +37,15 @@ typedef struct {
         uint16_t ii[N_INTER_INTRA_PRED_MODES];
     } offsets[3 /* 444, 422, 420 */][BS_8x8 - BS_32x32 + 1];
 
-    uint8_t ALIGN(wedge_444_32x32[2 * 16 * 32 * 32], 64);
-    uint8_t ALIGN(wedge_444_32x16[2 * 16 * 32 * 16], 64);
-    uint8_t ALIGN(wedge_444_32x8 [2 * 16 * 32 *  8], 64);
-    uint8_t ALIGN(wedge_444_16x32[2 * 16 * 16 * 32], 64);
-    uint8_t ALIGN(wedge_444_16x16[2 * 16 * 16 * 16], 64);
-    uint8_t ALIGN(wedge_444_16x8 [2 * 16 * 16 *  8], 64);
-    uint8_t ALIGN(wedge_444_8x32 [2 * 16 *  8 * 32], 64);
-    uint8_t ALIGN(wedge_444_8x16 [2 * 16 *  8 * 16], 64);
-    uint8_t ALIGN(wedge_444_8x8  [2 * 16 *  8 *  8], 64);
+    uint8_t ALIGN(wedge_444_32x32[    16 * 32 * 32], 64);
+    uint8_t ALIGN(wedge_444_32x16[    16 * 32 * 16], 64);
+    uint8_t ALIGN(wedge_444_32x8 [    16 * 32 *  8], 64);
+    uint8_t ALIGN(wedge_444_16x32[    16 * 16 * 32], 64);
+    uint8_t ALIGN(wedge_444_16x16[    16 * 16 * 16], 64);
+    uint8_t ALIGN(wedge_444_16x8 [    16 * 16 *  8], 64);
+    uint8_t ALIGN(wedge_444_8x32 [    16 *  8 * 32], 64);
+    uint8_t ALIGN(wedge_444_8x16 [    16 *  8 * 16], 64);
+    uint8_t ALIGN(wedge_444_8x8  [    16 *  8 *  8], 64);
 
     uint8_t ALIGN(wedge_422_16x32[2 * 16 * 16 * 32], 64);
     uint8_t ALIGN(wedge_422_16x16[2 * 16 * 16 * 16], 64);
