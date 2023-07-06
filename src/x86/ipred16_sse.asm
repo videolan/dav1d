@@ -3997,7 +3997,7 @@ cglobal pal_pred_16bpc, 4, 5, 6, dst, stride, pal, idx, w, h
     jg .w4
     RET
 .w8:
-    mova                 m3, [idxq]
+    movu                 m3, [idxq]
     add                idxq, 16
     psrlw                m1, m3, 4
     punpcklbw            m0, m3, m1
@@ -4020,7 +4020,7 @@ cglobal pal_pred_16bpc, 4, 5, 6, dst, stride, pal, idx, w, h
     jg .w8
     RET
 .w16:
-    mova                 m3, [idxq]
+    movu                 m3, [idxq]
     add                idxq, 16
     psrlw                m1, m3, 4
     punpcklbw            m0, m3, m1
@@ -4042,7 +4042,7 @@ cglobal pal_pred_16bpc, 4, 5, 6, dst, stride, pal, idx, w, h
     jg .w16
     RET
 .w32:
-    mova                 m3, [idxq]
+    movu                 m3, [idxq]
     add                idxq, 16
     psrlw                m1, m3, 4
     punpcklbw            m0, m3, m1
@@ -4064,7 +4064,7 @@ cglobal pal_pred_16bpc, 4, 5, 6, dst, stride, pal, idx, w, h
     jg .w32
     RET
 .w64:
-    mova                 m3, [idxq+16*0]
+    movu                 m3, [idxq+16*0]
     psrlw                m1, m3, 4
     punpcklbw            m0, m3, m1
     punpckhbw            m3, m1
@@ -4076,7 +4076,7 @@ cglobal pal_pred_16bpc, 4, 5, 6, dst, stride, pal, idx, w, h
     mova        [dstq+16*1], m1
     pshufb               m1, m4, m3
     pshufb               m2, m5, m3
-    mova                 m3, [idxq+16*1]
+    movu                 m3, [idxq+16*1]
     add                idxq, 32
     punpcklbw            m0, m1, m2
     punpckhbw            m1, m2
