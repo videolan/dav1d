@@ -60,6 +60,7 @@ static const struct {
     void (*func)(void);
 } tests[] = {
     { "msac", checkasm_check_msac },
+    { "pal", checkasm_check_pal },
     { "refmvs", checkasm_check_refmvs },
 #if CONFIG_8BPC
     { "cdef_8bpc", checkasm_check_cdef_8bpc },

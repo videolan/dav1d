@@ -59,6 +59,7 @@ name##_8bpc(void); \
 name##_16bpc(void)
 
 void checkasm_check_msac(void);
+void checkasm_check_pal(void);
 void checkasm_check_refmvs(void);
 decl_check_bitfns(void checkasm_check_cdef);
 decl_check_bitfns(void checkasm_check_filmgrain);

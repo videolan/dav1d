@@ -53,6 +53,7 @@ typedef struct Dav1dTask Dav1dTask;
 #include "src/looprestoration.h"
 #include "src/mc.h"
 #include "src/msac.h"
+#include "src/pal.h"
 #include "src/picture.h"
 #include "src/recon.h"
 #include "src/refmvs.h"
@@ -174,6 +175,7 @@ struct Dav1dContext {
     CdfThreadContext cdf[8];
 
     Dav1dDSPContext dsp[3 /* 8, 10, 12 bits/component */];
+    Dav1dPalDSPContext pal_dsp;
     Dav1dRefmvsDSPContext refmvs_dsp;
 
     Dav1dPicAllocator allocator;

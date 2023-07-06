@@ -465,20 +465,9 @@ static void read_pal_indices(Dav1dTaskContext *const t,
             pal_tmp[(i - j) * stride + j] = order[m][color_idx];
         }
     }
-    // fill invisible edges and pack to 4-bit (2 pixels per byte)
-    if (bw4 > w4)
-        for (int y = 0; y < 4 * h4; y++)
-            memset(&pal_tmp[y * stride + 4 * w4],
-                   pal_tmp[y * stride + 4 * w4 - 1], 4 * (bw4 - w4));
-    int i;
-    for (i = 0; i < bw4 * h4 * 8; i++)
-        pal_idx[i] = pal_tmp[2*i+0] | (pal_tmp[2*i+1] << 4);
-    if (h4 < bh4) {
-        const ptrdiff_t packed_stride = bw4 * 2;
-        const uint8_t *const src = &pal_idx[i - packed_stride];
-        for (int y = h4 * 4; y < bh4 * 4; y++)
-            memcpy(&pal_idx[y * packed_stride], src, packed_stride);
-    }
+
+    t->c->pal_dsp.pal_idx_finish(pal_idx, pal_tmp, bw4 * 4, bh4 * 4,
+                                 w4 * 4, h4 * 4);
 }
 
 static void read_vartx_tree(Dav1dTaskContext *const t,

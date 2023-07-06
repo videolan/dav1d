@@ -286,6 +286,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
             t->task_thread.td.inited = 1;
         }
     }
+    dav1d_pal_dsp_init(&c->pal_dsp);
     dav1d_refmvs_dsp_init(&c->refmvs_dsp);
 
     pthread_attr_destroy(&thread_attr);
