@@ -424,7 +424,8 @@ struct Dav1dTaskContext {
                 int16_t ac[32 * 32]; // intra-only
                 uint8_t txtp_map[32 * 32]; // inter-only
             };
-            uint8_t pal_idx[2 * 64 * 64];
+            uint8_t pal_idx_y[32 * 64];
+            uint8_t pal_idx_uv[64 * 64]; /* also used as pre-pack scratch buffer */
             union {
                 struct {
                     uint8_t interintra_8bpc[64 * 64];

@@ -448,7 +448,8 @@ static void read_pal_indices(Dav1dTaskContext *const t,
     Dav1dTileState *const ts = t->ts;
     const ptrdiff_t stride = bw4 * 4;
     assert(pal_idx);
-    pal_idx[0] = dav1d_msac_decode_uniform(&ts->msac, b->pal_sz[pl]);
+    pixel *const pal_tmp = t->scratch.pal_idx_uv;
+    pal_tmp[0] = dav1d_msac_decode_uniform(&ts->msac, b->pal_sz[pl]);
     uint16_t (*const color_map_cdf)[8] =
         ts->cdf.m.color_map[pl][b->pal_sz[pl] - 2];
     uint8_t (*const order)[8] = t->scratch.pal_order;
@@ -457,22 +458,26 @@ static void read_pal_indices(Dav1dTaskContext *const t,
         // top/left-to-bottom/right diagonals ("wave-front")
         const int first = imin(i, w4 * 4 - 1);
         const int last = imax(0, i - h4 * 4 + 1);
-        order_palette(pal_idx, stride, i, first, last, order, ctx);
+        order_palette(pal_tmp, stride, i, first, last, order, ctx);
         for (int j = first, m = 0; j >= last; j--, m++) {
             const int color_idx = dav1d_msac_decode_symbol_adapt8(&ts->msac,
                                       color_map_cdf[ctx[m]], b->pal_sz[pl] - 1);
-            pal_idx[(i - j) * stride + j] = order[m][color_idx];
+            pal_tmp[(i - j) * stride + j] = order[m][color_idx];
         }
     }
-    // fill invisible edges
+    // fill invisible edges and pack to 4-bit (2 pixels per byte)
     if (bw4 > w4)
         for (int y = 0; y < 4 * h4; y++)
-            memset(&pal_idx[y * stride + 4 * w4],
-                   pal_idx[y * stride + 4 * w4 - 1], 4 * (bw4 - w4));
+            memset(&pal_tmp[y * stride + 4 * w4],
+                   pal_tmp[y * stride + 4 * w4 - 1], 4 * (bw4 - w4));
+    int i;
+    for (i = 0; i < bw4 * h4 * 8; i++)
+        pal_idx[i] = pal_tmp[2*i+0] | (pal_tmp[2*i+1] << 4);
     if (h4 < bh4) {
-        const uint8_t *const src = &pal_idx[stride * (4 * h4 - 1)];
+        const ptrdiff_t packed_stride = bw4 * 2;
+        const uint8_t *const src = &pal_idx[i - packed_stride];
         for (int y = h4 * 4; y < bh4 * 4; y++)
-            memcpy(&pal_idx[y * stride], src, bw4 * 4);
+            memcpy(&pal_idx[y * packed_stride], src, packed_stride);
     }
 }
 
@@ -1205,9 +1210,9 @@ static int decode_b(Dav1dTaskContext *const t,
                 const int p = t->frame_thread.pass & 1;
                 assert(ts->frame_thread[p].pal_idx);
                 pal_idx = ts->frame_thread[p].pal_idx;
-                ts->frame_thread[p].pal_idx += bw4 * bh4 * 16;
+                ts->frame_thread[p].pal_idx += bw4 * bh4 * 8;
             } else
-                pal_idx = t->scratch.pal_idx;
+                pal_idx = t->scratch.pal_idx_y;
             read_pal_indices(t, pal_idx, b, 0, w4, h4, bw4, bh4);
             if (DEBUG_BLOCK_INFO)
                 printf("Post-y-pal-indices: r=%d\n", ts->msac.rng);
@@ -1219,9 +1224,9 @@ static int decode_b(Dav1dTaskContext *const t,
                 const int p = t->frame_thread.pass & 1;
                 assert(ts->frame_thread[p].pal_idx);
                 pal_idx = ts->frame_thread[p].pal_idx;
-                ts->frame_thread[p].pal_idx += cbw4 * cbh4 * 16;
+                ts->frame_thread[p].pal_idx += cbw4 * cbh4 * 8;
             } else
-                pal_idx = &t->scratch.pal_idx[bw4 * bh4 * 16];
+                pal_idx = t->scratch.pal_idx_uv;
             read_pal_indices(t, pal_idx, b, 1, cw4, ch4, cbw4, cbh4);
             if (DEBUG_BLOCK_INFO)
                 printf("Post-uv-pal-indices: r=%d\n", ts->msac.rng);
@@ -2488,7 +2493,7 @@ static void setup_tile(Dav1dTileState *const ts,
     const uint8_t *const size_mul = ss_size_mul[f->cur.p.layout];
     for (int p = 0; p < 2; p++) {
         ts->frame_thread[p].pal_idx = f->frame_thread.pal_idx ?
-            &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 4] :
+            &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 8] :
             NULL;
         ts->frame_thread[p].cf = f->frame_thread.cf ?
             (uint8_t*)f->frame_thread.cf +
@@ -2893,7 +2898,7 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
                 dav1d_free_aligned(f->frame_thread.pal_idx);
                 f->frame_thread.pal_idx =
                     dav1d_alloc_aligned(ALLOC_PAL, sizeof(*f->frame_thread.pal_idx) *
-                                        pal_idx_sz * 128 * 128 / 4, 64);
+                                        pal_idx_sz * 128 * 128 / 8, 64);
                 if (!f->frame_thread.pal_idx) {
                     f->frame_thread.pal_idx_sz = 0;
                     goto error;

@@ -1236,9 +1236,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTaskContext *const t, const enum BlockSize
                     const int p = t->frame_thread.pass & 1;
                     assert(ts->frame_thread[p].pal_idx);
                     pal_idx = ts->frame_thread[p].pal_idx;
-                    ts->frame_thread[p].pal_idx += bw4 * bh4 * 16;
+                    ts->frame_thread[p].pal_idx += bw4 * bh4 * 8;
                 } else {
-                    pal_idx = t->scratch.pal_idx;
+                    pal_idx = t->scratch.pal_idx_y;
                 }
                 const pixel *const pal = t->frame_thread.pass ?
                     f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
@@ -1437,10 +1437,10 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTaskContext *const t, const enum BlockSize
                     pal = f->frame_thread.pal[((t->by >> 1) + (t->bx & 1)) * (f->b4_stride >> 1) +
                                               ((t->bx >> 1) + (t->by & 1))];
                     pal_idx = ts->frame_thread[p].pal_idx;
-                    ts->frame_thread[p].pal_idx += cbw4 * cbh4 * 16;
+                    ts->frame_thread[p].pal_idx += cbw4 * cbh4 * 8;
                 } else {
                     pal = bytefn(t->scratch.pal);
-                    pal_idx = &t->scratch.pal_idx[bw4 * bh4 * 16];
+                    pal_idx = t->scratch.pal_idx_uv;
                 }
 
                 f->dsp->ipred.pal_pred(((pixel *) f->cur.data[1]) + uv_dstoff,

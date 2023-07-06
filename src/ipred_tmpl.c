@@ -719,9 +719,12 @@ static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
                        const int w, const int h)
 {
     for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++)
-            dst[x] = pal[idx[x]];
-        idx += w;
+        for (int x = 0; x < w; x += 2) {
+            const int i = *idx++;
+            assert(!(i & 0x88));
+            dst[x + 0] = pal[i & 7];
+            dst[x + 1] = pal[i >> 4];
+        }
         dst += PXSTRIDE(stride);
     }
 }
