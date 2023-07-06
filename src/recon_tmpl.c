@@ -1682,12 +1682,8 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTaskContext *const t, const enum BlockSize 
             dsp->ipred.intra_pred[m](tmp, 4 * bw4 * sizeof(pixel),
                                      tl_edge, bw4 * 4, bh4 * 4, 0, 0, 0
                                      HIGHBD_CALL_SUFFIX);
-            const uint8_t *const ii_mask =
-                b->interintra_type == INTER_INTRA_BLEND ?
-                     dav1d_ii_masks[bs][0][b->interintra_mode] :
-                     dav1d_wedge_masks[bs][0][0][b->wedge_idx];
             dsp->mc.blend(dst, f->cur.stride[0], tmp,
-                          bw4 * 4, bh4 * 4, ii_mask);
+                          bw4 * 4, bh4 * 4, II_MASK(0, bs, b));
         }
 
         if (!has_chroma) goto skip_inter_chroma_pred;
@@ -1790,10 +1786,7 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTaskContext *const t, const enum BlockSize 
                 // FIXME for 8x32 with 4:2:2 subsampling, this probably does
                 // the wrong thing since it will select 4x16, not 4x32, as a
                 // transform size...
-                const uint8_t *const ii_mask =
-                    b->interintra_type == INTER_INTRA_BLEND ?
-                         dav1d_ii_masks[bs][chr_layout_idx][b->interintra_mode] :
-                         dav1d_wedge_masks[bs][chr_layout_idx][0][b->wedge_idx];
+                const uint8_t *const ii_mask = II_MASK(chr_layout_idx, bs, b);
 
                 for (int pl = 0; pl < 2; pl++) {
                     pixel *const tmp = bitfn(t->scratch.interintra);
@@ -1871,12 +1864,12 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTaskContext *const t, const enum BlockSize 
             mask = seg_mask;
             break;
         case COMP_INTER_WEDGE:
-            mask = dav1d_wedge_masks[bs][0][0][b->wedge_idx];
+            mask = WEDGE_MASK(0, bs, 0, b->wedge_idx);
             dsp->mc.mask(dst, f->cur.stride[0],
                          tmp[b->mask_sign], tmp[!b->mask_sign],
                          bw4 * 4, bh4 * 4, mask HIGHBD_CALL_SUFFIX);
             if (has_chroma)
-                mask = dav1d_wedge_masks[bs][chr_layout_idx][b->mask_sign][b->wedge_idx];
+                mask = WEDGE_MASK(chr_layout_idx, bs, b->mask_sign, b->wedge_idx);
             break;
         }
 
