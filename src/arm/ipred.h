@@ -322,5 +322,5 @@ static ALWAYS_INLINE void intra_pred_dsp_init_arm(Dav1dIntraPredDSPContext *cons
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I422 - 1] = BF(dav1d_ipred_cfl_ac_422, neon);
     c->cfl_ac[DAV1D_PIXEL_LAYOUT_I444 - 1] = BF(dav1d_ipred_cfl_ac_444, neon);
 
-    //c->pal_pred                  = BF(dav1d_pal_pred, neon);
+    c->pal_pred                  = BF(dav1d_pal_pred, neon);
 }
