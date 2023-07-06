@@ -1576,17 +1576,16 @@ L(ipred_filter_tbl):
 endfunc
 
 // void pal_pred_8bpc_neon(pixel *dst, const ptrdiff_t stride,
-//                         const uint16_t *const pal, const uint8_t *idx,
+//                         const pixel *const pal, const uint8_t *idx,
 //                         const int w, const int h);
 function pal_pred_8bpc_neon, export=1
         push            {r4-r5, lr}
         ldrd            r4,  r5,  [sp, #12]
-        vld1.16         {q0}, [r2, :128]
+        vld1.8          {d0}, [r2, :64]
         clz             lr,  r4
         adr             r12, L(pal_pred_tbl)
         sub             lr,  lr,  #25
         ldr             lr,  [r12, lr, lsl #2]
-        vmovn.i16       d0,  q0
         add             r12, r12, lr
         add             r2,  r0,  r1
         bx              r12

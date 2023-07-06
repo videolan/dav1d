@@ -252,9 +252,9 @@ static void check_pal_pred(Dav1dIntraPredDSPContext *const c) {
     PIXEL_RECT(c_dst, 64, 64);
     PIXEL_RECT(a_dst, 64, 64);
     ALIGN_STK_64(uint8_t, idx, 64 * 64,);
-    ALIGN_STK_16(uint16_t, pal, 8,);
+    ALIGN_STK_16(pixel, pal, 8,);
 
-    declare_func(void, pixel *dst, ptrdiff_t stride, const uint16_t *pal,
+    declare_func(void, pixel *dst, ptrdiff_t stride, const pixel *pal,
                  const uint8_t *idx, int w, int h);
 
     for (int w = 4; w <= 64; w <<= 1)

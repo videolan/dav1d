@@ -715,12 +715,12 @@ cfl_ac_fn(422, 1, 0)
 cfl_ac_fn(444, 0, 0)
 
 static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
-                       const uint16_t *const pal, const uint8_t *idx,
+                       const pixel *const pal, const uint8_t *idx,
                        const int w, const int h)
 {
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++)
-            dst[x] = (pixel) pal[idx[x]];
+            dst[x] = pal[idx[x]];
         idx += w;
         dst += PXSTRIDE(stride);
     }

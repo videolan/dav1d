@@ -1114,10 +1114,9 @@ cglobal ipred_smooth_8bpc, 4, 7, 16, dst, stride, tl, w, h, v_weights, stride3
 cglobal pal_pred_8bpc, 4, 7, 5, dst, stride, pal, idx, w, h, stride3
     lea                  r6, [pal_pred_8bpc_avx512icl_table]
     tzcnt                wd, wm
-    vbroadcasti32x4      m4, [palq]
+    vpbroadcastq         m4, [palq]
     movifnidn            hd, hm
     movsxd               wq, [r6+wq*4]
-    packuswb             m4, m4
     add                  wq, r6
     lea            stride3q, [strideq*3]
     jmp                  wq

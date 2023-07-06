@@ -1732,7 +1732,7 @@ function ipred_filter_16bpc_neon, export=1
 endfunc
 
 // void pal_pred_16bpc_neon(pixel *dst, const ptrdiff_t stride,
-//                          const uint16_t *const pal, const uint8_t *idx,
+//                          const pixel *const pal, const uint8_t *idx,
 //                          const int w, const int h);
 function pal_pred_16bpc_neon, export=1
         push            {r4-r5, lr}

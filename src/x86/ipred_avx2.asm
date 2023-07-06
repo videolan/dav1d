@@ -5307,12 +5307,11 @@ cglobal ipred_cfl_ac_444_8bpc, 4, 9, 6, ac, y, stride, wpad, hpad, w, h, sz, ac_
     RET
 
 cglobal pal_pred_8bpc, 4, 6, 5, dst, stride, pal, idx, w, h
-    vbroadcasti128       m4, [palq]
+    vpbroadcastq         m4, [palq]
     lea                  r2, [pal_pred_avx2_table]
     tzcnt                wd, wm
     movifnidn            hd, hm
     movsxd               wq, [r2+wq*4]
-    packuswb             m4, m4
     add                  wq, r2
     lea                  r2, [strideq*3]
     jmp                  wq

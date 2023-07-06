@@ -253,6 +253,10 @@ struct Dav1dFrameContext {
         filter_sbrow_fn filter_sbrow_lr;
         backup_ipred_edge_fn backup_ipred_edge;
         read_coef_blocks_fn read_coef_blocks;
+        copy_pal_block_fn copy_pal_block_y;
+        copy_pal_block_fn copy_pal_block_uv;
+        read_pal_plane_fn read_pal_plane;
+        read_pal_uv_fn read_pal_uv;
     } bd_fn;
 
     int ipred_edge_sz;
@@ -276,7 +280,7 @@ struct Dav1dFrameContext {
         Av1Block *b;
         int16_t (*cbi)[3 /* plane */]; /* bits 0-4: txtp, bits 5-15: eob */
         // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
-        uint16_t (*pal)[3 /* plane */][8 /* idx */];
+        pixel (*pal)[3 /* plane */][8 /* idx */];
         // iterated over inside tile state
         uint8_t *pal_idx;
         coef *cf;
@@ -387,9 +391,10 @@ struct Dav1dTaskContext {
         int16_t cf_8bpc [32 * 32];
         int32_t cf_16bpc[32 * 32];
     };
-    // FIXME types can be changed to pixel (and dynamically allocated)
-    // which would make copy/assign operations slightly faster?
-    uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+    union {
+        uint8_t  al_pal_8bpc [2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+        uint16_t al_pal_16bpc[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+    };
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
     ALIGN(union, 64) {
         struct {
@@ -420,15 +425,16 @@ struct Dav1dTaskContext {
                 uint8_t txtp_map[32 * 32]; // inter-only
             };
             uint8_t pal_idx[2 * 64 * 64];
-            uint16_t pal[3 /* plane */][8 /* palette_idx */];
-            ALIGN(union, 64) {
+            union {
                 struct {
                     uint8_t interintra_8bpc[64 * 64];
                     uint8_t edge_8bpc[257];
+                    ALIGN(uint8_t pal_8bpc[3 /* plane */][8 /* palette_idx */], 8);
                 };
                 struct {
                     uint16_t interintra_16bpc[64 * 64];
                     uint16_t edge_16bpc[257];
+                    ALIGN(uint16_t pal_16bpc[3 /* plane */][8 /* palette_idx */], 16);
                 };
             };
         };

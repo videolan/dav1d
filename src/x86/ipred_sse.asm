@@ -3479,17 +3479,16 @@ cglobal ipred_z3_8bpc, 4, 7, 8, -16*10, dst, stride, tl, w, h, angle, dy
     jg .end_transpose_loop
     RET
 
-;---------------------------------------------------------------------------------------
-;int dav1d_pal_pred_ssse3(pixel *dst, const ptrdiff_t stride, const uint16_t *const pal,
-;                                         const uint8_t *idx, const int w, const int h);
-;---------------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+;int dav1d_pal_pred_ssse3(pixel *dst, ptrdiff_t stride, const pixel *pal,
+;                         const uint8_t *idx, int w, int h);
+;-------------------------------------------------------------------------------
 cglobal pal_pred_8bpc, 4, 6, 5, dst, stride, pal, idx, w, h
-    mova                 m4, [palq]
+    movq                 m4, [palq]
     LEA                  r2, pal_pred_ssse3_table
     tzcnt                wd, wm
     movifnidn            hd, hm
     movsxd               wq, [r2+wq*4]
-    packuswb             m4, m4
     add                  wq, r2
     lea                  r2, [strideq*3]
     jmp                  wq

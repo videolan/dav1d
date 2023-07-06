@@ -3921,15 +3921,14 @@ L(ipred_filter_tbl):
 endfunc
 
 // void pal_pred_8bpc_neon(pixel *dst, const ptrdiff_t stride,
-//                         const uint16_t *const pal, const uint8_t *idx,
+//                         const pixel *const pal, const uint8_t *idx,
 //                         const int w, const int h);
 function pal_pred_8bpc_neon, export=1
-        ld1             {v0.8h}, [x2]
+        ld1             {v0.8b}, [x2]
         clz             w9,  w4
         adr             x6,  L(pal_pred_tbl)
         sub             w9,  w9,  #25
         ldrh            w9,  [x6, w9, uxtw #1]
-        xtn             v0.8b,  v0.8h
         sub             x6,  x6,  w9, uxtw
         add             x2,  x0,  x1
         lsl             x1,  x1,  #1
