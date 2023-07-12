@@ -135,7 +135,6 @@ static struct {
     const char *function_pattern;
     unsigned seed;
     int bench;
-    int bench_c;
     int verbose;
     int function_listing;
     int catch_signals;
@@ -360,7 +359,7 @@ static void print_benchs(const CheckasmFunc *const f) {
 
         /* Only print functions with at least one assembly version */
         const CheckasmFuncVersion *v = &f->versions;
-        if ((state.bench_c || v->cpu || v->next) && v->iterations) {
+        if (v->iterations) {
             const double baseline = avg_cycles_per_call(v);
             do {
                 const int pad_length = 10 + state.max_function_name_length -
@@ -583,11 +582,8 @@ int main(int argc, char *argv[]) {
                     "    --bench -b                 Benchmark the tested functions\n"
                     "    --list-functions           List available functions\n"
                     "    --list-tests               List available tests\n"
-                    "    --bench-c -c               Benchmark the C-only functions\n"
                     "    --verbose -v               Print verbose output\n");
             return 0;
-        } else if (!strcmp(argv[1], "--bench-c") || !strcmp(argv[1], "-c")) {
-            state.bench_c = 1;
         } else if (!strcmp(argv[1], "--bench") || !strcmp(argv[1], "-b")) {
 #ifndef readtime
             fprintf(stderr,
