@@ -770,14 +770,12 @@ static void read_coef_tree(Dav1dTaskContext *const t,
         uint8_t cf_ctx;
         int eob;
         coef *cf;
-        int16_t *cbi;
 
         if (t->frame_thread.pass) {
             const int p = t->frame_thread.pass & 1;
             assert(ts->frame_thread[p].cf);
             cf = ts->frame_thread[p].cf;
             ts->frame_thread[p].cf += imin(t_dim->w, 8) * imin(t_dim->h, 8) * 16;
-            cbi = f->frame_thread.cbi[t->by * f->b4_stride + t->bx];
         } else {
             cf = bitfn(t->cf);
         }
@@ -804,10 +802,11 @@ static void read_coef_tree(Dav1dTaskContext *const t,
             case_set_upto16(txw,,,);
 #undef set_ctx
             if (t->frame_thread.pass == 1)
-                cbi[0] = eob * (1 << 5) + txtp;
+                *ts->frame_thread[1].cbi++ = eob * (1 << 5) + txtp;
         } else {
-            eob  = cbi[0] >> 5;
-            txtp = cbi[0] & 0x1f;
+            const int cbi = *ts->frame_thread[0].cbi++;
+            eob  = cbi >> 5;
+            txtp = cbi & 0x1f;
         }
         if (!(t->frame_thread.pass & 1)) {
             assert(dst);
@@ -872,8 +871,6 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTaskContext *const t,
             for (y = init_y, t->by += init_y; y < sub_h4;
                  y += t_dim->h, t->by += t_dim->h, y_off++)
             {
-                int16_t (*const cbi)[3] =
-                    &f->frame_thread.cbi[t->by * f->b4_stride];
                 int x_off = !!init_x;
                 for (x = init_x, t->bx += init_x; x < sub_w4;
                      x += t_dim->w, t->bx += t_dim->w, x_off++)
@@ -891,7 +888,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTaskContext *const t,
                         if (DEBUG_BLOCK_INFO)
                             printf("Post-y-cf-blk[tx=%d,txtp=%d,eob=%d]: r=%d\n",
                                    b->tx, txtp, eob, ts->msac.rng);
-                        cbi[t->bx][0] = eob * (1 << 5) + txtp;
+                        *ts->frame_thread[1].cbi++ = eob * (1 << 5) + txtp;
                         ts->frame_thread[1].cf += imin(t_dim->w, 8) * imin(t_dim->h, 8) * 16;
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
                         rep_macro(type, t->dir lcoef, off, mul * cf_ctx)
@@ -917,8 +914,6 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTaskContext *const t,
                 for (y = init_y >> ss_ver, t->by += init_y; y < sub_ch4;
                      y += uv_t_dim->h, t->by += uv_t_dim->h << ss_ver)
                 {
-                    int16_t (*const cbi)[3] =
-                        &f->frame_thread.cbi[t->by * f->b4_stride];
                     for (x = init_x >> ss_hor, t->bx += init_x; x < sub_cw4;
                          x += uv_t_dim->w, t->bx += uv_t_dim->w << ss_hor)
                     {
@@ -936,7 +931,7 @@ void bytefn(dav1d_read_coef_blocks)(Dav1dTaskContext *const t,
                             printf("Post-uv-cf-blk[pl=%d,tx=%d,"
                                    "txtp=%d,eob=%d]: r=%d\n",
                                    pl, b->uvtx, txtp, eob, ts->msac.rng);
-                        cbi[t->bx][pl + 1] = eob * (1 << 5) + txtp;
+                        *ts->frame_thread[1].cbi++ = eob * (1 << 5) + txtp;
                         ts->frame_thread[1].cf += uv_t_dim->w * uv_t_dim->h * 16;
 #define set_ctx(type, dir, diridx, off, mul, rep_macro) \
                         rep_macro(type, t->dir ccoef[pl], off, mul * cf_ctx)
@@ -1320,10 +1315,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTaskContext *const t, const enum BlockSize
                         enum TxfmType txtp;
                         if (t->frame_thread.pass) {
                             const int p = t->frame_thread.pass & 1;
+                            const int cbi = *ts->frame_thread[p].cbi++;
                             cf = ts->frame_thread[p].cf;
                             ts->frame_thread[p].cf += imin(t_dim->w, 8) * imin(t_dim->h, 8) * 16;
-                            const int cbi =
-                                f->frame_thread.cbi[t->by * f->b4_stride + t->bx][0];
                             eob  = cbi >> 5;
                             txtp = cbi & 0x1f;
                         } else {
@@ -1544,10 +1538,9 @@ void bytefn(dav1d_recon_b_intra)(Dav1dTaskContext *const t, const enum BlockSize
                             coef *cf;
                             if (t->frame_thread.pass) {
                                 const int p = t->frame_thread.pass & 1;
+                                const int cbi = *ts->frame_thread[p].cbi++;
                                 cf = ts->frame_thread[p].cf;
                                 ts->frame_thread[p].cf += uv_t_dim->w * uv_t_dim->h * 16;
-                                const int cbi =
-                                    f->frame_thread.cbi[t->by * f->b4_stride + t->bx][pl + 1];
                                 eob  = cbi >> 5;
                                 txtp = cbi & 0x1f;
                             } else {
@@ -1987,10 +1980,9 @@ int bytefn(dav1d_recon_b_inter)(Dav1dTaskContext *const t, const enum BlockSize 
                         enum TxfmType txtp;
                         if (t->frame_thread.pass) {
                             const int p = t->frame_thread.pass & 1;
+                            const int cbi = *ts->frame_thread[p].cbi++;
                             cf = ts->frame_thread[p].cf;
                             ts->frame_thread[p].cf += uvtx->w * uvtx->h * 16;
-                            const int cbi =
-                                f->frame_thread.cbi[t->by * f->b4_stride + t->bx][pl + 1];
                             eob  = cbi >> 5;
                             txtp = cbi & 0x1f;
                         } else {

@@ -280,14 +280,14 @@ struct Dav1dFrameContext {
         atomic_uint *frame_progress, *copy_lpf_progress;
         // indexed using t->by * f->b4_stride + t->bx
         Av1Block *b;
-        int16_t (*cbi)[3 /* plane */]; /* bits 0-4: txtp, bits 5-15: eob */
+        int16_t *cbi; /* bits 0-4: txtp, bits 5-15: eob */
         // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
         pixel (*pal)[3 /* plane */][8 /* idx */];
         // iterated over inside tile state
         uint8_t *pal_idx;
         coef *cf;
         int prog_sz;
-        int pal_sz, pal_idx_sz, cf_sz;
+        int cbi_sz, pal_sz, pal_idx_sz, cf_sz;
         // start offsets per tile
         int *tile_start_off;
     } frame_thread;
@@ -364,6 +364,7 @@ struct Dav1dTileState {
     atomic_int progress[2 /* 0: reconstruction, 1: entropy */];
     struct {
         uint8_t *pal_idx;
+        int16_t *cbi;
         coef *cf;
     } frame_thread[2 /* 0: reconstruction, 1: entropy */];
 

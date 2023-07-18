@@ -641,11 +641,11 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         if (c->n_fc > 1) {
             dav1d_free(f->tile_thread.lowest_pixel_mem);
             dav1d_free(f->frame_thread.b);
+            dav1d_free_aligned(f->frame_thread.cbi);
             dav1d_free_aligned(f->frame_thread.pal_idx);
             dav1d_free_aligned(f->frame_thread.cf);
             dav1d_free(f->frame_thread.tile_start_off);
             dav1d_free_aligned(f->frame_thread.pal);
-            dav1d_free(f->frame_thread.cbi);
         }
         if (c->n_tc > 1) {
             pthread_mutex_destroy(&f->task_thread.pending_tasks.lock);

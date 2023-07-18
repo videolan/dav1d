@@ -2484,6 +2484,9 @@ static void setup_tile(Dav1dTileState *const ts,
         ts->frame_thread[p].pal_idx = f->frame_thread.pal_idx ?
             &f->frame_thread.pal_idx[(size_t)tile_start_off * size_mul[1] / 8] :
             NULL;
+        ts->frame_thread[p].cbi = f->frame_thread.cbi ?
+            &f->frame_thread.cbi[(size_t)tile_start_off * size_mul[0] / 64] :
+            NULL;
         ts->frame_thread[p].cf = f->frame_thread.cf ?
             (uint8_t*)f->frame_thread.cf +
                 (((size_t)tile_start_off * size_mul[0]) >> !f->seq_hdr->hbd) :
@@ -2855,6 +2858,19 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
             }
         }
 
+        const int cbi_sz = num_sb128 * size_mul[0];
+        if (cbi_sz != f->frame_thread.cbi_sz) {
+            dav1d_free_aligned(f->frame_thread.cbi);
+            f->frame_thread.cbi =
+                dav1d_alloc_aligned(ALLOC_BLOCK, sizeof(*f->frame_thread.cbi) *
+                                    cbi_sz * 32 * 32 / 4, 64);
+            if (!f->frame_thread.cbi) {
+                f->frame_thread.cbi_sz = 0;
+                goto error;
+            }
+            f->frame_thread.cbi_sz = cbi_sz;
+        }
+
         const int cf_sz = (num_sb128 * size_mul[0]) << hbd;
         if (cf_sz != f->frame_thread.cf_sz) {
             dav1d_free_aligned(f->frame_thread.cf);
@@ -3012,12 +3028,9 @@ int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
         }
         if (c->n_fc > 1) {
             dav1d_free(f->frame_thread.b);
-            dav1d_free(f->frame_thread.cbi);
             f->frame_thread.b = dav1d_malloc(ALLOC_BLOCK, sizeof(*f->frame_thread.b) *
                                              num_sb128 * 32 * 32);
-            f->frame_thread.cbi = dav1d_malloc(ALLOC_BLOCK, sizeof(*f->frame_thread.cbi) *
-                                               num_sb128 * 32 * 32);
-            if (!f->frame_thread.b || !f->frame_thread.cbi) {
+            if (!f->frame_thread.b) {
                 f->lf.mask_sz = 0;
                 goto error;
             }
