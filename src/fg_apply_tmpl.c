@@ -232,7 +232,7 @@ void bitfn(dav1d_apply_grain)(const Dav1dFilmGrainDSPContext *const dsp,
 #else
     uint8_t scaling[3][SCALING_SIZE];
 #endif
-    const int rows = (out->p.h + 31) >> 5;
+    const int rows = (out->p.h + FG_BLOCK_SIZE - 1) / FG_BLOCK_SIZE;
 
     bitfn(dav1d_prep_grain)(dsp, out, in, scaling, grain_lut);
     for (int row = 0; row < rows; row++)
