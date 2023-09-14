@@ -97,16 +97,60 @@ ipred_h_shuf: db  7,  7,  7,  7,  6,  6,  6,  6,  5,  5,  5,  5,  4,  4,  4,  4
               db  3,  3,  3,  3,  2,  2,  2,  2,  1,  1,  1,  1,  0,  0,  0,  0
 pal_unpack:   db  0,  4,  8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60
 pal_perm:     db  0,  8,  1,  9,  2, 10,  3, 11,  4, 12,  5, 13,  6, 14,  7, 15
+z_frac_table: db 64,  0, 62,  2, 60,  4, 58,  6, 56,  8, 54, 10, 52, 12, 50, 14
+              db 48, 16, 46, 18, 44, 20, 42, 22, 40, 24, 38, 26, 36, 28, 34, 30
+              db 32, 32, 30, 34, 28, 36, 26, 38, 24, 40, 22, 42, 20, 44, 18, 46
+              db 16, 48, 14, 50, 12, 52, 10, 54,  8, 56,  6, 58,  4, 60,  2, 62
+z_filter_s1:  db -1, -1, -1,  0,  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6
+              db 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22
+              db 30, 31, 31, 32, 32, 33, 33, 34, 34, 35, 35, 36, 36, 37, 37, 38
+              db 46, 47, 47, 48, 48, 49, 49, 50, 50, 51, 51, 52, 52, 53, 53, 54
+z_filter_s5:  db 10,  9, 11, 10, 12, 11, 13, 12, 14, 13, 15, 14, 16, 15, 17, 16
+              db 26, 25, 27, 26, 28, 27, 29, 28, 30, 29, 31, 30, 32, 31, 33, 32
+              db 42, 41, 43, 42, 44, 43, 45, 44, 46, 45, 47, 46, 48, 47, 49, 48
+              db 58, 57, 59, 58, 60, 59, 61, 60, 62, 61, 63, 62, 64, 63, 65, 64
+z_filter_s3:  db  0,  8,  1,  9,  2, 10,  3, 11,  4, 12,  5, 13,  6, 14,  7, 15
+z_filter_s2:  db  6,  7,  7,  8,  8,  9,  9, 10, 10, 11, 11, 12, 12, 13, 13, 14
+z_filter_s4:  db  2,  1,  3,  2,  4,  3,  5,  4,  6,  5,  7,  6,  8,  7,  9,  8
+z_xpos_bc:    db 17, 17, 17, 17, 33, 33, 33, 33,  9,  9,  9,  9,  9,  9,  9,  9
+z_filter4_s1: db  0,  0,  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7
+              db  7,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8
+z_xpos_off1a: db 64, 65, 65, 66, 66, 67, 67, 68, 68, 69, 69, 70, 70, 71, 71, 72
+z_xpos_off1b: db 72, 73, 73, 74, 74, 75, 75, 76, 76, 77, 77, 78, 78, 79, 79, 80
+z_xpos_off2a: db  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  7,  8
+              db 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24
+              db 32, 33, 33, 34, 34, 35, 35, 36, 36, 37, 37, 38, 38, 39, 39, 40
+              db 48, 49, 49, 50, 50, 51, 51, 52, 52, 53, 53, 54, 54, 55, 55, 56
+z_xpos_off2b: db  8,  9,  9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16
+              db 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32
+              db 40, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 46, 46, 47, 47, 48
+              db 56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63, 64
+z_xpos_mul:   dw  4,  4,  4,  4,  8,  8,  4,  4, 12, 12,  8,  8, 16, 16,  8,  8
+              dw 20, 20, 12, 12, 24, 24, 12, 12, 28, 28, 16, 16, 32, 32, 16, 16
+z_filter_t0:  db 55,127, 39,127, 39,127,  7, 15, 31,  7, 15, 31,  0,  3, 31,  0
+z_filter_t1:  db 39, 63, 19, 47, 19, 47,  3,  3,  3,  3,  3,  3,  0,  0,  0,  0
+z_filter_wh:  db  7,  7, 11, 11, 15, 15, 19, 19, 19, 23, 23, 23, 31, 31, 31, 39
+              db 39, 39, 47, 47, 47, 79, 79, 79
+z_filter_k:   db  0, 16,  0, 16,  0, 20,  0, 20,  8, 16,  8, 16
+              db 32,  0, 32,  0, 24,  0, 24,  0, 16,  0, 16,  0
+              db  0, 32,  0, 32,  0, 24,  0, 24,  0, 16,  0, 16
 
+pb_8_56_0_0:  db  8, 56,  0,  0
+pb_m4_36:     times 2 db -4, 36
 pb_127_m127:  times 2 db 127, -127
 pb_128:       times 4 db 128
 pw_128:       times 2 dw 128
 pw_255:       times 2 dw 255
+pw_512:       times 2 dw 512
 
-%define pb_1 (ipred_h_shuf+24)
-%define pb_2 (ipred_h_shuf+20)
-%define pb_3 (ipred_h_shuf+16)
-%define pd_8 (filter_taps+128)
+%define pb_1  (ipred_h_shuf+24)
+%define pb_2  (ipred_h_shuf+20)
+%define pb_3  (ipred_h_shuf+16)
+%define pb_7  (ipred_h_shuf+ 0)
+%define pb_9  (z_xpos_bc   + 8)
+%define pb_17 (z_xpos_bc   + 0)
+%define pb_33 (z_xpos_bc   + 4)
+%define pd_8  (filter_taps+128)
 
 %macro JMP_TABLE 3-*
     %xdefine %1_%2_table (%%table - 2*4)
@@ -125,9 +169,13 @@ JMP_TABLE ipred_paeth_8bpc,      avx512icl, w4, w8, w16, w32, w64
 JMP_TABLE ipred_smooth_8bpc,     avx512icl, w4, w8, w16, w32, w64
 JMP_TABLE ipred_smooth_v_8bpc,   avx512icl, w4, w8, w16, w32, w64
 JMP_TABLE ipred_smooth_h_8bpc,   avx512icl, w4, w8, w16, w32, w64
+JMP_TABLE ipred_z1_8bpc,         avx512icl, w4, w8, w16, w32, w64
 JMP_TABLE ipred_dc_8bpc,         avx512icl, h4, h8, h16, h32, h64, w4, w8, w16, w32, w64, \
                                        s4-10*4, s8-10*4, s16-10*4, s32-10*4, s64-10*4
 JMP_TABLE ipred_dc_left_8bpc,    avx512icl, h4, h8, h16, h32, h64
+
+cextern dr_intra_derivative
+cextern pb_0to63
 
 SECTION .text
 
@@ -1198,6 +1246,541 @@ cglobal pal_pred_8bpc, 4, 7, 6, dst, stride, pal, idx, w, h, stride3
     lea                dstq, [dstq+strideq*2]
     sub                  hd, 2
     jg .w64
+    RET
+
+%if WIN64
+    DECLARE_REG_TMP 4
+%else
+    DECLARE_REG_TMP 8
+%endif
+
+cglobal ipred_z1_8bpc, 3, 8, 16, dst, stride, tl, w, h, angle, dx
+%define base r7-z_filter_t0
+    lea                  r7, [z_filter_t0]
+    tzcnt                wd, wm
+    movifnidn        angled, anglem
+    lea                  t0, [dr_intra_derivative]
+    movsxd               wq, [base+ipred_z1_8bpc_avx512icl_table+wq*4]
+    inc                 tlq
+    mov                 dxd, angled
+    and                 dxd, 0x7e
+    add              angled, 165 ; ~90
+    movzx               dxd, word [t0+dxq]
+    lea                  wq, [base+ipred_z1_8bpc_avx512icl_table+wq]
+    movifnidn            hd, hm
+    xor              angled, 0x4ff ; d = 90 - angle
+    mova                m14, [base+z_frac_table]
+    vpbroadcastd        m15, [base+pw_512]
+    jmp                  wq
+.w4:
+    mova                 m9, [pb_0to63]
+    pminud               m8, m9, [base+pb_7] {1to16}
+    vpbroadcastq         m7, [tlq]
+    pshufb               m7, m8
+    cmp              angleb, 40
+    jae .w4_filter
+    lea                 r3d, [angleq-1024]
+    sar                 r3d, 7
+    add                 r3d, hd
+    jg .w4_filter ; !enable_intra_edge_filter || h > 8 || (h == 8 && is_sm)
+    pshufb             xmm0, xm7, [base+z_filter_s4]
+    mova               xmm1, [tlq-1]
+    pshufb             xmm1, [base+z_xpos_off2a]
+    vpbroadcastd       xmm2, [base+pb_m4_36]
+    vpbroadcastq         m4, [pb_0to63]
+    pmaddubsw          xmm0, xmm2
+    pmaddubsw          xmm1, xmm2
+    add                 dxd, dxd
+    kxnorw               k1, k1, k1
+    paddw              xmm0, xmm1
+    pmulhrsw            xm0, xmm0, xm15
+    packuswb            xm0, xm0
+    punpcklbw       ym7{k1}, ym0
+    jmp .w4_main2
+.w4_filter:
+    test             angled, 0x400
+    jnz .w4_main ; !enable_intra_edge_filter
+    lea                 r3d, [hq+3]
+    vpbroadcastb        xm0, r3d
+    vpbroadcastb        xm1, angled
+    shr              angled, 8 ; is_sm << 1
+    vpcmpeqb             k1, xm0, [base+z_filter_wh]
+    vpcmpgtb         k1{k1}, xm1, [base+z_filter_t0+angleq*8]
+    kmovw               r5d, k1
+    test                r5d, r5d
+    jz .w4_main
+    vbroadcasti32x4     ym0, [tlq-1]
+    pshufb              ym0, [base+z_filter4_s1]
+    popcnt              r5d, r5d ; filter_strength
+    pshufb              ym1, ym7, [z_filter_s4]
+    pshufb              ym7, [base+z_filter_s3]
+    vpbroadcastd       ym11, [base+z_filter_k+(r5-1)*4+12*0]
+    vpbroadcastd       ym12, [base+z_filter_k+(r5-1)*4+12*1]
+    pmaddubsw           ym0, ym11
+    pmaddubsw           ym1, ym11
+    pmaddubsw           ym7, ym12
+    paddw               ym0, ym1
+    paddw               ym7, ym0
+    pmulhrsw            ym7, ym15
+    cmp                  hd, 4
+    je .w4_filter_end
+    vpbroadcastd         m8, [base+pb_9]
+    pminub               m8, m9
+.w4_filter_end:
+    paddb                m8, m8
+    vpermb               m7, m8, m7
+.w4_main:
+    vpbroadcastq         m4, [base+z_xpos_off1a]
+.w4_main2:
+    movsldup             m2, [base+z_xpos_mul]
+    vpbroadcastw         m5, dxd
+    vbroadcasti32x4      m3, [base+z_xpos_bc]
+    lea                  r2, [strideq*3]
+    pmullw               m2, m5      ; xpos
+    psllw                m5, 5       ; dx*8
+.w4_loop:
+    psrlw                m1, m2, 3
+    pshufb               m0, m2, m3
+    vpermw               m1, m1, m14 ; 64-frac, frac
+    paddsb               m0, m4      ; base, base+1
+    vpermb               m0, m0, m7  ; top[base], top[base+1]
+    paddsw               m2, m5      ; xpos += dx
+    pmaddubsw            m0, m1      ; v
+    pmulhrsw             m0, m15
+    packuswb             m0, m0
+    vextracti32x4       xm1, ym0, 1
+    movd   [dstq+strideq*0], xm0
+    pextrd [dstq+strideq*1], xm0, 1
+    movd   [dstq+strideq*2], xm1
+    pextrd [dstq+r2       ], xm1, 1
+    sub                  hd, 8
+    jl .w4_end
+    vextracti32x4       xm1, m0, 2 ; top[max_base_x]
+    lea                dstq, [dstq+strideq*4]
+    vextracti32x4       xm0, m0, 3
+    movd   [dstq+strideq*0], xm1
+    pextrd [dstq+strideq*1], xm1, 1
+    movd   [dstq+strideq*2], xm0
+    pextrd [dstq+r2       ], xm0, 1
+    lea                dstq, [dstq+strideq*4]
+    jg .w4_loop
+.w4_end:
+    RET
+.w8:
+    lea                 r3d, [angleq+216]
+    mov                 r3b, hb
+    cmp                 r3d, 8
+    ja .w8_filter ; !enable_intra_edge_filter || is_sm || d >= 40 || h > 8
+    lea                 r3d, [hq-1]
+    mova                xm1, [base+z_filter_s4]
+    vpbroadcastb        xm2, r3d
+    mova                xm7, [tlq-1]
+    vinserti32x4        ym7, [tlq+7], 1
+    vbroadcasti32x4     ym0, [base+z_xpos_off1a]
+    vpbroadcastd        ym3, [base+pb_m4_36]
+    pminub              xm2, xm1
+    pshufb              ym0, ym7, ym0
+    vinserti32x4        ym1, xm2, 1
+    psrldq              ym7, 1
+    pshufb              ym1, ym7, ym1
+    pmaddubsw           ym0, ym3
+    pmaddubsw           ym1, ym3
+    vbroadcasti32x4      m8, [pb_0to63]
+    add                 dxd, dxd
+    paddw               ym0, ym1
+    pmulhrsw            ym0, ym15
+    packuswb            ym0, ym0
+    punpcklbw           ym7, ym0
+    jmp .w8_main2
+.w8_filter:
+    lea                 r3d, [hq+7]
+    mova                 m9, [pb_0to63]
+    vpbroadcastb        ym0, r3d
+    and                 r3d, 7
+    vbroadcasti32x4      m7, [tlq]
+    or                  r3d, 8 ; imin(h+7, 15)
+    vpbroadcastb         m8, r3d
+    pminub               m8, m9
+    pshufb               m7, m8
+    test             angled, 0x400
+    jnz .w8_main
+    vpbroadcastb        ym1, angled
+    shr              angled, 8
+    vpcmpeqb             k1, ym0, [base+z_filter_wh]
+    mova                xm0, [base+z_filter_t0+angleq*8]
+    vpcmpgtb         k1{k1}, ym1, ym0
+    kmovd               r5d, k1
+    test                r5d, r5d
+    jz .w8_main
+    mova                ym0, [base+z_filter_s1]
+    vpbroadcastd        ym2, [tlq-4]
+    popcnt              r5d, r5d
+    vbroadcasti32x4     ym1, [base+z_filter_s2]
+    vbroadcasti32x4     ym3, [base+z_filter_s3]
+    vbroadcasti32x4     ym4, [base+z_filter_s4]
+    vpermi2b            ym0, ym7, ym2 ; al bl
+    mova                ym5, [base+z_filter_s5]
+    pshufb              ym1, ym7, ym1 ; ah bh
+    vpbroadcastd       ym11, [base+z_filter_k+(r5-1)*4+12*0]
+    pshufb              ym3, ym7, ym3 ; cl ch
+    vpbroadcastd       ym12, [base+z_filter_k+(r5-1)*4+12*1]
+    pshufb              ym4, ym7, ym4 ; el dl
+    vpbroadcastd       ym13, [base+z_filter_k+(r5-1)*4+12*2]
+    vpermb              ym5, ym5, ym7 ; eh dh
+    pmaddubsw           ym0, ym11
+    pmaddubsw           ym1, ym11
+    pmaddubsw           ym2, ym3, ym12
+    pmaddubsw           ym3, ym13
+    pmaddubsw           ym4, ym11
+    pmaddubsw           ym5, ym11
+    paddw               ym0, ym2
+    paddw               ym1, ym3
+    paddw               ym0, ym4
+    paddw               ym1, ym5
+    pmulhrsw            ym0, ym15
+    pmulhrsw            ym1, ym15
+    packuswb            ym0, ym1
+    cmp                  hd, 8
+    jle .w8_filter_end
+    vpbroadcastd         m8, [base+pb_17]
+    add                 r3d, 2
+    pminub               m8, m9
+.w8_filter_end:
+    vpermb               m7, m8, m0
+.w8_main:
+    vbroadcasti32x4      m8, [base+z_xpos_off1a]
+.w8_main2:
+    movsldup             m4, [base+z_xpos_mul]
+    vpbroadcastw         m9, dxd
+    shl                 r3d, 6
+    vpbroadcastd         m5, [base+z_xpos_bc+8*0]
+    pmullw               m4, m9 ; xpos
+    vpbroadcastd         m6, [base+z_xpos_bc+8*1]
+    sub                 r3d, dxd
+    shl                 dxd, 3
+    psllw                m9, 5 ; dx*8
+    lea                  r2, [strideq*3]
+.w8_loop:
+    psrlw                m3, m4, 3
+    pshufb               m0, m4, m5
+    pshufb               m1, m4, m6
+    vpermw               m3, m3, m14
+    paddsb               m0, m8
+    paddsb               m1, m8
+    vpermb               m0, m0, m7
+    vpermb               m1, m1, m7
+    paddsw               m4, m9
+    punpcklqdq           m2, m3, m3
+    pmaddubsw            m0, m2
+    punpckhqdq           m3, m3
+    pmaddubsw            m1, m3
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m0, m1
+    vextracti32x4       xm1, ym0, 1
+    movq   [dstq+strideq*0], xm0
+    movhps [dstq+strideq*1], xm0
+    movq   [dstq+strideq*2], xm1
+    movhps [dstq+r2       ], xm1
+    sub                  hd, 8
+    jl .w8_end
+    vextracti32x8       ym0, m0, 1
+    lea                dstq, [dstq+strideq*4]
+    vextracti32x4       xm1, ym0, 1
+    movq   [dstq+strideq*0], xm0
+    movhps [dstq+strideq*1], xm0
+    movq   [dstq+strideq*2], xm1
+    movhps [dstq+r2       ], xm1
+    jz .w8_end
+    lea                dstq, [dstq+strideq*4]
+    sub                 r3d, dxd
+    jg .w8_loop
+    vextracti32x4       xm7, m7, 3
+.w8_end_loop:
+    movq   [dstq+strideq*0], xm7
+    movq   [dstq+strideq*1], xm7
+    movq   [dstq+strideq*2], xm7
+    movq   [dstq+r2       ], xm7
+    lea                dstq, [dstq+strideq*4]
+    sub                  hd, 4
+    jg .w8_end_loop
+.w8_end:
+    RET
+.w16:
+    lea                 r3d, [hq+15]
+    mova                 m9, [pb_0to63]
+    vpbroadcastb        ym0, r3d
+    and                 r3d, 15
+    movu                ym7, [tlq]
+    or                  r3d, 16 ; imin(h+15, 31)
+    vpbroadcastb         m8, r3d
+    pminub               m8, m9
+    vpermb               m7, m8, m7
+    test             angled, 0x400
+    jnz .w16_main
+    vpbroadcastb        ym1, angled
+    shr              angled, 8
+    vpcmpeqb             k1, ym0, [base+z_filter_wh]
+    mova                xm0, [base+z_filter_t0+angleq*8]
+    vpcmpgtb         k1{k1}, ym1, ym0
+    kmovd               r5d, k1
+    test                r5d, r5d
+    jz .w16_main
+    mova                 m0, [base+z_filter_s1]
+    vpbroadcastd         m2, [tlq-4]
+    popcnt              r5d, r5d
+    vbroadcasti32x4      m1, [base+z_filter_s2]
+    vbroadcasti32x4      m3, [base+z_filter_s3]
+    vbroadcasti32x4      m4, [base+z_filter_s4]
+    vpermi2b             m0, m7, m2 ; al bl
+    mova                 m5, [base+z_filter_s5]
+    pshufb               m1, m7, m1 ; ah bh
+    vpbroadcastd        m11, [base+z_filter_k+(r5-1)*4+12*0]
+    pshufb               m3, m7, m3 ; cl ch
+    vpbroadcastd        m12, [base+z_filter_k+(r5-1)*4+12*1]
+    pshufb               m4, m7, m4 ; el dl
+    vpbroadcastd        m13, [base+z_filter_k+(r5-1)*4+12*2]
+    vpermb               m5, m5, m7 ; eh dh
+    pmaddubsw            m0, m11
+    pmaddubsw            m1, m11
+    pmaddubsw            m2, m3, m12
+    pmaddubsw            m3, m13
+    pmaddubsw            m4, m11
+    pmaddubsw            m5, m11
+    paddw                m0, m2
+    paddw                m1, m3
+    paddw                m0, m4
+    paddw                m1, m5
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m0, m1
+    cmp                  hd, 16
+    jle .w16_filter_end
+    vpbroadcastd         m8, [base+pb_33]
+    add                 r3d, 2
+    pminub               m8, m9
+.w16_filter_end:
+    vpermb               m7, m8, m0
+.w16_main:
+    movshdup             m3, [base+z_xpos_mul]
+    vpbroadcastw         m8, dxd
+    shl                 r3d, 6
+    vpbroadcastd         m4, [base+z_xpos_bc]
+    pmullw               m3, m8 ; xpos
+    vbroadcasti32x4      m5, [base+z_xpos_off1a]
+    sub                 r3d, dxd
+    shl                 dxd, 2
+    vbroadcasti32x4      m6, [base+z_xpos_off1b]
+    psllw                m8, 4 ; dx*4
+    lea                  r2, [strideq*3]
+.w16_loop:
+    pshufb               m1, m3, m4
+    psrlw                m2, m3, 3
+    paddsb               m0, m1, m5
+    vpermw               m2, m2, m14
+    paddsb               m1, m6
+    vpermb               m0, m0, m7
+    vpermb               m1, m1, m7
+    paddsw               m3, m8
+    pmaddubsw            m0, m2
+    pmaddubsw            m1, m2
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m0, m1
+    mova          [dstq+strideq*0], xm0
+    vextracti32x4 [dstq+strideq*1], ym0, 1
+    vextracti32x4 [dstq+strideq*2], m0, 2
+    vextracti32x4 [dstq+r2       ], m0, 3
+    sub                  hd, 4
+    jz .w16_end
+    lea                dstq, [dstq+strideq*4]
+    sub                 r3d, dxd
+    jg .w16_loop
+    vextracti32x4       xm7, m7, 3
+.w16_end_loop:
+    mova   [dstq+strideq*0], xm7
+    mova   [dstq+strideq*1], xm7
+    mova   [dstq+strideq*2], xm7
+    mova   [dstq+r2       ], xm7
+    lea                dstq, [dstq+strideq*4]
+    sub                  hd, 4
+    jg .w16_end_loop
+.w16_end:
+    RET
+.w32:
+    lea                 r3d, [hq+31]
+    vpbroadcastb         m9, r3d
+    and                 r3d, 31
+    pminub              m10, m9, [pb_0to63]
+    or                  r3d, 32 ; imin(h+31, 63)
+    vpermb               m7, m10, [tlq]
+    vpbroadcastb         m8, [tlq+r3]
+    test             angled, 0x400 ; !enable_intra_edge_filter
+    jnz .w32_main
+    vpbroadcastd         m2, [tlq-4]
+    mova                 m0, [base+z_filter_s1]
+    vbroadcasti32x4      m1, [base+z_filter_s2]
+    vbroadcasti32x4      m3, [base+z_filter_s3]
+    vbroadcasti32x4      m4, [base+z_filter_s4]
+    vpermi2b             m0, m7, m2 ; al bl
+    mova                 m5, [base+z_filter_s5]
+    pshufb               m1, m7, m1 ; ah bh
+    vpbroadcastd        m11, [base+z_filter_k+4*2+12*0]
+    pshufb               m3, m7, m3 ; cl ch
+    vpbroadcastd        m12, [base+z_filter_k+4*2+12*1]
+    pshufb               m4, m7, m4 ; el dl
+    vpbroadcastd        m13, [base+z_filter_k+4*2+12*2]
+    vpermi2b             m5, m7, m8 ; eh dh
+    pmaddubsw            m0, m11
+    pmaddubsw            m1, m11
+    pmaddubsw            m2, m3, m12
+    pmaddubsw            m3, m13
+    pmaddubsw            m4, m11
+    pmaddubsw            m5, m11
+    paddw                m0, m2
+    paddw                m1, m3
+    paddw                m0, m4
+    paddw                m1, m5
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m7, m0, m1
+    cmp                  hd, 64
+    je .w32_h64_filter_end
+    vpermb               m8, m9, m7
+    vpermb               m7, m10, m7
+    jmp .w32_main
+.w32_h64_filter_end: ; edge case for 32x64
+    movd               xmm0, [tlq+r3-1]
+    movd               xmm1, [base+pb_8_56_0_0]
+    add                 r3d, 2
+    pmaddubsw          xmm0, xmm1
+    vptestmw             k1, xmm1, xmm1 ; 0x01
+    pmulhrsw            xm0, xmm0, xm15
+    vmovdqu8         m8{k1}, m0
+.w32_main:
+    rorx                r2d, dxd, 30
+    vpbroadcastd         m4, [base+z_xpos_bc]
+    vpbroadcastw         m3, r2d
+    vbroadcasti32x8      m5, [base+z_xpos_off2a]
+    shl                 r3d, 6
+    vbroadcasti32x8      m6, [base+z_xpos_off2b]
+    sub                 r3d, dxd
+    paddw                m9, m3, m3
+    add                 dxd, dxd
+    vinserti32x8         m3, ym9, 1
+.w32_loop:
+    pshufb               m1, m3, m4
+    psrlw                m2, m3, 3
+    paddsb               m0, m1, m5
+    vpermw               m2, m2, m14
+    paddsb               m1, m6
+    vpermi2b             m0, m7, m8
+    vpermi2b             m1, m7, m8
+    paddsw               m3, m9
+    pmaddubsw            m0, m2
+    pmaddubsw            m1, m2
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m0, m1
+    mova          [dstq+strideq*0], ym0
+    vextracti32x8 [dstq+strideq*1], m0, 1
+    sub                  hd, 2
+    jz .w32_end
+    lea                dstq, [dstq+strideq*2]
+    sub                 r3d, dxd
+    jg .w32_loop
+    punpckhqdq          ym8, ym8
+.w32_end_loop:
+    mova   [dstq+strideq*0], ym8
+    mova   [dstq+strideq*1], ym8
+    lea                dstq, [dstq+strideq*2]
+    sub                  hd, 2
+    jg .w32_end_loop
+.w32_end:
+    RET
+.w64:
+    lea                 r3d, [hq-1]
+    movu                 m7, [tlq+64*0]
+    vpbroadcastb        m13, r3d
+    pminub              m12, m13, [pb_0to63]
+    or                  r3d, 64
+    vpermb               m8, m12, [tlq+64*1]
+    test             angled, 0x400 ; !enable_intra_edge_filter
+    jnz .w64_main
+    movu                 m0, [tlq+56]
+    vbroadcasti32x4      m3, [base+z_filter_s2]
+    vpbroadcastd         m2, [tlq-4]
+    mova                 m1, [base+z_filter_s1]
+    movu                m11, [tlq+8]
+    pshufb               m0, m3      ; al bl
+    vpermi2b             m1, m7, m2
+    vbroadcasti32x4      m4, [base+z_filter_s4]
+    pshufb               m6, m8, m4  ; el dl
+    pshufb               m9, m7, m4
+    pminub              m10, m13, [base+z_filter_s5]
+    pshufb               m2, m8, m3  ; ah bh
+    pshufb               m3, m7, m3
+    vbroadcasti32x4      m5, [base+z_filter_s3]
+    vpermb              m10, m10, m8 ; eh dh
+    pshufb              m11, m4
+    vpbroadcastd         m4, [base+z_filter_k+4*2+12*0]
+    pshufb               m8, m5      ; cl ch
+    pshufb               m7, m5
+    vpbroadcastd         m5, [base+z_filter_k+4*2+12*1]
+    REPX  {pmaddubsw x, m4}, m0, m1, m6, m9, m2, m3, m10, m11
+    pmaddubsw            m4, m8, m5
+    pmaddubsw            m5, m7, m5
+    paddw                m0, m6
+    vpbroadcastd         m6, [base+z_filter_k+4*2+12*2]
+    paddw                m1, m9
+    pmaddubsw            m7, m6
+    pmaddubsw            m8, m6
+    paddw                m2, m10
+    paddw                m3, m11
+    paddw                m0, m4
+    paddw                m1, m5
+    paddw                m2, m8
+    paddw                m3, m7
+    REPX  {pmulhrsw x, m15}, m0, m2, m1, m3
+    packuswb             m0, m2
+    packuswb             m7, m1, m3
+    vpermb               m8, m12, m0
+.w64_main:
+    rorx                r2d, dxd, 30
+    vpbroadcastd         m4, [base+z_xpos_bc]
+    vpbroadcastw         m3, r2d
+    mova                 m5, [base+z_xpos_off2a]
+    shl                 r3d, 6
+    mova                 m6, [base+z_xpos_off2b]
+    sub                 r3d, dxd
+    mova                 m9, m3
+.w64_loop:
+    pshufb               m1, m3, m4
+    psrlw                m2, m3, 3
+    paddsb               m0, m1, m5
+    vpermw               m2, m2, m14
+    paddsb               m1, m6
+    vpermi2b             m0, m7, m8
+    vpermi2b             m1, m7, m8
+    paddsw               m3, m9
+    pmaddubsw            m0, m2
+    pmaddubsw            m1, m2
+    pmulhrsw             m0, m15
+    pmulhrsw             m1, m15
+    packuswb             m0, m1
+    mova             [dstq], m0
+    dec                  hd
+    jz .w64_end
+    add                dstq, strideq
+    sub                 r3d, dxd
+    jg .w64_loop
+    vpermb               m8, m13, m8
+.w64_end_loop:
+    mova             [dstq], m8
+    add                dstq, strideq
+    dec                  hd
+    jg .w64_end_loop
+.w64_end:
     RET
 
 ; The ipred_filter code processes 4x2 blocks in the following order
