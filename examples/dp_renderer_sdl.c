@@ -79,7 +79,9 @@ static void sdl_renderer_destroy(void *cookie)
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = cookie;
     assert(rd_priv_ctx != NULL);
 
+    SDL_DestroyTexture(rd_priv_ctx->tex);
     SDL_DestroyRenderer(rd_priv_ctx->renderer);
+    SDL_DestroyWindow(rd_priv_ctx->win);
     SDL_DestroyMutex(rd_priv_ctx->lock);
     free(rd_priv_ctx);
 }

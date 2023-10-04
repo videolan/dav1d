@@ -240,34 +240,36 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(int argc, char **argv)
         return NULL;
     }
 
+    // Parse and validate arguments
+    dav1d_default_settings(&rd_ctx->lib_settings);
+    memset(&rd_ctx->settings, 0, sizeof(rd_ctx->settings));
+    dp_rd_ctx_parse_args(rd_ctx, argc, argv);
+
+    // Init SDL2 library
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
+        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        goto fail;
+    }
+
     // Register a custom event to notify our SDL main thread
     // about new frames
     rd_ctx->event_types = SDL_RegisterEvents(3);
     if (rd_ctx->event_types == UINT32_MAX) {
         fprintf(stderr, "Failure to create custom SDL event types!\n");
-        free(rd_ctx);
-        return NULL;
+        goto fail;
     }
 
     rd_ctx->fifo = dp_fifo_create(5);
     if (rd_ctx->fifo == NULL) {
         fprintf(stderr, "Failed to create FIFO for output pictures!\n");
-        free(rd_ctx);
-        return NULL;
+        goto fail;
     }
 
     rd_ctx->lock = SDL_CreateMutex();
     if (rd_ctx->lock == NULL) {
         fprintf(stderr, "SDL_CreateMutex failed: %s\n", SDL_GetError());
-        dp_fifo_destroy(rd_ctx->fifo);
-        free(rd_ctx);
-        return NULL;
+        goto fail;
     }
-
-    // Parse and validate arguments
-    dav1d_default_settings(&rd_ctx->lib_settings);
-    memset(&rd_ctx->settings, 0, sizeof(rd_ctx->settings));
-    dp_rd_ctx_parse_args(rd_ctx, argc, argv);
 
     // Select renderer
     renderer_info = dp_get_renderer(rd_ctx->settings.renderer_name);
@@ -281,13 +283,19 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(int argc, char **argv)
 
     rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer() : NULL;
     if (rd_ctx->rd_priv == NULL) {
-        SDL_DestroyMutex(rd_ctx->lock);
-        dp_fifo_destroy(rd_ctx->fifo);
-        free(rd_ctx);
-        return NULL;
+        goto fail;
     }
 
     return rd_ctx;
+
+fail:
+    if (rd_ctx->lock)
+        SDL_DestroyMutex(rd_ctx->lock);
+    if (rd_ctx->fifo)
+        dp_fifo_destroy(rd_ctx->fifo);
+    free(rd_ctx);
+    SDL_Quit();
+    return NULL;
 }
 
 /**
@@ -662,10 +670,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Init SDL2 library
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
-        return 10;
-
     // Create render context
     Dav1dPlayRenderContext *rd_ctx = dp_rd_ctx_create(argc, argv);
     if (rd_ctx == NULL) {
@@ -776,5 +780,6 @@ out:;
     int decoder_ret = 0;
     SDL_WaitThread(decoder_thread, &decoder_ret);
     dp_rd_ctx_destroy(rd_ctx);
+    SDL_Quit();
     return decoder_ret;
 }

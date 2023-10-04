@@ -64,6 +64,8 @@ typedef struct renderer_priv_ctx
 #ifdef HAVE_PLACEBO_OPENGL
     // Placebo OpenGL handle
     pl_opengl gl;
+    // SDL OpenGL context
+    SDL_GLContext gl_context;
 #endif
     // Placebo GPU
     pl_gpu gpu;
@@ -132,8 +134,8 @@ static void *placebo_renderer_create_gl(void)
         return NULL;
     sdlwin = rd_priv_ctx->win;
 
-    SDL_GLContext glcontext = SDL_GL_CreateContext(sdlwin);
-    SDL_GL_MakeCurrent(sdlwin, glcontext);
+    rd_priv_ctx->gl_context = SDL_GL_CreateContext(sdlwin);
+    SDL_GL_MakeCurrent(sdlwin, rd_priv_ctx->gl_context);
 
     rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->log, pl_opengl_params(
 #ifndef NDEBUG
@@ -280,6 +282,8 @@ static void placebo_renderer_destroy(void *cookie)
 #ifdef HAVE_PLACEBO_OPENGL
     if (rd_priv_ctx->gl)
         pl_opengl_destroy(&(rd_priv_ctx->gl));
+    if (rd_priv_ctx->gl_context)
+        SDL_GL_DeleteContext(rd_priv_ctx->gl_context);
 #endif
 
     SDL_DestroyWindow(rd_priv_ctx->win);
