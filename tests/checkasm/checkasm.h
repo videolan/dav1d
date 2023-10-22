@@ -197,6 +197,14 @@ static inline uint64_t readtime(void) {
     return (((uint64_t)tbu) << 32) | (uint64_t)tbl;
 }
 #define readtime readtime
+#elif ARCH_RISCV
+#include <time.h>
+static inline uint64_t clock_gettime_nsec(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+  return ((uint64_t)ts.tv_sec*1000000000u) + (uint64_t)ts.tv_nsec;
+}
+#define readtime clock_gettime_nsec
 #elif ARCH_LOONGARCH
 static inline uint64_t readtime(void) {
 #if ARCH_LOONGARCH64
