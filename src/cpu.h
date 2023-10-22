@@ -68,6 +68,10 @@ static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
 #if defined(__VSX__)
     flags |= DAV1D_PPC_CPU_FLAG_VSX;
 #endif
+#elif ARCH_RISCV
+#if defined(__riscv_v)
+    flags |= DAV1D_RISCV_CPU_FLAG_V;
+#endif
 #elif ARCH_X86
 #if defined(__AVX512F__) && defined(__AVX512CD__) && \
     defined(__AVX512BW__) && defined(__AVX512DQ__) && \
