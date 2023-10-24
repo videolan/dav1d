@@ -11,49 +11,49 @@ stages:
         - amd64
 
 .debian-amd64-minimum:
-    image: registry.videolan.org/dav1d-debian-minimum:20230211045249
+    image: registry.videolan.org/dav1d-debian-minimum:20231024033032
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20230212072216
+    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20231024033032
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-aarch64:20230512061045
+    image: registry.videolan.org/dav1d-debian-bookworm-aarch64:20231018041418
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-bullseye-armv7:20230513182209
+    image: registry.videolan.org/dav1d-debian-bookworm-armv7:20231018042237
     stage: build
     tags:
         - docker
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20230211050439
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20231020040221
     stage: build
     tags:
         - docker
         - ppc64le
 
 .android-common:
-    image: registry.videolan.org/vlc-debian-android:20230212071537
+    image: registry.videolan.org/vlc-debian-android:20231013040434
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-wasm-emscripten-common:
-    image: registry.videolan.org/vlc-debian-wasm-emscripten:20221213104631
+    image: registry.videolan.org/vlc-debian-wasm-emscripten:20231024033032
     stage: build
     tags:
         - docker
