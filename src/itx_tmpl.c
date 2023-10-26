@@ -185,6 +185,8 @@ static void inv_txfm_add_wht_wht_4x4_c(pixel *dst, const ptrdiff_t stride,
 #include "src/arm/itx.h"
 #elif ARCH_LOONGARCH64
 #include "src/loongarch/itx.h"
+#elif ARCH_RISCV
+#include "src/riscv/itx.h"
 #elif ARCH_X86
 #include "src/x86/itx.h"
 #endif
@@ -261,6 +263,9 @@ COLD void bitfn(dav1d_itx_dsp_init)(Dav1dInvTxfmDSPContext *const c, int bpc) {
 #endif
 #if ARCH_LOONGARCH64
     itx_dsp_init_loongarch(c, bpc);
+#endif
+#if ARCH_RISCV
+    itx_dsp_init_riscv(c, bpc);
 #endif
 #if ARCH_X86
     itx_dsp_init_x86(c, bpc);

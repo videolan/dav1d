@@ -239,6 +239,11 @@ if is_asm_enabled
         libdav1d_sources += files(
             'riscv/cpu.c',
         )
+        if host_machine.cpu_family() == 'riscv64'
+            libdav1d_sources += files(
+                'riscv/64/itx.S',
+            )
+        endif
     elif host_machine.cpu_family().startswith('loongarch')
         libdav1d_sources += files(
             'loongarch/cpu.c',

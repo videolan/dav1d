@@ -107,6 +107,8 @@ static const struct {
 #elif ARCH_LOONGARCH
     { "LSX",                "lsx",       DAV1D_LOONGARCH_CPU_FLAG_LSX },
     { "LASX",               "lasx",      DAV1D_LOONGARCH_CPU_FLAG_LASX },
+#elif ARCH_RISCV
+    { "RVV",                "rvv",       DAV1D_RISCV_CPU_FLAG_V },
 #endif
     { 0 }
 };
