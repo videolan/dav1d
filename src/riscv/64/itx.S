@@ -27,7 +27,7 @@
 
 #include "src/riscv/asm.S"
 
-function inv_txfm_add_4x4_rvv, export=1
+function inv_txfm_add_4x4_rvv, export=1, ext=v
   csrw vxrm, zero
 
   vsetivli zero, 4, e16, m1, ta, ma
@@ -96,7 +96,7 @@ function inv_txfm_add_4x4_rvv, export=1
   ret
 endfunc
 
-function inv_identity_e16_x4_rvv, export=1
+function inv_identity_e16_x4_rvv, export=1, ext=v
   li t1, (5793-4096)*8
   vsmul.vx v4, v0, t1
   vsmul.vx v5, v1, t1

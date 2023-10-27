@@ -30,8 +30,6 @@
 
 #include "config.h"
 
-.option arch,+v
-
 #if !defined(PIC)
 #if defined(__PIC__)
 #define PIC __PIC__
@@ -53,14 +51,19 @@
 #define EXTERN PRIVATE_PREFIX
 #endif
 
-.macro function name, export=0
+.macro function name, export=0, ext=
     .macro endfunc
 #ifdef __ELF__
         .size   \name, . - \name
 #endif
+        .option pop
         .purgem endfunc
     .endm
         .text
+        .option push
+    .ifnb \ext
+        .option arch, +\ext
+    .endif
     .if \export
         .global EXTERN\name
 #ifdef __ELF__
