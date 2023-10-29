@@ -326,6 +326,17 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
      checked_call(func_new, 0, 0, 0, 0, 0, 0, 0, __VA_ARGS__,\
                   7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0));\
     checkasm_set_signal_handler_state(0)
+#elif ARCH_RISCV
+#define declare_new(ret, ...)\
+    ret (*checked_call)(void *, int, int, int, int, int, int, int,\
+                        __VA_ARGS__, int, int, int, int, int, int, int, int,\
+                        int, int, int, int, int, int, int) =\
+    (void *)checkasm_checked_call;
+#define call_new(...)\
+    (checkasm_set_signal_handler_state(1),\
+     checked_call(func_new, 0, 0, 0, 0, 0, 0, 0, __VA_ARGS__,\
+                  7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0));\
+    checkasm_set_signal_handler_state(0)
 #else
 #define declare_new(ret, ...)
 #define call_new(...)\

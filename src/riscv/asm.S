@@ -108,4 +108,19 @@ EXTERN\name:
 \name:
 .endm
 
+.macro thread_local name, align=3, quads=1
+    .macro end_thread_local
+        .size  \name, . - \name
+        .purgem end_thread_local
+    .endm
+        .section .tbss, "waT"
+        .align \align
+        .hidden \name
+\name:
+    .rept \quads
+        .quad 0
+    .endr
+        end_thread_local
+.endm
+
 #endif /* DAV1D_SRC_RISCV_ASM_S */
