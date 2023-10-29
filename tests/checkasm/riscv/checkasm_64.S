@@ -74,9 +74,9 @@ const error_message_register
 error_message_rsvd:
         .asciz "unallocatable register clobbered"
 error_message_sreg:
-        .asciz "failed to preserve callee-saved integer register"
+        .asciz "callee-saved integer register s%i modified"
 error_message_fsreg:
-        .asciz "failed to preserve callee-saved floating-point register"
+        .asciz "callee-saved floating-point register fs%i modified"
 error_message_stack:
         .asciz "stack clobbered"
 endconst
@@ -169,6 +169,7 @@ function checked_call, export=1, ext=v
   lla t0, register_init
 .irp n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
   ld t1, 8 + 8*\n(t0)
+  li a1, \n
   bne t1, s\n, 2f
 #ifdef __riscv_float_abi_double
   ld t1, 24 + 8*\n(t0)
