@@ -77,6 +77,8 @@ error_message_sreg:
         .asciz "failed to preserve callee-saved integer register"
 error_message_fsreg:
         .asciz "failed to preserve callee-saved floating-point register"
+error_message_stack:
+        .asciz "stack clobbered"
 endconst
 
 thread_local saved_regs, quads=29 # 5 + 12 + 12
@@ -125,7 +127,15 @@ function checked_call, export=1, ext=v
    ld t0, 8*\n(sp)
    sd t0, 8*(\n - 8) - ARG_STACK(sp)
 .endr
+
+  /* Setup the stack canary */
+  ld t0, MAX_ARGS*8(sp)
   addi sp, sp, -ARG_STACK
+  slli t0, t0, 3
+  add t0, t0, sp
+  ld t0, (t0)
+  not t0, t0
+  sd t0, ARG_STACK - 8(sp)
 
   /* Clobber the stack space right below SP */
   lla t0, register_init
@@ -178,6 +188,15 @@ function checked_call, export=1, ext=v
   ld t1, 32(t0)
   bne t1, tp, 4f
 
+  /* Check the stack canary */
+  ld t0, ARG_STACK + MAX_ARGS*8(sp)
+  slli t0, t0, 3
+  add t0, t0, sp
+  ld t0, (t0)
+  not t0, t0
+  ld t1, ARG_STACK - 8(sp)
+  bne t0, t1, 5f
+
 1:
   /* Restore RA, SP and callee-saved registers from thread local storage */
   la.tls.ie t0, saved_regs
@@ -214,6 +233,15 @@ function checked_call, export=1, ext=v
 
 4:
   lla a0, error_message_rsvd
+#ifdef PREFIX
+  call _checkasm_fail_func
+#else
+  call checkasm_fail_func
+#endif
+  j 1b
+
+5:
+  lla a0, error_message_stack
 #ifdef PREFIX
   call _checkasm_fail_func
 #else
