@@ -26,6 +26,7 @@
  */
 #include "tests/checkasm/checkasm.h"
 
+#include <errno.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -567,6 +568,13 @@ static unsigned get_seed(void) {
 #endif
 }
 
+static int checkasm_strtoul(unsigned long *const dst, const char *const str, const int base) {
+    char *end;
+    errno = 0;
+    *dst = strtoul(str, &end, base);
+    return errno || end == str || *end;
+}
+
 int main(int argc, char *argv[]) {
     state.seed = get_seed();
 
@@ -612,7 +620,12 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(argv[1], "--verbose") || !strcmp(argv[1], "-v")) {
             state.verbose = 1;
         } else if (!strncmp(argv[1], "--affinity=", 11)) {
-            unsigned long affinity = strtoul(argv[1] + 11, NULL, 16);
+            const char *const s = argv[1] + 11;
+            unsigned long affinity;
+            if (checkasm_strtoul(&affinity, s, 16)) {
+                fprintf(stderr, "checkasm: invalid cpu affinity (%s)\n", s);
+                return 1;
+            }
 #ifdef _WIN32
             BOOL (WINAPI *spdcs)(HANDLE, const ULONG*, ULONG) =
                 (void*)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetProcessDefaultCpuSets");
@@ -649,7 +662,12 @@ int main(int argc, char *argv[]) {
             return 1;
 #endif
         } else {
-            state.seed = (unsigned) strtoul(argv[1], NULL, 10);
+            unsigned long seed;
+            if (checkasm_strtoul(&seed, argv[1], 10)) {
+                fprintf(stderr, "checkasm: unknown option (%s)\n", argv[1]);
+                return 1;
+            }
+            state.seed = (unsigned)seed;
         }
 
         argc--;
