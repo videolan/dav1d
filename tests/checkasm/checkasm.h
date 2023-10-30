@@ -37,9 +37,15 @@
 /* setjmp/longjmp on 64-bit Windows will try to use SEH to unwind the stack,
  * which doesn't work for assembly functions without unwind information. */
 #include <windows.h>
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define checkasm_context CONTEXT
 #define checkasm_save_context() RtlCaptureContext(&checkasm_context_buf)
 #define checkasm_load_context() RtlRestoreContext(&checkasm_context_buf, NULL)
+#else
+#define checkasm_context void*
+#define checkasm_save_context() do {} while (0)
+#define checkasm_load_context() do {} while (0)
+#endif
 #else
 #include <setjmp.h>
 #define checkasm_context jmp_buf

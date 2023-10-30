@@ -435,6 +435,7 @@ checkasm_context checkasm_context_buf;
 /* Crash handling: attempt to catch crashes and handle them
  * gracefully instead of just aborting abruptly. */
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     if (!state.catch_signals)
         return EXCEPTION_CONTINUE_SEARCH;
@@ -464,6 +465,7 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     checkasm_load_context();
     return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
 }
+#endif
 #else
 static void signal_handler(const int s) {
     if (state.catch_signals) {
@@ -599,13 +601,16 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
 #ifdef _WIN32
+            int affinity_err;
+            HANDLE process = GetCurrentProcess();
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
             BOOL (WINAPI *spdcs)(HANDLE, const ULONG*, ULONG) =
                 (void*)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetProcessDefaultCpuSets");
-            HANDLE process = GetCurrentProcess();
-            int affinity_err;
-            if (spdcs) {
+            if (spdcs)
                 affinity_err = !spdcs(process, (ULONG[]){ affinity + 256 }, 1);
-            } else {
+            else
+#endif
+            {
                 if (affinity < sizeof(DWORD_PTR) * 8)
                     affinity_err = !SetProcessAffinityMask(process, (DWORD_PTR)1 << affinity);
                 else
