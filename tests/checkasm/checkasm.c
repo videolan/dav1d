@@ -36,9 +36,9 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#define COLOR_RED    FOREGROUND_RED
-#define COLOR_GREEN  FOREGROUND_GREEN
-#define COLOR_YELLOW (FOREGROUND_RED|FOREGROUND_GREEN)
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x04
+#endif
 #else
 #include <unistd.h>
 #include <signal.h>
@@ -50,10 +50,11 @@
 #ifdef __APPLE__
 #include <mach/mach_time.h>
 #endif
-#define COLOR_RED    1
-#define COLOR_GREEN  2
-#define COLOR_YELLOW 3
 #endif
+
+#define COLOR_RED    31
+#define COLOR_GREEN  32
+#define COLOR_YELLOW 33
 
 /* List of tests to invoke */
 static const struct {
@@ -242,48 +243,19 @@ int float_near_abs_eps_array_ulp(const float *const a, const float *const b,
 }
 
 /* Print colored text to stderr if the terminal supports it */
+static int use_printf_color;
 static void color_printf(const int color, const char *const fmt, ...) {
-    static int8_t use_color = -1;
     va_list arg;
 
-#ifdef _WIN32
-    static HANDLE con;
-    static WORD org_attributes;
-
-    if (use_color < 0) {
-        CONSOLE_SCREEN_BUFFER_INFO con_info;
-        con = GetStdHandle(STD_ERROR_HANDLE);
-        if (con && con != INVALID_HANDLE_VALUE &&
-            GetConsoleScreenBufferInfo(con, &con_info))
-        {
-            org_attributes = con_info.wAttributes;
-            use_color = 1;
-        } else
-            use_color = 0;
-    }
-    if (use_color)
-        SetConsoleTextAttribute(con, (org_attributes & 0xfff0) |
-                                (color & 0x0f));
-#else
-    if (use_color < 0) {
-        const char *const term = getenv("TERM");
-        use_color = term && strcmp(term, "dumb") && isatty(2);
-    }
-    if (use_color)
-        fprintf(stderr, "\x1b[%d;3%dm", (color & 0x08) >> 3, color & 0x07);
-#endif
+    if (use_printf_color)
+        fprintf(stderr, "\x1b[0;%dm", color);
 
     va_start(arg, fmt);
     vfprintf(stderr, fmt, arg);
     va_end(arg);
 
-    if (use_color) {
-#ifdef _WIN32
-        SetConsoleTextAttribute(con, org_attributes);
-#else
+    if (use_printf_color)
         fprintf(stderr, "\x1b[0m");
-#endif
-    }
 }
 
 /* Deallocate a tree */
@@ -684,6 +656,12 @@ int main(int argc, char *argv[]) {
 #ifdef _WIN32
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     AddVectoredExceptionHandler(0, signal_handler);
+
+    HANDLE con = GetStdHandle(STD_ERROR_HANDLE);
+    DWORD con_mode = 0;
+    use_printf_color = con && con != INVALID_HANDLE_VALUE &&
+                       GetConsoleMode(con, &con_mode) &&
+                       SetConsoleMode(con, con_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 #else
     const struct sigaction sa = {
@@ -694,6 +672,9 @@ int main(int argc, char *argv[]) {
     sigaction(SIGFPE,  &sa, NULL);
     sigaction(SIGILL,  &sa, NULL);
     sigaction(SIGSEGV, &sa, NULL);
+
+    const char *const term = getenv("TERM");
+    use_printf_color = term && strcmp(term, "dumb") && isatty(2);
 #endif
 
 #ifdef readtime
