@@ -652,7 +652,7 @@ int main(int argc, char *argv[]) {
     }
 
 #if TRIM_DSP_FUNCTIONS
-    fprintf(stderr, "checkasm: reference functions unavailable\n");
+    fprintf(stderr, "checkasm: reference functions unavailable, reconfigure using '-Dtrim_dsp=false'\n");
     return 0;
 #endif
 
