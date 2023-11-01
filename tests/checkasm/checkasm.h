@@ -33,9 +33,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#if ARCH_X86_64 && defined(_WIN32)
-/* setjmp/longjmp on 64-bit Windows will try to use SEH to unwind the stack,
- * which doesn't work for assembly functions without unwind information. */
+#if !ARCH_X86_32 && defined(_WIN32)
+/* setjmp/longjmp on Windows on architectures using SEH (all except x86_32)
+ * will try to use SEH to unwind the stack, which doesn't work for assembly
+ * functions without unwind information. */
 #include <windows.h>
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define checkasm_context CONTEXT
