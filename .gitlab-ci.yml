@@ -570,8 +570,9 @@ test-debian-asan:
         - ninja -C build
         - cd build
         - exit_code=0
-        - time meson test -v --setup=sanitizer --test-args "--cpumask 0"    || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --test-args "--cpumask 0xff" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite checkasm || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0"    || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0xff" || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-msan:
