@@ -422,6 +422,7 @@ build-debian-riscv64:
     extends: .debian-amd64-common
     variables:
         QEMU_CPU: rv64,v=true,vext_spec=v1.0,vlen=256,elen=64
+        QEMU_LD_PREFIX: /usr/riscv64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
@@ -724,6 +725,8 @@ test-debian-riscv64:
                             --cross-file package/crossfiles/riscv64-linux.meson
         - ninja -C build
         - cd build && time meson test -v --timeout-multiplier 2
+    variables:
+        QEMU_LD_PREFIX: /usr/riscv64-linux-gnu/
     parallel:
       matrix:
         - QEMU_CPU: [ "rv64,v=true,vext_spec=v1.0,vlen=128,elen=64",
