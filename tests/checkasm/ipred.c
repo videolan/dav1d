@@ -65,6 +65,16 @@ static const uint8_t z_angles[27] = {
     81, 84, 87
 };
 
+/* Generate max_width/max_height values that covers all edge cases */
+static int gen_z2_max_wh(const int sz) {
+    const int n = rnd();
+    if (n & (1 << 17)) /* edge block */
+        return (n & (sz - 1)) + 1;
+    if (n & (1 << 16)) /* max size, exceeds uint16_t */
+        return 65536;
+    return (n & 65535) + 1;
+}
+
 static void check_intra_pred(Dav1dIntraPredDSPContext *const c) {
     PIXEL_RECT(c_dst, 64, 64);
     PIXEL_RECT(a_dst, 64, 64);
@@ -98,9 +108,8 @@ static void check_intra_pred(Dav1dIntraPredDSPContext *const c) {
                                 a = (90 * (mode - Z1_PRED) + z_angles[rnd() % 27]) |
                                     (rnd() & 0x600);
                                 if (mode == Z2_PRED) {
-                                    maxw = rnd(), maxh = rnd();
-                                    maxw = 1 + (maxw & (maxw & 4096 ? 4095 : w - 1));
-                                    maxh = 1 + (maxh & (maxh & 4096 ? 4095 : h - 1));
+                                    maxw = gen_z2_max_wh(w);
+                                    maxh = gen_z2_max_wh(h);
                                 }
                             } else if (mode == FILTER_PRED) /* filter_idx */
                                 a = (rnd() % 5) | (rnd() & ~511);
