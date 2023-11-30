@@ -239,6 +239,11 @@ if is_asm_enabled
         libdav1d_sources += files(
             'loongarch/cpu.c',
         )
+
+        libdav1d_sources_asm = files(
+            'loongarch/mc.S',
+        )
+        libdav1d_asm_objs += libdav1d_sources_asm
     endif
 endif
 
