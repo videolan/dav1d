@@ -242,6 +242,7 @@ if is_asm_enabled
 
         libdav1d_sources_asm = files(
             'loongarch/mc.S',
+            'loongarch/loopfilter.S',
         )
         libdav1d_asm_objs += libdav1d_sources_asm
     endif
