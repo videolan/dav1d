@@ -249,6 +249,7 @@ if is_asm_enabled
             'loongarch/loopfilter.S',
             'loongarch/looprestoration.S',
             'loongarch/msac.S',
+            'loongarch/refmvs.S',
         )
         libdav1d_asm_objs += libdav1d_sources_asm
     endif
