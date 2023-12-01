@@ -101,6 +101,7 @@ decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_16x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_16x16, lsx));
 
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_8x32, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x32, lsx));
 
 static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c, int bpc) {
 #if BITDEPTH == 8
@@ -181,6 +182,7 @@ static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c
 
     c->itxfm_add[RTX_8X32][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_8x32_8bpc_lsx;
 
+    c->itxfm_add[TX_32X32][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_32x32_8bpc_lsx;
 #endif
 }
 
