@@ -93,6 +93,13 @@ decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_8x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x8, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_16x8, lsx));
 
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_16x16, lsx));
+
 static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c, int bpc) {
 #if BITDEPTH == 8
     const unsigned flags = dav1d_get_cpu_flags();
@@ -163,6 +170,12 @@ static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c
     c->itxfm_add[RTX_16X8][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x8_8bpc_lsx;
     c->itxfm_add[RTX_16X8][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_16x8_8bpc_lsx;
 
+    c->itxfm_add[TX_16X16][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][DCT_FLIPADST] = dav1d_inv_txfm_add_flipadst_dct_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][FLIPADST_DCT] = dav1d_inv_txfm_add_dct_flipadst_16x16_8bpc_lsx;
 #endif
 }
 
