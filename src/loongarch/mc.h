@@ -32,12 +32,14 @@
 #include "src/mc.h"
 #include "src/cpu.h"
 
+decl_avg_fn(BF(dav1d_avg, lsx));
 decl_w_avg_fn(BF(dav1d_w_avg, lsx));
 decl_mask_fn(BF(dav1d_mask, lsx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lsx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lsx));
 decl_w_mask_fn(BF(dav1d_w_mask_420, lsx));
 
+decl_avg_fn(BF(dav1d_avg, lasx));
 decl_w_avg_fn(BF(dav1d_w_avg, lasx));
 decl_mask_fn(BF(dav1d_mask, lasx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lasx));
@@ -50,6 +52,7 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
 
     if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LSX)) return;
 
+    c->avg = BF(dav1d_avg, lsx);
     c->w_avg = BF(dav1d_w_avg, lsx);
     c->mask = BF(dav1d_mask, lsx);
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lsx);
@@ -58,6 +61,7 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
 
     if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LASX)) return;
 
+    c->avg = BF(dav1d_avg, lasx);
     c->w_avg = BF(dav1d_w_avg, lasx);
     c->mask = BF(dav1d_mask, lasx);
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lasx);
