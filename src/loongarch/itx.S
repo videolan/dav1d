@@ -916,6 +916,188 @@ fun4x4 identity, flipadst
 fun4x4 identity, adst
 fun4x4 adst, identity
 
+function inv_txfm_add_dct_dct_4x8_8bpc_lsx
+    bnez          a3,       .NO_HAS_DCONLY_4x8
+
+    ld.h          t2,       a2,       0      // dc
+    vldi          vr0,      0x8b5            // 181
+    vreplgr2vr.w  vr1,      t2
+    vldi          vr5,      0x880            // 128
+    vmul.w        vr2,      vr0,      vr1
+    st.h          zero,     a2,       0
+    vsrari.w      vr2,      vr2,      8
+    vld           vr10,     a0,       0
+    vmul.w        vr2,      vr2,      vr0
+    vldx          vr11,     a0,       a1
+    vsrari.w      vr2,      vr2,      8
+    alsl.d        t2,       a1,       a0,    1
+    vmadd.w       vr5,      vr2,      vr0
+    vld           vr12,     t2,       0
+    vssrarni.h.w  vr5,      vr5,      12
+    vldx          vr13,     t2,       a1
+
+    DST_ADD_W4 vr10, vr11, vr12, vr13, vr5, vr5
+
+    alsl.d        a0,       a1,       a0,   2
+    alsl.d        t2,       a1,       t2,   2
+
+    VLD_DST_ADD_W4 vr5, vr5
+    b             .DCT_DCT_4x8_END
+
+.NO_HAS_DCONLY_4x8:
+    // sh=8 sw=4
+    la.local      t0,       idct_coeffs
+
+    vld           vr0,      a2,       0    //  0  1  2  3  4  5  6  7  in0
+    vld           vr1,      a2,       16   //  8  9 10 11 12 13 14 15  in1
+    vld           vr20,     a2,       32   // 16 17 18 19 20 21 22 23  in2
+    vld           vr21,     a2,       48   // 24 25 26 27 28 29 30 31  in3
+
+    vldrepl.w     vr2,      t0,       8    // 1567
+    vldrepl.w     vr3,      t0,       12   // 3784
+    vldrepl.w     vr8,      t0,       0    // 2896
+
+.macro DCT4_4Wx8H_1D_LSX
+    // in1 in3
+    vsllwil.w.h   vr4,      vr1,      0    // in1
+    vsllwil.w.h   vr5,      vr21,     0    // in3
+    vmul.w        vr4,      vr4,      vr8
+    vmul.w        vr5,      vr5,      vr8
+    vsrari.w      vr4,      vr4,      12
+    vsrari.w      vr5,      vr5,      12
+    vmul.w        vr6,      vr4,      vr3
+    vmul.w        vr7,      vr4,      vr2
+    vmadd.w       vr6,      vr5,      vr2  // t3 0 1 2 3
+    vmsub.w       vr7,      vr5,      vr3  // t2 0 1 2 3
+    vexth.w.h     vr4,      vr1            // in1
+    vexth.w.h     vr5,      vr21           // in3
+    vmul.w        vr4,      vr4,      vr8
+    vmul.w        vr5,      vr5,      vr8
+    vsrari.w      vr4,      vr4,      12
+    vsrari.w      vr5,      vr5,      12
+    vmul.w        vr9,      vr4,      vr3
+    vmul.w        vr10,     vr4,      vr2
+    vmadd.w       vr9,      vr5,      vr2  // t3 4 5 6 7
+    vmsub.w       vr10,     vr5,      vr3  // t2 4 5 6 7
+
+    // in0 in2
+    vsllwil.w.h   vr4,      vr0,      0    // in0
+    vsllwil.w.h   vr5,      vr20,     0    // in2
+    vmul.w        vr4,      vr4,      vr8
+    vmul.w        vr5,      vr5,      vr8
+    vsrari.w      vr4,      vr4,      12
+    vsrari.w      vr5,      vr5,      12
+    vmul.w        vr11,     vr4,      vr8
+    vmul.w        vr12,     vr4,      vr8
+    vmadd.w       vr11,     vr5,      vr8  // t0 0 1 2 3
+    vmsub.w       vr12,     vr5,      vr8  // t1 0 1 2 3
+    vexth.w.h     vr4,      vr0            // in0
+    vexth.w.h     vr5,      vr20           // in2
+    vmul.w        vr4,      vr4,      vr8
+    vmul.w        vr5,      vr5,      vr8
+    vsrari.w      vr4,      vr4,      12
+    vsrari.w      vr5,      vr5,      12
+    vmul.w        vr13,     vr4,      vr8
+    vmul.w        vr14,     vr4,      vr8
+    vmadd.w       vr13,     vr5,      vr8  // t0 4 5 6 7
+    vmsub.w       vr14,     vr5,      vr8  // t1 4 5 6 7
+    vssrarni.h.w  vr9,      vr6,      12   // t3
+    vssrarni.h.w  vr10,     vr7,      12   // t2
+    vssrarni.h.w  vr14,     vr12,     12   // t1
+    vssrarni.h.w  vr13,     vr11,     12   // t0
+    vsadd.h       vr4,      vr13,     vr9  // c[0] 0 4  8 12 16 20 24 28
+    vsadd.h       vr5,      vr14,     vr10 // c[1] 1 5  9 13 17 21 25 29
+    vssub.h       vr20,     vr14,     vr10 // c[2] 2 6 10 14 18 22 26 30
+    vssub.h       vr21,     vr13,     vr9  // c[3] 3 7 11 15 19 23 27 31
+.endm
+
+    DCT4_4Wx8H_1D_LSX
+
+    vreplgr2vr.h  vr22,     zero
+    vst           vr22,     a2,       0
+    vst           vr22,     a2,       16
+    vst           vr22,     a2,       32
+    vst           vr22,     a2,       48
+
+    vilvl.h       vr0,      vr5,      vr4   // 0 1 4 5  8  9 12 13
+    vilvl.h       vr1,      vr21,     vr20  // 2 3 6 7 10 11 14 15
+    vilvh.h       vr6,      vr5,      vr4   // 16 17 20 21 24 25 28 29
+    vilvh.h       vr7,      vr21,     vr20  // 18 19 22 23 26 27 30 31
+    vilvl.w       vr9,      vr1,      vr0   //  0  1  2  3  4  5  6  7  in0
+    vilvh.w       vr10,     vr1,      vr0   //  8  9 10 11 12 13 14 15  in1
+    vilvl.w       vr11,     vr7,      vr6   // 16 17 18 19 20 21 22 23  in2
+    vilvh.w       vr12,     vr7,      vr6   // 24 25 26 27 28 29 30 31  in3
+
+    vilvl.d       vr0,      vr10,     vr9
+    vilvl.d       vr1,      vr12,     vr11
+    vilvh.d       vr20,     vr9,      vr11  // in5 in1
+    vilvh.d       vr21,     vr12,     vr10  // in3 in7
+
+.macro DCT8_4Wx8H_1D_LSX
+    dct_4x4_core_lsx vr0, vr1, vr0, vr1, vr3, vr2, vr8, vr8, vr13, vr14
+
+    vldrepl.w     vr17,     t0,       16    // 799
+    vldrepl.w     vr18,     t0,       20    // 4017
+    vldrepl.w     vr11,     t0,       24    // 3406
+    vldrepl.w     vr12,     t0,       28    // 2276
+
+    vexth.w.h     vr4,      vr20
+    vexth.w.h     vr5,      vr21
+    vmul.w        vr6,      vr4,      vr18  // in1 * 4017
+    vmul.w        vr7,      vr4,      vr17  // in1 * 799
+    vmadd.w       vr6,      vr5,      vr17  // in7 * 799
+    vmsub.w       vr7,      vr5,      vr18  // in7 * 4017
+    vsllwil.w.h   vr4,      vr20,     0
+    vsllwil.w.h   vr5,      vr21,     0
+    vmul.w        vr9,      vr4,      vr12
+    vmul.w        vr10,     vr4,      vr11
+    vmadd.w       vr9,      vr5,      vr11
+    vmsub.w       vr10,     vr5,      vr12
+    vssrarni.h.w  vr10,     vr9,      12    // t6a t5a
+    vssrarni.h.w  vr7,      vr6,      12    // t7a t4a
+    vsadd.h       vr15,     vr7,      vr10  // t7  t4
+    vssub.h       vr16,     vr7,      vr10  // t6a t5a
+
+    vexth.w.h     vr4,      vr16            // t5a
+    vsllwil.w.h   vr5,      vr16,     0     // t6a
+    vldi          vr2,      0x8b5           // 181
+    vsub.w        vr6,      vr5,      vr4
+    vadd.w        vr7,      vr5,      vr4
+    vmul.w        vr6,      vr6,      vr2
+    vmul.w        vr7,      vr7,      vr2
+    vssrarni.h.w  vr7,      vr6,      8     // t5 t6
+    vaddi.hu      vr18,     vr7,      0
+    vshuf4i.d     vr7,      vr15,     0x06  // t7 t6
+    vshuf4i.d     vr15,     vr18,     0x09  // t4 t5
+
+    // vr17 -> vr7 vr18 -> vr15
+    vsadd.h       vr4,      vr13,     vr7
+    vsadd.h       vr5,      vr14,     vr15
+    vssub.h       vr6,      vr14,     vr15
+    vssub.h       vr7,      vr13,     vr7
+.endm
+
+    DCT8_4Wx8H_1D_LSX
+
+    vshuf4i.d     vr5,      vr5,      0x01
+    vshuf4i.d     vr7,      vr7,      0x01
+
+    vsrari.h      vr4,      vr4,      4
+    vsrari.h      vr5,      vr5,      4
+    vsrari.h      vr6,      vr6,      4
+    vsrari.h      vr7,      vr7,      4
+
+    alsl.d        t2,       a1,       a0,    1
+
+    VLD_DST_ADD_W4 vr4, vr5
+
+    alsl.d        a0,       a1,       a0,    2
+    alsl.d        t2,       a1,       t2,    2
+
+    VLD_DST_ADD_W4 vr6, vr7
+.DCT_DCT_4x8_END:
+endfunc
+
 .macro rect2_w4_lsx in0, in1, in2, out0, out1
     vsllwil.w.h   vr22,     \in0,     0
     vexth.w.h     vr23,     \in1
