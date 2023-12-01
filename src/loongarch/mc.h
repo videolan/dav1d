@@ -32,12 +32,27 @@
 #include "src/mc.h"
 #include "src/cpu.h"
 
+#define init_mc_fn(type, name, suffix) \
+    c->mc[type] = BF(dav1d_put_##name, suffix)
+#define init_mct_fn(type, name, suffix) \
+    c->mct[type] = BF(dav1d_prep_##name, suffix)
+
 decl_avg_fn(BF(dav1d_avg, lsx));
 decl_w_avg_fn(BF(dav1d_w_avg, lsx));
 decl_mask_fn(BF(dav1d_mask, lsx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lsx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lsx));
 decl_w_mask_fn(BF(dav1d_w_mask_420, lsx));
+
+decl_mc_fn(BF(dav1d_put_8tap_regular,          lsx));
+decl_mc_fn(BF(dav1d_put_8tap_regular_smooth,   lsx));
+decl_mc_fn(BF(dav1d_put_8tap_regular_sharp,    lsx));
+decl_mc_fn(BF(dav1d_put_8tap_smooth,           lsx));
+decl_mc_fn(BF(dav1d_put_8tap_smooth_regular,   lsx));
+decl_mc_fn(BF(dav1d_put_8tap_smooth_sharp,     lsx));
+decl_mc_fn(BF(dav1d_put_8tap_sharp,            lsx));
+decl_mc_fn(BF(dav1d_put_8tap_sharp_regular,    lsx));
+decl_mc_fn(BF(dav1d_put_8tap_sharp_smooth,     lsx));
 
 decl_avg_fn(BF(dav1d_avg, lasx));
 decl_w_avg_fn(BF(dav1d_w_avg, lasx));
@@ -58,6 +73,16 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lsx);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, lsx);
     c->w_mask[2] = BF(dav1d_w_mask_420, lsx);
+
+    init_mc_fn(FILTER_2D_8TAP_REGULAR,         8tap_regular,        lsx);
+    init_mc_fn(FILTER_2D_8TAP_REGULAR_SMOOTH,  8tap_regular_smooth, lsx);
+    init_mc_fn(FILTER_2D_8TAP_REGULAR_SHARP,   8tap_regular_sharp,  lsx);
+    init_mc_fn(FILTER_2D_8TAP_SMOOTH_REGULAR,  8tap_smooth_regular, lsx);
+    init_mc_fn(FILTER_2D_8TAP_SMOOTH,          8tap_smooth,         lsx);
+    init_mc_fn(FILTER_2D_8TAP_SMOOTH_SHARP,    8tap_smooth_sharp,   lsx);
+    init_mc_fn(FILTER_2D_8TAP_SHARP_REGULAR,   8tap_sharp_regular,  lsx);
+    init_mc_fn(FILTER_2D_8TAP_SHARP_SMOOTH,    8tap_sharp_smooth,   lsx);
+    init_mc_fn(FILTER_2D_8TAP_SHARP,           8tap_sharp,          lsx);
 
     if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LASX)) return;
 

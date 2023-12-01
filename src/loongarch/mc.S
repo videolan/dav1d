@@ -2624,3 +2624,1029 @@ endfunc
 
 #undef bpc_sh
 #undef bpcw_sh
+
+.macro  vhaddw.d.h  in0
+    vhaddw.w.h  \in0,  \in0,  \in0
+    vhaddw.d.w  \in0,  \in0,  \in0
+.endm
+.macro  vhaddw.q.w  in0
+    vhaddw.d.w  \in0,  \in0,  \in0
+    vhaddw.q.d  \in0,  \in0,  \in0
+.endm
+.macro PUT_H_8W in0
+    vbsrl.v          vr2,    \in0,  1
+    vbsrl.v          vr3,    \in0,  2
+    vbsrl.v          vr4,    \in0,  3
+    vbsrl.v          vr5,    \in0,  4
+    vbsrl.v          vr6,    \in0,  5
+    vbsrl.v          vr7,    \in0,  6
+    vbsrl.v          vr10,   \in0,  7
+    vilvl.d          vr2,    vr2,   \in0
+    vilvl.d          vr3,    vr4,   vr3
+    vilvl.d          vr4,    vr6,   vr5
+    vilvl.d          vr5,    vr10,  vr7
+    vdp2.h.bu.b      \in0,   vr2,   vr8
+    vdp2.h.bu.b      vr2,    vr3,   vr8
+    vdp2.h.bu.b      vr3,    vr4,   vr8
+    vdp2.h.bu.b      vr4,    vr5,   vr8
+    vhaddw.d.h       \in0
+    vhaddw.d.h       vr2
+    vhaddw.d.h       vr3
+    vhaddw.d.h       vr4
+    vpickev.w        \in0,   vr2,   \in0
+    vpickev.w        vr2,    vr4,   vr3
+    vpickev.h        \in0,   vr2,   \in0
+    vadd.h           \in0,   \in0,  vr9
+.endm
+.macro FILTER_8TAP_4W in0
+    vbsrl.v          vr10,   \in0,  1
+    vbsrl.v          vr11,   \in0,  2
+    vbsrl.v          vr12,   \in0,  3
+    vilvl.d          vr10,   vr10, \in0
+    vilvl.d          vr11,   vr12,  vr11
+    vdp2.h.bu.b      vr7,    vr10,  vr8
+    vdp2.h.bu.b      vr10,   vr11,  vr8
+    vhaddw.d.h       vr7
+    vhaddw.d.h       vr10
+    vpickev.w        \in0,   vr10,  vr7
+.endm
+.macro FILTER_8TAP_8W in0
+    vbsrl.v         vr10,    \in0,  1
+    vbsrl.v         vr11,    \in0,  2
+    vbsrl.v         vr12,    \in0,  3
+    vbsrl.v         vr13,    \in0,  4
+    vbsrl.v         vr14,    \in0,  5
+    vbsrl.v         vr15,    \in0,  6
+    vbsrl.v         vr16,    \in0,  7
+    vilvl.d         vr10,    vr10,  \in0
+    vilvl.d         vr11,    vr12,  vr11
+    vilvl.d         vr12,    vr14,  vr13
+    vilvl.d         vr13,    vr16,  vr15
+    vdp2.h.bu.b     vr14,    vr10,  vr8
+    vdp2.h.bu.b     vr15,    vr11,  vr8
+    vdp2.h.bu.b     vr16,    vr12,  vr8
+    vdp2.h.bu.b     vr17,    vr13,  vr8
+    vhaddw.d.h      vr14
+    vhaddw.d.h      vr15
+    vhaddw.d.h      vr16
+    vhaddw.d.h      vr17
+    vpickev.w       vr13,    vr15,  vr14
+    vpickev.w       vr14,    vr17,  vr16
+    vpickev.h       \in0,    vr14,  vr13 //x0 ... x7
+    vsrari.h        \in0,    \in0,  2
+.endm
+.macro FILTER_8TAP_8W_CLIP_STORE
+    vdp2.w.h        vr12,    vr0,   vr9
+    vdp2.w.h        vr13,    vr1,   vr9
+    vdp2.w.h        vr14,    vr2,   vr9
+    vdp2.w.h        vr15,    vr3,   vr9
+    vdp2.w.h        vr16,    vr4,   vr9
+    vdp2.w.h        vr17,    vr5,   vr9
+    vdp2.w.h        vr18,    vr6,   vr9
+    vdp2.w.h        vr19,    vr7,   vr9
+    vhaddw.q.w      vr12
+    vhaddw.q.w      vr13
+    vhaddw.q.w      vr14
+    vhaddw.q.w      vr15
+    vhaddw.q.w      vr16
+    vhaddw.q.w      vr17
+    vhaddw.q.w      vr18
+    vhaddw.q.w      vr19
+    vpackev.w       vr12,    vr13,  vr12
+    vpackev.w       vr13,    vr15,  vr14
+    vpackev.d       vr12,    vr13,  vr12
+    vpackev.w       vr14,    vr17,  vr16
+    vpackev.w       vr15,    vr19,  vr18
+    vpackev.d       vr13,    vr15,  vr14
+    vssrarni.hu.w   vr13,    vr12,  10
+    vssrani.bu.h    vr13,    vr13,  0
+    vstelm.d        vr13,    a0,    0,   0
+    add.d           a0,      a0,    a1
+.endm
+.macro VEXTRINS_Hx8 in0
+    vextrins.h      vr0,     \in0,  0x70
+    vextrins.h      vr1,     \in0,  0x71
+    vextrins.h      vr2,     \in0,  0x72
+    vextrins.h      vr3,     \in0,  0x73
+    vextrins.h      vr4,     \in0,  0x74
+    vextrins.h      vr5,     \in0,  0x75
+    vextrins.h      vr6,     \in0,  0x76
+    vextrins.h      vr7,     \in0,  0x77
+.endm
+.macro VBSRL_Vx8
+    vbsrl.v         vr0,     vr0,   2
+    vbsrl.v         vr1,     vr1,   2
+    vbsrl.v         vr2,     vr2,   2
+    vbsrl.v         vr3,     vr3,   2
+    vbsrl.v         vr4,     vr4,   2
+    vbsrl.v         vr5,     vr5,   2
+    vbsrl.v         vr6,     vr6,   2
+    vbsrl.v         vr7,     vr7,   2
+.endm
+
+.macro PUT_8TAP_8BPC_LSX lable
+    li.w             t0,     4
+    la.local         t6,     dav1d_mc_subpel_filters
+    slli.d           t2,     a3,    1  //src_stride*2
+    add.d            t3,     t2,    a3 //src_stride*3
+    slli.d           t4,     t2,    1  //src_stride*4
+
+    bnez             a6,     .l_\lable\()put_h //mx
+    bnez             a7,     .l_\lable\()put_v //my
+
+    clz.w            t1,     a4
+    li.w             t5,     24
+    sub.w            t1,     t1,    t5
+    la.local         t5,     .l_\lable\()put_hv0_jtable
+    alsl.d           t1,     t1,    t5,   3
+    ld.d             t6,     t1,    0
+    add.d            t5,     t5,    t6
+    jirl             $r0,    t5,    0
+
+    .align   3
+.l_\lable\()put_hv0_jtable:
+    .dword .l_\lable\()put_hv0_128w - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_64w  - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_32w  - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_16w  - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_8w   - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_4w   - .l_\lable\()put_hv0_jtable
+    .dword .l_\lable\()put_hv0_2w   - .l_\lable\()put_hv0_jtable
+
+.l_\lable\()put_hv0_2w:
+    vldrepl.h        vr0,    a2,    0
+    add.d            a2,     a2,    a3
+    vldrepl.h        vr1,    a2,    0
+    vstelm.h         vr0,    a0,    0,     0
+    add.d            a0,     a0,    a1
+    vstelm.h         vr1,    a0,    0,     0
+    add.d            a2,     a2,    a3
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_2w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_4w:
+    fld.s            f0,     a2,    0
+    fldx.s           f1,     a2,    a3
+    fst.s            f0,     a0,    0
+    fstx.s           f1,     a0,    a1
+    alsl.d           a2,     a3,    a2,    1
+    alsl.d           a0,     a1,    a0,    1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_4w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_8w:
+    fld.d            f0,     a2,    0
+    fldx.d           f1,     a2,    a3
+    fst.d            f0,     a0,    0
+    fstx.d           f1,     a0,    a1
+    alsl.d           a2,     a3,    a2,    1
+    alsl.d           a0,     a1,    a0,    1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_8w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_16w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    vst              vr0,    a0,    0
+    vstx             vr1,    a0,    a1
+    alsl.d           a2,     a3,    a2,    1
+    alsl.d           a0,     a1,    a0,    1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_16w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_32w:
+    vld              vr0,    a2,    0
+    vld              vr1,    a2,    16
+    add.d            a2,     a2,    a3
+    vld              vr2,    a2,    0
+    vld              vr3,    a2,    16
+    vst              vr0,    a0,    0
+    vst              vr1,    a0,    16
+    add.d            a0,     a0,    a1
+    vst              vr2,    a0,    0
+    vst              vr3,    a0,    16
+    add.d            a2,     a2,    a3
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_32w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_64w:
+    vld              vr0,    a2,    0
+    vld              vr1,    a2,    16
+    vld              vr2,    a2,    32
+    vld              vr3,    a2,    48
+    add.d            a2,     a2,    a3
+    vld              vr4,    a2,    0
+    vld              vr5,    a2,    16
+    vld              vr6,    a2,    32
+    vld              vr7,    a2,    48
+    add.d            a2,     a2,    a3
+    vst              vr0,    a0,    0
+    vst              vr1,    a0,    16
+    vst              vr2,    a0,    32
+    vst              vr3,    a0,    48
+    add.d            a0,     a0,    a1
+    vst              vr4,    a0,    0
+    vst              vr5,    a0,    16
+    vst              vr6,    a0,    32
+    vst              vr7,    a0,    48
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_64w
+    b                .l_\lable\()end_put_8tap
+.l_\lable\()put_hv0_128w:
+    vld              vr0,    a2,    0
+    vld              vr1,    a2,    16
+    vld              vr2,    a2,    32
+    vld              vr3,    a2,    48
+    vld              vr4,    a2,    64
+    vld              vr5,    a2,    80
+    vld              vr6,    a2,    96
+    vld              vr7,    a2,    112
+    add.d            a2,     a2,    a3
+    vld              vr8,    a2,    0
+    vld              vr9,    a2,    16
+    vld              vr10,   a2,    32
+    vld              vr11,   a2,    48
+    vld              vr12,   a2,    64
+    vld              vr13,   a2,    80
+    vld              vr14,   a2,    96
+    vld              vr15,   a2,    112
+    add.d            a2,     a2,    a3
+    vst              vr0,    a0,    0
+    vst              vr1,    a0,    16
+    vst              vr2,    a0,    32
+    vst              vr3,    a0,    48
+    vst              vr4,    a0,    64
+    vst              vr5,    a0,    80
+    vst              vr6,    a0,    96
+    vst              vr7,    a0,    112
+    add.d            a0,     a0,    a1
+    vst              vr8,    a0,    0
+    vst              vr9,    a0,    16
+    vst              vr10,   a0,    32
+    vst              vr11,   a0,    48
+    vst              vr12,   a0,    64
+    vst              vr13,   a0,    80
+    vst              vr14,   a0,    96
+    vst              vr15,   a0,    112
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv0_128w
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_h:
+    bnez             a7,     .l_\lable\()put_hv //if(fh) && if (fv)
+    ld.d             t5,     sp,    0  //filter_type
+    andi             t1,     t5,    3
+    blt              t0,     a4,    .l_\lable\()put_h_idx_fh
+    andi             t1,     t5,    1
+    addi.w           t1,     t1,    3
+
+.l_\lable\()put_h_idx_fh:
+    addi.w           t5,     zero,  120
+    mul.w            t1,     t1,    t5
+    addi.w           t5,     a6,    -1
+    slli.w           t5,     t5,    3
+    add.w            t1,     t1,    t5
+    add.d            t1,     t6,    t1 //fh's offset
+    vldrepl.d        vr8,    t1,    0
+    addi.d           a2,     a2,    -3
+    li.w             t1,     34
+    vreplgr2vr.h     vr9,    t1
+
+    clz.w            t1,     a4
+    li.w             t5,     24
+    sub.w            t1,     t1,    t5
+    la.local         t5,     .l_\lable\()put_h_jtable
+    alsl.d           t1,     t1,    t5,   3
+    ld.d             t6,     t1,    0
+    add.d            t5,     t5,    t6
+    jirl             $r0,    t5,    0
+
+    .align   3
+.l_\lable\()put_h_jtable:
+    .dword .l_\lable\()put_h_128w - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_64w  - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_32w  - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_16w  - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_8w   - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_4w   - .l_\lable\()put_h_jtable
+    .dword .l_\lable\()put_h_2w   - .l_\lable\()put_h_jtable
+
+.l_\lable\()put_h_2w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    add.d            a2,     a2,    t2
+
+    vbsrl.v          vr2,    vr0,   1
+    vilvl.d          vr0,    vr2,   vr0
+    vdp2.h.bu.b      vr2,    vr0,   vr8
+    vhaddw.w.h       vr0,    vr2,   vr2
+    vhaddw.d.w       vr0,    vr0,   vr0
+    vbsrl.v          vr2,    vr1,   1
+    vilvl.d          vr1,    vr2,   vr1
+    vdp2.h.bu.b      vr2,    vr1,   vr8
+    vhaddw.w.h       vr1,    vr2,   vr2
+    vhaddw.d.w       vr1,    vr1,   vr1
+    vpickev.w        vr0,    vr1,   vr0
+    vpickev.h        vr0,    vr0,   vr0
+    vadd.h           vr0,    vr0,   vr9
+    vssrani.bu.h     vr0,    vr0,   6
+
+    vstelm.h         vr0,    a0,    0,   0
+    add.d            a0,     a0,    a1
+    vstelm.h         vr0,    a0,    0,   1
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_h_2w
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_h_4w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    add.d            a2,     a2,    t2
+
+    vbsrl.v          vr2,    vr0,   1
+    vbsrl.v          vr3,    vr0,   2
+    vbsrl.v          vr4,    vr0,   3
+    vilvl.d          vr0,    vr2,   vr0 //x0 x1
+    vilvl.d          vr2,    vr4,   vr3 //x2 x3
+    vdp2.h.bu.b      vr3,    vr0,   vr8
+    vdp2.h.bu.b      vr4,    vr2,   vr8
+    vhaddw.w.h       vr0,    vr3,   vr3
+    vhaddw.d.w       vr0,    vr0,   vr0
+    vhaddw.w.h       vr2,    vr4,   vr4
+    vhaddw.d.w       vr2,    vr2,   vr2
+    vpickev.w        vr5,    vr2,   vr0
+    vbsrl.v          vr2,    vr1,   1
+    vbsrl.v          vr3,    vr1,   2
+    vbsrl.v          vr4,    vr1,   3
+    vilvl.d          vr0,    vr2,   vr1 //x0 x1
+    vilvl.d          vr2,    vr4,   vr3 //x2 x3
+    vdp2.h.bu.b      vr3,    vr0,   vr8
+    vdp2.h.bu.b      vr4,    vr2,   vr8
+    vhaddw.w.h       vr0,    vr3,   vr3
+    vhaddw.d.w       vr0,    vr0,   vr0
+    vhaddw.w.h       vr2,    vr4,   vr4
+    vhaddw.d.w       vr2,    vr2,   vr2
+    vpickev.w        vr6,    vr2,   vr0
+    vpickev.h        vr0,    vr6,   vr5
+    vadd.h           vr0,    vr0,   vr9
+    vssrani.bu.h     vr0,    vr0,   6
+
+    vstelm.w         vr0,    a0,    0,    0
+    add.d            a0,     a0,    a1
+    vstelm.w         vr0,    a0,    0,    1
+    add.d            a0,     a0,    a1
+    addi.d           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_h_4w
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_h_8w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    add.d            a2,     a2,    t2
+    PUT_H_8W         vr0
+    PUT_H_8W         vr1
+    vssrani.bu.h     vr1,    vr0,   6
+    vstelm.d         vr1,    a0,    0,    0
+    add.d            a0,     a0,    a1
+    vstelm.d         vr1,    a0,    0,    1
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_h_8w
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_h_16w:
+.l_\lable\()put_h_32w:
+.l_\lable\()put_h_64w:
+.l_\lable\()put_h_128w:
+    addi.d           t0,     a2,    0 //src
+    addi.w           t5,     a5,    0 //h
+    addi.d           t8,     a0,    0 //dst
+.l_\lable\()put_h_16w_loop:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    add.d            a2,     a2,    t2
+    PUT_H_8W         vr0
+    PUT_H_8W         vr1
+    vssrani.bu.h     vr1,    vr0,   6
+    vstelm.d         vr1,    a0,    0,   0
+    add.d            a0,     a0,    a1
+    vstelm.d         vr1,    a0,    0,   1
+    add.d            a0,     a0,    a1
+    addi.d           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_h_16w_loop
+    addi.d           a2,     t0,    8
+    addi.d           t0,     t0,    8
+    addi.d           a0,     t8,    8
+    addi.d           t8,     t8,    8
+    addi.w           a5,     t5,    0
+    addi.w           a4,     a4,    -8
+    bnez             a4,     .l_\lable\()put_h_16w_loop
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_v:
+    ld.d             t1,     sp,    0  //filter_type
+    srli.w           t1,     t1,    2
+    blt              t0,     a5,    .l_\lable\()put_v_idx_fv
+    andi             t1,     t1,    1
+    addi.w           t1,     t1,    3
+
+.l_\lable\()put_v_idx_fv:
+    addi.w           t5,     zero,  120
+    mul.w            t1,     t1,    t5
+    addi.w           t5,     a7,    -1
+    slli.w           t5,     t5,    3
+    add.w            t1,     t1,    t5
+    add.d            t1,     t6,    t1 //fv's offset
+    vldrepl.d        vr8,    t1,    0
+    sub.d            a2,     a2,    t3
+
+    clz.w            t1,     a4
+    li.w             t5,     24
+    sub.w            t1,     t1,    t5
+    la.local         t5,     .l_\lable\()put_v_jtable
+    alsl.d           t1,     t1,    t5,   3
+    ld.d             t6,     t1,    0
+    add.d            t5,     t5,    t6
+    jirl             $r0,    t5,    0
+
+    .align   3
+.l_\lable\()put_v_jtable:
+    .dword .l_\lable\()put_v_128w - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_64w  - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_32w  - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_16w  - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_8w   - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_4w   - .l_\lable\()put_v_jtable
+    .dword .l_\lable\()put_v_2w   - .l_\lable\()put_v_jtable
+
+.l_\lable\()put_v_2w:
+    fld.s            f0,     a2,    0
+    fldx.s           f1,     a2,    a3
+    fldx.s           f2,     a2,    t2
+    add.d            a2,     a2,    t3
+    fld.s            f3,     a2,    0
+    fldx.s           f4,     a2,    a3
+    fldx.s           f5,     a2,    t2
+    fldx.s           f6,     a2,    t3
+    add.d            a2,     a2,    t4
+    vilvl.b          vr0,    vr1,   vr0
+    vilvl.b          vr1,    vr3,   vr2
+    vilvl.b          vr2,    vr5,   vr4
+    vilvl.b          vr3,    vr7,   vr6
+    vilvl.h          vr0,    vr1,   vr0
+    vilvl.h          vr1,    vr3,   vr2
+    vilvl.w          vr0,    vr1,   vr0
+
+.l_\lable\()put_v_2w_loop:
+    fld.s            f7,     a2,    0  //h0
+    fldx.s           f10,    a2,    a3 //h1
+    add.d            a2,     a2,    t2
+
+    vextrins.b       vr0,    vr7,   0x70
+    vextrins.b       vr0,    vr7,   0xf1
+    vbsrl.v          vr1,    vr0,   1
+    vextrins.b       vr1,    vr10,  0x70
+    vextrins.b       vr1,    vr10,  0xf1
+    vdp2.h.bu.b      vr10,   vr0,   vr8
+    vdp2.h.bu.b      vr11,   vr1,   vr8
+    vbsrl.v          vr0,    vr1,   1
+    vhaddw.d.h       vr10
+    vhaddw.d.h       vr11
+    vpickev.w        vr10,   vr11,  vr10
+    vssrarni.hu.w    vr10,   vr10,  6
+    vssrani.bu.h     vr10,   vr10,  0
+
+    vstelm.h         vr10,   a0,    0,   0
+    add.d            a0,     a0,    a1
+    vstelm.h         vr10,   a0,    0,   1
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_v_2w_loop
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_v_4w:
+    fld.s            f0,     a2,    0
+    fldx.s           f1,     a2,    a3
+    fldx.s           f2,     a2,    t2
+    add.d            a2,     a2,    t3
+    fld.s            f3,     a2,    0
+    fldx.s           f4,     a2,    a3
+    fldx.s           f5,     a2,    t2
+    fldx.s           f6,     a2,    t3
+    add.d            a2,     a2,    t4
+
+    vilvl.b          vr0,    vr1,   vr0
+    vilvl.b          vr1,    vr3,   vr2
+    vilvl.b          vr2,    vr5,   vr4
+    vilvl.b          vr3,    vr7,   vr6
+    vilvl.h          vr0,    vr1,   vr0
+    vilvl.h          vr1,    vr3,   vr2
+    vilvl.w          vr2,    vr1,   vr0
+    vilvh.w          vr3,    vr1,   vr0
+
+.l_\lable\()put_v_4w_loop:
+    fld.s            f7,     a2,    0
+    fldx.s           f10,    a2,    a3
+    add.d            a2,     a2,    t2
+
+    vextrins.b       vr2,    vr7,   0x70
+    vextrins.b       vr2,    vr7,   0xf1 //x0x1(h0)
+    vbsrl.v          vr4,    vr2,   1
+    vextrins.b       vr4,    vr10,  0x70
+    vextrins.b       vr4,    vr10,  0xf1 //x0x1(h1)
+    vdp2.h.bu.b      vr11,   vr2,   vr8
+    vdp2.h.bu.b      vr12,   vr4,   vr8
+    vbsrl.v          vr2,    vr4,   1
+
+    vextrins.b       vr3,    vr7,   0x72
+    vextrins.b       vr3,    vr7,   0xf3 //x2x3(h0)
+    vbsrl.v          vr4,    vr3,   1
+    vextrins.b       vr4,    vr10,  0x72
+    vextrins.b       vr4,    vr10,  0xf3 //x2x3(h1)
+    vdp2.h.bu.b      vr13,   vr3,   vr8
+    vdp2.h.bu.b      vr14,   vr4,   vr8
+    vbsrl.v          vr3,    vr4,   1
+
+    vhaddw.d.h       vr11
+    vhaddw.d.h       vr12
+    vhaddw.d.h       vr13
+    vhaddw.d.h       vr14
+
+    vpickev.w        vr11,   vr13,  vr11
+    vpickev.w        vr12,   vr14,  vr12
+    vpickev.h        vr11,   vr12,  vr11
+    vssrarni.bu.h    vr11,   vr11,  6
+    vstelm.w         vr11,   a0,    0,   0
+    add.d            a0,     a0,    a1
+    vstelm.w         vr11,   a0,    0,   1
+    add.d            a0,     a0,    a1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_v_4w_loop
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_v_8w:
+.l_\lable\()put_v_16w:
+.l_\lable\()put_v_32w:
+.l_\lable\()put_v_64w:
+.l_\lable\()put_v_128w:
+    addi.d           t0,     a2,    0 //src
+    addi.d           t5,     a5,    0 //h
+    addi.d           t8,     a0,    0 //dst
+.l_\lable\()put_v_8w_loop0:
+    fld.d            f0,     a2,    0
+    fldx.d           f1,     a2,    a3
+    fldx.d           f2,     a2,    t2
+    add.d            a2,     a2,    t3
+    fld.d            f3,     a2,    0
+    fldx.d           f4,     a2,    a3
+    fldx.d           f5,     a2,    t2
+    fldx.d           f6,     a2,    t3
+    add.d            a2,     a2,    t4
+
+    vilvl.b          vr0,    vr1,   vr0
+    vilvl.b          vr1,    vr3,   vr2
+    vilvl.b          vr2,    vr5,   vr4
+    vilvl.b          vr3,    vr7,   vr6
+    vilvl.h          vr4,    vr1,   vr0
+    vilvh.h          vr5,    vr1,   vr0
+    vilvl.h          vr6,    vr3,   vr2
+    vilvh.h          vr7,    vr3,   vr2
+    vilvl.w          vr0,    vr6,   vr4 // x0x1
+    vilvh.w          vr1,    vr6,   vr4 // x2x3
+    vilvl.w          vr2,    vr7,   vr5 // x4x5
+    vilvh.w          vr3,    vr7,   vr5 // x6x7
+.l_\lable\()put_v_8w_loop:
+    fld.d            f7,     a2,    0
+    fldx.d           f10,    a2,    a3
+    add.d            a2,     a2,    t2
+    //h0
+    vextrins.b       vr0,    vr7,   0x70
+    vextrins.b       vr0,    vr7,   0xf1
+    vextrins.b       vr1,    vr7,   0x72
+    vextrins.b       vr1,    vr7,   0xf3
+    vextrins.b       vr2,    vr7,   0x74
+    vextrins.b       vr2,    vr7,   0xf5
+    vextrins.b       vr3,    vr7,   0x76
+    vextrins.b       vr3,    vr7,   0xf7
+    vdp2.h.bu.b      vr11,   vr0,   vr8
+    vdp2.h.bu.b      vr12,   vr1,   vr8
+    vdp2.h.bu.b      vr13,   vr2,   vr8
+    vdp2.h.bu.b      vr14,   vr3,   vr8
+    vhaddw.d.h       vr11
+    vhaddw.d.h       vr12
+    vhaddw.d.h       vr13
+    vhaddw.d.h       vr14
+    vpickev.w        vr11,   vr12,  vr11
+    vpickev.w        vr12,   vr14,  vr13
+    vpickev.h        vr11,   vr12,  vr11
+    vssrarni.bu.h    vr11,   vr11,  6
+    fst.d            f11,    a0,    0
+    add.d            a0,     a0,    a1
+    //h1
+    vbsrl.v          vr0,    vr0,   1
+    vbsrl.v          vr1,    vr1,   1
+    vbsrl.v          vr2,    vr2,   1
+    vbsrl.v          vr3,    vr3,   1
+    vextrins.b       vr0,    vr10,  0x70
+    vextrins.b       vr0,    vr10,  0xf1
+    vextrins.b       vr1,    vr10,  0x72
+    vextrins.b       vr1,    vr10,  0xf3
+    vextrins.b       vr2,    vr10,  0x74
+    vextrins.b       vr2,    vr10,  0xf5
+    vextrins.b       vr3,    vr10,  0x76
+    vextrins.b       vr3,    vr10,  0xf7
+    vdp2.h.bu.b      vr11,   vr0,   vr8
+    vdp2.h.bu.b      vr12,   vr1,   vr8
+    vdp2.h.bu.b      vr13,   vr2,   vr8
+    vdp2.h.bu.b      vr14,   vr3,   vr8
+    vhaddw.d.h       vr11
+    vhaddw.d.h       vr12
+    vhaddw.d.h       vr13
+    vhaddw.d.h       vr14
+    vpickev.w        vr11,   vr12,  vr11
+    vpickev.w        vr12,   vr14,  vr13
+    vpickev.h        vr11,   vr12,  vr11
+    vssrarni.bu.h    vr11,   vr11,  6
+    fst.d            f11,    a0,    0
+    add.d            a0,     a0,    a1
+    vbsrl.v          vr0,    vr0,   1
+    vbsrl.v          vr1,    vr1,   1
+    vbsrl.v          vr2,    vr2,   1
+    vbsrl.v          vr3,    vr3,   1
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_v_8w_loop
+    addi.d           a2,     t0,    8
+    addi.d           t0,     t0,    8
+    addi.d           a0,     t8,    8
+    addi.d           t8,     t8,    8
+    addi.d           a5,     t5,    0
+    addi.w           a4,     a4,    -8
+    bnez             a4,     .l_\lable\()put_v_8w_loop0
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_hv:
+    ld.d             t5,     sp,    0  //filter_type
+    andi             t1,     t5,    3
+    blt              t0,     a4,    .l_\lable\()put_hv_idx_fh
+    andi             t1,     t5,    1
+    addi.w           t1,     t1,    3
+.l_\lable\()put_hv_idx_fh:
+    addi.w           t5,     zero,  120
+    mul.w            t1,     t1,    t5
+    addi.w           t5,     a6,    -1
+    slli.w           t5,     t5,    3
+    add.w            t1,     t1,    t5
+    add.d            t1,     t6,    t1 //fh's offset
+    vldrepl.d        vr8,    t1,    0
+    ld.d             t1,     sp,    0  //filter_type
+    srli.w           t1,     t1,    2
+    blt              t0,     a5,    .l_\lable\()put_hv_idx_fv
+    andi             t1,     t1,    1
+    addi.w           t1,     t1,    3
+.l_\lable\()put_hv_idx_fv:
+    addi.w           t5,     zero,  120
+    mul.w            t1,     t1,    t5
+    addi.w           t5,     a7,    -1
+    slli.w           t5,     t5,    3
+    add.w            t1,     t1,    t5
+    add.d            t1,     t6,    t1 //fv's offset
+    vldrepl.d        vr9,    t1,    0
+    vexth.h.b        vr9,    vr9
+
+    sub.d            a2,     a2,    t3
+    addi.d           a2,     a2,    -3
+
+    clz.w            t1,     a4
+    li.w             t5,     24
+    sub.w            t1,     t1,    t5
+    la.local         t5,     .l_\lable\()put_hv_jtable
+    alsl.d           t1,     t1,    t5,   3
+    ld.d             t6,     t1,    0
+    add.d            t5,     t5,    t6
+    jirl             $r0,    t5,    0
+
+    .align   3
+.l_\lable\()put_hv_jtable:
+    .dword .l_\lable\()put_hv_128w - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_64w  - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_32w  - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_16w  - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_8w   - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_4w   - .l_\lable\()put_hv_jtable
+    .dword .l_\lable\()put_hv_2w   - .l_\lable\()put_hv_jtable
+
+.l_\lable\()put_hv_2w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    vldx             vr2,    a2,    t2
+    add.d            a2,     a2,    t3
+    vld              vr3,    a2,    0
+    vldx             vr4,    a2,    a3
+    vldx             vr5,    a2,    t2
+    vldx             vr6,    a2,    t3
+    add.d            a2,     a2,    t4
+
+    vbsrl.v          vr10,   vr0,   1
+    vbsrl.v          vr11,   vr1,   1
+    vbsrl.v          vr12,   vr2,   1
+    vbsrl.v          vr13,   vr3,   1
+    vbsrl.v          vr14,   vr4,   1
+    vbsrl.v          vr15,   vr5,   1
+    vbsrl.v          vr16,   vr6,   1
+    vilvl.d          vr0,    vr10,  vr0
+    vilvl.d          vr1,    vr11,  vr1
+    vilvl.d          vr2,    vr12,  vr2
+    vilvl.d          vr3,    vr13,  vr3
+    vilvl.d          vr4,    vr14,  vr4
+    vilvl.d          vr5,    vr15,  vr5
+    vilvl.d          vr6,    vr16,  vr6
+    vdp2.h.bu.b      vr10,   vr0,   vr8
+    vdp2.h.bu.b      vr11,   vr1,   vr8
+    vdp2.h.bu.b      vr12,   vr2,   vr8
+    vdp2.h.bu.b      vr13,   vr3,   vr8
+    vdp2.h.bu.b      vr14,   vr4,   vr8
+    vdp2.h.bu.b      vr15,   vr5,   vr8
+    vdp2.h.bu.b      vr16,   vr6,   vr8
+    vhaddw.d.h       vr10
+    vhaddw.d.h       vr11
+    vhaddw.d.h       vr12
+    vhaddw.d.h       vr13
+    vhaddw.d.h       vr14
+    vhaddw.d.h       vr15
+    vhaddw.d.h       vr16
+
+    vpackev.w        vr10,   vr11,  vr10
+    vpackev.w        vr12,   vr13,  vr12
+    vpackod.d        vr11,   vr12,  vr10
+    vpackev.d        vr10,   vr12,  vr10
+
+    vpackev.w        vr12,   vr15,  vr14
+    vpackev.w        vr16,   vr17,  vr16
+    vpackod.d        vr13,   vr16,  vr12
+    vpackev.d        vr12,   vr16,  vr12
+
+    vpickev.h        vr10,   vr12,  vr10 //0 1 2  3  4  5  6  * (h0)
+    vpickev.h        vr11,   vr13,  vr11 //8 9 10 11 12 13 14 * (h1)
+    vsrari.h         vr10,   vr10,  2
+    vsrari.h         vr11,   vr11,  2
+.l_\lable\()put_hv_2w_loop:
+    vld              vr7,    a2,    0
+    vldx             vr12,   a2,    a3
+    add.d            a2,     a2,    t2
+
+    vbsrl.v          vr1,    vr7,   1
+    vbsrl.v          vr2,    vr12,  1
+    vilvl.d          vr0,    vr1,   vr7
+    vilvl.d          vr1,    vr2,   vr12
+    vdp2.h.bu.b      vr2,    vr0,   vr8
+    vdp2.h.bu.b      vr3,    vr1,   vr8
+    vhaddw.d.h       vr2
+    vhaddw.d.h       vr3
+    vpickev.w        vr2,    vr3,   vr2
+    vpickev.h        vr2,    vr2,   vr2
+    vsrari.h         vr2,    vr2,   2
+    vextrins.h       vr10,   vr2,   0x70 //0 1 2 3 4 5 6 7
+    vextrins.h       vr11,   vr2,   0x71
+    vbsrl.v          vr12,   vr10,  2
+    vbsrl.v          vr13,   vr11,  2
+    vextrins.h       vr12,   vr2,   0x72 //1 2 3 4 5 6 7 8
+    vextrins.h       vr13,   vr2,   0x73
+    vdp2.w.h         vr0,    vr10,  vr9
+    vdp2.w.h         vr1,    vr11,  vr9
+    vdp2.w.h         vr2,    vr12,  vr9
+    vdp2.w.h         vr3,    vr13,  vr9
+    vhaddw.q.w       vr0
+    vhaddw.q.w       vr1
+    vhaddw.q.w       vr2
+    vhaddw.q.w       vr3
+    vpackev.w        vr0,    vr1,   vr0
+    vpackev.w        vr1,    vr3,   vr2
+    vpackev.d        vr0,    vr1,   vr0
+    vssrarni.hu.w    vr0,    vr0,   10
+    vssrani.bu.h     vr0,    vr0,   0
+    vbsrl.v          vr10,   vr12,  2
+    vbsrl.v          vr11,   vr13,  2
+    vstelm.h         vr0,    a0,    0,   0
+    add.d            a0,     a0,    a1
+    vstelm.h         vr0,    a0,    0,   1
+    add.d            a0,     a0,    a1
+    addi.d           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv_2w_loop
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_hv_4w:
+    vld              vr0,    a2,    0
+    vldx             vr1,    a2,    a3
+    vldx             vr2,    a2,    t2
+    add.d            a2,     a2,    t3
+    vld              vr3,    a2,    0
+    vldx             vr4,    a2,    a3
+    vldx             vr5,    a2,    t2
+    vldx             vr6,    a2,    t3
+    add.d            a2,     a2,    t4
+    FILTER_8TAP_4W   vr0 //x0 x1 x2 x3
+    FILTER_8TAP_4W   vr1
+    FILTER_8TAP_4W   vr2
+    FILTER_8TAP_4W   vr3
+    FILTER_8TAP_4W   vr4
+    FILTER_8TAP_4W   vr5
+    FILTER_8TAP_4W   vr6
+    vpackev.h        vr0,    vr1,   vr0
+    vpackev.h        vr1,    vr3,   vr2
+    vpackev.h        vr2,    vr5,   vr4
+    vpackev.h        vr3,    vr7,   vr6
+    vilvl.w          vr4,    vr1,   vr0
+    vilvh.w          vr5,    vr1,   vr0
+    vilvl.w          vr6,    vr3,   vr2
+    vilvh.w          vr7,    vr3,   vr2
+    vilvl.d          vr0,    vr6,   vr4 //0 1 2 3 4 5 6 *
+    vilvh.d          vr1,    vr6,   vr4
+    vilvl.d          vr2,    vr7,   vr5
+    vilvh.d          vr3,    vr7,   vr5
+    vsrari.h         vr0,    vr0,   2
+    vsrari.h         vr1,    vr1,   2
+    vsrari.h         vr2,    vr2,   2
+    vsrari.h         vr3,    vr3,   2
+.l_\lable\()put_hv_4w_loop:
+    vld              vr4,    a2,    0
+    vldx             vr5,    a2,    a3
+    add.d            a2,     a2,    t2
+    FILTER_8TAP_4W   vr4
+    FILTER_8TAP_4W   vr5
+    vpickev.h        vr4,    vr5,   vr4
+    vsrari.h         vr4,    vr4,   2
+    vextrins.h       vr0,    vr4,   0x70
+    vextrins.h       vr1,    vr4,   0x71
+    vextrins.h       vr2,    vr4,   0x72
+    vextrins.h       vr3,    vr4,   0x73
+    vbsrl.v          vr5,    vr0,   2
+    vbsrl.v          vr6,    vr1,   2
+    vbsrl.v          vr7,    vr2,   2
+    vbsrl.v          vr10,   vr3,   2
+    vextrins.h       vr5,    vr4,   0x74
+    vextrins.h       vr6,    vr4,   0x75
+    vextrins.h       vr7,    vr4,   0x76
+    vextrins.h       vr10,   vr4,   0x77
+    vdp2.w.h         vr11,   vr0,   vr9
+    vdp2.w.h         vr12,   vr1,   vr9
+    vdp2.w.h         vr13,   vr2,   vr9
+    vdp2.w.h         vr14,   vr3,   vr9
+    vhaddw.q.w       vr11
+    vhaddw.q.w       vr12
+    vhaddw.q.w       vr13
+    vhaddw.q.w       vr14
+    vpackev.w        vr0,    vr12,  vr11
+    vpackev.w        vr1,    vr14,  vr13
+    vpackev.d        vr0,    vr1,   vr0
+    vdp2.w.h         vr11,   vr5,   vr9
+    vdp2.w.h         vr12,   vr6,   vr9
+    vdp2.w.h         vr13,   vr7,   vr9
+    vdp2.w.h         vr14,   vr10,  vr9
+    vhaddw.q.w       vr11
+    vhaddw.q.w       vr12
+    vhaddw.q.w       vr13
+    vhaddw.q.w       vr14
+    vpackev.w        vr1,    vr12,  vr11
+    vpackev.w        vr2,    vr14,  vr13
+    vpackev.d        vr1,    vr2,   vr1
+    vssrarni.hu.w    vr1,    vr0,   10
+    vssrani.bu.h     vr1,    vr1,   0
+    vstelm.w         vr1,    a0,    0,    0
+    add.d            a0,     a0,    a1
+    vstelm.w         vr1,    a0,    0,    1
+    add.d            a0,     a0,    a1
+    vbsrl.v          vr0,    vr5,   2
+    vbsrl.v          vr1,    vr6,   2
+    vbsrl.v          vr2,    vr7,   2
+    vbsrl.v          vr3,    vr10,  2
+    addi.w           a5,     a5,    -2
+    bnez             a5,     .l_\lable\()put_hv_4w_loop
+    b                .l_\lable\()end_put_8tap
+
+.l_\lable\()put_hv_8w:
+.l_\lable\()put_hv_16w:
+.l_\lable\()put_hv_32w:
+.l_\lable\()put_hv_64w:
+.l_\lable\()put_hv_128w:
+    addi.d          t0,      a2,    0 //src
+    addi.d          t5,      a5,    0 //h
+    addi.d          t8,      a0,    0 //dst
+.l_\lable\()put_hv_8w_loop0:
+    vld             vr0,     a2,    0
+    vldx            vr1,     a2,    a3
+    vldx            vr2,     a2,    t2
+    add.d           a2,      a2,    t3
+    vld             vr3,     a2,    0
+    vldx            vr4,     a2,    a3
+    vldx            vr5,     a2,    t2
+    vldx            vr6,     a2,    t3
+    add.d           a2,      a2,    t4
+    FILTER_8TAP_8W  vr0
+    FILTER_8TAP_8W  vr1
+    FILTER_8TAP_8W  vr2
+    FILTER_8TAP_8W  vr3
+    FILTER_8TAP_8W  vr4
+    FILTER_8TAP_8W  vr5
+    FILTER_8TAP_8W  vr6
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7,\
+                       vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7,\
+                       vr10,vr11,vr12,vr13,vr14,vr15,vr16,vr17
+.l_\lable\()put_hv_8w_loop:
+    vld             vr20,    a2,    0
+    vldx            vr21,    a2,    a3
+    add.d           a2,      a2,    t2
+    FILTER_8TAP_8W  vr20
+    FILTER_8TAP_8W  vr21
+    VEXTRINS_Hx8    vr20
+    FILTER_8TAP_8W_CLIP_STORE
+    VBSRL_Vx8
+    VEXTRINS_Hx8    vr21
+    FILTER_8TAP_8W_CLIP_STORE
+    VBSRL_Vx8
+    addi.w          a5,      a5,    -2
+    bnez            a5,      .l_\lable\()put_hv_8w_loop
+    addi.d          a2,      t0,    8
+    addi.d          t0,      t0,    8
+    addi.d          a0,      t8,    8
+    addi.d          t8,      t8,    8
+    addi.d          a5,      t5,    0
+    addi.w          a4,      a4,    -8
+    bnez            a4,      .l_\lable\()put_hv_8w_loop0
+.l_\lable\()end_put_8tap:
+.endm
+
+function put_8tap_regular_8bpc_lsx
+    addi.d   sp, sp,  -16
+    st.d   zero, sp,  0
+    PUT_8TAP_8BPC_LSX 0
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_smooth_regular_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 1
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 1
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_sharp_regular_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 2
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 2
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_regular_smooth_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 4
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 4
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_smooth_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 5
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 5
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_sharp_smooth_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 6
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 6
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_regular_sharp_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 8
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 8
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_smooth_sharp_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 9
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 9
+    addi.d   sp, sp,  16
+endfunc
+
+function put_8tap_sharp_8bpc_lsx
+    addi.d   sp, sp,  -16
+    li.w     t0, 10
+    st.d     t0, sp,  0
+    PUT_8TAP_8BPC_LSX 10
+    addi.d   sp, sp,  16
+endfunc
