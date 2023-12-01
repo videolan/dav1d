@@ -1302,3 +1302,1036 @@ endfunc
 #undef bpc_sh
 #undef bpcw_sh
 
+#define mask_sh         10
+/*
+static void mask_c(pixel *dst, const ptrdiff_t dst_stride,
+                   const int16_t *tmp1, const int16_t *tmp2, const int w, int h,
+                   const uint8_t *mask HIGHBD_DECL_SUFFIX)
+*/
+function mask_8bpc_lsx
+    vldi          vr21,   0x440   // 64
+    vxor.v        vr19,   vr19,   vr19
+    addi.d        t8,     a0,     0
+    clz.w         t0,     a4
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .MASK_LSX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0
+    add.d         t1,     t1,      t2
+    jirl          $r0,    t1,      0
+
+    .align   3
+.MASK_LSX_JRTABLE:
+    .hword .MASK_W128_LSX - .MASK_LSX_JRTABLE
+    .hword .MASK_W64_LSX  - .MASK_LSX_JRTABLE
+    .hword .MASK_W32_LSX  - .MASK_LSX_JRTABLE
+    .hword .MASK_W16_LSX  - .MASK_LSX_JRTABLE
+    .hword .MASK_W8_LSX   - .MASK_LSX_JRTABLE
+    .hword .MASK_W4_LSX   - .MASK_LSX_JRTABLE
+
+.MASK_W4_LSX:
+    vld           vr0,     a2,     0
+    vld           vr1,     a3,     0
+    fld.d         f22,     a6,     0
+
+    vilvl.b       vr2,    vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vssrarni.hu.w vr5,    vr4,    mask_sh
+    vssrlrni.bu.h vr1,    vr5,    0
+    vpickod.w     vr4,    vr2,    vr1
+    vilvl.b       vr0,    vr4,    vr1
+    fst.s         f0,     a0,     0
+    add.d         a0,     a0,     a1
+    vstelm.w      vr0,    a0,     0,    1
+    addi.d        a2,     a2,     16
+    addi.d        a3,     a3,     16
+    addi.d        a6,     a6,     8
+    add.d         a0,     a0,     a1
+    addi.w        a5,     a5,     -2
+    blt           zero,   a5,     .MASK_W4_LSX
+    b             .MASK_END_LSX
+.MASK_W8_LSX:
+    vld           vr0,    a2,     0
+    vld           vr10,   a2,     16
+    vld           vr1,    a3,     0
+    vld           vr11,   a3,     16
+    vld           vr22,   a6,     0
+
+    vilvl.b       vr2,    vr19,   vr22
+    vilvh.b       vr12,   vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+    vsub.h        vr13,   vr21,   vr12
+
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmulwev.w.h   vr14,   vr10,   vr12
+    vmulwod.w.h   vr15,   vr10,   vr12
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vmaddwev.w.h  vr14,   vr11,   vr13
+    vmaddwod.w.h  vr15,   vr11,   vr13
+    vssrarni.hu.w vr14,   vr4,    mask_sh
+    vssrarni.hu.w vr15,   vr5,    mask_sh
+    vssrlrni.bu.h vr15,   vr14,   0
+    vshuf4i.w     vr6,    vr15,   0x4E
+    vilvl.b       vr0,    vr6,    vr15
+    fst.d         f0,     a0,     0
+    add.d         a0,     a0,     a1
+    vstelm.d      vr0,    a0,     0,   1
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a6,     a6,     16
+    add.d         a0,     a0,     a1
+    addi.w        a5,     a5,     -2
+    blt           zero,   a5,     .MASK_W8_LSX
+    b             .MASK_END_LSX
+
+.MASK_W16_LSX:
+    vld           vr0,    a2,     0
+    vld           vr10,   a2,     16
+    vld           vr1,    a3,     0
+    vld           vr11,   a3,     16
+    vld           vr22,   a6,     0
+
+    vilvl.b       vr2,    vr19,   vr22
+    vilvh.b       vr12,   vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+    vsub.h        vr13,   vr21,   vr12
+
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmulwev.w.h   vr14,   vr10,   vr12
+    vmulwod.w.h   vr15,   vr10,   vr12
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vmaddwev.w.h  vr14,   vr11,   vr13
+    vmaddwod.w.h  vr15,   vr11,   vr13
+    vssrarni.hu.w vr14,   vr4,    mask_sh
+    vssrarni.hu.w vr15,   vr5,    mask_sh
+    vssrlrni.bu.h vr15,   vr14,   0
+    vshuf4i.w     vr6,    vr15,   0x4E
+    vilvl.b       vr0,    vr6,    vr15
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a6,     a6,     16
+    add.d         a0,     a0,     a1
+    addi.w        a5,     a5,     -1
+    blt           zero,   a5,     .MASK_W16_LSX
+    b             .MASK_END_LSX
+.MASK_W32_LSX:
+.rept 2
+    vld           vr0,    a2,     0
+    vld           vr10,   a2,     16
+    vld           vr1,    a3,     0
+    vld           vr11,   a3,     16
+    vld           vr22,   a6,     0
+    vilvl.b       vr2,    vr19,   vr22
+    vilvh.b       vr12,   vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+    vsub.h        vr13,   vr21,   vr12
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmulwev.w.h   vr14,   vr10,   vr12
+    vmulwod.w.h   vr15,   vr10,   vr12
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vmaddwev.w.h  vr14,   vr11,   vr13
+    vmaddwod.w.h  vr15,   vr11,   vr13
+    vssrarni.hu.w vr14,   vr4,    mask_sh
+    vssrarni.hu.w vr15,   vr5,    mask_sh
+    vssrlrni.bu.h vr15,   vr14,   0
+    vshuf4i.w     vr6,    vr15,   0x4E
+    vilvl.b       vr0,    vr6,    vr15
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a6,     a6,     16
+    addi.d        a0,     a0,     16
+.endr
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    addi.w        a5,     a5,     -1
+    blt           zero,   a5,     .MASK_W32_LSX
+    b             .MASK_END_LSX
+.MASK_W64_LSX:
+.rept 4
+    vld           vr0,    a2,     0
+    vld           vr10,   a2,     16
+    vld           vr1,    a3,     0
+    vld           vr11,   a3,     16
+    vld           vr22,   a6,     0
+    vilvl.b       vr2,    vr19,   vr22
+    vilvh.b       vr12,   vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+    vsub.h        vr13,   vr21,   vr12
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmulwev.w.h   vr14,   vr10,   vr12
+    vmulwod.w.h   vr15,   vr10,   vr12
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vmaddwev.w.h  vr14,   vr11,   vr13
+    vmaddwod.w.h  vr15,   vr11,   vr13
+    vssrarni.hu.w vr14,   vr4,    mask_sh
+    vssrarni.hu.w vr15,   vr5,    mask_sh
+    vssrlrni.bu.h vr15,   vr14,   0
+    vshuf4i.w     vr6,    vr15,   0x4E
+    vilvl.b       vr0,    vr6,    vr15
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a6,     a6,     16
+    addi.d        a0,     a0,     16
+.endr
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    addi.w        a5,     a5,     -1
+    blt           zero,   a5,     .MASK_W64_LSX
+    b             .MASK_END_LSX
+.MASK_W128_LSX:
+.rept 8
+    vld           vr0,    a2,     0
+    vld           vr10,   a2,     16
+    vld           vr1,    a3,     0
+    vld           vr11,   a3,     16
+    vld           vr22,   a6,     0
+    vilvl.b       vr2,    vr19,   vr22
+    vilvh.b       vr12,   vr19,   vr22
+    vsub.h        vr3,    vr21,   vr2
+    vsub.h        vr13,   vr21,   vr12
+    vmulwev.w.h   vr4,    vr0,    vr2
+    vmulwod.w.h   vr5,    vr0,    vr2
+    vmulwev.w.h   vr14,   vr10,   vr12
+    vmulwod.w.h   vr15,   vr10,   vr12
+    vmaddwev.w.h  vr4,    vr1,    vr3
+    vmaddwod.w.h  vr5,    vr1,    vr3
+    vmaddwev.w.h  vr14,   vr11,   vr13
+    vmaddwod.w.h  vr15,   vr11,   vr13
+    vssrarni.hu.w vr14,   vr4,    mask_sh
+    vssrarni.hu.w vr15,   vr5,    mask_sh
+    vssrlrni.bu.h vr15,   vr14,   0
+    vshuf4i.w     vr6,    vr15,   0x4E
+    vilvl.b       vr0,    vr6,    vr15
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a6,     a6,     16
+    addi.d        a0,     a0,     16
+.endr
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    addi.w        a5,     a5,     -1
+    blt           zero,   a5,     .MASK_W128_LSX
+.MASK_END_LSX:
+endfunc
+
+function mask_8bpc_lasx
+    xvldi         xr21,   0x440   // 64
+    xvxor.v       xr19,   xr19,   xr19
+    addi.d        t8,     a0,     0
+    clz.w         t0,     a4
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .MASK_LASX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0
+    add.d         t1,     t1,      t2
+    jirl          $r0,    t1,      0
+
+    .align   3
+.MASK_LASX_JRTABLE:
+    .hword .MASK_W128_LASX - .MASK_LASX_JRTABLE
+    .hword .MASK_W64_LASX  - .MASK_LASX_JRTABLE
+    .hword .MASK_W32_LASX  - .MASK_LASX_JRTABLE
+    .hword .MASK_W16_LASX  - .MASK_LASX_JRTABLE
+    .hword .MASK_W8_LASX   - .MASK_LASX_JRTABLE
+    .hword .MASK_W4_LASX   - .MASK_LASX_JRTABLE
+
+.MASK_W4_LASX:
+    vld            vr0,    a2,     0
+    vld            vr1,    a3,     0
+    fld.d          f22,    a6,     0
+
+    vilvl.h        vr4,    vr1,    vr0
+    vilvh.h        vr14,   vr1,    vr0
+    vilvl.b        vr2,    vr19,   vr22
+    vsub.h         vr3,    vr21,   vr2
+    xvpermi.q      xr14,   xr4,    0x20
+    vilvl.h        vr5,    vr3,    vr2
+    vilvh.h        vr15,   vr3,    vr2
+    xvpermi.q      xr15,   xr5,    0x20
+    xvmulwev.w.h   xr0,    xr14,   xr15
+    xvmaddwod.w.h  xr0,    xr14,   xr15
+    xvssrarni.hu.w xr1,    xr0,    mask_sh
+    xvssrlni.bu.h  xr2,    xr1,    0
+    fst.s          f2,     a0,     0
+    add.d          a0,     a0,     a1
+    xvstelm.w      xr2,    a0,     0,    4
+
+    addi.d         a2,     a2,     16
+    addi.d         a3,     a3,     16
+    addi.d         a6,     a6,     8
+    add.d          a0,     a0,     a1
+    addi.w         a5,     a5,     -2
+    blt            zero,   a5,     .MASK_W4_LASX
+    b              .MASK_END_LASX
+
+.MASK_W8_LASX:
+    xvld           xr0,    a2,      0
+    xvld           xr1,    a3,      0
+    vld            vr22,   a6,      0
+
+    vext2xv.hu.bu  xr2,    xr22
+    xvsub.h        xr3,    xr21,    xr2
+    xvmulwev.w.h   xr4,    xr0,     xr2
+    xvmulwod.w.h   xr5,    xr0,     xr2
+    xvmaddwev.w.h  xr4,    xr1,     xr3
+    xvmaddwod.w.h  xr5,    xr1,     xr3
+    xvssrarni.hu.w xr5,    xr4,     mask_sh
+    xvssrlni.bu.h  xr1,    xr5,     0
+    xvpickod.w     xr4,    xr2,     xr1
+    xvilvl.b       xr0,    xr4,     xr1
+    fst.d          f0,     a0,      0
+    add.d          a0,     a0,      a1
+    xvstelm.d      xr0,    a0,      0,    2
+
+    addi.d         a2,     a2,      32
+    addi.d         a3,     a3,      32
+    addi.d         a6,     a6,      16
+    add.d          a0,     a0,      a1
+    addi.w         a5,     a5,      -2
+    blt            zero,   a5,      .MASK_W8_LASX
+    b              .MASK_END_LASX
+
+.MASK_W16_LASX:
+    xvld           xr0,    a2,      0
+    xvld           xr1,    a3,      0
+    vld            vr22,   a6,      0
+
+    vext2xv.hu.bu  xr2,    xr22
+    xvsub.h        xr3,    xr21,    xr2
+    xvmulwev.w.h   xr4,    xr0,     xr2
+    xvmulwod.w.h   xr5,    xr0,     xr2
+    xvmaddwev.w.h  xr4,    xr1,     xr3
+    xvmaddwod.w.h  xr5,    xr1,     xr3
+    xvssrarni.hu.w xr5,    xr4,     mask_sh
+    xvssrlni.bu.h  xr1,    xr5,     0
+    xvpickod.w     xr4,    xr2,    xr1
+    xvilvl.b       xr0,    xr4,    xr1
+    xvpermi.d      xr1,    xr0,     0xD8
+    vst            vr1,    a0,      0
+
+    addi.d         a2,     a2,      32
+    addi.d         a3,     a3,      32
+    addi.d         a6,     a6,      16
+    add.d          a0,     a0,      a1
+    addi.w         a5,     a5,      -1
+    blt            zero,   a5,      .MASK_W16_LASX
+    b              .MASK_END_LASX
+.MASK_W32_LASX:
+    xvld           xr0,    a2,      0
+    xvld           xr10,   a2,      32
+    xvld           xr1,    a3,      0
+    xvld           xr11,   a3,      32
+    xvld           xr22,   a6,      0
+    vext2xv.hu.bu  xr2,    xr22
+    xvpermi.q      xr4,    xr22,    0x01
+    vext2xv.hu.bu  xr12,   xr4
+    xvsub.h        xr3,    xr21,    xr2
+    xvsub.h        xr13,   xr21,    xr12
+
+    xvmulwev.w.h   xr4,    xr0,     xr2
+    xvmulwod.w.h   xr5,    xr0,     xr2
+    xvmulwev.w.h   xr14,   xr10,    xr12
+    xvmulwod.w.h   xr15,   xr10,    xr12
+    xvmaddwev.w.h  xr4,    xr1,     xr3
+    xvmaddwod.w.h  xr5,    xr1,     xr3
+    xvmaddwev.w.h  xr14,   xr11,    xr13
+    xvmaddwod.w.h  xr15,   xr11,    xr13
+    xvssrarni.hu.w xr14,   xr4,     mask_sh
+    xvssrarni.hu.w xr15,   xr5,     mask_sh
+    xvssrlni.bu.h  xr15,   xr14,    0
+    xvshuf4i.w     xr6,    xr15,    0x4E
+    xvilvl.b       xr1,    xr6,     xr15
+    xvpermi.d      xr0,    xr1,     0xD8
+    xvst           xr0,    a0,      0
+
+    addi.d         a2,     a2,      64
+    addi.d         a3,     a3,      64
+    addi.d         a6,     a6,      32
+    add.d          a0,     a0,      a1
+    addi.w         a5,     a5,      -1
+    blt            zero,   a5,      .MASK_W32_LASX
+    b              .MASK_END_LASX
+
+.MASK_W64_LASX:
+.rept 2
+    xvld           xr0,    a2,      0
+    xvld           xr10,   a2,      32
+    xvld           xr1,    a3,      0
+    xvld           xr11,   a3,      32
+    xvld           xr22,   a6,      0
+    vext2xv.hu.bu  xr2,    xr22
+    xvpermi.q      xr4,    xr22,    0x01
+    vext2xv.hu.bu  xr12,   xr4
+    xvsub.h        xr3,    xr21,    xr2
+    xvsub.h        xr13,   xr21,    xr12
+
+    xvmulwev.w.h   xr4,    xr0,     xr2
+    xvmulwod.w.h   xr5,    xr0,     xr2
+    xvmulwev.w.h   xr14,   xr10,    xr12
+    xvmulwod.w.h   xr15,   xr10,    xr12
+    xvmaddwev.w.h  xr4,    xr1,     xr3
+    xvmaddwod.w.h  xr5,    xr1,     xr3
+    xvmaddwev.w.h  xr14,   xr11,    xr13
+    xvmaddwod.w.h  xr15,   xr11,    xr13
+    xvssrarni.hu.w xr14,   xr4,     mask_sh
+    xvssrarni.hu.w xr15,   xr5,     mask_sh
+    xvssrlni.bu.h  xr15,   xr14,    0
+    xvshuf4i.w     xr6,    xr15,    0x4E
+    xvilvl.b       xr1,    xr6,     xr15
+    xvpermi.d      xr0,    xr1,     0xD8
+    xvst           xr0,    a0,      0
+    addi.d         a2,     a2,      64
+    addi.d         a3,     a3,      64
+    addi.d         a6,     a6,      32
+    addi.d         a0,     a0,      32
+.endr
+    add.d          t8,     t8,     a1
+    add.d          a0,     t8,     zero
+    addi.w         a5,     a5,      -1
+    blt            zero,   a5,      .MASK_W64_LASX
+    b              .MASK_END_LASX
+
+.MASK_W128_LASX:
+.rept 4
+    xvld           xr0,    a2,      0
+    xvld           xr10,   a2,      32
+    xvld           xr1,    a3,      0
+    xvld           xr11,   a3,      32
+    xvld           xr22,   a6,      0
+    vext2xv.hu.bu  xr2,    xr22
+    xvpermi.q      xr4,    xr22,    0x01
+    vext2xv.hu.bu  xr12,   xr4
+    xvsub.h        xr3,    xr21,    xr2
+    xvsub.h        xr13,   xr21,    xr12
+
+    xvmulwev.w.h   xr4,    xr0,     xr2
+    xvmulwod.w.h   xr5,    xr0,     xr2
+    xvmulwev.w.h   xr14,   xr10,    xr12
+    xvmulwod.w.h   xr15,   xr10,    xr12
+    xvmaddwev.w.h  xr4,    xr1,     xr3
+    xvmaddwod.w.h  xr5,    xr1,     xr3
+    xvmaddwev.w.h  xr14,   xr11,    xr13
+    xvmaddwod.w.h  xr15,   xr11,    xr13
+    xvssrarni.hu.w xr14,   xr4,     mask_sh
+    xvssrarni.hu.w xr15,   xr5,     mask_sh
+    xvssrlni.bu.h  xr15,   xr14,    0
+    xvshuf4i.w     xr6,    xr15,    0x4E
+    xvilvl.b       xr1,    xr6,     xr15
+    xvpermi.d      xr0,    xr1,     0xD8
+    xvst           xr0,    a0,      0
+
+    addi.d         a2,     a2,      64
+    addi.d         a3,     a3,      64
+    addi.d         a6,     a6,      32
+    addi.d         a0,     a0,      32
+.endr
+    add.d          t8,     t8,     a1
+    add.d          a0,     t8,     zero
+    addi.w         a5,     a5,      -1
+    blt            zero,   a5,      .MASK_W128_LASX
+.MASK_END_LASX:
+endfunc
+
+/*
+static void w_mask_c(pixel *dst, const ptrdiff_t dst_stride,
+                     const int16_t *tmp1, const int16_t *tmp2, const int w, int h,
+                     uint8_t *mask, const int sign,
+                     const int ss_hor, const int ss_ver HIGHBD_DECL_SUFFIX)
+*/
+function w_mask_420_8bpc_lsx
+    addi.d        sp,      sp,    -24
+    fst.d         f24,     sp,    0
+    fst.d         f25,     sp,    8
+    fst.d         f26,     sp,    16
+    vldi          vr20,    0x440
+    vreplgr2vr.h  vr21,    a7
+    vldi          vr22,    0x426
+
+    clz.w         t0,      a4
+    li.w          t1,      24
+    sub.w         t0,      t0,      t1
+    la.local      t1,      .WMASK420_LSX_JRTABLE
+    alsl.d        t0,      t0,      t1,    1
+    ld.h          t8,      t0,      0
+    add.d         t1,      t1,      t8
+    jirl          $r0,     t1,      0
+
+    .align   3
+.WMASK420_LSX_JRTABLE:
+    .hword .WMASK420_W128_LSX - .WMASK420_LSX_JRTABLE
+    .hword .WMASK420_W64_LSX  - .WMASK420_LSX_JRTABLE
+    .hword .WMASK420_W32_LSX  - .WMASK420_LSX_JRTABLE
+    .hword .WMASK420_W16_LSX  - .WMASK420_LSX_JRTABLE
+    .hword .WMASK420_W8_LSX   - .WMASK420_LSX_JRTABLE
+    .hword .WMASK420_W4_LSX   - .WMASK420_LSX_JRTABLE
+
+.WMASK420_W4_LSX:
+    vld           vr0,     a2,       0
+    vld           vr1,     a2,       16
+    vld           vr2,     a3,       0
+    vld           vr3,     a3,       16
+    addi.w        a5,      a5,       -4
+
+    vabsd.h       vr4,     vr0,      vr2
+    vabsd.h       vr5,     vr1,      vr3
+    vaddi.hu      vr4,     vr4,      8
+    vaddi.hu      vr5,     vr5,      8
+    vsrli.h       vr4,     vr4,      8
+    vsrli.h       vr5,     vr5,      8
+    vadd.h        vr4,     vr4,      vr22
+    vadd.h        vr5,     vr5,      vr22
+    vmin.hu       vr6,     vr4,      vr20
+    vmin.hu       vr7,     vr5,      vr20
+    vsub.h        vr8,     vr20,     vr6
+    vsub.h        vr9,     vr20,     vr7
+    vmulwev.w.h   vr4,     vr6,      vr0
+    vmulwod.w.h   vr5,     vr6,      vr0
+    vmulwev.w.h   vr10,    vr7,      vr1
+    vmulwod.w.h   vr11,    vr7,      vr1
+    vmaddwev.w.h  vr4,     vr8,      vr2
+    vmaddwod.w.h  vr5,     vr8,      vr2
+    vmaddwev.w.h  vr10,    vr9,      vr3
+    vmaddwod.w.h  vr11,    vr9,      vr3
+    vilvl.w       vr0,     vr5,      vr4
+    vilvh.w       vr1,     vr5,      vr4
+    vilvl.w       vr2,     vr11,     vr10
+    vilvh.w       vr3,     vr11,     vr10
+    vssrarni.hu.w vr1,     vr0,      10
+    vssrarni.hu.w vr3,     vr2,      10
+    vssrlni.bu.h  vr3,     vr1,      0
+    vstelm.w      vr3,     a0,       0,    0
+    add.d         a0,      a0,       a1
+    vstelm.w      vr3,     a0,       0,    1
+    add.d         a0,      a0,       a1
+    vstelm.w      vr3,     a0,       0,    2
+    add.d         a0,      a0,       a1
+    vstelm.w      vr3,     a0,       0,    3
+    add.d         a0,      a0,       a1
+    vpickev.h     vr0,     vr7,      vr6
+    vpickod.h     vr1,     vr7,      vr6
+    vadd.h        vr0,     vr0,      vr1
+    vshuf4i.h     vr0,     vr0,      0xd8
+    vhaddw.w.h    vr2,     vr0,      vr0
+    vpickev.h     vr2,     vr2,      vr2
+    vsub.h        vr2,     vr2,      vr21
+    vaddi.hu      vr2,     vr2,      2
+    vssrani.bu.h  vr2,     vr2,      2
+    vstelm.w      vr2,     a6,       0,    0
+
+    addi.d        a2,      a2,       32
+    addi.d        a3,      a3,       32
+    addi.d        a6,      a6,       4
+    blt           zero,    a5,       .WMASK420_W4_LSX
+    b             .END_W420
+
+.WMASK420_W8_LSX:
+    vld           vr0,     a2,       0
+    vld           vr1,     a2,       16
+    vld           vr2,     a3,       0
+    vld           vr3,     a3,       16
+    addi.w        a5,      a5,       -2
+
+    vabsd.h       vr4,     vr0,      vr2
+    vabsd.h       vr5,     vr1,      vr3
+    vaddi.hu      vr4,     vr4,      8
+    vaddi.hu      vr5,     vr5,      8
+    vsrli.h       vr4,     vr4,      8
+    vsrli.h       vr5,     vr5,      8
+    vadd.h        vr4,     vr4,      vr22
+    vadd.h        vr5,     vr5,      vr22
+    vmin.hu       vr6,     vr4,      vr20
+    vmin.hu       vr7,     vr5,      vr20
+    vsub.h        vr8,     vr20,     vr6
+    vsub.h        vr9,     vr20,     vr7
+    vmulwev.w.h   vr4,     vr6,      vr0
+    vmulwod.w.h   vr5,     vr6,      vr0
+    vmulwev.w.h   vr10,    vr7,      vr1
+    vmulwod.w.h   vr11,    vr7,      vr1
+    vmaddwev.w.h  vr4,     vr8,      vr2
+    vmaddwod.w.h  vr5,     vr8,      vr2
+    vmaddwev.w.h  vr10,    vr9,      vr3
+    vmaddwod.w.h  vr11,    vr9,      vr3
+    vssrarni.hu.w vr10,    vr4,      10
+    vssrarni.hu.w vr11,    vr5,      10
+    vssrlni.bu.h  vr11,    vr10,     0
+    vshuf4i.w     vr0,     vr11,     0x4E
+    vilvl.b       vr3,     vr0,      vr11
+    vstelm.d      vr3,     a0,       0,     0
+    add.d         a0,      a0,       a1
+    vstelm.d      vr3,     a0,       0,     1
+    add.d         a0,      a0,       a1
+    vpickev.h     vr0,     vr7,      vr6
+    vpickod.h     vr1,     vr7,      vr6
+    vadd.h        vr0,     vr0,      vr1
+    vilvh.d       vr2,     vr0,      vr0
+    vadd.h        vr2,     vr2,      vr0
+    vsub.h        vr2,     vr2,      vr21
+    vaddi.hu      vr2,     vr2,      2
+    vssrani.bu.h  vr2,     vr2,      2
+    vstelm.w      vr2,     a6,       0,     0
+
+    addi.d        a2,      a2,       32
+    addi.d        a3,      a3,       32
+    addi.d        a6,      a6,       4
+    blt           zero,    a5,       .WMASK420_W8_LSX
+    b             .END_W420
+
+.WMASK420_W16_LSX:
+    vld           vr0,     a2,       0
+    vld           vr1,     a2,       16
+    alsl.d        a2,      a4,       a2,    1
+    vld           vr2,     a2,       0
+    vld           vr3,     a2,       16
+    vld           vr4,     a3,       0
+    vld           vr5,     a3,       16
+    alsl.d        a3,      a4,       a3,    1
+    vld           vr6,     a3,       0
+    vld           vr7,     a3,       16
+
+    vabsd.h       vr8,     vr0,      vr4
+    vabsd.h       vr9,     vr1,      vr5
+    vabsd.h       vr10,    vr2,      vr6
+    vabsd.h       vr11,    vr3,      vr7
+    vaddi.hu      vr8,     vr8,      8
+    vaddi.hu      vr9,     vr9,      8
+    vaddi.hu      vr10,    vr10,     8
+    vaddi.hu      vr11,    vr11,     8
+    vsrli.h       vr8,     vr8,      8
+    vsrli.h       vr9,     vr9,      8
+    vsrli.h       vr10,    vr10,     8
+    vsrli.h       vr11,    vr11,     8
+    vadd.h        vr8,     vr8,      vr22
+    vadd.h        vr9,     vr9,      vr22
+    vadd.h        vr10,    vr10,     vr22
+    vadd.h        vr11,    vr11,     vr22
+    vmin.hu       vr12,    vr8,      vr20
+    vmin.hu       vr13,    vr9,      vr20
+    vmin.hu       vr14,    vr10,     vr20
+    vmin.hu       vr15,    vr11,     vr20
+    vsub.h        vr16,    vr20,     vr12
+    vsub.h        vr17,    vr20,     vr13
+    vsub.h        vr18,    vr20,     vr14
+    vsub.h        vr19,    vr20,     vr15
+    vmulwev.w.h   vr8,     vr12,     vr0
+    vmulwod.w.h   vr9,     vr12,     vr0
+    vmulwev.w.h   vr10,    vr13,     vr1
+    vmulwod.w.h   vr11,    vr13,     vr1
+    vmulwev.w.h   vr23,    vr14,     vr2
+    vmulwod.w.h   vr24,    vr14,     vr2
+    vmulwev.w.h   vr25,    vr15,     vr3
+    vmulwod.w.h   vr26,    vr15,     vr3
+    vmaddwev.w.h  vr8,     vr16,     vr4
+    vmaddwod.w.h  vr9,     vr16,     vr4
+    vmaddwev.w.h  vr10,    vr17,     vr5
+    vmaddwod.w.h  vr11,    vr17,     vr5
+    vmaddwev.w.h  vr23,    vr18,     vr6
+    vmaddwod.w.h  vr24,    vr18,     vr6
+    vmaddwev.w.h  vr25,    vr19,     vr7
+    vmaddwod.w.h  vr26,    vr19,     vr7
+    vssrarni.hu.w vr10,    vr8,      10
+    vssrarni.hu.w vr11,    vr9,      10
+    vssrarni.hu.w vr25,    vr23,     10
+    vssrarni.hu.w vr26,    vr24,     10
+    vssrlni.bu.h  vr11,    vr10,     0
+    vssrlni.bu.h  vr26,    vr25,     0
+    vshuf4i.w     vr0,     vr11,     0x4E
+    vshuf4i.w     vr1,     vr26,     0x4E
+    vilvl.b       vr3,     vr0,      vr11
+    vilvl.b       vr7,     vr1,      vr26
+    vst           vr3,     a0,       0
+    vstx          vr7,     a0,       a1
+    vpickev.h     vr0,     vr13,     vr12
+    vpickod.h     vr1,     vr13,     vr12
+    vpickev.h     vr2,     vr15,     vr14
+    vpickod.h     vr3,     vr15,     vr14
+    vadd.h        vr4,     vr0,      vr1
+    vadd.h        vr5,     vr2,      vr3
+    vadd.h        vr4,     vr4,      vr5
+    vsub.h        vr4,     vr4,      vr21
+    vssrarni.bu.h vr4,     vr4,      2
+    vstelm.d      vr4,     a6,       0,    0
+
+    alsl.d        a2,      a4,       a2,   1
+    alsl.d        a3,      a4,       a3,   1
+    alsl.d        a0,      a1,       a0,   1
+    addi.d        a6,      a6,       8
+    addi.w        a5,      a5,       -2
+    blt           zero,    a5,       .WMASK420_W16_LSX
+    b    .END_W420
+
+.WMASK420_W32_LSX:
+.WMASK420_W64_LSX:
+.WMASK420_W128_LSX:
+
+.LOOP_W32_420_LSX:
+    add.d         t1,       a2,       zero
+    add.d         t2,       a3,       zero
+    add.d         t3,       a0,       zero
+    add.d         t4,       a6,       zero
+    alsl.d        t5,       a4,       t1,     1
+    alsl.d        t6,       a4,       t2,     1
+    or            t7,       a4,       a4
+
+.W32_420_LSX:
+    vld           vr0,      t1,       0
+    vld           vr1,      t1,       16
+    vld           vr2,      t2,       0
+    vld           vr3,      t2,       16
+    vld           vr4,      t5,       0
+    vld           vr5,      t5,       16
+    vld           vr6,      t6,       0
+    vld           vr7,      t6,       16
+    addi.d        t1,       t1,       32
+    addi.d        t2,       t2,       32
+    addi.d        t5,       t5,       32
+    addi.d        t6,       t6,       32
+    addi.w        t7,       t7,       -16
+    vabsd.h       vr8,      vr0,      vr2
+    vabsd.h       vr9,      vr1,      vr3
+    vabsd.h       vr10,     vr4,      vr6
+    vabsd.h       vr11,     vr5,      vr7
+    vaddi.hu      vr8,      vr8,      8
+    vaddi.hu      vr9,      vr9,      8
+    vaddi.hu      vr10,     vr10,     8
+    vaddi.hu      vr11,     vr11,     8
+    vsrli.h       vr8,      vr8,      8
+    vsrli.h       vr9,      vr9,      8
+    vsrli.h       vr10,     vr10,     8
+    vsrli.h       vr11,     vr11,     8
+    vadd.h        vr8,      vr8,      vr22
+    vadd.h        vr9,      vr9,      vr22
+    vadd.h        vr10,     vr10,     vr22
+    vadd.h        vr11,     vr11,     vr22
+    vmin.hu       vr12,     vr8,      vr20
+    vmin.hu       vr13,     vr9,      vr20
+    vmin.hu       vr14,     vr10,     vr20
+    vmin.hu       vr15,     vr11,     vr20
+    vsub.h        vr16,     vr20,     vr12
+    vsub.h        vr17,     vr20,     vr13
+    vsub.h        vr18,     vr20,     vr14
+    vsub.h        vr19,     vr20,     vr15
+    vmulwev.w.h   vr8,      vr12,     vr0
+    vmulwod.w.h   vr9,      vr12,     vr0
+    vmulwev.w.h   vr10,     vr13,     vr1
+    vmulwod.w.h   vr11,     vr13,     vr1
+    vmulwev.w.h   vr23,     vr14,     vr4
+    vmulwod.w.h   vr24,     vr14,     vr4
+    vmulwev.w.h   vr25,     vr15,     vr5
+    vmulwod.w.h   vr26,     vr15,     vr5
+    vmaddwev.w.h  vr8,      vr16,     vr2
+    vmaddwod.w.h  vr9,      vr16,     vr2
+    vmaddwev.w.h  vr10,     vr17,     vr3
+    vmaddwod.w.h  vr11,     vr17,     vr3
+    vmaddwev.w.h  vr23,     vr18,     vr6
+    vmaddwod.w.h  vr24,     vr18,     vr6
+    vmaddwev.w.h  vr25,     vr19,     vr7
+    vmaddwod.w.h  vr26,     vr19,     vr7
+    vssrarni.hu.w vr10,     vr8,      10
+    vssrarni.hu.w vr11,     vr9,      10
+    vssrarni.hu.w vr25,     vr23,     10
+    vssrarni.hu.w vr26,     vr24,     10
+    vssrlni.bu.h  vr11,     vr10,     0
+    vssrlni.bu.h  vr26,     vr25,     0
+    vshuf4i.w     vr8,      vr11,     0x4E
+    vshuf4i.w     vr9,      vr26,     0x4E
+    vilvl.b       vr3,      vr8,      vr11
+    vilvl.b       vr7,      vr9,      vr26
+    vst           vr3,      t3,       0
+    vstx          vr7,      a1,       t3
+    addi.d        t3,       t3,       16
+    vpickev.h     vr8,      vr13,     vr12
+    vpickod.h     vr9,      vr13,     vr12
+    vpickev.h     vr10,     vr15,     vr14
+    vpickod.h     vr11,     vr15,     vr14
+    vadd.h        vr8,      vr8,      vr9
+    vadd.h        vr10,     vr10,     vr11
+    vadd.h        vr12,     vr8,      vr10
+    vsub.h        vr12,     vr12,     vr21
+    vssrarni.bu.h vr12,     vr12,     2
+    vstelm.d      vr12,     t4,       0,     0
+    addi.d        t4,       t4,       8
+    bne           t7,       zero,     .W32_420_LSX
+
+    alsl.d        a2,       a4,       a2,     2
+    alsl.d        a3,       a4,       a3,     2
+    alsl.d        a0,       a1,       a0,     1
+    srai.w        t8,       a4,       1
+    add.d         a6,       a6,       t8
+    addi.w        a5,       a5,       -2
+    blt           zero,     a5,       .LOOP_W32_420_LSX
+
+.END_W420:
+    fld.d            f24,     sp,    0
+    fld.d            f25,     sp,    8
+    fld.d            f26,     sp,    16
+    addi.d           sp,      sp,    24
+endfunc
+
+function w_mask_420_8bpc_lasx
+    xvldi          xr20,    0x440
+    xvreplgr2vr.h  xr21,    a7
+    xvldi          xr22,    0x426
+
+    clz.w          t0,      a4
+    li.w           t1,      24
+    sub.w          t0,      t0,      t1
+    la.local       t1,      .WMASK420_LASX_JRTABLE
+    alsl.d         t0,      t0,      t1,    1
+    ld.h           t8,      t0,      0
+    add.d          t1,      t1,      t8
+    jirl           $r0,     t1,      0
+
+    .align   3
+.WMASK420_LASX_JRTABLE:
+    .hword .WMASK420_W128_LASX - .WMASK420_LASX_JRTABLE
+    .hword .WMASK420_W64_LASX  - .WMASK420_LASX_JRTABLE
+    .hword .WMASK420_W32_LASX  - .WMASK420_LASX_JRTABLE
+    .hword .WMASK420_W16_LASX  - .WMASK420_LASX_JRTABLE
+    .hword .WMASK420_W8_LASX   - .WMASK420_LASX_JRTABLE
+    .hword .WMASK420_W4_LASX   - .WMASK420_LASX_JRTABLE
+
+.WMASK420_W4_LASX:
+    xvld           xr0,     a2,     0
+    xvld           xr1,     a3,     0
+    addi.w         a5,      a5,     -4
+
+    xvabsd.h       xr2,     xr0,    xr1
+    xvaddi.hu      xr2,     xr2,    8
+    xvsrli.h       xr2,     xr2,    8
+    xvadd.h        xr2,     xr2,    xr22
+    xvmin.hu       xr3,     xr2,    xr20
+    xvsub.h        xr4,     xr20,   xr3
+    xvmulwev.w.h   xr5,     xr3,    xr0
+    xvmulwod.w.h   xr6,     xr3,    xr0
+    xvmaddwev.w.h  xr5,     xr4,    xr1
+    xvmaddwod.w.h  xr6,     xr4,    xr1
+    xvilvl.w       xr7,     xr6,    xr5
+    xvilvh.w       xr8,     xr6,    xr5
+    xvssrarni.hu.w xr8,     xr7,    10
+    xvssrlni.bu.h  xr9,     xr8,    0
+    vstelm.w       vr9,     a0,     0,     0
+    add.d          a0,      a0,     a1
+    vstelm.w       vr9,     a0,     0,     1
+    add.d          a0,      a0,     a1
+    xvstelm.w      xr9,     a0,     0,     4
+    add.d          a0,      a0,     a1
+    xvstelm.w      xr9,     a0,     0,     5
+    add.d          a0,      a0,     a1
+
+    xvhaddw.w.h    xr3,     xr3,    xr3
+    xvpermi.d      xr4,     xr3,    0xb1
+    xvadd.h        xr3,     xr3,    xr4
+    xvpickev.h     xr3,     xr3,    xr3
+    xvsub.h        xr3,     xr3,    xr21
+    xvssrarni.bu.h xr3,     xr3,    2
+    vstelm.h       vr3,     a6,     0,     0
+    xvstelm.h      xr3,     a6,     2,     8
+
+    addi.d         a2,     a2,      32
+    addi.d         a3,     a3,      32
+    addi.d         a6,     a6,      4
+    blt            zero,   a5,      .WMASK420_W4_LASX
+    b              .END_W420_LASX
+
+.WMASK420_W8_LASX:
+    xvld           xr0,      a2,     0
+    xvld           xr1,      a2,     32
+    xvld           xr2,      a3,     0
+    xvld           xr3,      a3,     32
+    addi.w         a5,       a5,     -4
+
+    xvabsd.h       xr4,      xr0,    xr2
+    xvabsd.h       xr5,      xr1,    xr3
+    xvaddi.hu      xr4,      xr4,    8
+    xvaddi.hu      xr5,      xr5,    8
+    xvsrli.h       xr4,      xr4,    8
+    xvsrli.h       xr5,      xr5,    8
+    xvadd.h        xr4,      xr4,    xr22
+    xvadd.h        xr5,      xr5,    xr22
+    xvmin.hu       xr6,      xr4,    xr20
+    xvmin.hu       xr7,      xr5,    xr20
+    xvsub.h        xr8,      xr20,   xr6
+    xvsub.h        xr9,      xr20,   xr7
+    xvmulwev.w.h   xr10,     xr6,    xr0
+    xvmulwod.w.h   xr11,     xr6,    xr0
+    xvmulwev.w.h   xr12,     xr7,    xr1
+    xvmulwod.w.h   xr13,     xr7,    xr1
+    xvmaddwev.w.h  xr10,     xr8,    xr2
+    xvmaddwod.w.h  xr11,     xr8,    xr2
+    xvmaddwev.w.h  xr12,     xr9,    xr3
+    xvmaddwod.w.h  xr13,     xr9,    xr3
+    xvssrarni.hu.w xr12,     xr10,   10
+    xvssrarni.hu.w xr13,     xr11,   10
+    xvssrlni.bu.h  xr13,     xr12,   0
+    xvshuf4i.w     xr1,      xr13,   0x4E
+    xvilvl.b       xr17,     xr1,    xr13
+    vstelm.d       vr17,     a0,     0,     0
+    add.d          a0,       a0,     a1
+    xvstelm.d      xr17,     a0,     0,     2
+    add.d          a0,       a0,     a1
+    xvstelm.d      xr17,     a0,     0,     1
+    add.d          a0,       a0,     a1
+    xvstelm.d      xr17,     a0,     0,     3
+    add.d          a0,       a0,     a1
+
+    xvhaddw.w.h    xr6,      xr6,    xr6
+    xvhaddw.w.h    xr7,      xr7,    xr7
+    xvpickev.h     xr8,      xr7,    xr6
+    xvpermi.q      xr9,      xr8,    0x01
+    vadd.h         vr8,      vr8,    vr9
+    vsub.h         vr8,      vr8,    vr21
+    vssrarni.bu.h  vr8,      vr8,    2
+    vstelm.d       vr8,      a6,     0,    0
+    addi.d         a2,       a2,     64
+    addi.d         a3,       a3,     64
+    addi.d         a6,       a6,     8
+    blt            zero,     a5,     .WMASK420_W8_LASX
+    b              .END_W420_LASX
+
+.WMASK420_W16_LASX:
+    xvld           xr0,      a2,     0
+    xvld           xr1,      a2,     32
+    xvld           xr2,      a3,     0
+    xvld           xr3,      a3,     32
+    addi.w         a5,       a5,     -2
+
+    xvabsd.h       xr4,      xr0,    xr2
+    xvabsd.h       xr5,      xr1,    xr3
+    xvaddi.hu      xr4,      xr4,    8
+    xvaddi.hu      xr5,      xr5,    8
+    xvsrli.h       xr4,      xr4,    8
+    xvsrli.h       xr5,      xr5,    8
+    xvadd.h        xr4,      xr4,    xr22
+    xvadd.h        xr5,      xr5,    xr22
+    xvmin.hu       xr4,      xr4,    xr20
+    xvmin.hu       xr5,      xr5,    xr20
+    xvsub.h        xr6,      xr20,   xr4
+    xvsub.h        xr7,      xr20,   xr5
+    xvmulwev.w.h   xr8,      xr4,    xr0
+    xvmulwod.w.h   xr9,      xr4,    xr0
+    xvmulwev.w.h   xr10,     xr5,    xr1
+    xvmulwod.w.h   xr11,     xr5,    xr1
+    xvmaddwev.w.h  xr8,      xr6,    xr2
+    xvmaddwod.w.h  xr9,      xr6,    xr2
+    xvmaddwev.w.h  xr10,     xr7,    xr3
+    xvmaddwod.w.h  xr11,     xr7,    xr3
+    xvssrarni.hu.w xr10,     xr8,    10
+    xvssrarni.hu.w xr11,     xr9,    10
+    xvssrlni.bu.h  xr11,     xr10,   0
+    xvshuf4i.w     xr8,      xr11,   0x4E
+    xvilvl.b       xr15,     xr8,    xr11
+    xvpermi.d      xr16,     xr15,   0xd8
+    vst            vr16,     a0,     0
+    add.d          a0,       a0,     a1
+    xvpermi.q      xr16,     xr16,   0x01
+    vst            vr16,     a0,     0
+    add.d          a0,       a0,     a1
+
+    xvhaddw.w.h    xr4,      xr4,    xr4
+    xvhaddw.w.h    xr5,      xr5,    xr5
+    xvadd.h        xr4,      xr5,    xr4
+    xvpickev.h     xr6,      xr4,    xr4
+    xvpermi.d      xr7,      xr6,    0x08
+    vsub.h         vr7,      vr7,    vr21
+    vssrarni.bu.h  vr7,      vr7,    2
+    vstelm.d       vr7,      a6,     0,    0
+
+    addi.d         a2,       a2,     64
+    addi.d         a3,       a3,     64
+    addi.d         a6,       a6,     8
+    blt            zero,     a5,     .WMASK420_W16_LASX
+    b              .END_W420_LASX
+
+.WMASK420_W32_LASX:
+.WMASK420_W64_LASX:
+.WMASK420_W128_LASX:
+
+.LOOP_W32_420_LASX:
+    add.d          t1,       a2,       zero
+    add.d          t2,       a3,       zero
+    add.d          t3,       a0,       zero
+    add.d          t4,       a6,       zero
+    alsl.d         t5,       a4,       t1,     1
+    alsl.d         t6,       a4,       t2,     1
+    or             t7,       a4,       a4
+.W32_420_LASX:
+    xvld           xr0,      t1,       0
+    xvld           xr1,      t2,       0
+    xvld           xr2,      t5,       0
+    xvld           xr3,      t6,       0
+    addi.d         t1,       t1,       32
+    addi.d         t2,       t2,       32
+    addi.d         t5,       t5,       32
+    addi.d         t6,       t6,       32
+    addi.w         t7,       t7,       -16
+    xvabsd.h       xr4,      xr0,      xr1
+    xvabsd.h       xr5,      xr2,      xr3
+    xvaddi.hu      xr4,      xr4,      8
+    xvaddi.hu      xr5,      xr5,      8
+    xvsrli.h       xr4,      xr4,      8
+    xvsrli.h       xr5,      xr5,      8
+    xvadd.h        xr4,      xr4,      xr22
+    xvadd.h        xr5,      xr5,      xr22
+    xvmin.hu       xr6,      xr4,      xr20
+    xvmin.hu       xr7,      xr5,      xr20
+    xvsub.h        xr8,      xr20,     xr6
+    xvsub.h        xr9,      xr20,     xr7
+    xvmulwev.w.h   xr10,     xr6,      xr0
+    xvmulwod.w.h   xr11,     xr6,      xr0
+    xvmulwev.w.h   xr12,     xr7,      xr2
+    xvmulwod.w.h   xr13,     xr7,      xr2
+    xvmaddwev.w.h  xr10,     xr8,      xr1
+    xvmaddwod.w.h  xr11,     xr8,      xr1
+    xvmaddwev.w.h  xr12,     xr9,      xr3
+    xvmaddwod.w.h  xr13,     xr9,      xr3
+    xvssrarni.hu.w xr12,     xr10,     10
+    xvssrarni.hu.w xr13,     xr11,     10
+    xvssrlni.bu.h  xr13,     xr12,     0
+    xvshuf4i.w     xr10,     xr13,     0x4E
+    xvilvl.b       xr17,     xr10,     xr13
+    xvpermi.d      xr18,     xr17,     0x08
+    xvpermi.d      xr19,     xr17,     0x0d
+    vst            vr18,     t3,       0
+    vstx           vr19,     t3,       a1
+    addi.d         t3,       t3,       16
+
+    xvhaddw.w.h    xr6,      xr6,      xr6
+    xvhaddw.w.h    xr7,      xr7,      xr7
+    xvadd.h        xr6,      xr7,      xr6
+    xvpickev.h     xr7,      xr6,      xr6
+    xvpermi.d      xr8,      xr7,      0x08
+    vsub.h         vr9,      vr8,      vr21
+    vssrarni.bu.h  vr9,      vr9,      2
+    vstelm.d       vr9,      t4,       0,      0
+    addi.d         t4,       t4,       8
+    bne            t7,       zero,     .W32_420_LASX
+
+    alsl.d         a2,       a4,       a2,     2
+    alsl.d         a3,       a4,       a3,     2
+    alsl.d         a0,       a1,       a0,     1
+    srai.w         t8,       a4,       1
+    add.d          a6,       a6,       t8
+    addi.w         a5,       a5,       -2
+    blt            zero,     a5,       .LOOP_W32_420_LASX
+
+.END_W420_LASX:
+endfunc
