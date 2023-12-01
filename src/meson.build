@@ -240,9 +240,14 @@ if is_asm_enabled
             'loongarch/cpu.c',
         )
 
+        libdav1d_arch_tmpl_sources += files(
+            'loongarch/looprestoration_tmpl.c',
+        )
+
         libdav1d_sources_asm = files(
             'loongarch/mc.S',
             'loongarch/loopfilter.S',
+            'loongarch/looprestoration.S',
         )
         libdav1d_asm_objs += libdav1d_sources_asm
     endif
