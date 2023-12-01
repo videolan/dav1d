@@ -61,6 +61,16 @@ decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lasx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lasx));
 decl_w_mask_fn(BF(dav1d_w_mask_420, lasx));
 
+decl_mct_fn(BF(dav1d_prep_8tap_regular,        lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_regular_smooth, lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_regular_sharp,  lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_smooth,         lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_smooth_regular, lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_smooth_sharp,   lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_sharp,          lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_sharp_regular,  lasx));
+decl_mct_fn(BF(dav1d_prep_8tap_sharp_smooth,   lasx));
+
 static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
 #if BITDEPTH == 8
     const unsigned flags = dav1d_get_cpu_flags();
@@ -93,6 +103,15 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, lasx);
     c->w_mask[2] = BF(dav1d_w_mask_420, lasx);
 
+    init_mct_fn(FILTER_2D_8TAP_REGULAR,        8tap_regular,        lasx);
+    init_mct_fn(FILTER_2D_8TAP_REGULAR_SMOOTH, 8tap_regular_smooth, lasx);
+    init_mct_fn(FILTER_2D_8TAP_REGULAR_SHARP,  8tap_regular_sharp,  lasx);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH_REGULAR, 8tap_smooth_regular, lasx);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH,         8tap_smooth,         lasx);
+    init_mct_fn(FILTER_2D_8TAP_SMOOTH_SHARP,   8tap_smooth_sharp,   lasx);
+    init_mct_fn(FILTER_2D_8TAP_SHARP_REGULAR,  8tap_sharp_regular,  lasx);
+    init_mct_fn(FILTER_2D_8TAP_SHARP_SMOOTH,   8tap_sharp_smooth,   lasx);
+    init_mct_fn(FILTER_2D_8TAP_SHARP,          8tap_sharp,          lasx);
 #endif
 }
 
