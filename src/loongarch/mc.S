@@ -929,3 +929,376 @@ endfunc
 
 warp_lasx , 11
 warp_lasx t, 7
+
+/*
+static void w_avg_c(pixel *dst, const ptrdiff_t dst_stride,
+                    const int16_t *tmp1, const int16_t *tmp2,
+                    const int w, int h,
+                    const int weight HIGHBD_DECL_SUFFIX)
+*/
+
+#define bpc8_sh     5     // sh = intermediate_bits + 1
+#define bpcw8_sh    8     // sh = intermediate_bits + 4
+
+#define bpc_sh   bpc8_sh
+#define bpcw_sh  bpcw8_sh
+
+function w_avg_8bpc_lsx
+    addi.d        t8,     a0,     0
+    li.w          t2,     16
+    sub.w         t2,     t2,     a6  // 16 - weight
+    vreplgr2vr.h  vr21,   a6
+    vreplgr2vr.h  vr22,   t2
+
+    clz.w         t0,     a4
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .W_AVG_LSX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0
+    add.d         t1,     t1,      t2
+    jirl          $r0,    t1,      0
+
+    .align   3
+.W_AVG_LSX_JRTABLE:
+    .hword .W_AVG_W128_LSX - .W_AVG_LSX_JRTABLE
+    .hword .W_AVG_W64_LSX  - .W_AVG_LSX_JRTABLE
+    .hword .W_AVG_W32_LSX  - .W_AVG_LSX_JRTABLE
+    .hword .W_AVG_W16_LSX  - .W_AVG_LSX_JRTABLE
+    .hword .W_AVG_W8_LSX   - .W_AVG_LSX_JRTABLE
+    .hword .W_AVG_W4_LSX   - .W_AVG_LSX_JRTABLE
+
+.W_AVG_W4_LSX:
+    vld           vr0,    a2,     0
+    vld           vr1,    a3,     0
+    vmulwev.w.h   vr2,    vr0,    vr21
+    vmulwod.w.h   vr3,    vr0,    vr21
+    vmaddwev.w.h  vr2,    vr1,    vr22
+    vmaddwod.w.h  vr3,    vr1,    vr22
+    vssrarni.hu.w vr3,    vr2,    bpcw_sh
+    vssrlni.bu.h  vr1,    vr3,    0
+    vpickod.w     vr4,    vr2,    vr1
+    vilvl.b       vr0,    vr4,    vr1
+    fst.s         f0,     a0,     0
+    add.d         a0,     a0,     a1
+    vstelm.w      vr0,    a0,     0,   1
+    addi.w        a5,     a5,     -2
+    addi.d        a2,     a2,     16
+    addi.d        a3,     a3,     16
+    add.d         a0,     a1,     a0
+    blt           zero,   a5,     .W_AVG_W4_LSX
+    b             .W_AVG_END_LSX
+.W_AVG_W8_LSX:
+    vld           vr0,    a2,     0
+    vld           vr1,    a3,     0
+    vmulwev.w.h   vr2,    vr0,    vr21
+    vmulwod.w.h   vr3,    vr0,    vr21
+    vmaddwev.w.h  vr2,    vr1,    vr22
+    vmaddwod.w.h  vr3,    vr1,    vr22
+    vssrarni.hu.w vr3,    vr2,    bpcw_sh
+    vssrlni.bu.h  vr1,    vr3,    0
+    vpickod.w     vr4,    vr2,    vr1
+    vilvl.b       vr0,    vr4,    vr1
+    fst.d         f0,     a0,     0
+    addi.w        a5,     a5,     -1
+    addi.d        a2,     a2,     16
+    addi.d        a3,     a3,     16
+    add.d         a0,     a0,     a1
+    blt           zero,   a5,     .W_AVG_W8_LSX
+    b             .W_AVG_END_LSX
+.W_AVG_W16_LSX:
+    vld           vr0,    a2,     0
+    vld           vr2,    a2,     16
+    vld           vr1,    a3,     0
+    vld           vr3,    a3,     16
+    vmulwev.w.h   vr4,    vr0,    vr21
+    vmulwod.w.h   vr5,    vr0,    vr21
+    vmulwev.w.h   vr6,    vr2,    vr21
+    vmulwod.w.h   vr7,    vr2,    vr21
+    vmaddwev.w.h  vr4,    vr1,    vr22
+    vmaddwod.w.h  vr5,    vr1,    vr22
+    vmaddwev.w.h  vr6,    vr3,    vr22
+    vmaddwod.w.h  vr7,    vr3,    vr22
+    vssrarni.hu.w vr6,    vr4,    bpcw_sh
+    vssrarni.hu.w vr7,    vr5,    bpcw_sh
+    vssrlrni.bu.h vr7,    vr6,    0
+    vshuf4i.w     vr8,    vr7,    0x4E
+    vilvl.b       vr0,    vr8,    vr7
+    vst           vr0,    a0,     0
+    addi.w        a5,     a5,     -1
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    add.d         a0,     a0,     a1
+    blt           zero,   a5,     .W_AVG_W16_LSX
+    b             .W_AVG_END_LSX
+.W_AVG_W32_LSX:
+.rept 2
+    vld           vr0,    a2,     0
+    vld           vr2,    a2,     16
+    vld           vr1,    a3,     0
+    vld           vr3,    a3,     16
+    vmulwev.w.h   vr4,    vr0,    vr21
+    vmulwod.w.h   vr5,    vr0,    vr21
+    vmulwev.w.h   vr6,    vr2,    vr21
+    vmulwod.w.h   vr7,    vr2,    vr21
+    vmaddwev.w.h  vr4,    vr1,    vr22
+    vmaddwod.w.h  vr5,    vr1,    vr22
+    vmaddwev.w.h  vr6,    vr3,    vr22
+    vmaddwod.w.h  vr7,    vr3,    vr22
+    vssrarni.hu.w vr6,    vr4,    bpcw_sh
+    vssrarni.hu.w vr7,    vr5,    bpcw_sh
+    vssrlrni.bu.h vr7,    vr6,    0
+    vshuf4i.w     vr8,    vr7,    0x4E
+    vilvl.b       vr0,    vr8,    vr7
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a0,     a0,     16
+.endr
+    addi.w        a5,     a5,     -1
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    blt           zero,   a5,     .W_AVG_W32_LSX
+    b             .W_AVG_END_LSX
+
+.W_AVG_W64_LSX:
+.rept 4
+    vld           vr0,    a2,     0
+    vld           vr2,    a2,     16
+    vld           vr1,    a3,     0
+    vld           vr3,    a3,     16
+    vmulwev.w.h   vr4,    vr0,    vr21
+    vmulwod.w.h   vr5,    vr0,    vr21
+    vmulwev.w.h   vr6,    vr2,    vr21
+    vmulwod.w.h   vr7,    vr2,    vr21
+    vmaddwev.w.h  vr4,    vr1,    vr22
+    vmaddwod.w.h  vr5,    vr1,    vr22
+    vmaddwev.w.h  vr6,    vr3,    vr22
+    vmaddwod.w.h  vr7,    vr3,    vr22
+    vssrarni.hu.w vr6,    vr4,    bpcw_sh
+    vssrarni.hu.w vr7,    vr5,    bpcw_sh
+    vssrlrni.bu.h vr7,    vr6,    0
+    vshuf4i.w     vr8,    vr7,    0x4E
+    vilvl.b       vr0,    vr8,    vr7
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a0,     a0,     16
+.endr
+    addi.w        a5,     a5,     -1
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    blt           zero,   a5,     .W_AVG_W64_LSX
+    b             .W_AVG_END_LSX
+
+.W_AVG_W128_LSX:
+.rept 8
+    vld           vr0,    a2,     0
+    vld           vr2,    a2,     16
+    vld           vr1,    a3,     0
+    vld           vr3,    a3,     16
+    vmulwev.w.h   vr4,    vr0,    vr21
+    vmulwod.w.h   vr5,    vr0,    vr21
+    vmulwev.w.h   vr6,    vr2,    vr21
+    vmulwod.w.h   vr7,    vr2,    vr21
+    vmaddwev.w.h  vr4,    vr1,    vr22
+    vmaddwod.w.h  vr5,    vr1,    vr22
+    vmaddwev.w.h  vr6,    vr3,    vr22
+    vmaddwod.w.h  vr7,    vr3,    vr22
+    vssrarni.hu.w vr6,    vr4,    bpcw_sh
+    vssrarni.hu.w vr7,    vr5,    bpcw_sh
+    vssrlrni.bu.h vr7,    vr6,    0
+    vshuf4i.w     vr8,    vr7,    0x4E
+    vilvl.b       vr0,    vr8,    vr7
+    vst           vr0,    a0,     0
+    addi.d        a2,     a2,     32
+    addi.d        a3,     a3,     32
+    addi.d        a0,     a0,     16
+.endr
+    addi.w        a5,     a5,     -1
+    add.d         t8,     t8,     a1
+    add.d         a0,     t8,     zero
+    blt           zero,   a5,     .W_AVG_W128_LSX
+.W_AVG_END_LSX:
+endfunc
+
+function w_avg_8bpc_lasx
+    addi.d        t8,     a0,     0
+    li.w          t2,     16
+    sub.w         t2,     t2,     a6  // 16 - weight
+    xvreplgr2vr.h xr21,   a6
+    xvreplgr2vr.h xr22,   t2
+
+    clz.w         t0,     a4
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .W_AVG_LASX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0
+    add.d         t1,     t1,      t2
+    jirl          $r0,    t1,      0
+
+    .align   3
+.W_AVG_LASX_JRTABLE:
+    .hword .W_AVG_W128_LASX - .W_AVG_LASX_JRTABLE
+    .hword .W_AVG_W64_LASX  - .W_AVG_LASX_JRTABLE
+    .hword .W_AVG_W32_LASX  - .W_AVG_LASX_JRTABLE
+    .hword .W_AVG_W16_LASX  - .W_AVG_LASX_JRTABLE
+    .hword .W_AVG_W8_LASX   - .W_AVG_LASX_JRTABLE
+    .hword .W_AVG_W4_LASX   - .W_AVG_LASX_JRTABLE
+
+.W_AVG_W4_LASX:
+    vld            vr0,    a2,     0
+    vld            vr1,    a3,     0
+    xvpermi.d      xr2,    xr0,    0xD8
+    xvpermi.d      xr3,    xr1,    0xD8
+    xvilvl.h       xr4,    xr3,    xr2
+    xvmulwev.w.h   xr0,    xr4,    xr21
+    xvmaddwod.w.h  xr0,    xr4,    xr22
+    xvssrarni.hu.w xr1,    xr0,    bpcw_sh
+    xvssrlni.bu.h  xr0,    xr1,    0
+    fst.s          f0,     a0,     0
+    add.d          a0,     a0,     a1
+    xvstelm.w      xr0,    a0,     0,     4
+    addi.w         a5,     a5,     -2
+    addi.d         a2,     a2,     16
+    addi.d         a3,     a3,     16
+    add.d          a0,     a1,     a0
+    blt            zero,   a5,     .W_AVG_W4_LASX
+    b              .W_AVG_END_LASX
+
+.W_AVG_W8_LASX:
+    xvld           xr0,    a2,     0
+    xvld           xr1,    a3,     0
+    xvmulwev.w.h   xr2,    xr0,    xr21
+    xvmulwod.w.h   xr3,    xr0,    xr21
+    xvmaddwev.w.h  xr2,    xr1,    xr22
+    xvmaddwod.w.h  xr3,    xr1,    xr22
+    xvssrarni.hu.w xr3,    xr2,    bpcw_sh
+    xvssrlni.bu.h  xr1,    xr3,    0
+    xvpickod.w     xr4,    xr2,    xr1
+    xvilvl.b       xr0,    xr4,    xr1
+    xvstelm.d      xr0,    a0,     0,     0
+    add.d          a0,     a0,     a1
+    xvstelm.d      xr0,    a0,     0,     2
+    addi.w         a5,     a5,     -2
+    addi.d         a2,     a2,     32
+    addi.d         a3,     a3,     32
+    add.d          a0,     a0,     a1
+    blt            zero,   a5,     .W_AVG_W8_LASX
+    b              .W_AVG_END_LASX
+
+.W_AVG_W16_LASX:
+    xvld           xr0,    a2,     0
+    xvld           xr1,    a3,     0
+    xvmulwev.w.h   xr2,    xr0,    xr21
+    xvmulwod.w.h   xr3,    xr0,    xr21
+    xvmaddwev.w.h  xr2,    xr1,    xr22
+    xvmaddwod.w.h  xr3,    xr1,    xr22
+    xvssrarni.hu.w xr3,    xr2,    bpcw_sh
+    xvssrlni.bu.h  xr1,    xr3,    0
+    xvpickod.w     xr4,    xr2,    xr1
+    xvilvl.b       xr0,    xr4,    xr1
+    xvpermi.d      xr1,    xr0,    0xD8
+    vst            vr1,    a0,     0
+    addi.w         a5,     a5,     -1
+    addi.d         a2,     a2,     32
+    addi.d         a3,     a3,     32
+    add.d          a0,     a0,     a1
+    blt            zero,   a5,     .W_AVG_W16_LASX
+    b              .W_AVG_END_LSX
+
+.W_AVG_W32_LASX:
+    xvld           xr0,    a2,     0
+    xvld           xr2,    a2,     32
+    xvld           xr1,    a3,     0
+    xvld           xr3,    a3,     32
+    xvmulwev.w.h   xr4,    xr0,    xr21
+    xvmulwod.w.h   xr5,    xr0,    xr21
+    xvmulwev.w.h   xr6,    xr2,    xr21
+    xvmulwod.w.h   xr7,    xr2,    xr21
+    xvmaddwev.w.h  xr4,    xr1,    xr22
+    xvmaddwod.w.h  xr5,    xr1,    xr22
+    xvmaddwev.w.h  xr6,    xr3,    xr22
+    xvmaddwod.w.h  xr7,    xr3,    xr22
+    xvssrarni.hu.w xr6,    xr4,    bpcw_sh
+    xvssrarni.hu.w xr7,    xr5,    bpcw_sh
+    xvssrlni.bu.h  xr7,    xr6,    0
+    xvshuf4i.w     xr8,    xr7,    0x4E
+    xvilvl.b       xr9,    xr8,    xr7
+    xvpermi.d      xr0,    xr9,    0xD8
+    xvst           xr0,    a0,     0
+    addi.w         a5,     a5,     -1
+    addi.d         a2,     a2,     64
+    addi.d         a3,     a3,     64
+    add.d          a0,     a0,     a1
+    blt            zero,   a5,     .W_AVG_W32_LASX
+    b              .W_AVG_END_LASX
+
+.W_AVG_W64_LASX:
+.rept 2
+    xvld           xr0,    a2,     0
+    xvld           xr2,    a2,     32
+    xvld           xr1,    a3,     0
+    xvld           xr3,    a3,     32
+    xvmulwev.w.h   xr4,    xr0,    xr21
+    xvmulwod.w.h   xr5,    xr0,    xr21
+    xvmulwev.w.h   xr6,    xr2,    xr21
+    xvmulwod.w.h   xr7,    xr2,    xr21
+    xvmaddwev.w.h  xr4,    xr1,    xr22
+    xvmaddwod.w.h  xr5,    xr1,    xr22
+    xvmaddwev.w.h  xr6,    xr3,    xr22
+    xvmaddwod.w.h  xr7,    xr3,    xr22
+    xvssrarni.hu.w xr6,    xr4,    bpcw_sh
+    xvssrarni.hu.w xr7,    xr5,    bpcw_sh
+    xvssrlni.bu.h  xr7,    xr6,    0
+    xvshuf4i.w     xr8,    xr7,    0x4E
+    xvilvl.b       xr9,    xr8,    xr7
+    xvpermi.d      xr0,    xr9,    0xD8
+    xvst           xr0,    a0,     0
+    addi.d         a2,     a2,     64
+    addi.d         a3,     a3,     64
+    addi.d         a0,     a0,     32
+.endr
+    addi.w         a5,     a5,     -1
+    add.d          t8,     t8,     a1
+    add.d          a0,     t8,     zero
+    blt            zero,   a5,     .W_AVG_W64_LASX
+    b              .W_AVG_END_LASX
+
+.W_AVG_W128_LASX:
+.rept 4
+    xvld           xr0,    a2,     0
+    xvld           xr2,    a2,     32
+    xvld           xr1,    a3,     0
+    xvld           xr3,    a3,     32
+    xvmulwev.w.h   xr4,    xr0,    xr21
+    xvmulwod.w.h   xr5,    xr0,    xr21
+    xvmulwev.w.h   xr6,    xr2,    xr21
+    xvmulwod.w.h   xr7,    xr2,    xr21
+    xvmaddwev.w.h  xr4,    xr1,    xr22
+    xvmaddwod.w.h  xr5,    xr1,    xr22
+    xvmaddwev.w.h  xr6,    xr3,    xr22
+    xvmaddwod.w.h  xr7,    xr3,    xr22
+    xvssrarni.hu.w xr6,    xr4,    bpcw_sh
+    xvssrarni.hu.w xr7,    xr5,    bpcw_sh
+    xvssrlni.bu.h  xr7,    xr6,    0
+    xvshuf4i.w     xr8,    xr7,    0x4E
+    xvilvl.b       xr9,    xr8,    xr7
+    xvpermi.d      xr0,    xr9,    0xD8
+    xvst           xr0,    a0,     0
+    addi.d         a2,     a2,     64
+    addi.d         a3,     a3,     64
+    addi.d         a0,     a0,     32
+.endr
+
+    addi.w         a5,     a5,     -1
+    add.d          t8,     t8,     a1
+    add.d          a0,     t8,     zero
+    blt            zero,   a5,     .W_AVG_W128_LASX
+.W_AVG_END_LASX:
+endfunc
+
+#undef bpc_sh
+#undef bpcw_sh
+

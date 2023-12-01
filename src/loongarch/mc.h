@@ -32,9 +32,11 @@
 #include "src/mc.h"
 #include "src/cpu.h"
 
+decl_w_avg_fn(BF(dav1d_w_avg, lsx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lsx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lsx));
 
+decl_w_avg_fn(BF(dav1d_w_avg, lasx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lasx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lasx));
 
@@ -44,11 +46,13 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
 
     if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LSX)) return;
 
+    c->w_avg = BF(dav1d_w_avg, lsx);
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lsx);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, lsx);
 
     if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LASX)) return;
 
+    c->w_avg = BF(dav1d_w_avg, lasx);
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lasx);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, lasx);
 
