@@ -6049,3 +6049,445 @@ function inv_txfm_add_dct_flipadst_16x16_8bpc_lsx
     free_space 256+256
 
 endfunc
+
+function inv_txfm_add_dct_dct_8x32_8bpc_lsx
+    bnez          a3,       .NO_HAS_DCONLY_8x32
+
+    ld.h          t2,       a2,       0      // dc
+    vldi          vr0,      0x8b5            // 181
+    vreplgr2vr.w  vr1,      t2
+    vldi          vr5,      0x880            // 128
+    vmul.w        vr2,      vr0,      vr1    // dc * 181
+    st.h          zero,     a2,       0
+    vsrari.w      vr2,      vr2,      8      // (dc * 181 + 128) >> 8
+    vld           vr10,     a0,       0      // 0 1 2 3 4 5 6 7
+    vsrari.w      vr2,      vr2,      2      // (dc + rnd) >> shift
+    vldx          vr11,     a0,       a1     // 8 9 10 11 12 13 14 15
+    alsl.d        t2,       a1,       a0,    1
+    vmadd.w       vr5,      vr2,      vr0
+    vld           vr12,     t2,       0      // 16 17 18 19 20 21 22 23
+    vssrarni.h.w  vr5,      vr5,      12
+    vldx          vr13,     t2,       a1     // 24 25 26 27 28 29 30 31
+
+    DST_ADD_W8 vr10, vr11, vr12, vr13, vr5, vr5, vr5, vr5
+
+.rept 7
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr5, vr5, vr5, vr5
+.endr
+
+    b             .DCT_DCT_8X32_END
+
+.NO_HAS_DCONLY_8x32:
+    malloc_space 512
+
+    vld_x8 a2, 0, 64, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    la.local      t0,       idct_coeffs
+
+    dct_8x8_core_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                     vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, no_rect2
+
+.irp i, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+    vsrari.h      \i,       \i,       2
+.endr
+
+    LSX_TRANSPOSE8x8_H vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    vst_x8 sp, 64, 16, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vld_x8 a2, 16, 64, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    dct_8x8_core_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                     vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, no_rect2
+
+.irp i, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+    vsrari.h      \i,       \i,       2
+.endr
+
+    LSX_TRANSPOSE8x8_H vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    vst_x8 sp, 192, 16, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vld_x8 a2, 32, 64, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    la.local      t0,       idct_coeffs
+
+    dct_8x8_core_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                     vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, no_rect2
+
+.irp i, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+    vsrari.h      \i,       \i,       2
+.endr
+
+    LSX_TRANSPOSE8x8_H vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    vst_x8 sp, 320, 16, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vld_x8 a2, 48, 64, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    dct_8x8_core_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                     vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, no_rect2
+
+.irp i, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+    vsrari.h      \i,       \i,       2
+.endr
+
+    LSX_TRANSPOSE8x8_H vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    vst_x8 sp, 448, 16, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vreplgr2vr.h  vr31,     zero
+
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, \
+        240, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, \
+        464, 480, 496
+    vst           vr31,     a2,       \i
+.endr
+
+    addi.d       t2,   sp, 64
+    addi.d       t3,   sp, 64
+
+    vld_x16 t2, 0, 32, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+            vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    dct_8x16_core_lsx
+
+    vst_x16 t3, 0, 32, vr22, vr18, vr17, vr28, vr20, vr14, vr15, vr16, \
+            vr27, vr30, vr23, vr21, vr29, vr26, vr25, vr24
+
+    vld_x16 t2, 16, 32, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+            vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+
+    // vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+    // in1  in3  in5  in7  in9 in11 in13 in15
+    // vr19, vr24, vr25, vr26, vr27, vr28, vr29, vr30
+    // in17  in19  in21  in23  in25  in27  in29  in31
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       64           // 201
+    vldrepl.w     vr21,     t0,       68           // 4091
+
+    vmul_vmadd_w vr0, vr30, vr21, vr20, vr8, vr9
+    vssrarni.h.w  vr9,      vr8,      12           // t31a
+    vmul_vmsub_w vr0, vr30, vr20, vr21, vr11, vr10
+    vssrarni.h.w  vr10,     vr11,      12          // t16a
+
+    vldrepl.w     vr20,     t0,       72           // 3035
+    vldrepl.w     vr21,     t0,       76           // 2751
+    vmul_vmadd_w vr19, vr7, vr21, vr20, vr11, vr0
+    vssrarni.h.w  vr0,      vr11,      12          // t30a
+    vmul_vmsub_w vr19, vr7, vr20, vr21, vr11, vr30
+    vssrarni.h.w  vr30,     vr11,      12          // t17a
+
+    vldrepl.w     vr20,     t0,       80           // 1751
+    vldrepl.w     vr21,     t0,       84           // 3703
+    vmul_vmadd_w vr4, vr26, vr21, vr20, vr8, vr7
+    vssrarni.h.w  vr7,      vr8,      12           // t29a
+    vmul_vmsub_w vr4, vr26, vr20, vr21, vr8, vr19
+    vssrarni.h.w  vr19,     vr8,      12           // t18a
+
+    vldrepl.w     vr20,     t0,       88           // 3857
+    vldrepl.w     vr21,     t0,       92           // 1380
+    vmul_vmadd_w vr27, vr3, vr21, vr20, vr8, vr4
+    vssrarni.h.w  vr4,      vr8,      12           // t28a
+    vmul_vmsub_w vr27, vr3, vr20, vr21, vr8, vr26
+    vssrarni.h.w  vr26,     vr8,      12           // t19a
+
+    vldrepl.w     vr20,     t0,       96           // 995
+    vldrepl.w     vr21,     t0,       100          // 3973
+    vmul_vmadd_w vr2, vr28, vr21, vr20, vr8, vr3
+    vssrarni.h.w  vr3,      vr8,      12           // t27a
+    vmul_vmsub_w vr2, vr28, vr20, vr21, vr8, vr27
+    vssrarni.h.w  vr27,     vr8,      12           // t20a
+
+    vldrepl.w     vr20,     t0,       104          // 3513
+    vldrepl.w     vr21,     t0,       108          // 2106
+    vmul_vmadd_w vr25, vr5, vr21, vr20, vr8, vr2
+    vssrarni.h.w  vr2,      vr8,      12           // t26a
+    vmul_vmsub_w vr25, vr5, vr20, vr21, vr8, vr28
+    vssrarni.h.w  vr28,     vr8,      12           // t21a
+
+    vldrepl.w     vr20,     t0,       112          // 2440 -> 1220
+    vldrepl.w     vr21,     t0,       116          // 3290 -> 1645
+    vmul_vmadd_w vr6, vr24, vr21, vr20, vr8, vr5
+    vssrarni.h.w  vr5,      vr8,      12           // t25a
+    vmul_vmsub_w vr6, vr24, vr20, vr21, vr8, vr25
+    vssrarni.h.w  vr25,     vr8,      12           // t22a
+
+    vldrepl.w     vr20,     t0,       120          // 4052
+    vldrepl.w     vr21,     t0,       124          // 601
+    vmul_vmadd_w vr29, vr1, vr21, vr20, vr8, vr6
+    vssrarni.h.w  vr6,      vr8,      12           // t24a
+    vmul_vmsub_w vr29, vr1, vr20, vr21, vr8, vr24
+    vssrarni.h.w  vr24,     vr8,      12           // t23a
+
+    vsadd.h       vr1,      vr10,     vr30         // t16
+    vssub.h       vr29,     vr10,     vr30         // t17
+    vssub.h       vr8,      vr26,     vr19         // t18
+    vsadd.h       vr31,     vr26,     vr19         // t19
+    vsadd.h       vr10,     vr27,     vr28         // t20
+    vssub.h       vr30,     vr27,     vr28         // t21
+    vssub.h       vr19,     vr24,     vr25         // t22
+    vsadd.h       vr26,     vr24,     vr25         // t23
+    vsadd.h       vr27,     vr6,      vr5          // t24
+    vssub.h       vr28,     vr6,      vr5          // t25
+    vssub.h       vr24,     vr3,      vr2          // t26
+    vsadd.h       vr25,     vr3,      vr2          // t27
+    vsadd.h       vr5,      vr4,      vr7          // t28
+    vssub.h       vr6,      vr4,      vr7          // t29
+    vssub.h       vr2,      vr9,      vr0          // t30
+    vsadd.h       vr3,      vr9,      vr0          // t31
+
+    vldrepl.w     vr20,     t0,       16           // 799
+    vldrepl.w     vr21,     t0,       20           // 4017
+    vmul_vmadd_w vr2, vr29, vr21, vr20, vr4, vr7
+    vssrarni.h.w  vr7,      vr4,      12           // t30a
+    vmul_vmsub_w vr2, vr29, vr20, vr21, vr4, vr0
+    vssrarni.h.w  vr0,      vr4,      12           // t17a
+    vmul_vmadd_w vr6, vr8, vr21, vr20, vr4, vr9
+    vneg.w        vr4,      vr4
+    vneg.w        vr9,      vr9
+    vssrarni.h.w  vr9,      vr4,      12           // t18a
+    vmul_vmsub_w vr6, vr8, vr20, vr21, vr4, vr2
+    vssrarni.h.w  vr2,      vr4,      12           // t29a
+
+    vldrepl.w     vr20,     t0,       24           // 3406 -> 1703
+    vldrepl.w     vr21,     t0,       28           // 2276 -> 1138
+    vmul_vmadd_w vr24, vr30, vr21, vr20, vr4, vr29
+    vssrarni.h.w  vr29,     vr4,      12           // t26a
+    vmul_vmsub_w vr24, vr30, vr20, vr21, vr4, vr6
+    vssrarni.h.w  vr6,      vr4,      12           // t21a
+
+    vmul_vmadd_w vr28, vr19, vr21, vr20, vr4, vr8
+    vneg.w        vr4,      vr4
+    vneg.w        vr8,      vr8
+    vssrarni.h.w  vr8,      vr4,      12           // t22a
+    vmul_vmsub_w vr28, vr19, vr20, vr21, vr4, vr24
+    vssrarni.h.w  vr24,     vr4,      12           // t25a
+
+    vsadd.h       vr4,      vr1,      vr31         // t16a
+    vssub.h       vr30,     vr1,      vr31         // t19a
+    vsadd.h       vr19,     vr0,      vr9          // t17
+    vssub.h       vr28,     vr0,      vr9          // t18
+    vssub.h       vr1,      vr26,     vr10         // t20a
+    vsadd.h       vr31,     vr26,     vr10         // t23a
+    vssub.h       vr0,      vr8,      vr6          // t21
+    vsadd.h       vr9,      vr8,      vr6          // t22
+    vsadd.h       vr10,     vr27,     vr25         // t24a
+    vssub.h       vr26,     vr27,     vr25         // t27a
+    vsadd.h       vr6,      vr24,     vr29         // t25
+    vssub.h       vr8,      vr24,     vr29         // t26
+    vssub.h       vr25,     vr3,      vr5          // t28a
+    vsadd.h       vr27,     vr3,      vr5          // t31a
+    vssub.h       vr24,     vr7,      vr2          // t29
+    vsadd.h       vr29,     vr7,      vr2          // t30
+
+    vldrepl.w     vr20,     t0,       8            // 1567
+    vldrepl.w     vr21,     t0,       12           // 3784
+    vmul_vmadd_w vr24, vr28, vr21, vr20, vr3, vr5
+    vssrarni.h.w  vr5,      vr3,      12           // t29a
+    vmul_vmsub_w vr24, vr28, vr20, vr21, vr3, vr2
+    vssrarni.h.w  vr2,      vr3,      12           // 18a
+
+    vmul_vmadd_w vr25, vr30, vr21, vr20, vr3, vr7
+    vssrarni.h.w  vr7,      vr3,      12           // t28
+    vmul_vmsub_w vr25, vr30, vr20, vr21, vr3, vr24
+    vssrarni.h.w  vr24,     vr3,      12           // t19
+
+    vmul_vmadd_w vr26, vr1, vr21, vr20, vr3, vr28
+    vneg.w        vr3,      vr3
+    vneg.w        vr28,     vr28
+    vssrarni.h.w  vr28,     vr3,      12           // t20
+    vmul_vmsub_w vr26, vr1, vr20, vr21, vr3, vr25
+    vssrarni.h.w  vr25,     vr3,      12           // t27
+
+    vmul_vmadd_w vr8, vr0, vr21, vr20, vr3, vr30
+    vneg.w        vr3,      vr3
+    vneg.w        vr30,     vr30
+    vssrarni.h.w  vr30,     vr3,      12           // t21a
+    vmul_vmsub_w vr8, vr0, vr20, vr21, vr3, vr1
+    vssrarni.h.w  vr1,      vr3,      12           // t26a
+
+    vsadd.h       vr3,      vr4,      vr31         // t16
+    vssub.h       vr26,     vr4,      vr31         // t23
+    vsadd.h       vr0,      vr19,     vr9          // t17a
+    vssub.h       vr8,      vr19,     vr9          // t22a
+    vsadd.h       vr4,      vr2,      vr30         // t18
+    vssub.h       vr31,     vr2,      vr30         // t21
+    vsadd.h       vr9,      vr24,     vr28         // t19a
+    vssub.h       vr19,     vr24,     vr28         // t20a
+    vssub.h       vr2,      vr27,     vr10         // t24
+    vsadd.h       vr30,     vr27,     vr10         // t31
+    vssub.h       vr24,     vr29,     vr6          // t25a
+    vsadd.h       vr28,     vr29,     vr6          // t30a
+    vssub.h       vr10,     vr5,      vr1          // t26
+    vsadd.h       vr27,     vr5,      vr1          // t29
+    vssub.h       vr6,      vr7,      vr25         // t27a
+    vsadd.h       vr29,     vr7,      vr25         // t28a
+
+    vldrepl.w     vr20,     t0,       0            // 2896
+    vmul_vmsub_w vr6, vr19, vr20, vr20, vr1, vr5
+    vssrarni.h.w  vr5,      vr1,      12           // t20
+    vmul_vmadd_w vr6, vr19, vr20, vr20, vr1, vr7
+    vssrarni.h.w  vr7,      vr1,      12           // t27
+
+    vmul_vmsub_w vr10, vr31, vr20, vr20, vr1, vr25
+    vssrarni.h.w  vr25,     vr1,      12           // t21a
+    vmul_vmadd_w vr10, vr31, vr20, vr20, vr1, vr6
+    vssrarni.h.w  vr6,      vr1,      12           // t26a
+
+    vmul_vmsub_w vr24, vr8, vr20, vr20, vr1, vr19
+    vssrarni.h.w  vr19,     vr1,      12           // t22
+    vmul_vmadd_w vr24, vr8, vr20, vr20, vr1, vr10
+    vssrarni.h.w  vr10,     vr1,      12           // t25
+
+    vmul_vmsub_w vr2, vr26, vr20, vr20, vr1, vr31
+    vssrarni.h.w  vr31,     vr1,      12           // t23a
+    vmul_vmadd_w vr2, vr26, vr20, vr20, vr1, vr8
+    vssrarni.h.w  vr8,      vr1,      12           // t24a
+
+    // t31 t30a t29 t28a t27 t26a t25 t24a t23a t22 t21a t20 t19a t18 t17a t16
+    // vr30 vr28 vr27 vr29 vr7 vr6 vr10 vr8 vr31 vr19 vr25 vr5 vr9 vr4 vr0 vr3
+
+    vld_x8 t3, 0, 32, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vsadd.h       vr1,      vr11,     vr30         // c[0]
+    vssub.h       vr2,      vr11,     vr30         // c[31]
+    vsadd.h       vr24,     vr12,     vr28         // c[1]
+    vssub.h       vr26,     vr12,     vr28         // c[30]
+    vsadd.h       vr11,     vr13,     vr27         // c[2]
+    vssub.h       vr30,     vr13,     vr27         // c[29]
+    vsadd.h       vr12,     vr14,     vr29         // c[3]
+    vssub.h       vr28,     vr14,     vr29         // c[28]
+    vsadd.h       vr13,     vr15,     vr7          // c[4]
+    vssub.h       vr27,     vr15,     vr7          // c[27]
+    vsadd.h       vr14,     vr16,     vr6          // c[5]
+    vssub.h       vr29,     vr16,     vr6          // c[26]
+    vsadd.h       vr7,      vr17,     vr10         // c[6]
+    vssub.h       vr15,     vr17,     vr10         // c[25]
+    vsadd.h       vr6,      vr18,     vr8          // c[7]
+    vssub.h       vr16,     vr18,     vr8          // c[24]
+
+.irp i, vr1, vr24, vr11, vr12, vr13, vr14, vr7, vr6, \
+        vr16, vr15, vr29, vr27, vr28, vr30, vr26, vr2
+    vsrari.h      \i,       \i,       4
+.endr
+
+    vst_x8 t2, 0, 16, vr1, vr24, vr11, vr12, vr13, vr14, vr7, vr6
+
+    vst_x8 t2, 128, 16, vr16, vr15, vr29, vr27, vr28, vr30, vr26, vr2
+
+    vld_x8 t3, 256, 32, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+
+    vsadd.h       vr1,      vr11,     vr31         // c[8]
+    vssub.h       vr2,      vr11,     vr31         // c[23]
+    vsadd.h       vr24,     vr12,     vr19         // c[9]
+    vssub.h       vr26,     vr12,     vr19         // c[22]
+    vsadd.h       vr11,     vr13,     vr25         // c[10]
+    vssub.h       vr30,     vr13,     vr25         // c[21]
+    vsadd.h       vr12,     vr14,     vr5          // c[11]
+    vssub.h       vr28,     vr14,     vr5          // c[20]
+    vsadd.h       vr13,     vr15,     vr9          // c[12]
+    vssub.h       vr27,     vr15,     vr9          // c[19]
+    vsadd.h       vr14,     vr16,     vr4          // c[13]
+    vssub.h       vr29,     vr16,     vr4          // c[18]
+    vsadd.h       vr7,      vr17,     vr0          // c[14]
+    vssub.h       vr15,     vr17,     vr0          // c[17]
+    vsadd.h       vr6,      vr18,     vr3          // c[15]
+    vssub.h       vr16,     vr18,     vr3          // c[16]
+
+.irp i, vr1, vr24, vr11, vr12, vr13, vr14, vr7, vr6, \
+        vr16, vr15, vr29, vr27, vr28, vr30, vr26, vr2
+    vsrari.h      \i,       \i,       4
+.endr
+
+    vst_x8 t2, 256, 16, vr1, vr24, vr11, vr12, vr13, vr14, vr7, vr6
+
+    vst_x8 t2, 384, 16, vr16, vr15, vr29, vr27, vr28, vr30, vr26, vr2
+
+    alsl.d        t2,       a1,       a0,     1
+    addi.d        t3,       sp,       64
+
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       sp,       64+64
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       sp,       64+256
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       t3,       64
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       sp,       64+384
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       t3,       64
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       sp,       64+128
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    addi.d        t3,       t3,       64
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       t2,     2
+    vld           vr4,      t3,       0
+    vld           vr5,      t3,       16
+    vld           vr6,      t3,       32
+    vld           vr7,      t3,       48
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    free_space 512
+.DCT_DCT_8X32_END:
+endfunc
