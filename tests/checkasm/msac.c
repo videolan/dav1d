@@ -266,6 +266,14 @@ void checkasm_check_msac(void) {
         c.decode_bool           = dav1d_msac_decode_bool_neon;
         c.decode_hi_tok         = dav1d_msac_decode_hi_tok_neon;
     }
+#elif ARCH_LOONGARCH64 && HAVE_ASM
+    if (dav1d_get_cpu_flags() & DAV1D_LOONGARCH_CPU_FLAG_LSX) {
+        c.decode_symbol_adapt4  = dav1d_msac_decode_symbol_adapt4_lsx;
+        c.decode_symbol_adapt8  = dav1d_msac_decode_symbol_adapt8_lsx;
+        c.decode_symbol_adapt16 = dav1d_msac_decode_symbol_adapt16_lsx;
+        c.decode_bool_adapt     = dav1d_msac_decode_bool_adapt_lsx;
+        c.decode_bool           = dav1d_msac_decode_bool_lsx;
+    }
 #elif ARCH_X86 && HAVE_ASM
     if (dav1d_get_cpu_flags() & DAV1D_X86_CPU_FLAG_SSE2) {
         c.decode_symbol_adapt4  = dav1d_msac_decode_symbol_adapt4_sse2;
