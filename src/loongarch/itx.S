@@ -2168,3 +2168,1856 @@ function inv_txfm_add_identity_adst_8x4_8bpc_lsx
 
     VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
 endfunc
+
+function inv_txfm_add_identity_identity_8x8_8bpc_lsx
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr14, vr15
+
+    // identity8
+    vsllwil.w.h   vr6,      vr0,      1
+    vsllwil.w.h   vr7,      vr1,      1
+    vsllwil.w.h   vr8,      vr2,      1
+    vsllwil.w.h   vr9,      vr3,      1
+    vsllwil.w.h   vr10,     vr4,      1
+    vsllwil.w.h   vr11,     vr5,      1
+    vsllwil.w.h   vr12,     vr14,     1
+    vsllwil.w.h   vr13,     vr15,     1
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr14, vr15
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr14, vr15
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr0,      vr6,      1     // in0
+    vssrarni.h.w  vr1,      vr7,      1     // in1
+    vssrarni.h.w  vr2,      vr8,      1     // in2
+    vssrarni.h.w  vr3,      vr9,      1     // in3
+    vssrarni.h.w  vr4,      vr10,     1     // in4
+    vssrarni.h.w  vr5,      vr11,     1     // in5
+    vssrarni.h.w  vr14,     vr12,     1     // in6
+    vssrarni.h.w  vr15,     vr13,     1     // in7
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr14, vr15, \
+                       vr16, vr17, vr18, vr19, vr20, vr21, vr22, vr23, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr12 vr13
+
+    vsllwil.w.h   vr6,      vr16,     1
+    vsllwil.w.h   vr7,      vr17,     1
+    vsllwil.w.h   vr8,      vr18,     1
+    vsllwil.w.h   vr9,      vr19,     1
+    vsllwil.w.h   vr10,     vr20,     1
+    vsllwil.w.h   vr11,     vr21,     1
+    vsllwil.w.h   vr12,     vr22,     1
+    vsllwil.w.h   vr13,     vr23,     1
+
+.irp i, vr16, vr17, vr18, vr19, vr20, vr21, vr22, vr23
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr16, vr17, vr18, vr19, vr20, vr21, vr22, vr23
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr16,     vr6,      4     // in0
+    vssrarni.h.w  vr17,     vr7,      4     // in1
+    vssrarni.h.w  vr18,     vr8,      4     // in2
+    vssrarni.h.w  vr19,     vr9,      4     // in3
+    vssrarni.h.w  vr20,     vr10,     4     // in4
+    vssrarni.h.w  vr21,     vr11,     4     // in5
+    vssrarni.h.w  vr22,     vr12,     4     // in6
+    vssrarni.h.w  vr23,     vr13,     4     // in7
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr16, vr17, vr18, vr19
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+endfunc
+
+.macro adst8x8_1d_lsx out0, out1, out2, out3
+    la.local      t0,       iadst8_coeffs
+
+    vldrepl.w     vr20,     t0,       0     // 4076
+    vldrepl.w     vr21,     t0,       4     // 401
+    vldrepl.w     vr22,     t0,       8     // 3612
+    vldrepl.w     vr23,     t0,       12    // 1931
+
+    // vr13 t0a t1a    vr15 t2a t3a
+    vmadd_vmsub_vssrarni_hw_12 vr11, vr18, vr9, vr6, vr20, vr21, vr21, vr20, \
+                               vr22, vr23, vr23, vr22, vr12, vr13, vr14, vr15
+    vldrepl.w     vr20,     t0,       16    // 2598
+    vldrepl.w     vr21,     t0,       20    // 3166
+    vldrepl.w     vr22,     t0,       24    // 1189
+    vldrepl.w     vr23,     t0,       28    // 3920
+
+    // vr18 t4a t5a     vr6 t6a t7a
+    vmadd_vmsub_vssrarni_hw_12 vr7, vr8, vr19, vr10, vr20, vr21, vr21, vr20, \
+                               vr22, vr23, vr23, vr22, vr11, vr18, vr9, vr6
+
+    vsadd.h       vr12,     vr13,     vr18  // t0 t1
+    vsadd.h       vr14,     vr15,     vr6   // t2 t3
+    vssub.h       vr9,      vr13,     vr18  // t4 t5
+    vssub.h       vr18,     vr15,     vr6   // t6 t7
+
+    la.local      t0,       idct_coeffs
+
+    vldrepl.w     vr20,     t0,       8     // 1567
+    vldrepl.w     vr21,     t0,       12    // 3784
+    vldrepl.w     vr22,     t0,       0     // 2896
+
+    vsllwil.w.h   vr7,      vr9,      0     // t4
+    vexth.w.h     vr8,      vr9             // t5
+    vsllwil.w.h   vr10,     vr18,     0     // t6
+    vexth.w.h     vr11,     vr18            // t7
+
+    // vr13 out0 out7   vr17 out1 out6
+    vmadd_vmsub_vssrarni_hw_12 vr7, vr8, vr11, vr10, vr21, vr20, vr20, vr21, \
+                               vr20, vr21, vr21, vr20, vr13, vr15, vr18, vr19
+    vshuf4i.d     vr19,     vr19,     0x01
+
+    vsadd.h       vr13,     vr12,     vr14  // out0 out7
+    vssub.h       vr6,      vr12,     vr14  // t2 t3
+    vsadd.h       vr7,      vr15,     vr19  // out1 out6
+    vssub.h       vr18,     vr15,     vr19  // t6 t7
+
+    vexth.w.h     vr20,     vr13            // out7
+    vsllwil.w.h   vr21,     vr7,      0     // out1
+    vneg.w        vr20,     vr20
+    vneg.w        vr21,     vr21
+    vssrarni.h.w  vr21,     vr20,     0     // out7 out1
+    vilvl.d       \out0,    vr21,     vr13  // out0 out7
+    vilvh.d       \out1,    vr7,      vr21  // out1 out6
+
+    vsllwil.w.h   vr7,      vr6,      0     // t2
+    vexth.w.h     vr8,      vr6             // t3
+    vsllwil.w.h   vr10,     vr18,     0     // t6
+    vexth.w.h     vr11,     vr18            // t7
+
+    // vr15 out[3] out[4]    vr18 out[2] out[5]
+    vmadd_vmsub_vssrarni_hw_12 vr7, vr8, vr10, vr11, vr22, vr22, vr22, vr22, \
+                               vr22, vr22, vr22, vr22, vr14, vr15, vr19, vr18
+
+    vexth.w.h     vr20,     vr18            // out5
+    vsllwil.w.h   vr21,     vr15,     0     // out3
+    vneg.w        vr20,     vr20
+    vneg.w        vr21,     vr21
+    vssrarni.h.w  vr21,     vr20,     0     // out5 out3
+    vilvl.d       \out2,    vr21,     vr18  // out2 out5
+    vilvh.d       \out3,    vr15,     vr21  // out3 out4
+.endm
+
+function inv_txfm_add_adst_dct_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr24, vr25, vr26, vr27
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h        \i,       \i,     1
+.endr
+
+    LSX_TRANSPOSE8x8_H vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3, \
+                       vr4, vr5, vr12, vr13, vr14, vr15, vr24, vr25, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr16, vr17
+
+    vshuf4i.h     vr14,     vr14,     0x1b
+    vshuf4i.h     vr15,     vr15,     0x1b
+    vshuf4i.h     vr24,     vr24,     0x1b
+    vshuf4i.h     vr25,     vr25,     0x1b
+
+    vsllwil.w.h   vr18,     vr4,      0
+    vsllwil.w.h   vr19,     vr5,      0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr12
+    vexth.w.h     vr11,     vr13
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    dct_8x4_core_lsx1 vr4, vr5, vr12, vr13
+
+    vshuf4i.d     vr5,      vr5,      0x01
+    vshuf4i.d     vr13,     vr13,     0x01
+
+    vsllwil.w.h   vr18,     vr14,     0
+    vsllwil.w.h   vr19,     vr15,     0
+    vsllwil.w.h   vr6,      vr24,     0
+    vsllwil.w.h   vr7,      vr25,     0
+    vexth.w.h     vr8,      vr14
+    vexth.w.h     vr9,      vr15
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8     // 1567
+    vldrepl.w     vr21,     t0,       12    // 3784
+    vldrepl.w     vr22,     t0,       0     // 2896
+
+    dct_8x4_core_lsx1 vr14, vr15, vr24, vr25
+
+    vshuf4i.d     vr15,     vr15,     0x01
+    vshuf4i.d     vr25,     vr25,     0x01
+
+    vilvl.d       vr20,     vr14,     vr4
+    vilvh.d       vr21,     vr14,     vr4
+    vilvl.d       vr22,     vr15,     vr5
+    vilvh.d       vr23,     vr15,     vr5
+    vilvl.d       vr16,     vr24,     vr12
+    vilvh.d       vr17,     vr24,     vr12
+    vilvl.d       vr18,     vr25,     vr13
+    vilvh.d       vr19,     vr25,     vr13
+
+.irp i, vr20, vr21, vr22, vr23, vr16, vr17, vr18, vr19
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr16, vr17, vr18, vr19
+
+    fld.d            f24,     sp,    0
+    fld.d            f25,     sp,    8
+    fld.d            f26,     sp,    16
+    fld.d            f27,     sp,    24
+    addi.d           sp,      sp,    32
+endfunc
+
+function inv_txfm_add_dct_adst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr4, vr5, vr12, vr13, vr14, vr15, vr24, vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    vsllwil.w.h   vr18,     vr4,      0
+    vsllwil.w.h   vr19,     vr5,      0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vsllwil.w.h   vr8,      vr14,     0
+    vsllwil.w.h   vr9,      vr15,     0
+    vsllwil.w.h   vr10,     vr24,     0
+    vsllwil.w.h   vr11,     vr25,     0
+
+    dct_8x4_core_lsx1 vr26, vr27, vr28, vr29
+
+    vshuf4i.d     vr27,     vr27,     0x01
+    vshuf4i.d     vr29,     vr29,     0x01
+
+    vilvl.h       vr8,      vr27,     vr26  // 0 2 4 6 8 10 12 14
+    vilvh.h       vr9,      vr27,     vr26  // 1 3 5 7 9 11 13 15
+    vilvl.h       vr26,     vr9,      vr8   // 0 - 7 in0
+    vilvh.h       vr27,     vr9,      vr8   // 8 - 15 in1
+    vilvl.h       vr8,      vr29,     vr28  // 0 2 4 6 8 10 12 14
+    vilvh.h       vr9,      vr29,     vr28  // 1 3 5 7 9 11 13 15
+    vilvl.h       vr28,     vr9,      vr8   // 16 - 23  in2
+    vilvh.h       vr29,     vr9,      vr8   // 24 - 31  in3
+
+    vsrari.h      vr26,     vr26,     1     // in0low in1low
+    vsrari.h      vr27,     vr27,     1     // in2low in3low
+    vsrari.h      vr28,     vr28,     1     // in0high in1high
+    vsrari.h      vr29,     vr29,     1     // in2high in3high
+
+    vexth.w.h     vr18,     vr4
+    vexth.w.h     vr19,     vr5
+    vexth.w.h     vr6,      vr12
+    vexth.w.h     vr7,      vr13
+    vexth.w.h     vr8,      vr14
+    vexth.w.h     vr9,      vr15
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8     // 1567
+    vldrepl.w     vr21,     t0,       12    // 3784
+    vldrepl.w     vr22,     t0,       0     // 2896
+
+    dct_8x4_core_lsx1 vr12, vr13, vr14, vr15
+
+    vshuf4i.d     vr13,     vr13,     0x01
+    vshuf4i.d     vr15,     vr15,     0x01
+
+    vilvl.h       vr8,      vr13,     vr12  // 0 2 4 6 8 10 12 14
+    vilvh.h       vr9,      vr13,     vr12  // 1 3 5 7 9 11 13 15
+    vilvl.h       vr12,     vr9,      vr8   // 0 - 7 in0
+    vilvh.h       vr13,     vr9,      vr8   // 8 - 15 in1
+    vilvl.h       vr8,      vr15,     vr14  // 0 2 4 6 8 10 12 14
+    vilvh.h       vr9,      vr15,     vr14  // 1 3 5 7 9 11 13 15
+    vilvl.h       vr14,     vr9,      vr8   // 16 - 23  in2
+    vilvh.h       vr15,     vr9,      vr8   // 24 - 31  in3
+
+    vsrari.h      vr0,      vr12,     1     // in4low in5low
+    vsrari.h      vr1,      vr13,     1     // in6low in7low
+    vsrari.h      vr2,      vr14,     1     // in4high in5high
+    vsrari.h      vr3,      vr15,     1     // in6high in7high
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsllwil.w.h   vr18,     vr26,     0     // in0
+    vexth.w.h     vr19,     vr26            // in1
+    vsllwil.w.h   vr6,      vr27,     0     // in2
+    vexth.w.h     vr7,      vr27            // in3
+    vsllwil.w.h   vr8,      vr0,      0     // in3
+    vexth.w.h     vr9,      vr0             // in4
+    vsllwil.w.h   vr10,     vr1,      0     // in5
+    vexth.w.h     vr11,     vr1             // in6
+    adst8x8_1d_lsx vr26, vr27, vr0, vr1
+
+    vsllwil.w.h   vr18,     vr28,     0     // in0
+    vexth.w.h     vr19,     vr28            // in1
+    vsllwil.w.h   vr6,      vr29,     0     // in2
+    vexth.w.h     vr7,      vr29            // in3
+    vsllwil.w.h   vr8,      vr2,      0     // in4
+    vexth.w.h     vr9,      vr2             // in5
+    vsllwil.w.h   vr10,     vr3,      0     // in6
+    vexth.w.h     vr11,     vr3             // in7
+    adst8x8_1d_lsx vr28, vr29, vr16, vr17
+
+    vilvl.d       vr4,      vr28,     vr26  // 0 ... 7
+    vilvl.d       vr5,      vr29,     vr27  // 8 ... 15
+    vilvl.d       vr6,      vr16,     vr0   // 16 ... 23
+    vilvl.d       vr7,      vr17,     vr1   // 24 ... 31
+    vilvh.d       vr14,     vr17,     vr1   // 32 ... 39
+    vilvh.d       vr15,     vr16,     vr0   // 40 ... 47
+    vilvh.d       vr16,     vr29,     vr27  // 48 ... 55
+    vilvh.d       vr17,     vr28,     vr26  // 56 ... 63
+
+.irp i, vr4, vr5, vr6, vr7, vr14, vr15, vr16, vr17
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+endfunc
+
+function inv_txfm_add_adst_adst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr24, vr25, vr26, vr27
+
+    vexth.w.h     vr18,     vr0            // in0
+    vexth.w.h     vr19,     vr1            // in1
+    vexth.w.h     vr6,      vr2            // in2
+    vexth.w.h     vr7,      vr3            // in3
+    vexth.w.h     vr8,      vr4            // in3
+    vexth.w.h     vr9,      vr5            // in4
+    vexth.w.h     vr10,     vr16           // in5
+    vexth.w.h     vr11,     vr17           // in6
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h        \i,       \i,     1
+.endr
+
+    LSX_TRANSPOSE8x8_H vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3, \
+                       vr14, vr15, vr12, vr13, vr4, vr5, vr24, vr25, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr16, vr17
+
+    vshuf4i.h     vr4,      vr4,      0x1b
+    vshuf4i.h     vr5,      vr5,      0x1b
+    vshuf4i.h     vr24,     vr24,     0x1b
+    vshuf4i.h     vr25,     vr25,     0x1b
+
+    vsllwil.w.h   vr18,     vr14,     0
+    vsllwil.w.h   vr19,     vr15,     0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vexth.w.h     vr8,      vr14            // in3
+    vexth.w.h     vr9,      vr15            // in4
+    vexth.w.h     vr10,     vr12            // in5
+    vexth.w.h     vr11,     vr13            // in6
+
+    adst8x8_1d_lsx vr26, vr27, vr0, vr1
+
+    vsllwil.w.h   vr18,     vr4,     0
+    vsllwil.w.h   vr19,     vr5,     0
+    vsllwil.w.h   vr6,      vr24,    0
+    vsllwil.w.h   vr7,      vr25,    0
+    vexth.w.h     vr8,      vr4             // in3
+    vexth.w.h     vr9,      vr5             // in4
+    vexth.w.h     vr10,     vr24            // in5
+    vexth.w.h     vr11,     vr25            // in6
+
+    adst8x8_1d_lsx vr24, vr25, vr16, vr17
+
+    vilvl.d       vr4,      vr24,     vr26  // 0 ... 7
+    vilvl.d       vr5,      vr25,     vr27  // 8 ... 15
+    vilvl.d       vr6,      vr16,     vr0   // 16 ... 23
+    vilvl.d       vr7,      vr17,     vr1   // 24 ... 31
+    vilvh.d       vr14,     vr17,     vr1   // 32 ... 39
+    vilvh.d       vr15,     vr16,     vr0   // 40 ... 47
+    vilvh.d       vr16,     vr25,     vr27  // 48 ... 55
+    vilvh.d       vr17,     vr24,     vr26  // 56 ... 63
+
+.irp i, vr4, vr5, vr6, vr7, vr14, vr15, vr16, vr17
+    vsrari.h        \i,       \i,     4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_flipadst_adst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr24,     vr20,     vr21
+    vilvh.w       vr25,     vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr26,     vr20,     vr21
+    vilvh.w       vr27,     vr20,     vr21
+    vshuf4i.h     vr26,     vr26,     0x1b
+    vshuf4i.h     vr27,     vr27,     0x1b
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr0,      vr20,     vr21
+    vilvh.w       vr1,      vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr2,      vr20,     vr21
+    vilvh.w       vr3,      vr20,     vr21
+    vshuf4i.h     vr2,      vr2,      0x1b
+    vshuf4i.h     vr3,      vr3,      0x1b
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h      \i,       \i,       1
+.endr
+
+    vsllwil.w.h   vr18,     vr26,     0    // in0
+    vexth.w.h     vr19,     vr26           // in1
+    vsllwil.w.h   vr6,      vr27,     0    // in2
+    vexth.w.h     vr7,      vr27           // in3
+    vsllwil.w.h   vr8,      vr2,      0    // in4
+    vexth.w.h     vr9,      vr2            // in5
+    vsllwil.w.h   vr10,     vr3,      0    // in6
+    vexth.w.h     vr11,     vr3            // in7
+    adst8x8_1d_lsx vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr24,     0    // in0
+    vexth.w.h     vr19,     vr24           // in1
+    vsllwil.w.h   vr6,      vr25,     0    // in2
+    vexth.w.h     vr7,      vr25           // in3
+    vsllwil.w.h   vr8,      vr0,      0    // in4
+    vexth.w.h     vr9,      vr0            // in5
+    vsllwil.w.h   vr10,     vr1,      0    // in6
+    vexth.w.h     vr11,     vr1            // in7
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvl.d       vr20,     vr0,     vr4   // 0 ... 7
+    vilvl.d       vr21,     vr1,     vr5   // 8 ... 15
+    vilvl.d       vr22,     vr2,     vr16  // 16 ... 23
+    vilvl.d       vr23,     vr3,     vr17  // 24 ... 31
+    vilvh.d       vr14,     vr3,     vr17  // 32 ... 39
+    vilvh.d       vr15,     vr2,     vr16  // 40 ... 47
+    vilvh.d       vr16,     vr1,     vr5   // 48 ... 55
+    vilvh.d       vr17,     vr0,     vr4   // 56 ... 63
+
+.irp i, vr20, vr21, vr22, vr23, vr14, vr15, vr16, vr17
+    vsrari.h      \i,       \i,      4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_adst_flipadst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr24, vr25, vr26, vr27
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h      \i,       \i,       1
+.endr
+
+    LSX_TRANSPOSE8x8_H vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3, \
+                       vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr16, vr17
+
+    vshuf4i.h     vr0,      vr0,      0x1b
+    vshuf4i.h     vr1,      vr1,      0x1b
+    vshuf4i.h     vr2,      vr2,      0x1b
+    vshuf4i.h     vr3,      vr3,      0x1b
+
+    vsllwil.w.h   vr18,     vr0,      0    // in0
+    vsllwil.w.h   vr19,     vr1,      0    // in1
+    vsllwil.w.h   vr6,      vr2,      0    // in2
+    vsllwil.w.h   vr7,      vr3,      0    // in3
+    vexth.w.h     vr8,      vr0            // in4
+    vexth.w.h     vr9,      vr1            // in5
+    vexth.w.h     vr10,     vr2            // in6
+    vexth.w.h     vr11,     vr3            // in7
+    adst8x8_1d_lsx vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr24,     0    // in0
+    vsllwil.w.h   vr19,     vr25,     0    // in1
+    vsllwil.w.h   vr6,      vr26,     0    // in2
+    vsllwil.w.h   vr7,      vr27,     0    // in3
+    vexth.w.h     vr8,      vr24           // in4
+    vexth.w.h     vr9,      vr25           // in5
+    vexth.w.h     vr10,     vr26           // in6
+    vexth.w.h     vr11,     vr27           // in7
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvh.d       vr20,     vr4,      vr0
+    vilvh.d       vr21,     vr5,      vr1
+    vilvh.d       vr22,     vr16,     vr2
+    vilvh.d       vr23,     vr17,     vr3
+    vilvl.d       vr14,     vr17,     vr3
+    vilvl.d       vr15,     vr16,     vr2
+    vilvl.d       vr18,     vr5,      vr1
+    vilvl.d       vr19,     vr4,      vr0
+
+.irp i, vr20, vr21, vr22, vr23, vr14, vr15, vr18, vr19
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr18, vr19
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_flipadst_dct_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr24,     vr20,     vr21
+    vilvh.w       vr25,     vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr26,     vr20,     vr21
+    vilvh.w       vr27,     vr20,     vr21
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr0,      vr20,     vr21
+    vilvh.w       vr1,      vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr2,      vr20,     vr21
+    vilvh.w       vr3,      vr20,     vr21
+
+    vreplgr2vr.h  vr23,     zero
+
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsrari.h      vr24,     vr24,     1
+    vsrari.h      vr25,     vr25,     1
+    vsrari.h      vr26,     vr26,     1
+    vsrari.h      vr27,     vr27,     1
+    vsrari.h      vr14,     vr0,      1
+    vsrari.h      vr15,     vr1,      1
+    vsrari.h      vr16,     vr2,      1
+    vsrari.h      vr17,     vr3,      1
+
+    vsllwil.w.h   vr18,     vr26,     0
+    vexth.w.h     vr19,     vr26
+    vsllwil.w.h   vr6,      vr27,     0
+    vexth.w.h     vr7,      vr27
+    vsllwil.w.h   vr8,      vr16,     0
+    vexth.w.h     vr9,      vr16
+    vsllwil.w.h   vr10,     vr17,     0
+    vexth.w.h     vr11,     vr17
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    dct_8x4_core_lsx1 vr26, vr27, vr16, vr17
+
+    vshuf4i.h     vr26,     vr26,     0x1b
+    vshuf4i.h     vr27,     vr27,     0x1b
+    vshuf4i.h     vr16,     vr16,     0x1b
+    vshuf4i.h     vr17,     vr17,     0x1b
+
+    vsllwil.w.h   vr18,     vr24,     0
+    vexth.w.h     vr19,     vr24
+    vsllwil.w.h   vr6,      vr25,     0
+    vexth.w.h     vr7,      vr25
+    vsllwil.w.h   vr8,      vr14,     0
+    vexth.w.h     vr9,      vr14
+    vsllwil.w.h   vr10,     vr15,     0
+    vexth.w.h     vr11,     vr15
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    dct_8x4_core_lsx1 vr24, vr25, vr14, vr15
+
+    vilvl.d       vr4,      vr24,     vr26
+    vilvh.d       vr5,      vr24,     vr26
+    vilvh.d       vr6,      vr25,     vr27
+    vilvl.d       vr7,      vr25,     vr27
+    vilvl.d       vr24,     vr14,     vr16
+    vilvh.d       vr25,     vr14,     vr16
+    vilvh.d       vr26,     vr15,     vr17
+    vilvl.d       vr27,     vr15,     vr17
+
+.irp i, vr4, vr5, vr6, vr7, vr24, vr25, vr26, vr27
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr24, vr25, vr26, vr27
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_dct_flipadst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr4, vr5, vr12, vr13, vr14, vr15, vr24, vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    vsllwil.w.h   vr18,     vr4,      0
+    vsllwil.w.h   vr19,     vr5,      0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vsllwil.w.h   vr8,      vr14,     0
+    vsllwil.w.h   vr9,      vr15,     0
+    vsllwil.w.h   vr10,     vr24,     0
+    vsllwil.w.h   vr11,     vr25,     0
+    dct_8x4_core_lsx1 vr26, vr27, vr28, vr29
+    vshuf4i.d     vr27,     vr27,     0x01
+    vshuf4i.d     vr29,     vr29,     0x01
+
+    vilvl.h       vr8,      vr27,     vr26
+    vilvh.h       vr9,      vr27,     vr26
+    vilvl.h       vr26,     vr9,      vr8
+    vilvh.h       vr27,     vr9,      vr8
+    vilvl.h       vr8,      vr29,     vr28
+    vilvh.h       vr9,      vr29,     vr28
+    vilvl.h       vr28,     vr9,      vr8
+    vilvh.h       vr29,     vr9,      vr8
+
+    vsrari.h      vr26,     vr26,     1     // in0low in1low
+    vsrari.h      vr27,     vr27,     1     // in2low in3low
+    vsrari.h      vr28,     vr28,     1     // in0high in1high
+    vsrari.h      vr29,     vr29,     1     // in2high in3high
+
+    vexth.w.h     vr18,     vr4
+    vexth.w.h     vr19,     vr5
+    vexth.w.h     vr6,      vr12
+    vexth.w.h     vr7,      vr13
+    vexth.w.h     vr8,      vr14
+    vexth.w.h     vr9,      vr15
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+    dct_8x4_core_lsx1 vr12, vr13, vr14, vr15
+    vshuf4i.d     vr13,     vr13,     0x01
+    vshuf4i.d     vr15,     vr15,     0x01
+
+    vilvl.h       vr8,      vr13,     vr12
+    vilvh.h       vr9,      vr13,     vr12
+    vilvl.h       vr12,     vr9,      vr8
+    vilvh.h       vr13,     vr9,      vr8
+    vilvl.h       vr8,      vr15,     vr14
+    vilvh.h       vr9,      vr15,     vr14
+    vilvl.h       vr14,     vr9,      vr8
+    vilvh.h       vr15,     vr9,      vr8
+
+    vsrari.h      vr0,      vr12,     1
+    vsrari.h      vr1,      vr13,     1
+    vsrari.h      vr2,      vr14,     1
+    vsrari.h      vr3,      vr15,     1
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsllwil.w.h   vr18,     vr28,     0    // in0
+    vexth.w.h     vr19,     vr28           // in1
+    vsllwil.w.h   vr6,      vr29,     0    // in2
+    vexth.w.h     vr7,      vr29           // in3
+    vsllwil.w.h   vr8,      vr2,      0    // in4
+    vexth.w.h     vr9,      vr2            // in5
+    vsllwil.w.h   vr10,     vr3,      0    // in6
+    vexth.w.h     vr11,     vr3            // in7
+    adst8x8_1d_lsx vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr26,     0    // in0
+    vexth.w.h     vr19,     vr26           // in1
+    vsllwil.w.h   vr6,      vr27,     0    // in2
+    vexth.w.h     vr7,      vr27           // in3
+    vsllwil.w.h   vr8,      vr0,      0    // in4
+    vexth.w.h     vr9,      vr0            // in5
+    vsllwil.w.h   vr10,     vr1,      0    // in6
+    vexth.w.h     vr11,     vr1            // in7
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvh.d       vr26,     vr4,      vr0
+    vilvh.d       vr27,     vr5,      vr1
+    vilvh.d       vr28,     vr16,     vr2
+    vilvh.d       vr29,     vr17,     vr3
+    vilvl.d       vr20,     vr17,     vr3
+    vilvl.d       vr21,     vr16,     vr2
+    vilvl.d       vr22,     vr5,      vr1
+    vilvl.d       vr23,     vr4,      vr0
+
+.irp i, vr26, vr27, vr28, vr29, vr20, vr21, vr22, vr23
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr26, vr27, vr28, vr29
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+endfunc
+
+function inv_txfm_add_flipadst_flipadst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr24,     vr20,     vr21
+    vilvh.w       vr25,     vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr26,     vr20,     vr21
+    vilvh.w       vr27,     vr20,     vr21
+    vshuf4i.h     vr26,     vr26,     0x1b
+    vshuf4i.h     vr27,     vr27,     0x1b
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr0,      vr20,     vr21
+    vilvh.w       vr1,      vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr2,      vr20,     vr21
+    vilvh.w       vr3,      vr20,     vr21
+    vshuf4i.h     vr2,      vr2,      0x1b
+    vshuf4i.h     vr3,      vr3,      0x1b
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h      \i,       \i,       1
+.endr
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsllwil.w.h   vr18,     vr26,     0    // in0
+    vexth.w.h     vr19,     vr26           // in1
+    vsllwil.w.h   vr6,      vr27,     0    // in2
+    vexth.w.h     vr7,      vr27           // in3
+    vsllwil.w.h   vr8,      vr2,      0    // in4
+    vexth.w.h     vr9,      vr2            // in5
+    vsllwil.w.h   vr10,     vr3,      0    // in6
+    vexth.w.h     vr11,     vr3            // in7
+    adst8x8_1d_lsx vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr24,     0    // in0
+    vexth.w.h     vr19,     vr24           // in1
+    vsllwil.w.h   vr6,      vr25,     0    // in2
+    vexth.w.h     vr7,      vr25           // in3
+    vsllwil.w.h   vr8,      vr0,      0    // in4
+    vexth.w.h     vr9,      vr0            // in5
+    vsllwil.w.h   vr10,     vr1,      0    // in6
+    vexth.w.h     vr11,     vr1            // in7
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvh.d       vr24,     vr0,      vr4
+    vilvh.d       vr25,     vr1,      vr5
+    vilvh.d       vr26,     vr2,      vr16
+    vilvh.d       vr27,     vr3,      vr17
+    vilvl.d       vr20,     vr3,      vr17
+    vilvl.d       vr21,     vr2,      vr16
+    vilvl.d       vr22,     vr1,      vr5
+    vilvl.d       vr23,     vr0,      vr4
+
+.irp i, vr24, vr25, vr26, vr27, vr20, vr21, vr22, vr23
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr24, vr25, vr26, vr27
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_dct_identity_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr4, vr5, vr12, vr13, vr14, vr15, vr24, vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    vsllwil.w.h   vr18,     vr4,      0
+    vsllwil.w.h   vr19,     vr5,      0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vsllwil.w.h   vr8,      vr14,     0
+    vsllwil.w.h   vr9,      vr15,     0
+    vsllwil.w.h   vr10,     vr24,     0
+    vsllwil.w.h   vr11,     vr25,     0
+    dct_8x4_core_lsx1 vr26, vr27, vr28, vr29
+    vshuf4i.d     vr27,     vr27,     0x01
+    vshuf4i.d     vr29,     vr29,     0x01
+
+    vilvl.h       vr8,      vr27,     vr26
+    vilvh.h       vr9,      vr27,     vr26
+    vilvl.h       vr26,     vr9,      vr8
+    vilvh.h       vr27,     vr9,      vr8
+    vilvl.h       vr8,      vr29,     vr28
+    vilvh.h       vr9,      vr29,     vr28
+    vilvl.h       vr28,     vr9,      vr8
+    vilvh.h       vr29,     vr9,      vr8
+
+    vsrari.h      vr26,     vr26,     1     // in0low in1low
+    vsrari.h      vr27,     vr27,     1     // in2low in3low
+    vsrari.h      vr28,     vr28,     1     // in0high in1high
+    vsrari.h      vr29,     vr29,     1     // in2high in3high
+
+    vexth.w.h     vr18,     vr4
+    vexth.w.h     vr19,     vr5
+    vexth.w.h     vr6,      vr12
+    vexth.w.h     vr7,      vr13
+    vexth.w.h     vr8,      vr14
+    vexth.w.h     vr9,      vr15
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    dct_8x4_core_lsx1 vr12, vr13, vr14, vr15
+
+    vshuf4i.d     vr13,     vr13,     0x01
+    vshuf4i.d     vr15,     vr15,     0x01
+
+    vilvl.h       vr8,      vr13,     vr12
+    vilvh.h       vr9,      vr13,     vr12
+    vilvl.h       vr12,     vr9,      vr8
+    vilvh.h       vr13,     vr9,      vr8
+    vilvl.h       vr8,      vr15,     vr14
+    vilvh.h       vr9,      vr15,     vr14
+    vilvl.h       vr14,     vr9,      vr8
+    vilvh.h       vr15,     vr9,      vr8
+
+    vsrari.h      vr20,     vr12,     1
+    vsrari.h      vr21,     vr13,     1
+    vsrari.h      vr22,     vr14,     1
+    vsrari.h      vr23,     vr15,     1
+
+    vreplgr2vr.h  vr19,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr19,     a2,       \i
+.endr
+    // identity8
+    vsllwil.w.h   vr10,     vr26,     1
+    vsllwil.w.h   vr11,     vr27,     1
+    vsllwil.w.h   vr16,     vr28,     1
+    vsllwil.w.h   vr17,     vr29,     1
+    vsllwil.w.h   vr6,      vr20,     1
+    vsllwil.w.h   vr7,      vr21,     1
+    vsllwil.w.h   vr18,     vr22,     1
+    vsllwil.w.h   vr19,     vr23,     1
+
+.irp i, vr26, vr27, vr28, vr29, vr20, vr21, vr22, vr23
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr26, vr27, vr28, vr29, vr20, vr21, vr22, vr23
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr16,     vr10,     4   // in0
+    vssrarni.h.w  vr28,     vr26,     4   // in1
+    vssrarni.h.w  vr17,     vr11,     4   // in2
+    vssrarni.h.w  vr29,     vr27,     4   // in3
+    vssrarni.h.w  vr18,     vr6,      4   // in4
+    vssrarni.h.w  vr22,     vr20,     4   // in5
+    vssrarni.h.w  vr19,     vr7,      4   // in6
+    vssrarni.h.w  vr23,     vr21,     4   // in7
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr16, vr28, vr17, vr29
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr18, vr22, vr19, vr23
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+endfunc
+
+function inv_txfm_add_identity_dct_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+
+    // identity8
+    vsllwil.w.h   vr6,      vr0,      1
+    vsllwil.w.h   vr7,      vr1,      1
+    vsllwil.w.h   vr8,      vr2,      1
+    vsllwil.w.h   vr9,      vr3,      1
+    vsllwil.w.h   vr10,     vr4,      1
+    vsllwil.w.h   vr11,     vr5,      1
+    vsllwil.w.h   vr12,     vr24,     1
+    vsllwil.w.h   vr13,     vr25,     1
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vslli.w       \i,       \i,       1
+.endr
+    vssrarni.h.w  vr0,      vr6,      1   // in0
+    vssrarni.h.w  vr1,      vr7,      1   // in1
+    vssrarni.h.w  vr2,      vr8,      1   // in2
+    vssrarni.h.w  vr3,      vr9,      1   // in3
+    vssrarni.h.w  vr4,      vr10,     1   // in4
+    vssrarni.h.w  vr5,      vr11,     1   // in5
+    vssrarni.h.w  vr24,     vr12,     1   // in6
+    vssrarni.h.w  vr25,     vr13,     1   // in7
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25, \
+                       vr4, vr5, vr12, vr13, vr14, vr15, vr24, vr25, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr16, vr17
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8    // 1567
+    vldrepl.w     vr21,     t0,       12   // 3784
+    vldrepl.w     vr22,     t0,       0    // 2896
+
+    // dct4 in0 in2 in4 in6
+    vsllwil.w.h   vr18,     vr4,      0
+    vsllwil.w.h   vr19,     vr5,      0
+    vsllwil.w.h   vr6,      vr12,     0
+    vsllwil.w.h   vr7,      vr13,     0
+    vsllwil.w.h   vr8,      vr14,     0
+    vsllwil.w.h   vr9,      vr15,     0
+    vsllwil.w.h   vr10,     vr24,     0
+    vsllwil.w.h   vr11,     vr25,     0
+    dct_8x4_core_lsx1 vr16, vr17, vr26, vr27
+
+    vexth.w.h     vr18,     vr4
+    vexth.w.h     vr19,     vr5
+    vexth.w.h     vr6,      vr12
+    vexth.w.h     vr7,      vr13
+    vexth.w.h     vr8,      vr14
+    vexth.w.h     vr9,      vr15
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+
+    la.local      t0,       idct_coeffs
+    vldrepl.w     vr20,     t0,       8     // 1567
+    vldrepl.w     vr21,     t0,       12    // 3784
+    vldrepl.w     vr22,     t0,       0     // 2896
+    dct_8x4_core_lsx1 vr4, vr5, vr24, vr25
+
+    vilvl.d       vr8,      vr4,      vr16
+    vilvh.d       vr9,      vr4,      vr16
+    vilvh.d       vr6,      vr5,      vr17
+    vilvl.d       vr7,      vr5,      vr17
+    vilvl.d       vr16,     vr24,     vr26
+    vilvh.d       vr17,     vr24,     vr26
+    vilvh.d       vr18,     vr25,     vr27
+    vilvl.d       vr19,     vr25,     vr27
+
+.irp i, vr8, vr9, vr6, vr7, vr16, vr17, vr18, vr19
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr8, vr9, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr16, vr17, vr18, vr19
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+endfunc
+
+function inv_txfm_add_flipadst_identity_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr24,     vr20,     vr21
+    vilvh.w       vr25,     vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr26,     vr20,     vr21
+    vilvh.w       vr27,     vr20,     vr21
+    vshuf4i.h     vr26,     vr26,     0x1b
+    vshuf4i.h     vr27,     vr27,     0x1b
+
+    vexth.w.h     vr18,     vr0            // in0
+    vexth.w.h     vr19,     vr1            // in1
+    vexth.w.h     vr6,      vr2            // in2
+    vexth.w.h     vr7,      vr3            // in3
+    vexth.w.h     vr8,      vr4            // in3
+    vexth.w.h     vr9,      vr5            // in4
+    vexth.w.h     vr10,     vr16           // in5
+    vexth.w.h     vr11,     vr17           // in6
+    adst8x8_1d_lsx vr12, vr13, vr14, vr15
+
+    vilvl.h       vr20,     vr12,     vr13
+    vilvl.h       vr21,     vr14,     vr15
+    vilvl.w       vr16,     vr20,     vr21
+    vilvh.w       vr17,     vr20,     vr21
+    vilvh.h       vr20,     vr12,     vr13
+    vilvh.h       vr21,     vr14,     vr15
+    vilvl.w       vr18,     vr20,     vr21
+    vilvh.w       vr19,     vr20,     vr21
+    vshuf4i.h     vr18,     vr18,     0x1b
+    vshuf4i.h     vr19,     vr19,     0x1b
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr16, vr17, vr18, vr19
+    vsrari.h      \i,       \i,       1
+.endr
+
+    // identity8
+    vsllwil.w.h   vr20,     vr24,     1
+    vsllwil.w.h   vr21,     vr25,     1
+    vsllwil.w.h   vr12,     vr26,     1
+    vsllwil.w.h   vr13,     vr27,     1
+    vsllwil.w.h   vr22,     vr16,     1
+    vsllwil.w.h   vr23,     vr17,     1
+    vsllwil.w.h   vr14,     vr18,     1
+    vsllwil.w.h   vr15,     vr19,     1
+
+.irp i, vr24, vr25, vr26, vr27, vr16, vr17, vr18, vr19
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr16, vr17, vr18, vr19
+     vslli.w      \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr20,     vr12,     4   // in0
+    vssrarni.h.w  vr24,     vr26,     4   // in1
+    vssrarni.h.w  vr21,     vr13,     4   // in2
+    vssrarni.h.w  vr25,     vr27,     4   // in3
+    vssrarni.h.w  vr22,     vr14,     4   // in4
+    vssrarni.h.w  vr16,     vr18,     4   // in5
+    vssrarni.h.w  vr23,     vr15,     4   // in6
+    vssrarni.h.w  vr17,     vr19,     4   // in7
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr24, vr21, vr25
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr22, vr16, vr23, vr17
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_identity_flipadst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+
+    // identity8
+    vsllwil.w.h   vr6,      vr0,      1
+    vsllwil.w.h   vr7,      vr1,      1
+    vsllwil.w.h   vr8,      vr2,      1
+    vsllwil.w.h   vr9,      vr3,      1
+    vsllwil.w.h   vr10,     vr4,      1
+    vsllwil.w.h   vr11,     vr5,      1
+    vsllwil.w.h   vr12,     vr24,     1
+    vsllwil.w.h   vr13,     vr25,     1
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr0,      vr6,      1   // in0
+    vssrarni.h.w  vr1,      vr7,      1   // in1
+    vssrarni.h.w  vr2,      vr8,      1   // in2
+    vssrarni.h.w  vr3,      vr9,      1   // in3
+    vssrarni.h.w  vr4,      vr10,     1   // in4
+    vssrarni.h.w  vr5,      vr11,     1   // in5
+    vssrarni.h.w  vr24,     vr12,     1   // in6
+    vssrarni.h.w  vr25,     vr13,     1   // in7
+
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25, \
+                       vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr12, vr13
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsllwil.w.h   vr18,     vr0,      0    // in0
+    vsllwil.w.h   vr19,     vr1,      0    // in1
+    vsllwil.w.h   vr6,      vr2,      0    // in2
+    vsllwil.w.h   vr7,      vr3,      0    // in3
+    vsllwil.w.h   vr8,      vr4,      0    // in3
+    vsllwil.w.h   vr9,      vr5,      0    // in4
+    vsllwil.w.h   vr10,     vr24,     0    // in5
+    vsllwil.w.h   vr11,     vr25,     0    // in6
+    adst8x8_1d_lsx vr26, vr27, vr28, vr29
+
+    vexth.w.h     vr18,     vr0            // in0
+    vexth.w.h     vr19,     vr1            // in1
+    vexth.w.h     vr6,      vr2            // in2
+    vexth.w.h     vr7,      vr3            // in3
+    vexth.w.h     vr8,      vr4            // in3
+    vexth.w.h     vr9,      vr5            // in4
+    vexth.w.h     vr10,     vr24           // in5
+    vexth.w.h     vr11,     vr25           // in6
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvh.d       vr4,      vr0,      vr26
+    vilvh.d       vr5,      vr1,      vr27
+    vilvh.d       vr6,      vr2,      vr28
+    vilvh.d       vr7,      vr3,      vr29
+    vilvl.d       vr14,     vr3,      vr29
+    vilvl.d       vr15,     vr2,      vr28
+    vilvl.d       vr16,     vr1,      vr27
+    vilvl.d       vr17,     vr0,      vr26
+
+.irp i, vr4, vr5, vr6, vr7, vr14, vr15, vr16, vr17
+    vsrari.h      \i,        \i,      4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+
+endfunc
+
+function inv_txfm_add_adst_identity_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -32
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr16, vr17
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr16,     0
+    vsllwil.w.h   vr11,     vr17,     0
+    adst8x8_1d_lsx vr24, vr25, vr26, vr27
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr16
+    vexth.w.h     vr11,     vr17
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vreplgr2vr.h  vr23,     zero
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+.irp i, vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3
+    vsrari.h      \i,       \i,       1
+.endr
+
+    LSX_TRANSPOSE8x8_H vr24, vr25, vr26, vr27, vr0, vr1, vr2, vr3, \
+                       vr24, vr25, vr20, vr21, vr26, vr27, vr22, vr23, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr16, vr17
+
+    vshuf4i.h     vr26,     vr26,     0x1b
+    vshuf4i.h     vr27,     vr27,     0x1b
+    vshuf4i.h     vr22,     vr22,     0x1b
+    vshuf4i.h     vr23,     vr23,     0x1b
+
+    // identity8
+    vsllwil.w.h   vr16,     vr24,     1
+    vsllwil.w.h   vr17,     vr25,     1
+    vsllwil.w.h   vr10,     vr20,     1
+    vsllwil.w.h   vr11,     vr21,     1
+    vsllwil.w.h   vr18,     vr26,     1
+    vsllwil.w.h   vr19,     vr27,     1
+    vsllwil.w.h   vr14,     vr22,     1
+    vsllwil.w.h   vr15,     vr23,     1
+
+.irp i, vr24, vr25, vr20, vr21, vr26, vr27, vr22, vr23
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr24, vr25, vr20, vr21, vr26, vr27, vr22, vr23
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr18,     vr16,     4    // in0
+    vssrarni.h.w  vr19,     vr17,     4    // in1
+    vssrarni.h.w  vr14,     vr10,     4    // in2
+    vssrarni.h.w  vr15,     vr11,     4    // in3
+    vssrarni.h.w  vr26,     vr24,     4    // in4
+    vssrarni.h.w  vr27,     vr25,     4    // in5
+    vssrarni.h.w  vr22,     vr20,     4    // in6
+    vssrarni.h.w  vr23,     vr21,     4    // in7
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr18, vr19, vr14, vr15
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr26, vr27, vr22, vr23
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    addi.d        sp,       sp,       32
+endfunc
+
+function inv_txfm_add_identity_adst_8x8_8bpc_lsx
+    addi.d        sp,       sp,       -48
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+
+    // identity8
+    vsllwil.w.h   vr6,      vr0,      1
+    vsllwil.w.h   vr7,      vr1,      1
+    vsllwil.w.h   vr8,      vr2,      1
+    vsllwil.w.h   vr9,      vr3,      1
+    vsllwil.w.h   vr10,     vr4,      1
+    vsllwil.w.h   vr11,     vr5,      1
+    vsllwil.w.h   vr12,     vr24,     1
+    vsllwil.w.h   vr13,     vr25,     1
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vexth.w.h     \i,       \i
+.endr
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25
+    vslli.w       \i,       \i,       1
+.endr
+
+    vssrarni.h.w  vr0,      vr6,      1   // in0
+    vssrarni.h.w  vr1,      vr7,      1   // in1
+    vssrarni.h.w  vr2,      vr8,      1   // in2
+    vssrarni.h.w  vr3,      vr9,      1   // in3
+    vssrarni.h.w  vr4,      vr10,     1   // in4
+    vssrarni.h.w  vr5,      vr11,     1   // in5
+    vssrarni.h.w  vr24,     vr12,     1   // in6
+    vssrarni.h.w  vr25,     vr13,     1   // in7
+
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25, \
+                       vr0, vr1, vr2, vr3, vr4, vr5, vr24, vr25, \
+                       vr6, vr7, vr8, vr9, vr10, vr11, vr12, vr13
+
+    vreplgr2vr.h  vr23,     zero
+
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    vsllwil.w.h   vr18,     vr0,      0
+    vsllwil.w.h   vr19,     vr1,      0
+    vsllwil.w.h   vr6,      vr2,      0
+    vsllwil.w.h   vr7,      vr3,      0
+    vsllwil.w.h   vr8,      vr4,      0
+    vsllwil.w.h   vr9,      vr5,      0
+    vsllwil.w.h   vr10,     vr24,     0
+    vsllwil.w.h   vr11,     vr25,     0
+    adst8x8_1d_lsx vr26, vr27, vr28, vr29
+
+    vexth.w.h     vr18,     vr0
+    vexth.w.h     vr19,     vr1
+    vexth.w.h     vr6,      vr2
+    vexth.w.h     vr7,      vr3
+    vexth.w.h     vr8,      vr4
+    vexth.w.h     vr9,      vr5
+    vexth.w.h     vr10,     vr24
+    vexth.w.h     vr11,     vr25
+
+    adst8x8_1d_lsx vr0, vr1, vr2, vr3
+
+    vilvl.d       vr4,      vr0,      vr26  // 0 ... 7
+    vilvl.d       vr5,      vr1,      vr27  // 8 ... 15
+    vilvl.d       vr6,      vr2,      vr28  // 16 ... 23
+    vilvl.d       vr7,      vr3,      vr29  // 24 ... 31
+    vilvh.d       vr14,     vr3,      vr29  // 32 ... 39
+    vilvh.d       vr15,     vr2,      vr28  // 40 ... 47
+    vilvh.d       vr16,     vr1,      vr27  // 48 ... 55
+    vilvh.d       vr17,     vr0,      vr26  // 56 ... 63
+
+.irp i, vr4, vr5, vr6, vr7, vr14, vr15, vr16, vr17
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,    1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr14, vr15, vr16, vr17
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    addi.d        sp,       sp,       48
+endfunc
+
+.macro vmul_vmadd_w in0, in1, in2, in3, out0, out1
+    vsllwil.w.h   vr22,     \in0,     0
+    vexth.w.h     vr23,     \in0
+    vmul.w        \out0,    vr22,     \in2
+    vmul.w        \out1,    vr23,     \in2
+    vsllwil.w.h   vr22,     \in1,     0
+    vexth.w.h     vr23,     \in1
+    vmadd.w       \out0,    vr22,     \in3
+    vmadd.w       \out1,    vr23,     \in3
+.endm
+
+.macro vmul_vmsub_w in0, in1, in2, in3, out0, out1
+    vsllwil.w.h   vr22,     \in0,     0
+    vexth.w.h     vr23,     \in0
+    vmul.w        \out0,    vr22,     \in2
+    vmul.w        \out1,    vr23,     \in2
+    vsllwil.w.h   vr22,     \in1,     0
+    vexth.w.h     vr23,     \in1
+    vmsub.w       \out0,    vr22,     \in3
+    vmsub.w       \out1,    vr23,     \in3
+.endm
+
+.macro rect2_lsx in0, in1, out0
+    vsllwil.w.h   vr22,     \in0,     0     // in1
+    vexth.w.h     \in0,     \in0            // in1
+    vmul.w        vr22,     vr22,     \in1
+    vmul.w        \out0,    \in0,     \in1
+    vssrarni.h.w  \out0,    vr22,     12
+.endm
+
+.macro dct_8x8_core_lsx in0, in1, in2, in3, in4, in5, in6, in7, out0, \
+                        out1, out2, out3, out4, out5, out6, out7, rect2
+
+    la.local      t0,       idct_coeffs
+
+.ifc \rect2, rect2_lsx
+    vldrepl.w     vr23,      t0,       0        // 2896
+.irp i, \in0, \in1, \in2, \in3, \in4, \in5, \in6, \in7
+    rect2_lsx \i, vr23, \i
+.endr
+.endif
+    vldrepl.w     vr20,      t0,       8        // 1567
+    vldrepl.w     vr21,      t0,       12       // 3784
+
+    vmul_vmadd_w  \in2, \in6, vr21, vr20, vr8, vr9
+    vssrarni.h.w  vr9,       vr8,      12       // t3
+    vmul_vmsub_w  \in2, \in6, vr20, vr21, vr8, vr10
+    vssrarni.h.w  vr10,      vr8,      12       // t2
+
+    vldrepl.w     vr20,      t0,       0        // 2896
+    vmul_vmadd_w  \in0, \in4, vr20, vr20, vr8, \in2
+    vssrarni.h.w  \in2,      vr8,      12       // t0
+    vmul_vmsub_w  \in0, \in4, vr20, vr20, vr8, \in6
+    vssrarni.h.w  \in6,      vr8,      12       // t1
+
+    vsadd.h       vr8,       \in2,     vr9      // c[0]
+    vssub.h       vr9,       \in2,     vr9      // c[3]
+    vsadd.h       \in0,      \in6,     vr10     // c[1]
+    vssub.h       vr10,      \in6,     vr10     // c[2]
+
+    vldrepl.w     vr20,     t0,        16       // 799
+    vldrepl.w     vr21,     t0,        20       // 4017
+    vmul_vmadd_w  \in1, \in7, vr21, vr20, \in2, \in4
+    vssrarni.h.w  \in4,     \in2,      12       // t7a
+    vmul_vmsub_w  \in1, \in7, vr20, vr21, \in2, \in6
+    vssrarni.h.w  \in6,     \in2,      12       // t4a
+
+    vldrepl.w     vr20,     t0,        24       // 3406
+    vldrepl.w     vr21,     t0,        28       // 2276
+    vmul_vmadd_w  \in5, \in3, vr21, vr20, \in2, \in1
+    vssrarni.h.w  \in1,     \in2,      12       // t6a
+    vmul_vmsub_w  \in5, \in3, vr20, vr21, \in2, \in7
+    vssrarni.h.w  \in7,     \in2,      12       // t5a
+
+    vsadd.h       \in3,     \in6,      \in7     // t4
+    vssub.h       \in6,     \in6,      \in7     // t5a
+    vsadd.h       \in5,     \in4,      \in1     // t7
+    vssub.h       \in4,     \in4,      \in1     // t6a
+
+    vldrepl.w     vr20,     t0,        0        // 2896
+    vmul_vmadd_w  \in4, \in6, vr20, vr20, \in2, \in1
+    vssrarni.h.w  \in1,     \in2,      12       // t6
+    vmul_vmsub_w  \in4, \in6, vr20, vr20, \in2, \in7
+    vssrarni.h.w  \in7,     \in2,      12       // t5
+
+    vsadd.h       \out0,    vr8,       \in5     // c[0]
+    vssub.h       \out7,    vr8,       \in5     // c[7]
+    vsadd.h       \out1,    \in0,      \in1     // c[1]
+    vssub.h       \out6,    \in0,      \in1     // c[6]
+    vsadd.h       \out2,    vr10,      \in7     // c[2]
+    vssub.h       \out5,    vr10,      \in7     // c[5]
+    vsadd.h       \out3,    vr9,       \in3     // c[3]
+    vssub.h       \out4,    vr9,       \in3     // c[4]
+.endm
+
+function inv_txfm_add_dct_dct_8x8_8bpc_lsx
+    bnez          a3,       .NO_HAS_DCONLY_8x8
+
+    ld.h          t2,       a2,       0      // dc
+    vldi          vr0,      0x8b5            // 181
+    vreplgr2vr.w  vr1,      t2
+    vldi          vr5,      0x880            // 128
+    vmul.w        vr2,      vr0,      vr1    // dc * 181
+    st.h          zero,     a2,       0
+    vsrari.w      vr2,      vr2,      8      // (dc * 181 + 128) >> 8
+    vld           vr10,     a0,       0      // 0 1 2 3 4 5 6 7
+    vsrari.w      vr2,      vr2,      1      // (dc + rnd) >> shift
+    vldx          vr11,     a0,       a1     // 8 9 10 11 12 13 14 15
+    alsl.d        t2,       a1,       a0,    1
+    vmadd.w       vr5,      vr2,      vr0
+    vld           vr12,     t2,       0      // 16 17 18 19 20 21 22 23
+    vssrarni.h.w  vr5,      vr5,      12
+    vldx          vr13,     t2,       a1     // 24 25 26 27 28 29 30 31
+
+    DST_ADD_W8 vr10, vr11, vr12, vr13, vr5, vr5, vr5, vr5
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr5, vr5, vr5, vr5
+
+    b             .DCT_DCT_8X8_END
+
+.NO_HAS_DCONLY_8x8:
+
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    la.local      t0,       idct_coeffs
+
+    dct_8x8_core_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                     vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, no_rect2
+
+    LSX_TRANSPOSE8x8_H vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                       vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+.irp i, vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18
+    vsrari.h      \i,       \i,       1
+.endr
+
+    vreplgr2vr.h  vr23,     zero
+
+.irp i, 0, 16, 32, 48, 64, 80, 96, 112
+    vst           vr23,     a2,       \i
+.endr
+
+    dct_8x8_core_lsx vr11, vr12, vr13, vr14, vr15, vr16, vr17, vr18, \
+                     vr4, vr5, vr6, vr7, vr20, vr21, vr22, vr23,  no_rect2
+
+.irp i, vr4, vr5, vr6, vr7, vr20, vr21, vr22, vr23
+    vsrari.h      \i,       \i,       4
+.endr
+
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr4, vr5, vr6, vr7
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+.DCT_DCT_8X8_END:
+
+endfunc
