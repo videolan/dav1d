@@ -453,9 +453,11 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
     case EXCEPTION_DATATYPE_MISALIGNMENT:
-    case EXCEPTION_IN_PAGE_ERROR:
     case EXCEPTION_STACK_OVERFLOW:
         err = "segmentation fault";
+        break;
+    case EXCEPTION_IN_PAGE_ERROR:
+        err = "bus error";
         break;
     default:
         return EXCEPTION_CONTINUE_SEARCH;
@@ -472,6 +474,7 @@ static void signal_handler(const int s) {
         state.catch_signals = 0;
         checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
                            s == SIGILL ? "illegal instruction" :
+                           s == SIGBUS ? "bus error" :
                                          "segmentation fault");
         checkasm_load_context();
     } else {
