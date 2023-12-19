@@ -357,8 +357,11 @@ void dav1d_task_delayed_fg(Dav1dContext *const c, Dav1dPicture *const out,
     atomic_init(&ttd->delayed_fg.progress[1], 0);
     pthread_mutex_lock(&ttd->lock);
     ttd->delayed_fg.exec = 1;
+    ttd->delayed_fg.finished = 0;
     pthread_cond_signal(&ttd->cond);
-    pthread_cond_wait(&ttd->delayed_fg.cond, &ttd->lock);
+    do {
+        pthread_cond_wait(&ttd->delayed_fg.cond, &ttd->lock);
+    } while (!ttd->delayed_fg.finished);
     pthread_mutex_unlock(&ttd->lock);
 }
 
@@ -535,8 +538,10 @@ static inline void delayed_fg_task(const Dav1dContext *const c,
         int done = atomic_fetch_add(&ttd->delayed_fg.progress[1], 1) + 1;
         progmax = atomic_load(&ttd->delayed_fg.progress[0]);
         // signal for completion only once the last runner reaches this
-        if (done >= progmax)
+        if (done >= progmax) {
+            ttd->delayed_fg.finished = 1;
             pthread_cond_signal(&ttd->delayed_fg.cond);
+        }
         break;
     default: abort();
     }
