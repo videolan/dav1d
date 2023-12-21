@@ -28,6 +28,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,12 +37,15 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#ifndef SIGBUS
+/* non-standard, use the same value as mingw-w64 */
+#define SIGBUS 10
+#endif
 #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x04
 #endif
 #else
 #include <unistd.h>
-#include <signal.h>
 #include <time.h>
 #include <pthread.h>
 #ifdef HAVE_PTHREAD_NP_H
@@ -139,7 +143,7 @@ static struct {
     int bench;
     int verbose;
     int function_listing;
-    int catch_signals;
+    volatile sig_atomic_t catch_signals;
     int suffix_length;
     int max_function_name_length;
 #if ARCH_X86_64
@@ -440,31 +444,30 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     if (!state.catch_signals)
         return EXCEPTION_CONTINUE_SEARCH;
 
-    const char *err;
+    int s;
     switch (e->ExceptionRecord->ExceptionCode) {
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
-        err = "fatal arithmetic error";
+        s = SIGFPE;
         break;
     case EXCEPTION_ILLEGAL_INSTRUCTION:
     case EXCEPTION_PRIV_INSTRUCTION:
-        err = "illegal instruction";
+        s = SIGILL;
         break;
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
     case EXCEPTION_DATATYPE_MISALIGNMENT:
     case EXCEPTION_STACK_OVERFLOW:
-        err = "segmentation fault";
+        s = SIGSEGV;
         break;
     case EXCEPTION_IN_PAGE_ERROR:
-        err = "bus error";
+        s = SIGBUS;
         break;
     default:
         return EXCEPTION_CONTINUE_SEARCH;
     }
     state.catch_signals = 0;
-    checkasm_fail_func(err);
-    checkasm_load_context();
+    checkasm_load_context(s);
     return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
 }
 #endif
@@ -472,11 +475,7 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
 static void signal_handler(const int s) {
     if (state.catch_signals) {
         state.catch_signals = 0;
-        checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
-                           s == SIGILL ? "illegal instruction" :
-                           s == SIGBUS ? "bus error" :
-                                         "segmentation fault");
-        checkasm_load_context();
+        checkasm_load_context(s);
     } else {
         /* fall back to the default signal handler */
         static const struct sigaction default_sa = { .sa_handler = SIG_DFL };
@@ -687,11 +686,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef readtime
     if (state.bench) {
-        static int testing = 0;
-        checkasm_save_context();
-        if (!testing) {
+        if (!checkasm_save_context()) {
             checkasm_set_signal_handler_state(1);
-            testing = 1;
             readtime();
             checkasm_set_signal_handler_state(0);
         } else {
@@ -888,6 +884,16 @@ void checkasm_report(const char *const name, ...) {
 
 void checkasm_set_signal_handler_state(const int enabled) {
     state.catch_signals = enabled;
+}
+
+int checkasm_handle_signal(const int s) {
+    if (s) {
+        checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
+                           s == SIGILL ? "illegal instruction" :
+                           s == SIGBUS ? "bus error" :
+                                         "segmentation fault");
+    }
+    return s;
 }
 
 static int check_err(const char *const file, const int line,

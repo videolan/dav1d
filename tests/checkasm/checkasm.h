@@ -39,19 +39,24 @@
  * functions without unwind information. */
 #include <windows.h>
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define checkasm_context CONTEXT
-#define checkasm_save_context() RtlCaptureContext(&checkasm_context_buf)
-#define checkasm_load_context() RtlRestoreContext(&checkasm_context_buf, NULL)
+typedef struct { CONTEXT c; int status; } checkasm_context;
+#define checkasm_save_context() \
+    (checkasm_context_buf.status = 0, \
+     RtlCaptureContext(&checkasm_context_buf.c), \
+     checkasm_handle_signal(checkasm_context_buf.status))
+#define checkasm_load_context(s) \
+    (checkasm_context_buf.status = s, \
+     RtlRestoreContext(&checkasm_context_buf.c, NULL))
 #else
-#define checkasm_context void*
-#define checkasm_save_context() do {} while (0)
+typedef void* checkasm_context;
+#define checkasm_save_context() 0
 #define checkasm_load_context() do {} while (0)
 #endif
 #else
 #include <setjmp.h>
-#define checkasm_context jmp_buf
-#define checkasm_save_context() setjmp(checkasm_context_buf)
-#define checkasm_load_context() longjmp(checkasm_context_buf, 1)
+typedef jmp_buf checkasm_context;
+#define checkasm_save_context() checkasm_handle_signal(setjmp(checkasm_context_buf))
+#define checkasm_load_context(s) longjmp(checkasm_context_buf, s)
 #endif
 
 #include "include/common/attributes.h"
@@ -82,6 +87,7 @@ int checkasm_fail_func(const char *msg, ...);
 void checkasm_update_bench(int iterations, uint64_t cycles);
 void checkasm_report(const char *name, ...);
 void checkasm_set_signal_handler_state(int enabled);
+int checkasm_handle_signal(int s);
 extern checkasm_context checkasm_context_buf;
 
 /* float compare utilities */
