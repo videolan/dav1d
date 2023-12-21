@@ -36,7 +36,6 @@
 #include "src/cpu.h"
 
 #ifdef _WIN32
-#include <windows.h>
 #ifndef SIGBUS
 /* non-standard, use the same value as mingw-w64 */
 #define SIGBUS 10
@@ -472,15 +471,18 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
 }
 #endif
 #else
+static void signal_handler(int s);
+
+static const struct sigaction signal_handler_act = {
+    .sa_handler = signal_handler,
+    .sa_flags = SA_RESETHAND,
+};
+
 static void signal_handler(const int s) {
     if (state.catch_signals) {
         state.catch_signals = 0;
+        sigaction(s, &signal_handler_act, NULL);
         checkasm_load_context(s);
-    } else {
-        /* fall back to the default signal handler */
-        static const struct sigaction default_sa = { .sa_handler = SIG_DFL };
-        sigaction(s, &default_sa, NULL);
-        raise(s);
     }
 }
 #endif
@@ -671,14 +673,10 @@ int main(int argc, char *argv[]) {
                        SetConsoleMode(con, con_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 #else
-    const struct sigaction sa = {
-        .sa_handler = signal_handler,
-        .sa_flags = SA_NODEFER,
-    };
-    sigaction(SIGBUS,  &sa, NULL);
-    sigaction(SIGFPE,  &sa, NULL);
-    sigaction(SIGILL,  &sa, NULL);
-    sigaction(SIGSEGV, &sa, NULL);
+    sigaction(SIGBUS,  &signal_handler_act, NULL);
+    sigaction(SIGFPE,  &signal_handler_act, NULL);
+    sigaction(SIGILL,  &signal_handler_act, NULL);
+    sigaction(SIGSEGV, &signal_handler_act, NULL);
 
     const char *const term = getenv("TERM");
     use_printf_color = term && strcmp(term, "dumb") && isatty(2);
