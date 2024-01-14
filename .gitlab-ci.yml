@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20230512061205
+    image: registry.videolan.org/dav1d-debian-unstable:20240113214804
     stage: build
     tags:
         - docker
