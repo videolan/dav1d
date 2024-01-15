@@ -418,6 +418,19 @@ build-debian-wasm:
       matrix:
         - CROSSFILE: [wasm32, wasm64]
 
+build-debian-loongarch64:
+    extends: .debian-amd64-common
+    variables:
+        QEMU_CPU: max-loongarch-cpu
+        QEMU_LD_PREFIX: /opt/cross-tools/target/
+    script:
+        - meson setup build --buildtype release
+                            -Dtrim_dsp=false
+                            --werror
+                            --cross-file package/crossfiles/loongarch64-linux.meson
+        - ninja -C build
+        - cd build && meson test -v
+
 
 .test-common:
     stage: test
@@ -696,6 +709,23 @@ test-debian-armv7-clang-5:
                                     -Dtrim_dsp=false
         - ninja -C build
         - cd build && time meson test -v
+
+test-debian-loongarch64:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian-loongarch64"]
+    variables:
+        QEMU_CPU: max-loongarch-cpu
+        QEMU_LD_PREFIX: /opt/cross-tools/target/
+    script:
+        - meson setup build --buildtype release
+                            -Dtestdata_tests=true
+                            -Dlogging=false
+                            -Dtrim_dsp=false
+                            --cross-file package/crossfiles/loongarch64-linux.meson
+        - ninja -C build
+        - cd build && time meson test -v --timeout-multiplier 2
 
 .test-argon-script: &test-argon-script
         - meson setup build --buildtype release
