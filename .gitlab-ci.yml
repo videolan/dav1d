@@ -463,11 +463,11 @@ build-debian-loongarch64:
         - ninja -C build
         - cd build
         - exit_code=0
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0"     || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask sse2"  || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask ssse3" || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask sse41" || exit_code=$((exit_code + $?))
-        - time meson test -q --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx2"  || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata --test-args "--cpumask 0"     || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata --test-args "--cpumask sse2"  || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata --test-args "--cpumask ssse3" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata --test-args "--cpumask sse41" || exit_code=$((exit_code + $?))
+        - time meson test -q --suite testdata --test-args "--cpumask avx2"  || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 .test-argon:
@@ -509,7 +509,7 @@ test-debian:
           grep -Eo '[0-9.]+' | awk '{ print "coverage:", $1 * 100 } '
         - time meson test -v --suite testdata_seek-stress --test-args "--threads 2 --framedelay 1"
         - time meson test -v --suite testdata_seek-stress --test-args "--threads 2 --framedelay 2"
-        - time meson test -v --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads=1 --negstride"
+        - time meson test -v --suite testdata --test-args "--threads=1 --negstride"
     coverage: '/^coverage: (\d+.\d+)$/'
     artifacts:
         expose_as: 'Coverage HTML report'
@@ -547,8 +547,8 @@ test-debian-avx512:
                             -Dtestdata_tests=true
                             -Dtrim_dsp=false
         - ninja -C build
-        - cd build && time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask avx512icl"
-        - time meson test --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 2 --cpumask avx512icl"
+        - cd build && time meson test --suite testdata --test-args "--cpumask avx512icl"
+        - time meson test --suite testdata --test-args "--threads 2 --framedelay 2 --cpumask avx512icl"
 
 test-debian-unaligned-stack:
     extends:
@@ -584,8 +584,8 @@ test-debian-asan:
         - cd build
         - exit_code=0
         - time meson test -v --setup=sanitizer --suite checkasm || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0"    || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--cpumask 0xff" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata --test-args "--cpumask 0"    || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata --test-args "--cpumask 0xff" || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-msan:
@@ -641,9 +641,9 @@ test-debian-tsan:
         - ninja -C build
         - cd build
         - exit_code=0
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 1"             || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 2"             || exit_code=$((exit_code + $?))
-        - time meson test -v --setup=sanitizer --suite testdata-8 --suite testdata-10 --suite testdata-12 --test-args "--threads 2 --framedelay 2 --negstride" || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata --test-args "--threads 2 --framedelay 1"             || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata --test-args "--threads 2 --framedelay 2"             || exit_code=$((exit_code + $?))
+        - time meson test -v --setup=sanitizer --suite testdata --test-args "--threads 2 --framedelay 2 --negstride" || exit_code=$((exit_code + $?))
         - time meson test -v --setup=sanitizer --suite testdata_seek-stress --test-args "--threads 2 --framedelay 1"                                           || exit_code=$((exit_code + $?))
         - time meson test -v --setup=sanitizer --suite testdata_seek-stress --test-args "--threads 2 --framedelay 2"                                           || exit_code=$((exit_code + $?))
         - time meson test -v --setup=sanitizer --suite oss-fuzz-asan --suite oss-fuzz-msan --suite oss-fuzz-ubsan                                              || exit_code=$((exit_code + $?))
