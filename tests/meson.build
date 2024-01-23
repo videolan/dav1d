@@ -128,7 +128,7 @@ endforeach
 subdir('libfuzzer')
 
 # seek stress test binary, depends on dav1d cli tool
-if get_option('enable_tools')
+if (get_option('enable_tools') and get_option('enable_seek_stress'))
     seek_stress_sources = files('seek_stress.c')
     seek_stress = executable('seek_stress',
         seek_stress_sources, rev_target,

@@ -497,6 +497,7 @@ test-debian:
     script:
         - meson setup build --buildtype release
                             -Dtestdata_tests=true
+                            -Denable_seek_stress=true
                             -Dlogging=false
                             -Db_coverage=true
                             -Dtrim_dsp=false
@@ -562,6 +563,7 @@ test-debian-unaligned-stack:
     script:
         - meson setup build --buildtype release
                             -Dtestdata_tests=true
+                            -Denable_seek_stress=true
                             -Dlogging=false
                             -Dstack_alignment=16
                             -Dtrim_dsp=false
@@ -599,6 +601,7 @@ test-debian-msan:
     script:
         - meson setup build --buildtype debugoptimized
                             -Dtestdata_tests=true
+                            -Denable_seek_stress=true
                             -Dlogging=false
                             -Db_sanitize=memory
                             -Db_lundef=false
@@ -617,6 +620,7 @@ test-debian-ubsan:
     script:
         - meson setup build --buildtype debugoptimized
                             -Dtestdata_tests=true
+                            -Denable_seek_stress=true
                             -Dlogging=false
                             -Db_sanitize=undefined
                             -Db_lundef=false
@@ -635,6 +639,7 @@ test-debian-tsan:
     script:
         - meson setup build --buildtype debugoptimized
                             -Dtestdata_tests=true
+                            -Denable_seek_stress=true
                             -Dlogging=false
                             -Db_sanitize=thread
                             -Db_lundef=false
