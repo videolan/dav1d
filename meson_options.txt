@@ -27,7 +27,7 @@ option('enable_tests',
 
 option('enable_seek_stress',
     type: 'boolean',
-    value: true,
+    value: false,
     description: 'Build seek_stress test tool')
 
 option('enable_docs',
