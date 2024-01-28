@@ -180,6 +180,8 @@ endfunc
 
 def_fn_4x4 dct, dct
 def_fn_4x4 identity, identity
+def_fn_4x4 dct, identity
+def_fn_4x4 identity, dct
 
 .macro def_fn_8x8_base variant
 function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
