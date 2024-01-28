@@ -30,7 +30,7 @@
 function inv_txfm_add_4x4_rvv, export=1, ext=v
   csrw vxrm, zero
 
-  vsetivli zero, 4, e16, m1, ta, ma
+  vsetivli zero, 4, e16, mf2, ta, ma
   vle16.v v0, (a2)
   addi t0, a2, 8
   vle16.v v1, (t0)
@@ -64,7 +64,7 @@ function inv_txfm_add_4x4_rvv, export=1, ext=v
   vssra.vi v3, v3, 4
 
 itx_4x4_end:
-  vsetvli zero, zero, e8, mf2, ta, ma
+  vsetvli zero, zero, e8, mf4, ta, ma
   vle8.v v4, (a0)
   add t0, a0, a1
   vle8.v v5, (t0)
@@ -78,10 +78,13 @@ itx_4x4_end:
   vwaddu.wv v2, v2, v6
   vwaddu.wv v3, v3, v7
 
-  vsetvli t0, zero, e16, m4
-  vmax.vx v0, v0, x0
+  vsetvli zero, zero, e16, mf2, ta, ma
+  vmax.vx v0, v0, zero
+  vmax.vx v1, v1, zero
+  vmax.vx v2, v2, zero
+  vmax.vx v3, v3, zero
 
-  vsetivli zero, 4, e8, mf2, ta, ma
+  vsetvli zero, zero, e8, mf4, ta, ma
 
   vnclipu.wi v4, v0, 0
   vnclipu.wi v5, v1, 0
@@ -162,7 +165,7 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1, ext=v
 .ifc \txfm1\()_\txfm2, dct_dct
 1:
   csrw vxrm, zero
-  vsetivli zero, 4, e16, m1, ta, ma
+  vsetivli zero, 4, e16, mf2, ta, ma
   ld t2, (a2)
   li t1, 2896*8
   vmv.v.x v0, t2
