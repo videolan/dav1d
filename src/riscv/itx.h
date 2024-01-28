@@ -32,7 +32,8 @@
 decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_##w##x##h, opt))
 
 #define decl_itx_fns(ext) \
-decl_itx2_fns( 4,  4, ext)
+decl_itx2_fns( 4,  4, ext); \
+decl_itx2_fns( 8,  8, ext)
 
 decl_itx_fns(rvv);
 
@@ -50,5 +51,6 @@ static ALWAYS_INLINE void itx_dsp_init_riscv(Dav1dInvTxfmDSPContext *const c, in
 
 #if BITDEPTH == 8
   assign_itx2_fn( ,  4,  4, rvv);
+  assign_itx2_fn( ,  8,  8, rvv);
 #endif
 }
