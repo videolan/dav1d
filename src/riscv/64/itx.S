@@ -41,14 +41,20 @@ function inv_txfm_add_4x4_rvv, export=1, ext=v
 
   jalr t0, a4
 
+  vmv.v.x v4, zero
+
   vsseg4e16.v v0, (a2)
   vle16.v v0, (a2)
+  vse16.v v4, (a2)
   addi t0, a2, 8
   vle16.v v1, (t0)
+  vse16.v v4, (t0)
   addi t0, t0, 8
   vle16.v v2, (t0)
+  vse16.v v4, (t0)
   addi t0, t0, 8
   vle16.v v3, (t0)
+  vse16.v v4, (t0)
 
   jalr t0, a5
 
@@ -57,6 +63,7 @@ function inv_txfm_add_4x4_rvv, export=1, ext=v
   vssra.vi v2, v2, 4
   vssra.vi v3, v3, 4
 
+itx_4x4_end:
   vsetvli zero, zero, e8, mf2, ta, ma
   vle8.v v4, (a0)
   add t0, a0, a1
@@ -88,10 +95,6 @@ function inv_txfm_add_4x4_rvv, export=1, ext=v
   vse8.v v6, (a0)
   add a0, a0, a1
   vse8.v v7, (a0)
-
-  vsetivli zero, 16, e16, m2, ta, ma
-  vmv.v.x v0, zero
-  vse16.v v0, (a2)
 
   ret
 endfunc
@@ -149,10 +152,29 @@ function inv_dct_e16_x4_rvv, export=1, ext=v
 endfunc
 
 .macro def_fn_4x4 txfm1, txfm2
-function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1, ext=v
+.ifc \txfm1\()_\txfm2, dct_dct
+  beqz a3, 1f
+.endif
   la a4, inv_\txfm1\()_e16_x4_rvv
   la a5, inv_\txfm2\()_e16_x4_rvv
   j inv_txfm_add_4x4_rvv
+.ifc \txfm1\()_\txfm2, dct_dct
+1:
+  csrw vxrm, zero
+  vsetivli zero, 4, e16, m1, ta, ma
+  ld t2, (a2)
+  li t1, 2896*8
+  vmv.v.x v0, t2
+  vsmul.vx v0, v0, t1
+  sd x0, (a2)
+  vsmul.vx v0, v0, t1
+  vssra.vi v0, v0, 4
+  vmv.v.v v1, v0
+  vmv.v.v v2, v0
+  vmv.v.v v3, v0
+  j itx_4x4_end
+.endif
 endfunc
 .endm
 
