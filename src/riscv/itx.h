@@ -29,6 +29,7 @@
 #include "src/itx.h"
 
 #define decl_itx2_fns(w, h, opt) \
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_##w##x##h, opt)); \
 decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_##w##x##h, opt))
 
 #define decl_itx_fns(ext) \
@@ -42,6 +43,9 @@ static ALWAYS_INLINE void itx_dsp_init_riscv(Dav1dInvTxfmDSPContext *const c, in
     c->itxfm_add[pfx##TX_##w##X##h][type_enum] = \
         BF(dav1d_inv_txfm_add_##type##_##w##x##h, ext)
 
+#define assign_itx1_fn(pfx, w, h, ext) \
+    assign_itx_fn(pfx, w, h, dct_dct,           DCT_DCT,           ext)
+
 #define assign_itx2_fn(pfx, w, h, ext) \
     assign_itx_fn(pfx, w, h, identity_identity, IDTX,              ext)
 
@@ -50,6 +54,7 @@ static ALWAYS_INLINE void itx_dsp_init_riscv(Dav1dInvTxfmDSPContext *const c, in
   if (!(flags & DAV1D_RISCV_CPU_FLAG_V)) return;
 
 #if BITDEPTH == 8
+  assign_itx1_fn( ,  4,  4, rvv);
   assign_itx2_fn( ,  4,  4, rvv);
   assign_itx2_fn( ,  8,  8, rvv);
 #endif

@@ -111,6 +111,43 @@ function inv_identity_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_dct_e16_x4_rvv, export=1, ext=v
+  li t1, 2896
+  li t2, 1567
+  li t3, 3784
+
+  vwmul.vx v8, v0, t1
+  vwmul.vx v10, v0, t1
+  vwmacc.vx v8, t1, v2
+  neg t1, t1
+  vwmacc.vx v10, t1, v2
+
+  vwmul.vx v12, v1, t3
+  neg t3, t3
+  vwmul.vx v14, v1, t2
+  vwmacc.vx v12, t2, v3
+  vwmacc.vx v14, t3, v3
+
+  li t1, 2048
+
+  vwadd.wx v8, v8, t1
+  vwadd.wx v10, v10, t1
+  vwadd.wx v12, v12, t1
+  vwadd.wx v14, v14, t1
+
+  vnsra.wi v8, v8, 12
+  vnsra.wi v10, v10, 12
+  vnsra.wi v12, v12, 12
+  vnsra.wi v14, v14, 12
+
+  vsadd.vv v0, v8, v12
+  vsadd.vv v1, v10, v14
+  vssub.vv v2, v10, v14
+  vssub.vv v3, v8, v12
+
+  jr t0
+endfunc
+
 .macro def_fn_4x4 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1
   la a4, inv_\txfm1\()_e16_x4_rvv
@@ -119,6 +156,7 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1
 endfunc
 .endm
 
+def_fn_4x4 dct, dct
 def_fn_4x4 identity, identity
 
 .macro def_fn_8x8_base variant
