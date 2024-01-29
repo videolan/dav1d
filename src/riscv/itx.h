@@ -104,6 +104,6 @@ static ALWAYS_INLINE void itx_dsp_init_riscv(Dav1dInvTxfmDSPContext *const c, in
 
 #if BITDEPTH == 8
   assign_itx16_fn( ,  4,  4, rvv);
-  assign_itx_fn( , 8, 8, identity_identity, IDTX,      rvv);
+  assign_itx2_fn( ,  8,  8, rvv);
 #endif
 }
