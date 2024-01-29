@@ -154,7 +154,7 @@ function inv_dct_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_adst_e16_x4_rvv, export=1, ext=v
+.macro iadst_4 o0, o1, o2, o3
   li t1, 1321
   li t2, 3803
   li t3, 2482
@@ -192,11 +192,14 @@ function inv_adst_e16_x4_rvv, export=1, ext=v
 
   vsetvli zero, zero, e16, mf2, ta, ma
 
-  vnsra.wi v0, v4, 12
-  vnsra.wi v1, v5, 12
-  vnsra.wi v2, v6, 12
-  vnsra.wi v3, v7, 12
+  vnsra.wi \o0, v4, 12
+  vnsra.wi \o1, v5, 12
+  vnsra.wi \o2, v6, 12
+  vnsra.wi \o3, v7, 12
+.endm
 
+function inv_adst_e16_x4_rvv, export=1, ext=v
+  iadst_4 v0, v1, v2, v3
   jr t0
 endfunc
 
