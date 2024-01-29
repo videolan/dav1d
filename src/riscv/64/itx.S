@@ -319,7 +319,15 @@ function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
   vssra.vi v6, v6, 4
   vssra.vi v7, v7, 4
 
-  vsetvli zero, zero, e8, mf2, ta, ma
+  li t1, 64
+  vsetvli zero, t1, e16, m8, ta, ma
+  vmv.v.x v8, zero
+  vse16.v v8, (a2)
+
+.ifc \variant, identity_
+itx_8x8_end:
+.endif
+  vsetivli zero, 8, e8, mf2, ta, ma
   vle8.v v8, (a0)
   add t0, a0, a1
   vle8.v v9, (t0)
@@ -381,11 +389,6 @@ function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
   vse8.v v14, (a0)
   add a0, a0, a1
   vse8.v v15, (a0)
-
-  li t1, 64
-  vsetvli zero, t1, e16, m8, ta, ma
-  vmv.v.x v0, zero
-  vse16.v v0, (a2)
 
   ret
 endfunc
@@ -472,13 +475,37 @@ function inv_dct_e16_x8_rvv, export=1, ext=v
 endfunc
 
 .macro def_fn_8x8 txfm1, txfm2
-function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_rvv, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_rvv, export=1, ext=v
+.ifc \txfm1\()_\txfm2, dct_dct
+  beqz a3, 1f
+.endif
   la a5, inv_\txfm2\()_e16_x8_rvv
 .ifc \txfm1, identity
   j inv_txfm_identity_add_8x8_rvv
 .else
   la a4, inv_\txfm1\()_e16_x8_rvv
   j inv_txfm_add_8x8_rvv
+.endif
+.ifc \txfm1\()_\txfm2, dct_dct
+1:
+  csrw vxrm, zero
+  vsetivli zero, 8, e16, m1, ta, ma
+  ld t2, (a2)
+  li t1, 2896*8
+  vmv.v.x v0, t2
+  vsmul.vx v0, v0, t1
+  sd x0, (a2)
+  vssra.vi v0, v0, 1
+  vsmul.vx v0, v0, t1
+  vssra.vi v0, v0, 4
+  vmv.v.v v1, v0
+  vmv.v.v v2, v0
+  vmv.v.v v3, v0
+  vmv.v.v v4, v0
+  vmv.v.v v5, v0
+  vmv.v.v v6, v0
+  vmv.v.v v7, v0
+  j itx_8x8_end
 .endif
 endfunc
 .endm
