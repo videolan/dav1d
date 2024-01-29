@@ -512,3 +512,5 @@ endfunc
 
 def_fn_8x8 dct, dct
 def_fn_8x8 identity, identity
+def_fn_8x8 dct, identity
+def_fn_8x8 identity, dct
