@@ -203,6 +203,11 @@ function inv_adst_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_flipadst_e16_x4_rvv, export=1, ext=v
+  iadst_4 v3, v2, v1, v0
+  jr t0
+endfunc
+
 .macro def_fn_4x4 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_rvv, export=1, ext=v
 .ifc \txfm1\()_\txfm2, dct_dct
@@ -233,12 +238,19 @@ endfunc
 def_fn_4x4 dct, dct
 def_fn_4x4 identity, identity
 def_fn_4x4 dct, adst
+def_fn_4x4 dct, flipadst
 def_fn_4x4 dct, identity
 def_fn_4x4 adst, dct
 def_fn_4x4 adst, adst
+def_fn_4x4 adst, flipadst
+def_fn_4x4 flipadst, dct
+def_fn_4x4 flipadst, adst
+def_fn_4x4 flipadst, flipadst
 def_fn_4x4 identity, dct
 def_fn_4x4 adst, identity
+def_fn_4x4 flipadst, identity
 def_fn_4x4 identity, adst
+def_fn_4x4 identity, flipadst
 
 .macro def_fn_8x8_base variant
 function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
