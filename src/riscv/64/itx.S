@@ -117,22 +117,22 @@ function inv_identity_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_dct_e16_x4_rvv, export=1, ext=v
+.macro idct_4 o0, o1, o2, o3
   li t1, 2896
   li t2, 1567
   li t3, 3784
 
-  vwmul.vx v8, v0, t1
-  vwmul.vx v10, v0, t1
-  vwmacc.vx v8, t1, v2
+  vwmul.vx v8, \o0, t1
+  vwmul.vx v10, \o0, t1
+  vwmacc.vx v8, t1, \o2
   neg t1, t1
-  vwmacc.vx v10, t1, v2
+  vwmacc.vx v10, t1, \o2
 
-  vwmul.vx v12, v1, t3
+  vwmul.vx v12, \o1, t3
   neg t3, t3
-  vwmul.vx v14, v1, t2
-  vwmacc.vx v12, t2, v3
-  vwmacc.vx v14, t3, v3
+  vwmul.vx v14, \o1, t2
+  vwmacc.vx v12, t2, \o3
+  vwmacc.vx v14, t3, \o3
 
   li t1, 2048
 
@@ -146,13 +146,11 @@ function inv_dct_e16_x4_rvv, export=1, ext=v
   vnsra.wi v12, v12, 12
   vnsra.wi v14, v14, 12
 
-  vsadd.vv v0, v8, v12
-  vsadd.vv v1, v10, v14
-  vssub.vv v2, v10, v14
-  vssub.vv v3, v8, v12
-
-  jr t0
-endfunc
+  vsadd.vv \o0, v8, v12
+  vsadd.vv \o1, v10, v14
+  vssub.vv \o2, v10, v14
+  vssub.vv \o3, v8, v12
+.endm
 
 .macro iadst_4 o0, o1, o2, o3
   li t1, 1321
@@ -197,6 +195,11 @@ endfunc
   vnsra.wi \o2, v6, 12
   vnsra.wi \o3, v7, 12
 .endm
+
+function inv_dct_e16_x4_rvv, export=1, ext=v
+  idct_4 v0, v1, v2, v3
+  jr t0
+endfunc
 
 function inv_adst_e16_x4_rvv, export=1, ext=v
   iadst_4 v0, v1, v2, v3
