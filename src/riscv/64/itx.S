@@ -603,6 +603,11 @@ function inv_adst_e16_x8_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_flipadst_e16_x8_rvv, export=1, ext=v
+  iadst_8 v7, v6, v5, v4, v3, v2, v1, v0
+  jr t0
+endfunc
+
 .macro def_fn_8x8 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_rvv, export=1, ext=v
 .ifc \txfm1\()_\txfm2, dct_dct
@@ -642,9 +647,16 @@ endfunc
 def_fn_8x8 dct, dct
 def_fn_8x8 identity, identity
 def_fn_8x8 dct, adst
+def_fn_8x8 dct, flipadst
 def_fn_8x8 dct, identity
 def_fn_8x8 adst, dct
 def_fn_8x8 adst, adst
+def_fn_8x8 adst, flipadst
+def_fn_8x8 flipadst, dct
+def_fn_8x8 flipadst, adst
+def_fn_8x8 flipadst, flipadst
 def_fn_8x8 identity, dct
 def_fn_8x8 adst, identity
+def_fn_8x8 flipadst, identity
 def_fn_8x8 identity, adst
+def_fn_8x8 identity, flipadst
