@@ -474,7 +474,7 @@ function inv_dct_e16_x8_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_adst_e16_x8_rvv, export=1, ext=v
+.macro iadst_8 o0, o1, o2, o3, o4, o5, o6, o7
   li t1, 4076
   li t2, 401
   li t3, 3612
@@ -540,8 +540,8 @@ function inv_adst_e16_x8_rvv, export=1, ext=v
   vssub.vv v6, v12, v20
   vssub.vv v22, v14, v22
 
-  vsadd.vv v0, v8, v2
-  vsadd.vv v7, v1, v3
+  vsadd.vv \o0, v8, v2
+  vsadd.vv \o7, v1, v3
   vssub.vv v2, v8, v2
   vssub.vv v3, v1, v3
 
@@ -566,8 +566,8 @@ function inv_adst_e16_x8_rvv, export=1, ext=v
   vnsra.wi v12, v12, 12
   vnsra.wi v14, v14, 12
 
-  vsadd.vv v1, v8, v12
-  vsadd.vv v6, v10, v14
+  vsadd.vv \o1, v8, v12
+  vsadd.vv \o6, v10, v14
   vssub.vv v8, v8, v12
   vssub.vv v9, v10, v14
 
@@ -586,17 +586,20 @@ function inv_adst_e16_x8_rvv, export=1, ext=v
   vwadd.wx v14, v14, t1
   vwadd.wx v16, v16, t1
 
-  vnsra.wi v3, v10, 12
-  vnsra.wi v4, v12, 12
-  vnsra.wi v2, v14, 12
-  vnsra.wi v5, v16, 12
+  vnsra.wi \o3, v10, 12
+  vnsra.wi \o4, v12, 12
+  vnsra.wi \o2, v14, 12
+  vnsra.wi \o5, v16, 12
 
   vmv.v.x v8, zero
-  vssub.vv v1, v8, v1
-  vssub.vv v3, v8, v3
-  vssub.vv v5, v8, v5
-  vssub.vv v7, v8, v7
+  vssub.vv \o1, v8, \o1
+  vssub.vv \o3, v8, \o3
+  vssub.vv \o5, v8, \o5
+  vssub.vv \o7, v8, \o7
+.endm
 
+function inv_adst_e16_x8_rvv, export=1, ext=v
+  iadst_8 v0, v1, v2, v3, v4, v5, v6, v7
   jr t0
 endfunc
 
