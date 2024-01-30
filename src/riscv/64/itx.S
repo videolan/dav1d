@@ -474,6 +474,132 @@ function inv_dct_e16_x8_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_adst_e16_x8_rvv, export=1, ext=v
+  li t1, 4076
+  li t2, 401
+  li t3, 3612
+  li t4, 1931
+  li t5, 2598
+  li t6, 3166
+
+  vwmul.vx v8, v7, t1
+  neg t1, t1
+  vwmul.vx v10, v7, t2
+  vwmacc.vx v8, t2, v0
+  vwmacc.vx v10, t1, v0
+
+  vwmul.vx v12, v5, t3
+  neg t3, t3
+  vwmul.vx v14, v5, t4
+  vwmacc.vx v12, t4, v2
+  vwmacc.vx v14, t3, v2
+
+  vwmul.vx v16, v3, t5
+  neg t5, t5
+  vwmul.vx v18, v3, t6
+  vwmacc.vx v16, t6, v4
+  vwmacc.vx v18, t5, v4
+
+  li t1, 2048
+  li t2, 1189
+  li t3, 3920
+  li t4, 1567
+  li t5, 3784
+  li t6, 2896
+
+  vwmul.vx v20, v1, t2
+  neg t2, t2
+  vwmul.vx v22, v1, t3
+  vwmacc.vx v20, t3, v6
+  vwmacc.vx v22, t2, v6
+
+  vwadd.wx v8, v8, t1
+  vwadd.wx v10, v10, t1
+  vwadd.wx v12, v12, t1
+  vwadd.wx v14, v14, t1
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+
+  vnsra.wi v8, v8, 12
+  vnsra.wi v10, v10, 12
+  vnsra.wi v12, v12, 12
+  vnsra.wi v14, v14, 12
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
+
+  vssub.vv v4, v8, v16
+  vsadd.vv v8, v8, v16
+  vsadd.vv v1, v10, v18
+  vsadd.vv v2, v12, v20
+  vsadd.vv v3, v14, v22
+  vssub.vv v5, v10, v18
+  vssub.vv v6, v12, v20
+  vssub.vv v22, v14, v22
+
+  vsadd.vv v0, v8, v2
+  vsadd.vv v7, v1, v3
+  vssub.vv v2, v8, v2
+  vssub.vv v3, v1, v3
+
+  vwmul.vx v8, v4, t5
+  vwmul.vx v10, v4, t4
+  vwmul.vx v12, v22, t5
+  vwmul.vx v14, v22, t4
+  vwmacc.vx v8, t4, v5
+  neg t4, t4
+  vwmacc.vx v14, t5, v6
+  neg t5, t5
+  vwmacc.vx v12, t4, v6
+  vwmacc.vx v10, t5, v5
+
+  vwadd.wx v8, v8, t1
+  vwadd.wx v10, v10, t1
+  vwadd.wx v12, v12, t1
+  vwadd.wx v14, v14, t1
+
+  vnsra.wi v8, v8, 12
+  vnsra.wi v10, v10, 12
+  vnsra.wi v12, v12, 12
+  vnsra.wi v14, v14, 12
+
+  vsadd.vv v1, v8, v12
+  vsadd.vv v6, v10, v14
+  vssub.vv v8, v8, v12
+  vssub.vv v9, v10, v14
+
+  vwmul.vx v10, v2, t6
+  vwmul.vx v12, v2, t6
+  vwmul.vx v14, v8, t6
+  vwmul.vx v16, v8, t6
+  vwmacc.vx v10, t6, v3
+  vwmacc.vx v14, t6, v9
+  neg t6, t6
+  vwmacc.vx v12, t6, v3
+  vwmacc.vx v16, t6, v9
+
+  vwadd.wx v10, v10, t1
+  vwadd.wx v12, v12, t1
+  vwadd.wx v14, v14, t1
+  vwadd.wx v16, v16, t1
+
+  vnsra.wi v3, v10, 12
+  vnsra.wi v4, v12, 12
+  vnsra.wi v2, v14, 12
+  vnsra.wi v5, v16, 12
+
+  vmv.v.x v8, zero
+  vssub.vv v1, v8, v1
+  vssub.vv v3, v8, v3
+  vssub.vv v5, v8, v5
+  vssub.vv v7, v8, v7
+
+  jr t0
+endfunc
+
 .macro def_fn_8x8 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_rvv, export=1, ext=v
 .ifc \txfm1\()_\txfm2, dct_dct
@@ -512,5 +638,10 @@ endfunc
 
 def_fn_8x8 dct, dct
 def_fn_8x8 identity, identity
+def_fn_8x8 dct, adst
 def_fn_8x8 dct, identity
+def_fn_8x8 adst, dct
+def_fn_8x8 adst, adst
 def_fn_8x8 identity, dct
+def_fn_8x8 adst, identity
+def_fn_8x8 identity, adst
