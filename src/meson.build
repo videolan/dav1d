@@ -226,24 +226,6 @@ if is_asm_enabled
 
         # Compile the ASM sources with NASM
         libdav1d_asm_objs = nasm_gen.process(libdav1d_sources_asm)
-    elif host_machine.cpu() == 'ppc64le'
-        arch_flags = ['-maltivec', '-mvsx']
-        libdav1d_sources += files(
-            'ppc/cpu.c',
-        )
-        libdav1d_arch_tmpl_sources += files(
-            'ppc/cdef_tmpl.c',
-            'ppc/looprestoration_tmpl.c',
-        )
-    elif host_machine.cpu_family().startswith('riscv')
-        libdav1d_sources += files(
-            'riscv/cpu.c',
-        )
-        if host_machine.cpu_family() == 'riscv64'
-            libdav1d_sources += files(
-                'riscv/64/itx.S',
-            )
-        endif
     elif host_machine.cpu_family().startswith('loongarch')
         libdav1d_sources += files(
             'loongarch/cpu.c',
@@ -262,6 +244,24 @@ if is_asm_enabled
             'loongarch/itx.S',
         )
         libdav1d_asm_objs += libdav1d_sources_asm
+    elif host_machine.cpu() == 'ppc64le'
+        arch_flags = ['-maltivec', '-mvsx']
+        libdav1d_sources += files(
+            'ppc/cpu.c',
+        )
+        libdav1d_arch_tmpl_sources += files(
+            'ppc/cdef_tmpl.c',
+            'ppc/looprestoration_tmpl.c',
+        )
+    elif host_machine.cpu_family().startswith('riscv')
+        libdav1d_sources += files(
+            'riscv/cpu.c',
+        )
+        if host_machine.cpu_family() == 'riscv64'
+            libdav1d_sources += files(
+                'riscv/64/itx.S',
+            )
+        endif
     endif
 endif
 
