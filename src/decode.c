@@ -3282,7 +3282,7 @@ error:
     return retval;
 }
 
-void dav1d_decode_frame_exit(Dav1dFrameContext *const f, const int retval) {
+void dav1d_decode_frame_exit(Dav1dFrameContext *const f, int retval) {
     const Dav1dContext *const c = f->c;
 
     if (f->sr_cur.p.data[0])
@@ -3293,8 +3293,16 @@ void dav1d_decode_frame_exit(Dav1dFrameContext *const f, const int retval) {
                (size_t)f->frame_thread.cf_sz * 128 * 128 / 2);
     }
     for (int i = 0; i < 7; i++) {
-        if (f->refp[i].p.frame_hdr)
+        if (f->refp[i].p.frame_hdr) {
+            if (!retval && c->n_fc > 1 && c->strict_std_compliance &&
+                atomic_load(&f->refp[i].progress[1]) == FRAME_ERROR)
+            {
+                retval = DAV1D_ERR(EINVAL);
+                atomic_store(&f->task_thread.error, 1);
+                atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
+            }
             dav1d_thread_picture_unref(&f->refp[i]);
+        }
         dav1d_ref_dec(&f->ref_mvs_ref[i]);
     }
 
@@ -3348,6 +3356,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
         }
     }
     dav1d_decode_frame_exit(f, res);
+    res = f->task_thread.retval;
     f->n_tile_data = 0;
     return res;
 }
