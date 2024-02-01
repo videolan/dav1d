@@ -2616,6 +2616,25 @@ static void read_restoration_info(Dav1dTaskContext *const t,
     }
 }
 
+// modeled after the equivalent function in aomdec:decodeframe.c
+static int check_trailing_bits_after_symbol_coder(const MsacContext *const msac) {
+    // check marker bit (single 1), followed by zeroes
+    const int n_bits = -(msac->cnt + 14);
+    assert(n_bits <= 0); // this assumes we errored out when cnt <= -15 in caller
+    const int n_bytes = (n_bits + 7) >> 3;
+    const uint8_t *p = &msac->buf_pos[n_bytes];
+    const int pattern = 128 >> ((n_bits - 1) & 7);
+    if ((p[-1] & (2 * pattern - 1)) != pattern)
+        return 1;
+
+    // check remainder zero bytes
+    for (; p < msac->buf_end; p++)
+        if (*p)
+            return 1;
+
+    return 0;
+}
+
 int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
     const Dav1dFrameContext *const f = t->f;
     const enum BlockLevel root_bl = f->seq_hdr->sb128 ? BL_128X128 : BL_64X64;
@@ -2658,9 +2677,6 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
         f->bd_fn.backup_ipred_edge(t);
         return 0;
     }
-
-    // error out on symbol decoder overread
-    if (ts->msac.cnt < -15) return 1;
 
     if (f->c->n_tc > 1 && f->frame_hdr->use_ref_frame_mvs) {
         f->c->refmvs_dsp.load_tmvs(&f->rf, ts->tiling.row,
@@ -2767,7 +2783,12 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
     memcpy(&f->lf.tx_lpf_right_edge[1][align_h * tile_col + (t->by >> ss_ver)],
            &t->l.tx_lpf_uv[(t->by & 16) >> ss_ver], sb_step >> ss_ver);
 
-    return 0;
+    // error out on symbol decoder overread
+    if (ts->msac.cnt <= -15) return 1;
+
+    return c->strict_std_compliance &&
+           (t->by >> f->sb_shift) + 1 >= f->frame_hdr->tiling.row_start_sb[tile_row + 1] &&
+           check_trailing_bits_after_symbol_coder(&ts->msac);
 }
 
 int dav1d_decode_frame_init(Dav1dFrameContext *const f) {
