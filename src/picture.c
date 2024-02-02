@@ -211,9 +211,10 @@ int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f
     c->itut_t35 = NULL;
     c->n_itut_t35 = 0;
 
-    // Don't clear these flags from c->frame_flags if the frame is not visible.
+    // Don't clear these flags from c->frame_flags if the frame is not going to be output.
     // This way they will be added to the next visible frame too.
-    const int flags_mask = (f->frame_hdr->show_frame || c->output_invisible_frames)
+    const int flags_mask = ((f->frame_hdr->show_frame || c->output_invisible_frames) &&
+                            c->max_spatial_id == f->frame_hdr->spatial_id)
                            ? 0 : (PICTURE_FLAG_NEW_SEQUENCE | PICTURE_FLAG_NEW_OP_PARAMS_INFO);
     p->flags = c->frame_flags;
     c->frame_flags &= flags_mask;
