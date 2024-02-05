@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BUF_SIZE 8192
+#define BUF_SIZE 128
 
 /* The normal code doesn't use function pointers */
 typedef unsigned (*decode_symbol_adapt_fn)(MsacContext *s, uint16_t *cdf,
@@ -64,9 +64,16 @@ static void randomize_cdf(uint16_t *const cdf, const int n) {
 
 /* memcmp() on structs can have weird behavior due to padding etc. */
 static int msac_cmp(const MsacContext *const a, const MsacContext *const b) {
-    return a->buf_pos != b->buf_pos || a->buf_end != b->buf_end ||
-           a->dif != b->dif || a->rng != b->rng || a->cnt != b->cnt ||
-           a->allow_update_cdf != b->allow_update_cdf;
+    if (a->buf_pos != b->buf_pos || a->buf_end != b->buf_end ||
+        a->rng != b->rng || a->cnt != b->cnt ||
+        a->allow_update_cdf != b->allow_update_cdf)
+    {
+        return 1;
+    }
+
+    /* Only check valid dif bits, ignoring partial bytes at the end */
+    const ec_win dif_mask = ~((~(ec_win)0) >> (imax(a->cnt, 0) + 16));
+    return !!((a->dif ^ b->dif) & dif_mask);
 }
 
 static void msac_dump(unsigned c_res, unsigned a_res,
@@ -86,7 +93,7 @@ static void msac_dump(unsigned c_res, unsigned a_res,
         fprintf(stderr, "rng %u vs %u\n", a->rng, b->rng);
     if (a->cnt != b->cnt)
         fprintf(stderr, "cnt %d vs %d\n", a->cnt, b->cnt);
-    if (a->allow_update_cdf)
+    if (a->allow_update_cdf != b->allow_update_cdf)
         fprintf(stderr, "allow_update_cdf %d vs %d\n",
                 a->allow_update_cdf, b->allow_update_cdf);
     if (num_cdf && memcmp(cdf_a, cdf_b, sizeof(*cdf_a) * (num_cdf + 1))) {
@@ -113,7 +120,7 @@ static void msac_dump(unsigned c_res, unsigned a_res,
                 s_a = s_c;                                                 \
                 randomize_cdf(cdf[0], ns);                                 \
                 memcpy(cdf[1], cdf[0], sizeof(*cdf));                      \
-                for (int i = 0; i < 64; i++) {                             \
+                while (s_c.cnt >= 0) {                                     \
                     unsigned c_res = call_ref(&s_c, cdf[0], ns);           \
                     unsigned a_res = call_new(&s_a, cdf[1], ns);           \
                     if (c_res != a_res || msac_cmp(&s_c, &s_a) ||          \
@@ -154,7 +161,7 @@ static void check_decode_bool_adapt(MsacDSPContext *const c, uint8_t *const buf)
             s_a = s_c;
             cdf[0][0] = cdf[1][0] = rnd() % 32767 + 1;
             cdf[0][1] = cdf[1][1] = 0;
-            for (int i = 0; i < 64; i++) {
+            while (s_c.cnt >= 0) {
                 unsigned c_res = call_ref(&s_c, cdf[0]);
                 unsigned a_res = call_new(&s_a, cdf[1]);
                 if (c_res != a_res || msac_cmp(&s_c, &s_a) ||
@@ -177,7 +184,7 @@ static void check_decode_bool_equi(MsacDSPContext *const c, uint8_t *const buf) 
     if (check_func(c->decode_bool_equi, "msac_decode_bool_equi")) {
         dav1d_msac_init(&s_c, buf, BUF_SIZE, 1);
         s_a = s_c;
-        for (int i = 0; i < 64; i++) {
+        while (s_c.cnt >= 0) {
             unsigned c_res = call_ref(&s_c);
             unsigned a_res = call_new(&s_a);
             if (c_res != a_res || msac_cmp(&s_c, &s_a)) {
@@ -196,7 +203,7 @@ static void check_decode_bool(MsacDSPContext *const c, uint8_t *const buf) {
     if (check_func(c->decode_bool, "msac_decode_bool")) {
         dav1d_msac_init(&s_c, buf, BUF_SIZE, 1);
         s_a = s_c;
-        for (int i = 0; i < 64; i++) {
+        while (s_c.cnt >= 0) {
             const unsigned f = rnd() & 0x7fff;
             unsigned c_res = call_ref(&s_c, f);
             unsigned a_res = call_new(&s_a, f);
@@ -228,7 +235,7 @@ static void check_decode_hi_tok(MsacDSPContext *const c, uint8_t *const buf) {
             s_a = s_c;
             randomize_cdf(cdf[0], 3);
             memcpy(cdf[1], cdf[0], sizeof(*cdf));
-            for (int i = 0; i < 64; i++) {
+            while (s_c.cnt >= 0) {
                 unsigned c_res = call_ref(&s_c, cdf[0]);
                 unsigned a_res = call_new(&s_a, cdf[1]);
                 if (c_res != a_res || msac_cmp(&s_c, &s_a) ||
