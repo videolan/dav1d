@@ -43,10 +43,15 @@ static inline void ctx_refill(MsacContext *const s) {
     const uint8_t *buf_end = s->buf_end;
     int c = EC_WIN_SIZE - s->cnt - 24;
     ec_win dif = s->dif;
-    while (c >= 0 && buf_pos < buf_end) {
-        dif ^= ((ec_win)*buf_pos++) << c;
+    do {
+        if (buf_pos >= buf_end) {
+            // set remaining bits to 1;
+            dif |= ~(~(ec_win)0xff << c);
+            break;
+        }
+        dif |= (ec_win)(*buf_pos++ ^ 0xff) << c;
         c -= 8;
-    }
+    } while (c >= 0);
     s->dif = dif;
     s->cnt = EC_WIN_SIZE - c - 24;
     s->buf_pos = buf_pos;
@@ -61,11 +66,13 @@ static inline void ctx_norm(MsacContext *const s, const ec_win dif,
                             const unsigned rng)
 {
     const int d = 15 ^ (31 ^ clz(rng));
+    const int cnt = s->cnt;
     assert(rng <= 65535U);
-    s->cnt -= d;
-    s->dif = ((dif + 1) << d) - 1; /* Shift in 1s in the LSBs */
+    s->dif = dif << d;
     s->rng = rng << d;
-    if (s->cnt < 0)
+    s->cnt = cnt - d;
+    // unsigned compare avoids redundant refills at eob
+    if ((unsigned)cnt < (unsigned)d)
         ctx_refill(s);
 }
 
@@ -194,7 +201,7 @@ void dav1d_msac_init(MsacContext *const s, const uint8_t *const data,
 {
     s->buf_pos = data;
     s->buf_end = data + sz;
-    s->dif = ((ec_win)1 << (EC_WIN_SIZE - 1)) - 1;
+    s->dif = 0;
     s->rng = 0x8000;
     s->cnt = -15;
     s->allow_update_cdf = !disable_cdf_update_flag;
