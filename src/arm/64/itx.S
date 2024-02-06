@@ -2460,10 +2460,10 @@ function inv_txfm_add_dct_dct_32x16_8bpc_neon, export=1
         b.gt            2b
 
 3:
+        mov             x8,  #32*2
 .irp i, 0, 8, 16, 24
         add             x6,  x0,  #(\i)
         add             x7,  sp,  #(\i*2)
-        mov             x8,  #32*2
         bl              inv_txfm_add_vert_8x16_neon
 .endr
 
@@ -3204,10 +3204,10 @@ function inv_txfm_add_dct_dct_64x16_8bpc_neon, export=1
 
 3:
         adr             x5,  inv_dct_8h_x16_neon
+        mov             x8,  #64*2
 .irp i, 0, 8, 16, 24, 32, 40, 48, 56
         add             x6,  x0,  #(\i)
         add             x7,  x4,  #(\i*2)
-        mov             x8,  #64*2
         bl              inv_txfm_add_vert_8x16_neon
 .endr
 
