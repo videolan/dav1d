@@ -671,25 +671,37 @@ function inv_identity_e16_x16_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_txfm_horz_16x8_rvv, export=1, ext=v
+.macro def_horz_16 variant
+function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vmv.v.x v16, zero
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vle16.v v\i, (t4)
   vse16.v v16, (t4)
   add t4, t4, t6
 .endr
+.ifc \variant, _identity
   li t1, 2*(5793-4096)*8
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vsmul.vx v16, v\i, t1
   vsra.vi v16, v16, 1
   vaadd.vv v\i, v\i, v16
 .endr
+.else
+  jalr t0, a4
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  vssra.vi v\i, v\i, 2
+.endr
+.endif
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vsse16.v v\i, (t5), t6
   addi t5, t5, 2
 .endr
   jr a7
 endfunc
+.endm
+
+def_horz_16
+def_horz_16 _identity
 
 function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
   vsetivli zero, 8, e16, m1, ta, ma
@@ -780,7 +792,12 @@ endfunc
 
 .macro def_fn_16x16 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
+.ifc \txfm1, identity
+  la a6, inv_txfm_horz_identity_16x8_rvv
+.else
   la a6, inv_txfm_horz_16x8_rvv
+  la a4, inv_\txfm1\()_e16_x16_rvv
+.endif
   la a5, inv_\txfm2\()_e16_x16_rvv
   j inv_txfm_add_16x16_rvv
 endfunc
