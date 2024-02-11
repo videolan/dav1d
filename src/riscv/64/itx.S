@@ -410,25 +410,25 @@ function inv_identity_e16_x8_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_dct_e16_x8_rvv, export=1, ext=v
-  idct_4 v0, v2, v4, v6
+.macro idct_8 o0, o1, o2, o3, o4, o5, o6, o7
+  idct_4 \o0, \o2, \o4, \o6
 
   li t1, 799
   li t2, 4017
   li t3, 3406
   li t4, 2276
 
-  vwmul.vx v14, v1, t2
+  vwmul.vx v14, \o1, t2
   neg t2, t2
-  vwmul.vx v8, v1, t1
-  vwmacc.vx v14, t1, v7
-  vwmacc.vx v8, t2, v7
+  vwmul.vx v8, \o1, t1
+  vwmacc.vx v14, t1, \o7
+  vwmacc.vx v8, t2, \o7
 
-  vwmul.vx v12, v5, t4
+  vwmul.vx v12, \o5, t4
   neg t4, t4
-  vwmul.vx v10, v5, t3
-  vwmacc.vx v12, t3, v3
-  vwmacc.vx v10, t4, v3
+  vwmul.vx v10, \o5, t3
+  vwmacc.vx v12, t3, \o3
+  vwmacc.vx v10, t4, \o3
 
   li t1, 2048
 
@@ -442,18 +442,18 @@ function inv_dct_e16_x8_rvv, export=1, ext=v
   vnsra.wi v12, v12, 12
   vnsra.wi v14, v14, 12
 
-  vssub.vv v7, v14, v12
+  vssub.vv \o7, v14, v12
   vsadd.vv v14, v14, v12
-  vssub.vv v1, v8, v10
+  vssub.vv \o1, v8, v10
   vsadd.vv v8, v8, v10
 
   li t2, 2896
 
-  vwmul.vx v10, v7, t2
-  vwmul.vx v12, v7, t2
-  vwmacc.vx v12, t2, v1
+  vwmul.vx v10, \o7, t2
+  vwmul.vx v12, \o7, t2
+  vwmacc.vx v12, t2, \o1
   neg t2, t2
-  vwmacc.vx v10, t2, v1
+  vwmacc.vx v10, t2, \o1
 
   vwadd.wx v10, v10, t1
   vwadd.wx v12, v12, t1
@@ -461,18 +461,16 @@ function inv_dct_e16_x8_rvv, export=1, ext=v
   vnsra.wi v10, v10, 12
   vnsra.wi v12, v12, 12
 
-  vssub.vv v7, v0, v14
-  vsadd.vv v0, v0, v14
-  vssub.vv v9, v2, v12
-  vsadd.vv v1, v2, v12
-  vssub.vv v5, v4, v10
-  vsadd.vv v2, v4, v10
-  vssub.vv v4, v6, v8
-  vsadd.vv v3, v6, v8
-  vmv.v.v v6, v9
-
-  jr t0
-endfunc
+  vssub.vv \o7, \o0, v14
+  vsadd.vv \o0, \o0, v14
+  vssub.vv v9, \o2, v12
+  vsadd.vv \o1, \o2, v12
+  vssub.vv \o5, \o4, v10
+  vsadd.vv \o2, \o4, v10
+  vssub.vv \o4, \o6, v8
+  vsadd.vv \o3, \o6, v8
+  vmv.v.v \o6, v9
+.endm
 
 .macro iadst_8 o0, o1, o2, o3, o4, o5, o6, o7
   li t1, 4076
@@ -597,6 +595,11 @@ endfunc
   vssub.vv \o5, v8, \o5
   vssub.vv \o7, v8, \o7
 .endm
+
+function inv_dct_e16_x8_rvv, export=1, ext=v
+  idct_8 v0, v1, v2, v3, v4, v5, v6, v7
+  jr t0
+endfunc
 
 function inv_adst_e16_x8_rvv, export=1, ext=v
   iadst_8 v0, v1, v2, v3, v4, v5, v6, v7
