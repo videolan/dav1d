@@ -122,34 +122,34 @@ endfunc
   li t2, 1567
   li t3, 3784
 
-  vwmul.vx v8, \o0, t1
-  vwmul.vx v10, \o0, t1
-  vwmacc.vx v8, t1, \o2
+  vwmul.vx v16, \o0, t1
+  vwmul.vx v18, \o0, t1
+  vwmacc.vx v16, t1, \o2
   neg t1, t1
-  vwmacc.vx v10, t1, \o2
+  vwmacc.vx v18, t1, \o2
 
-  vwmul.vx v12, \o1, t3
+  vwmul.vx v20, \o1, t3
   neg t3, t3
-  vwmul.vx v14, \o1, t2
-  vwmacc.vx v12, t2, \o3
-  vwmacc.vx v14, t3, \o3
+  vwmul.vx v22, \o1, t2
+  vwmacc.vx v20, t2, \o3
+  vwmacc.vx v22, t3, \o3
 
   li t1, 2048
 
-  vwadd.wx v8, v8, t1
-  vwadd.wx v10, v10, t1
-  vwadd.wx v12, v12, t1
-  vwadd.wx v14, v14, t1
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
 
-  vnsra.wi v8, v8, 12
-  vnsra.wi v10, v10, 12
-  vnsra.wi v12, v12, 12
-  vnsra.wi v14, v14, 12
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
 
-  vsadd.vv \o0, v8, v12
-  vsadd.vv \o1, v10, v14
-  vssub.vv \o2, v10, v14
-  vssub.vv \o3, v8, v12
+  vsadd.vv \o0, v16, v20
+  vsadd.vv \o1, v18, v22
+  vssub.vv \o2, v18, v22
+  vssub.vv \o3, v16, v20
 .endm
 
 .macro iadst_4 o0, o1, o2, o3
@@ -418,58 +418,58 @@ endfunc
   li t3, 3406
   li t4, 2276
 
-  vwmul.vx v14, \o1, t2
+  vwmul.vx v22, \o1, t2
   neg t2, t2
-  vwmul.vx v8, \o1, t1
-  vwmacc.vx v14, t1, \o7
-  vwmacc.vx v8, t2, \o7
+  vwmul.vx v16, \o1, t1
+  vwmacc.vx v22, t1, \o7
+  vwmacc.vx v16, t2, \o7
 
-  vwmul.vx v12, \o5, t4
+  vwmul.vx v20, \o5, t4
   neg t4, t4
-  vwmul.vx v10, \o5, t3
-  vwmacc.vx v12, t3, \o3
-  vwmacc.vx v10, t4, \o3
+  vwmul.vx v18, \o5, t3
+  vwmacc.vx v20, t3, \o3
+  vwmacc.vx v18, t4, \o3
 
   li t1, 2048
 
-  vwadd.wx v8, v8, t1
-  vwadd.wx v10, v10, t1
-  vwadd.wx v12, v12, t1
-  vwadd.wx v14, v14, t1
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
 
-  vnsra.wi v8, v8, 12
-  vnsra.wi v10, v10, 12
-  vnsra.wi v12, v12, 12
-  vnsra.wi v14, v14, 12
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
 
-  vssub.vv \o7, v14, v12
-  vsadd.vv v14, v14, v12
-  vssub.vv \o1, v8, v10
-  vsadd.vv v8, v8, v10
+  vssub.vv \o7, v22, v20
+  vsadd.vv v22, v22, v20
+  vssub.vv \o1, v16, v18
+  vsadd.vv v16, v16, v18
 
   li t2, 2896
 
-  vwmul.vx v10, \o7, t2
-  vwmul.vx v12, \o7, t2
-  vwmacc.vx v12, t2, \o1
+  vwmul.vx v18, \o7, t2
+  vwmul.vx v20, \o7, t2
+  vwmacc.vx v20, t2, \o1
   neg t2, t2
-  vwmacc.vx v10, t2, \o1
+  vwmacc.vx v18, t2, \o1
 
-  vwadd.wx v10, v10, t1
-  vwadd.wx v12, v12, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
 
-  vnsra.wi v10, v10, 12
-  vnsra.wi v12, v12, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
 
-  vssub.vv \o7, \o0, v14
-  vsadd.vv \o0, \o0, v14
-  vssub.vv v9, \o2, v12
-  vsadd.vv \o1, \o2, v12
-  vssub.vv \o5, \o4, v10
-  vsadd.vv \o2, \o4, v10
-  vssub.vv \o4, \o6, v8
-  vsadd.vv \o3, \o6, v8
-  vmv.v.v \o6, v9
+  vssub.vv \o7, \o0, v22
+  vsadd.vv \o0, \o0, v22
+  vssub.vv v17, \o2, v20
+  vsadd.vv \o1, \o2, v20
+  vssub.vv \o5, \o4, v18
+  vsadd.vv \o2, \o4, v18
+  vssub.vv \o4, \o6, v16
+  vsadd.vv \o3, \o6, v16
+  vmv.v.v \o6, v17
 .endm
 
 .macro iadst_8 o0, o1, o2, o3, o4, o5, o6, o7
