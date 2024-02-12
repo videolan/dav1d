@@ -866,6 +866,313 @@ function inv_dct_e16_x16_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_adst_e16_x16_rvv, export=1, ext=v
+  li t1, 4091
+  li t2, 201
+  li t3, 3973
+  li t4, 995
+
+  vwmul.vx v16, v15, t1
+  neg t1, t1
+  vwmul.vx v18, v15, t2
+  vwmacc.vx v16, t2, v0
+  vwmacc.vx v18, t1, v0
+
+  vwmul.vx v20, v13, t3
+  neg t3, t3
+  vwmul.vx v22, v13, t4
+  vwmacc.vx v20, t4, v2
+  vwmacc.vx v22, t3, v2
+
+  li t1, 3703
+  li t2, 1751
+  li t3, 3290
+  li t4, 2440
+
+  vwmul.vx v24, v11, t1
+  neg t1, t1
+  vwmul.vx v26, v11, t2
+  vwmacc.vx v24, t2, v4
+  vwmacc.vx v26, t1, v4
+
+  vwmul.vx v28, v9, t3
+  neg t3, t3
+  vwmul.vx v30, v9, t4
+  vwmacc.vx v28, t4, v6
+  vwmacc.vx v30, t3, v6
+
+  li t1, 2048
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+  vwadd.wx v30, v30, t1
+
+  vnsra.wi  v0, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi  v2, v20, 12
+  vnsra.wi v22, v22, 12
+  vnsra.wi  v4, v24, 12
+  vnsra.wi v26, v26, 12
+  vnsra.wi  v6, v28, 12
+  vnsra.wi v30, v30, 12
+
+  li t1, 2751
+  li t2, 3035
+  li t3, 2106
+  li t4, 3513
+
+  vwmul.vx v16, v7, t1
+  neg t1, t1
+  vwmul.vx v20, v7, t2
+  vwmacc.vx v16, t2, v8
+  vwmacc.vx v20, t1, v8
+
+  vwmul.vx v24, v5, t3
+  neg t3, t3
+  vwmul.vx v28, v5, t4
+  vwmacc.vx v24, t4, v10
+  vwmacc.vx v28, t3, v10
+
+  li t1, 2048
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v28, v28, t1
+
+  vnsra.wi v16, v16, 12
+  vnsra.wi  v9, v20, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v11, v28, 12
+
+  vssub.vv  v8,  v0, v16
+  vsadd.vv  v0,  v0, v16
+  vssub.vv v10,  v2, v24
+  vsadd.vv  v2,  v2, v24
+
+  li t1, 1380
+  li t2, 3857
+  li t3, 601
+  li t4, 4052
+
+  vwmul.vx v16, v3, t1
+  neg t1, t1
+  vwmul.vx v20, v3, t2
+  vwmacc.vx v16, t2, v12
+  vwmacc.vx v20, t1, v12
+
+  vwmul.vx v24, v1, t3
+  neg t3, t3
+  vwmul.vx v28, v1, t4
+  vwmacc.vx v24, t4, v14
+  vwmacc.vx v28, t3, v14
+
+  li t1, 2048
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v28, v28, t1
+
+  vnsra.wi v16, v16, 12
+  vnsra.wi v13, v20, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v15, v28, 12
+
+  vssub.vv v12,  v4, v16
+  vsadd.vv v16,  v4, v16
+  vssub.vv v14,  v6, v24
+  vsadd.vv v20,  v6, v24
+
+  vsadd.vv  v1, v18,  v9
+  vssub.vv  v9, v18,  v9
+  vsadd.vv  v3, v22, v11
+  vssub.vv v11, v22, v11
+  vsadd.vv v18, v26, v13
+  vssub.vv v13, v26, v13
+  vsadd.vv v22, v30, v15
+  vssub.vv v15, v30, v15
+
+  vssub.vv v4, v0, v16
+  vsadd.vv v0, v0, v16
+  vssub.vv v5, v1, v18
+  vsadd.vv v1, v1, v18
+  vssub.vv v6, v2, v20
+  vsadd.vv v2, v2, v20
+  vssub.vv v7, v3, v22
+  vsadd.vv v3, v3, v22
+
+  li t1, 799
+  li t2, 4017
+  li t3, 3406
+  li t4, 2276
+
+  vwmul.vx v16,  v8, t2
+  vwmul.vx v18,  v8, t1
+  vwmul.vx v20, v10, t4
+  vwmul.vx v22, v10, t3
+  vwmul.vx v24, v13, t2
+  vwmul.vx v26, v13, t1
+  vwmul.vx v28, v15, t4
+  vwmul.vx v30, v15, t3
+  vwmacc.vx v16, t1,  v9
+  neg t1, t1
+  vwmacc.vx v20, t3, v11
+  neg t3, t3
+  vwmacc.vx v26, t2, v12
+  neg t2, t2
+  vwmacc.vx v30, t4, v14
+  neg t4, t4
+  vwmacc.vx v18, t2,  v9
+  vwmacc.vx v22, t4, v11
+  vwmacc.vx v24, t1, v12
+  vwmacc.vx v28, t3, v14
+
+  li t1, 2048
+  li t2, 2896
+  li t3, 1567
+  li t4, 3784
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+  vwadd.wx v30, v30, t1
+
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v26, v26, 12
+  vnsra.wi v28, v28, 12
+  vnsra.wi v30, v30, 12
+
+  vsadd.vv  v8, v16, v24
+  vsadd.vv  v9, v18, v26
+  vsadd.vv v10, v20, v28
+  vsadd.vv v11, v22, v30
+  vssub.vv v12, v16, v24
+  vssub.vv v13, v18, v26
+  vssub.vv v14, v20, v28
+  vssub.vv v15, v22, v30
+
+  vwmul.vx v16,  v4, t4
+  vwmul.vx v18,  v4, t3
+  vwmul.vx v20,  v7, t4
+  vwmul.vx v22,  v7, t3
+  vwmul.vx v24, v12, t4
+  vwmul.vx v26, v12, t3
+  vwmul.vx v28, v15, t4
+  vwmul.vx v30, v15, t3
+  vwmacc.vx v16, t3,  v5
+  vwmacc.vx v22, t4,  v6
+  vwmacc.vx v24, t3, v13
+  neg t3, t3
+  vwmacc.vx v30, t4, v14
+  neg t4, t4
+  vwmacc.vx v20, t3,  v6
+  vwmacc.vx v28, t3, v14
+  vwmacc.vx v18, t4,  v5
+  vwmacc.vx v26, t4, v13
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+  vwadd.wx v30, v30, t1
+
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v26, v26, 12
+  vnsra.wi v28, v28, 12
+  vnsra.wi v30, v30, 12
+
+  vsadd.vv v14, v9, v11
+  vssub.vv v11, v9, v11
+  vssub.vv  v9, v1,  v3
+  vsadd.vv v15, v1,  v3
+  vsadd.vv  v1, v8, v10
+  vssub.vv v10, v8, v10
+  vssub.vv  v8, v0,  v2
+  vsadd.vv  v0, v0,  v2
+
+  vsadd.vv  v3, v16, v20
+  vssub.vv  v6, v16, v20
+  vsadd.vv v12, v18, v22
+  vssub.vv  v7, v18, v22
+  vsadd.vv  v2, v24, v28
+  vssub.vv v24, v24, v28
+  vsadd.vv v13, v26, v30
+  vssub.vv v26, v26, v30
+
+  neg t3, t2
+
+  vwmul.vx v28, v24, t2
+  vwmul.vx v30, v24, t2
+  vwmacc.vx v28, t2, v26
+  vwmacc.vx v30, t3, v26
+
+  vwmul.vx v24, v10, t2
+  vwmul.vx v26, v10, t2
+  vwmacc.vx v24, t2, v11
+  vwmacc.vx v26, t3, v11
+
+  vwmul.vx v20, v6, t2
+  vwmul.vx v22, v6, t2
+  vwmacc.vx v20, t2, v7
+  vwmacc.vx v22, t3, v7
+
+  vwmul.vx v16, v8, t2
+  vwmul.vx v18, v8, t2
+  vwmacc.vx v16, t2, v9
+  vwmacc.vx v18, t3, v9
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+  vwadd.wx v30, v30, t1
+
+  vnsra.wi  v7, v16, 12
+  vnsra.wi  v8, v18, 12
+  vnsra.wi  v4, v20, 12
+  vnsra.wi v11, v22, 12
+  vnsra.wi  v6, v24, 12
+  vnsra.wi  v9, v26, 12
+  vnsra.wi  v5, v28, 12
+  vnsra.wi v10, v30, 12
+
+  vmv.v.x v16, zero
+  vssub.vv  v1, v16,  v1
+  vssub.vv  v3, v16,  v3
+  vssub.vv  v5, v16,  v5
+  vssub.vv  v7, v16,  v7
+  vssub.vv  v9, v16,  v9
+  vssub.vv v11, v16, v11
+  vssub.vv v13, v16, v13
+  vssub.vv v15, v16, v15
+
+  jr t0
+endfunc
+
 .macro def_horz_16 variant
 function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vmv.v.x v16, zero
@@ -1000,5 +1307,8 @@ endfunc
 
 def_fn_16x16 dct, dct
 def_fn_16x16 identity, identity
+def_fn_16x16 dct, adst
 def_fn_16x16 dct, identity
+def_fn_16x16 adst, dct
+def_fn_16x16 adst, adst
 def_fn_16x16 identity, dct
