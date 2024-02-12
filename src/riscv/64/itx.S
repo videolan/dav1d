@@ -950,3 +950,5 @@ endfunc
 
 def_fn_16x16 dct, dct
 def_fn_16x16 identity, identity
+def_fn_16x16 dct, identity
+def_fn_16x16 identity, dct
