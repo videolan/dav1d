@@ -866,7 +866,7 @@ function inv_dct_e16_x16_rvv, export=1, ext=v
   jr t0
 endfunc
 
-function inv_adst_e16_x16_rvv, export=1, ext=v
+.macro iadst_16 o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, o13, o14, o15
   li t1, 4091
   li t2, 201
   li t3, 3973
@@ -1102,23 +1102,35 @@ function inv_adst_e16_x16_rvv, export=1, ext=v
   vnsra.wi v28, v28, 12
   vnsra.wi v30, v30, 12
 
-  vsadd.vv v14, v9, v11
-  vssub.vv v11, v9, v11
-  vssub.vv  v9, v1,  v3
-  vsadd.vv v15, v1,  v3
-  vsadd.vv  v1, v8, v10
-  vssub.vv v10, v8, v10
-  vssub.vv  v8, v0,  v2
-  vsadd.vv  v0, v0,  v2
+.ifc \o0, v0
+  vsadd.vv \o14, v9, v11
+  vssub.vv  v11, v9, v11
+  vssub.vv   v9, v1,  v3
+  vsadd.vv \o15, v1,  v3
+  vsadd.vv  \o1, v8, v10
+  vssub.vv  v10, v8, v10
+  vssub.vv   v8, v0,  v2
+  vsadd.vv  \o0, v0,  v2
+.else
+  vsadd.vv  \o1, v8, v10
+  vssub.vv  v10, v8, v10
+  vssub.vv   v8, v0,  v2
+  vsadd.vv  \o0, v0,  v2
+  vsadd.vv   v2, v9, v11
+  vssub.vv  v11, v9, v11
+  vssub.vv   v9, v1,  v3
+  vsadd.vv \o15, v1,  v3
+  vmv.v.v  \o14, v2
+.endif
 
-  vsadd.vv  v3, v16, v20
-  vssub.vv  v6, v16, v20
-  vsadd.vv v12, v18, v22
-  vssub.vv  v7, v18, v22
-  vsadd.vv  v2, v24, v28
-  vssub.vv v24, v24, v28
-  vsadd.vv v13, v26, v30
-  vssub.vv v26, v26, v30
+  vsadd.vv  \o3, v16, v20
+  vssub.vv   v6, v16, v20
+  vsadd.vv \o12, v18, v22
+  vssub.vv   v7, v18, v22
+  vsadd.vv  \o2, v24, v28
+  vssub.vv  v24, v24, v28
+  vsadd.vv \o13, v26, v30
+  vssub.vv  v26, v26, v30
 
   neg t3, t2
 
@@ -1151,25 +1163,28 @@ function inv_adst_e16_x16_rvv, export=1, ext=v
   vwadd.wx v28, v28, t1
   vwadd.wx v30, v30, t1
 
-  vnsra.wi  v7, v16, 12
-  vnsra.wi  v8, v18, 12
-  vnsra.wi  v4, v20, 12
-  vnsra.wi v11, v22, 12
-  vnsra.wi  v6, v24, 12
-  vnsra.wi  v9, v26, 12
-  vnsra.wi  v5, v28, 12
-  vnsra.wi v10, v30, 12
+  vnsra.wi  \o7, v16, 12
+  vnsra.wi  \o8, v18, 12
+  vnsra.wi  \o4, v20, 12
+  vnsra.wi \o11, v22, 12
+  vnsra.wi  \o6, v24, 12
+  vnsra.wi  \o9, v26, 12
+  vnsra.wi  \o5, v28, 12
+  vnsra.wi \o10, v30, 12
 
   vmv.v.x v16, zero
-  vssub.vv  v1, v16,  v1
-  vssub.vv  v3, v16,  v3
-  vssub.vv  v5, v16,  v5
-  vssub.vv  v7, v16,  v7
-  vssub.vv  v9, v16,  v9
-  vssub.vv v11, v16, v11
-  vssub.vv v13, v16, v13
-  vssub.vv v15, v16, v15
+  vssub.vv  \o1, v16,  \o1
+  vssub.vv  \o3, v16,  \o3
+  vssub.vv  \o5, v16,  \o5
+  vssub.vv  \o7, v16,  \o7
+  vssub.vv  \o9, v16,  \o9
+  vssub.vv \o11, v16, \o11
+  vssub.vv \o13, v16, \o13
+  vssub.vv \o15, v16, \o15
+.endm
 
+function inv_adst_e16_x16_rvv, export=1, ext=v
+  iadst_16 v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15
   jr t0
 endfunc
 
