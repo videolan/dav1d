@@ -117,6 +117,17 @@ function inv_identity_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
+.macro iwht_4
+  vadd.vv v0, v0, v1
+  vsub.vv v5, v2, v3
+  vsub.vv v4, v0, v5
+  vsra.vi v4, v4, 1
+  vsub.vv v2, v4, v1
+  vsub.vv v1, v4, v3
+  vadd.vv v3, v5, v2
+  vsub.vv v0, v0, v1
+.endm
+
 .macro idct_4 o0, o1, o2, o3
   li t1, 2896
   li t2, 1567
@@ -209,6 +220,45 @@ endfunc
 function inv_flipadst_e16_x4_rvv, export=1, ext=v
   iadst_4 v3, v2, v1, v0
   jr t0
+endfunc
+
+function inv_txfm_add_wht_wht_4x4_8bpc_rvv, export=1, ext=v
+  csrw vxrm, zero
+
+  vsetivli zero, 4, e16, mf2, ta, ma
+  vle16.v v0, (a2)
+  addi t0, a2, 8
+  vle16.v v1, (t0)
+  addi t0, t0, 8
+  vle16.v v2, (t0)
+  addi t0, t0, 8
+  vle16.v v3, (t0)
+
+  vsra.vi v0, v0, 2
+  vsra.vi v1, v1, 2
+  vsra.vi v2, v2, 2
+  vsra.vi v3, v3, 2
+
+  iwht_4
+
+  vmv.v.x v4, zero
+
+  vsseg4e16.v v0, (a2)
+  vle16.v v0, (a2)
+  vse16.v v4, (a2)
+  addi t0, a2, 8
+  vle16.v v1, (t0)
+  vse16.v v4, (t0)
+  addi t0, t0, 8
+  vle16.v v2, (t0)
+  vse16.v v4, (t0)
+  addi t0, t0, 8
+  vle16.v v3, (t0)
+  vse16.v v4, (t0)
+
+  iwht_4
+
+  j itx_4x4_end
 endfunc
 
 .macro def_fn_4x4 txfm1, txfm2
