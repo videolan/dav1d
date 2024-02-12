@@ -674,6 +674,148 @@ function inv_identity_e16_x16_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_dct_e16_x16_rvv, export=1, ext=v
+  idct_8 v0, v2, v4, v6, v8, v10, v12, v14
+
+  li t1, 401
+  li t2, 4076
+  li t3, 3166
+  li t4, 2598
+
+  vwmul.vx v30, v1, t2
+  neg t2, t2
+  vwmul.vx v16, v1, t1
+  vwmacc.vx v30, t1, v15
+  vwmacc.vx v16, t2, v15
+
+  vwmul.vx v28, v9, t4
+  neg t4, t4
+  vwmul.vx v18, v9, t3
+  vwmacc.vx v28, t3, v7
+  vwmacc.vx v18, t4, v7
+
+  li t1, 1931
+  li t2, 3612
+  li t3, 3920
+  li t4, 1189
+
+  vwmul.vx v26, v5, t2
+  neg t2, t2
+  vwmul.vx v20, v5, t1
+  vwmacc.vx v26, t1, v11
+  vwmacc.vx v20, t2, v11
+
+  vwmul.vx v24, v13, t4
+  neg t4, t4
+  vwmul.vx v22, v13, t3
+  vwmacc.vx v24, t3, v3
+  vwmacc.vx v22, t4, v3
+
+  li t1, 2048
+  li t2, 2896
+  li t3, 1567
+  li t4, 3784
+
+  vwadd.wx v16, v16, t1
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+  vwadd.wx v30, v30, t1
+
+  vnsra.wi v16, v16, 12
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v26, v26, 12
+  vnsra.wi v28, v28, 12
+  vnsra.wi v30, v30, 12
+
+  vssub.vv  v3, v16, v18
+  vsadd.vv v16, v16, v18
+  vssub.vv  v5, v22, v20
+  vsadd.vv v22, v22, v20
+  vssub.vv v11, v24, v26
+  vsadd.vv v24, v24, v26
+  vssub.vv v13, v30, v28
+  vsadd.vv v30, v30, v28
+
+  vwmul.vx v28, v13, t4
+  neg t4, t4
+  vwmul.vx v18, v13, t3
+  vwmul.vx v26, v11, t3
+  vwmacc.vx v28, t3, v3
+  neg t3, t3
+  vwmul.vx v20, v11, t4
+  vwmacc.vx v18, t4, v3
+  vwmacc.vx v20, t3, v5
+  vwmacc.vx v26, t4, v5
+
+  vwadd.wx v18, v18, t1
+  vwadd.wx v20, v20, t1
+  vwadd.wx v26, v26, t1
+  vwadd.wx v28, v28, t1
+
+  vnsra.wi v18, v18, 12
+  vnsra.wi v20, v20, 12
+  vnsra.wi v26, v26, 12
+  vnsra.wi v28, v28, 12
+
+  vssub.vv  v5, v18, v20
+  vsadd.vv v18, v18, v20
+  vssub.vv v11, v28, v26
+  vsadd.vv v28, v28, v26
+
+  vssub.vv  v7, v16, v22
+  vsadd.vv v16, v16, v22
+  vssub.vv  v9, v30, v24
+  vsadd.vv v30, v30, v24
+
+  vwmul.vx v20, v11, t2
+  vwmul.vx v22,  v9, t2
+  vwmul.vx v24,  v9, t2
+  vwmul.vx v26, v11, t2
+  vwmacc.vx v24, t2, v7
+  vwmacc.vx v26, t2, v5
+  neg t2, t2
+  vwmacc.vx v20, t2, v5
+  vwmacc.vx v22, t2, v7
+
+  vwadd.wx v20, v20, t1
+  vwadd.wx v22, v22, t1
+  vwadd.wx v24, v24, t1
+  vwadd.wx v26, v26, t1
+
+  vnsra.wi v20, v20, 12
+  vnsra.wi v22, v22, 12
+  vnsra.wi v24, v24, 12
+  vnsra.wi v26, v26, 12
+
+  vssub.vv v15,  v0, v30
+  vsadd.vv  v0,  v0, v30
+  vssub.vv v17,  v2, v28
+  vsadd.vv  v1,  v2, v28
+  vssub.vv v13,  v4, v26
+  vsadd.vv  v2,  v4, v26
+  vssub.vv v19,  v6, v24
+  vsadd.vv  v3,  v6, v24
+  vssub.vv v11,  v8, v22
+  vsadd.vv  v4,  v8, v22
+  vsadd.vv  v5, v10, v20
+  vssub.vv v10, v10, v20
+  vssub.vv  v9, v12, v18
+  vsadd.vv  v6, v12, v18
+  vssub.vv  v8, v14, v16
+  vsadd.vv  v7, v14, v16
+  vmv.v.v v14, v17
+  vmv.v.v v12, v19
+
+  jr t0
+endfunc
+
 .macro def_horz_16 variant
 function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vmv.v.x v16, zero
@@ -806,4 +948,5 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
 endfunc
 .endm
 
+def_fn_16x16 dct, dct
 def_fn_16x16 identity, identity
