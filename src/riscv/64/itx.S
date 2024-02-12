@@ -1188,6 +1188,11 @@ function inv_adst_e16_x16_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_flipadst_e16_x16_rvv, export=1, ext=v
+  iadst_16 v15, v14, v13, v12, v11, v10, v9, v8, v7, v6, v5, v4, v3, v2, v1, v0
+  jr t0
+endfunc
+
 .macro def_horz_16 variant
 function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vmv.v.x v16, zero
@@ -1323,7 +1328,12 @@ endfunc
 def_fn_16x16 dct, dct
 def_fn_16x16 identity, identity
 def_fn_16x16 dct, adst
+def_fn_16x16 dct, flipadst
 def_fn_16x16 dct, identity
 def_fn_16x16 adst, dct
 def_fn_16x16 adst, adst
+def_fn_16x16 adst, flipadst
+def_fn_16x16 flipadst, dct
+def_fn_16x16 flipadst, adst
+def_fn_16x16 flipadst, flipadst
 def_fn_16x16 identity, dct
