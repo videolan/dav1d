@@ -403,7 +403,7 @@ itx_8x8_end:
   vwaddu.wv v6, v6, v14
   vwaddu.wv v7, v7, v15
 
-  vsetvli zero, zero, e16, m1
+  vsetvli zero, zero, e16, m1, ta, ma
   vmax.vx v0, v0, zero
   vmax.vx v1, v1, zero
   vmax.vx v2, v2, zero
@@ -1261,7 +1261,7 @@ function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
   vwaddu.wv v14, v14, v30
   vwaddu.wv v15, v15, v31
 
-  vsetvli zero, zero, e16, m1
+  vsetvli zero, zero, e16, m1, ta, ma
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vmax.vx v\i, v\i, zero
 .endr
