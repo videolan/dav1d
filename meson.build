@@ -477,6 +477,17 @@ if (is_asm_enabled and
         ])
 endif
 
+if is_asm_enabled and host_machine.cpu_family().startswith('riscv')
+    as_option_code = '''__asm__ (
+".option arch, +v\n"
+"vsetivli zero, 0, e8, m1, ta, ma"
+);
+'''
+    if not cc.compiles(as_option_code, name : 'RISC-V Vector')
+        error('Compiler doesn\'t support \'.option arch\' asm directive. Update to binutils>=2.38 or clang>=17 or use \'-Denable_asm=false\'.')
+    endif
+endif
+
 # Generate config.h
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
 
