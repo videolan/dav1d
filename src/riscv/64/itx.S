@@ -222,6 +222,16 @@ function inv_flipadst_e16_x4_rvv, export=1, ext=v
   jr t0
 endfunc
 
+function inv_adst_e16_x4w_rvv, export=1, ext=v
+  iadst_4 v0, v1, v2, v3, m2, m1
+  jr t0
+endfunc
+
+function inv_flipadst_e16_x4w_rvv, export=1, ext=v
+  iadst_4 v3, v2, v1, v0, m2, m1
+  jr t0
+endfunc
+
 function inv_txfm_add_wht_wht_4x4_8bpc_rvv, export=1, ext=v
   csrw vxrm, zero
 
