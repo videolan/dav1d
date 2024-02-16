@@ -163,7 +163,7 @@ endfunc
   vssub.vv \o3, v16, v20
 .endm
 
-.macro iadst_4 o0, o1, o2, o3
+.macro iadst_4 o0, o1, o2, o3, lm2, lm
   li t1, 1321
   li t2, 3803
   li t3, 2482
@@ -183,7 +183,7 @@ endfunc
   li t1, 3344
   vwmul.vx v10, v1, t1
 
-  vsetvli zero, zero, e32, m1, ta, ma
+  vsetvli zero, zero, e32, \lm2, ta, ma
 
   vmul.vx v8, v8, t1
 
@@ -199,7 +199,7 @@ endfunc
   vadd.vx  v8,  v8, t1
   vadd.vx v10, v10, t1
 
-  vsetvli zero, zero, e16, mf2, ta, ma
+  vsetvli zero, zero, e16, \lm, ta, ma
 
   vnsra.wi \o0,  v4, 12
   vnsra.wi \o1,  v6, 12
@@ -213,12 +213,12 @@ function inv_dct_e16_x4_rvv, export=1, ext=v
 endfunc
 
 function inv_adst_e16_x4_rvv, export=1, ext=v
-  iadst_4 v0, v1, v2, v3
+  iadst_4 v0, v1, v2, v3, m1, mf2
   jr t0
 endfunc
 
 function inv_flipadst_e16_x4_rvv, export=1, ext=v
-  iadst_4 v3, v2, v1, v0
+  iadst_4 v3, v2, v1, v0, m1, mf2
   jr t0
 endfunc
 
