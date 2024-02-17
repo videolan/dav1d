@@ -805,6 +805,82 @@ function inv_txfm_add_4x8_rvv, export=1, ext=v
   ret
 endfunc
 
+function inv_txfm_add_8x4_rvv, export=1, ext=v
+  csrw vxrm, zero
+
+  vsetivli zero, 4, e16, mf2, ta, ma
+  vle16.v v0, (a2)
+  addi t0, a2, 8
+  vle16.v v1, (t0)
+.irp i, 2, 3, 4, 5, 6, 7
+  addi t0, t0, 8
+  vle16.v v\i, (t0)
+.endr
+
+  li t1, 2896*8
+.irp i 0, 1, 2, 3, 4, 5, 6, 7
+  vsmul.vx v\i, v\i, t1
+.endr
+
+  jalr t0, a4
+
+  vsseg8e16.v v0, (a2)
+
+  vsetivli zero, 8, e16, m1, ta, ma
+  vmv.v.x v4, zero
+  vle16.v v0, (a2)
+  vse16.v v4, (a2)
+.irp i, 1, 2, 3
+  addi a2, a2, 16
+  vle16.v v\i, (a2)
+  vse16.v v4, (a2)
+.endr
+
+  jalr t0, a5
+
+  vssra.vi v0, v0, 4
+  vssra.vi v1, v1, 4
+  vssra.vi v2, v2, 4
+  vssra.vi v3, v3, 4
+
+  vsetvli zero, zero, e8, mf2, ta, ma
+  vle8.v v4, (a0)
+  add t0, a0, a1
+  vle8.v v5, (t0)
+  add t0, t0, a1
+  vle8.v v6, (t0)
+  add t0, t0, a1
+  vle8.v v7, (t0)
+
+  vwaddu.wv v0, v0, v4
+  vwaddu.wv v1, v1, v5
+  vwaddu.wv v2, v2, v6
+  vwaddu.wv v3, v3, v7
+
+  vsetvli zero, zero, e16, m1, ta, ma
+  vmax.vx v0, v0, zero
+  vmax.vx v1, v1, zero
+  vmax.vx v2, v2, zero
+  vmax.vx v3, v3, zero
+
+  vsetvli zero, zero, e8, mf2, ta, ma
+
+  vnclipu.wi v4, v0, 0
+  vnclipu.wi v5, v1, 0
+  vnclipu.wi v6, v2, 0
+  vnclipu.wi v7, v3, 0
+
+  vse8.v v4, (a0)
+  add a0, a0, a1
+  vse8.v v5, (a0)
+  add a0, a0, a1
+  vse8.v v6, (a0)
+  add a0, a0, a1
+  vse8.v v7, (a0)
+
+  ret
+endfunc
+
 /* Define symbols added in .if statement */
 .equ dct, 1
 .equ identity, 2
@@ -813,12 +889,16 @@ endfunc
 
 .macro def_fn_48 w, h, txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
-.if \txfm1 == adst || \txfm1 == flipadst
+.if \w == 4 && (\txfm1 == adst || \txfm1 == flipadst)
   la a4, inv_\txfm1\()_e16_x\w\()w_rvv
 .else
   la a4, inv_\txfm1\()_e16_x\w\()_rvv
 .endif
+.if \h == 4 && (\txfm2 == adst || \txfm2 == flipadst)
+  la a5, inv_\txfm2\()_e16_x\h\()w_rvv
+.else
   la a5, inv_\txfm2\()_e16_x\h\()_rvv
+.endif
   j inv_txfm_add_\w\()x\h\()_rvv
 endfunc
 .endm
@@ -843,6 +923,7 @@ def_fn_48 \w, \h, identity, flipadst
 .endm
 
 def_fns_48 4, 8
+def_fns_48 8, 4
 
 function inv_identity_e16_x16_rvv, export=1, ext=v
   li t1, 2*(5793-4096)*8
