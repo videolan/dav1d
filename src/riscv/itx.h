@@ -64,6 +64,7 @@ decl_itx16_fns( 8,  4, ext); \
 decl_itx16_fns( 8,  8, ext); \
 decl_itx16_fns( 8, 16, ext); \
 decl_itx16_fns(16,  4, ext); \
+decl_itx16_fns(16,  8, ext); \
 decl_itx16_fns(16, 16, ext)
 
 decl_itx_fns(rvv);
@@ -116,6 +117,7 @@ static ALWAYS_INLINE void itx_dsp_init_riscv(Dav1dInvTxfmDSPContext *const c, in
   assign_itx16_fn( ,  8,  8, rvv);
   assign_itx16_fn(R,  8, 16, rvv);
   assign_itx16_fn(R, 16,  4, rvv);
+  assign_itx16_fn(R, 16,  8, rvv);
   assign_itx12_fn( , 16, 16, rvv);
 #endif
 }

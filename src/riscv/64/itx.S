@@ -1973,6 +1973,108 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
 
   ret
 endfunc
+
+function inv_txfm_\variant\()add_16x8_rvv, export=1, ext=v
+  csrw vxrm, zero
+
+  vsetivli zero, 8, e16, m1, ta, ma
+  vle16.v v0, (a2)
+  addi t0, a2, 16
+  vle16.v v1, (t0)
+.irp i, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  addi t0, t0, 16
+  vle16.v v\i, (t0)
+.endr
+
+  li t1, 2896*8
+.irp i 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  vsmul.vx v\i, v\i, t1
+.endr
+
+.ifc \variant, identity_
+  li t1, 2*(5793-4096)*8
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  vsmul.vx v16, v\i, t1
+  vssra.vi v16, v16, 1
+  vsadd.vv v\i, v\i, v16
+.endr
+.else
+  jalr t0, a4
+.endif
+
+  li t0, 32
+  vssseg8e16.v v0, (a2), t0
+  addi t1, a2, 16
+  vssseg8e16.v v8, (t1), t0
+
+.irp j, 0, 8
+  vsetivli zero, 8, e16, m1, ta, ma
+
+  vmv.v.x v8, zero
+  addi t0, a2, \j*2
+  vle16.v v0, (t0)
+  vse16.v v8, (t0)
+.irp i, 1, 2, 3, 4, 5, 6, 7
+  addi t0, t0, 32
+  vle16.v v\i, (t0)
+  vse16.v v8, (t0)
+.endr
+
+.ifnc \variant, identity_
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7
+  vssra.vi v\i, v\i, 1
+.endr
+.endif
+
+  jalr t0, a5
+
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7
+  vssra.vi v\i, v\i, 4
+.endr
+
+  vsetvli zero, zero, e8, mf2, ta, ma
+  addi t0, a0, \j
+  vle8.v v8, (t0)
+.irp i, 9, 10, 11, 12, 13, 14, 15
+  add t0, t0, a1
+  vle8.v v\i, (t0)
+.endr
+
+  vwaddu.wv v0, v0, v8
+  vwaddu.wv v1, v1, v9
+  vwaddu.wv v2, v2, v10
+  vwaddu.wv v3, v3, v11
+  vwaddu.wv v4, v4, v12
+  vwaddu.wv v5, v5, v13
+  vwaddu.wv v6, v6, v14
+  vwaddu.wv v7, v7, v15
+
+  vsetvli zero, zero, e16, m1, ta, ma
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7
+  vmax.vx v\i, v\i, zero
+.endr
+
+  vsetvli zero, zero, e8, mf2, ta, ma
+
+  vnclipu.wi  v8, v0, 0
+  vnclipu.wi  v9, v1, 0
+  vnclipu.wi v10, v2, 0
+  vnclipu.wi v11, v3, 0
+  vnclipu.wi v12, v4, 0
+  vnclipu.wi v13, v5, 0
+  vnclipu.wi v14, v6, 0
+  vnclipu.wi v15, v7, 0
+
+  addi t0, a0, \j
+  vse8.v v8, (t0)
+.irp i, 9, 10, 11, 12, 13, 14, 15
+  add t0, t0, a1
+  vse8.v v\i, (t0)
+.endr
+.endr
+
+  ret
+endfunc
 .endm
 
 def_fn_816_base
@@ -2012,3 +2114,4 @@ def_fn_816 \w, \h, identity, flipadst
 .endm
 
 def_fns_816 8, 16
+def_fns_816 16, 8
