@@ -785,11 +785,11 @@ test-debian-argon:
         - avx2
     script:
         - *test-argon-script
-        - ../tests/dav1d_argon.bash -t 2 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 1 -c 0         || exit_code=$((exit_code + $?))
         - ../tests/dav1d_argon.bash -t 2 -c sse2 -g 0 || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -c ssse3     || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -c sse41     || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -c avx2      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 3 -c ssse3     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 4 -c sse41     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 5 -c avx2      || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian32-argon:
