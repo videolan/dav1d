@@ -785,11 +785,11 @@ test-debian-argon:
         - avx2
     script:
         - *test-argon-script
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c 0         || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse2 -g 0 || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c ssse3     || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse41     || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c avx2      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c sse2 -g 0 || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c ssse3     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c sse41     || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c avx2      || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian32-argon:
@@ -804,9 +804,9 @@ test-debian32-argon:
                             --cross-file package/crossfiles/i686-linux32.meson
         - cd build && ninja
         - exit_code=0
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse2       || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c ssse3      || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c sse41 -g 0 || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c sse2       || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c ssse3      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c sse41 -g 0 || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-argon-avx512:
@@ -819,7 +819,7 @@ test-debian-argon-avx512:
         - amd64-avx512
     script:
         - *test-argon-script
-        - ../tests/dav1d_argon.bash -t 2 -j 1 -c avx512icl || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c avx512icl || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 .test-debian-arm-argon:
@@ -831,9 +831,9 @@ test-debian-argon-avx512:
                             -Dtrim_dsp=false
         - cd build && ninja
         - exit_code=0
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c 0         || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c neon      || exit_code=$((exit_code + $?))
-        - ../tests/dav1d_argon.bash -t 2 -j 4 -c neon -g 0 || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c neon      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c neon -g 0 || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 test-debian-armv7-argon:
