@@ -1634,11 +1634,15 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
         idct_dc         \w,  \h,  1
 .endif
 .if \w == 4
+.ifnc \txfm1, identity
         adr             x4,  inv_\txfm1\()_8h_x\w\()_neon
+.endif
         adr             x5,  inv_\txfm2\()_4h_x\h\()_neon
         mov             w13, #\eob_half
 .else
+.ifnc \txfm1, identity
         adr             x4,  inv_\txfm1\()_4h_x\w\()_neon
+.endif
         adr             x5,  inv_\txfm2\()_8h_x\h\()_neon
 .endif
 .ifc \txfm1, identity
@@ -1816,7 +1820,9 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         \w,  \h,  1
 .endif
+.ifnc \txfm1, identity
         adr             x4,  inv_\txfm1\()_8h_x\w\()_neon
+.endif
         adr             x5,  inv_\txfm2\()_8h_x\h\()_neon
 .if \w == 8
         mov             x13, #\eob_half
