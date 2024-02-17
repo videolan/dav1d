@@ -168,43 +168,43 @@ endfunc
   li t2, 3803
   li t3, 2482
 
-  vwmul.vx v4, v0, t1
-  vwmul.vx v6, v0, t3
+  vwmul.vx v16, v0, t1
+  vwmul.vx v18, v0, t3
   neg t1, t1
-  vwmacc.vx v4, t2, v2
-  vwmacc.vx v6, t1, v2
+  vwmacc.vx v16, t2, v2
+  vwmacc.vx v18, t1, v2
   neg t2, t2
-  vwmacc.vx v4, t3, v3
-  vwmacc.vx v6, t2, v3
+  vwmacc.vx v16, t3, v3
+  vwmacc.vx v18, t2, v3
 
-  vwsub.vv v8, v0, v2
-  vwadd.wv v8, v8, v3
+  vwsub.vv v20,  v0, v2
+  vwadd.wv v20, v20, v3
 
   li t1, 3344
-  vwmul.vx v10, v1, t1
+  vwmul.vx v22, v1, t1
 
   vsetvli zero, zero, e32, \lm2, ta, ma
 
-  vmul.vx v8, v8, t1
+  vmul.vx v20, v20, t1
 
-  vadd.vv v12,  v4,  v6
-  vadd.vv  v4,  v4, v10
-  vadd.vv  v6,  v6, v10
-  vsub.vv v10, v12, v10
+  vadd.vv v24, v16, v18
+  vadd.vv v16, v16, v22
+  vadd.vv v18, v18, v22
+  vsub.vv v22, v24, v22
 
   li t1, 2048
 
-  vadd.vx  v4,  v4, t1
-  vadd.vx  v6,  v6, t1
-  vadd.vx  v8,  v8, t1
-  vadd.vx v10, v10, t1
+  vadd.vx v16, v16, t1
+  vadd.vx v18, v18, t1
+  vadd.vx v20, v20, t1
+  vadd.vx v22, v22, t1
 
   vsetvli zero, zero, e16, \lm, ta, ma
 
-  vnsra.wi \o0,  v4, 12
-  vnsra.wi \o1,  v6, 12
-  vnsra.wi \o2,  v8, 12
-  vnsra.wi \o3, v10, 12
+  vnsra.wi \o0, v16, 12
+  vnsra.wi \o1, v18, 12
+  vnsra.wi \o2, v20, 12
+  vnsra.wi \o3, v22, 12
 .endm
 
 function inv_dct_e16_x4_rvv, export=1, ext=v
