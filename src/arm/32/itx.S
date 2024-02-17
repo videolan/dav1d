@@ -1728,11 +1728,15 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
         push            {r4-r11,lr}
         vpush           {q4-q7}
 .if \w == 4
+.ifnc \txfm1, identity
         movrel_local    r4,  inv_\txfm1\()_8h_x\w\()_neon
+.endif
         movrel_local    r5,  inv_\txfm2\()_4h_x\h\()_neon
         mov             r10, #\eob_half
 .else
+.ifnc \txfm1, identity
         movrel_local    r4,  inv_\txfm1\()_4h_x\w\()_neon
+.endif
         movrel_local    r5,  inv_\txfm2\()_8h_x\h\()_neon
 .endif
 .ifc \txfm1, identity
@@ -1873,7 +1877,9 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
         push            {r4-r11,lr}
         vpush           {q4-q7}
 .if \w == 8
+.ifnc \txfm1, identity
         movrel_local    r4,  inv_\txfm1\()_8h_x8_neon
+.endif
         movrel_local    r5,  inv_\txfm2\()_4h_x16_neon
 .else
 .ifc \txfm1, identity
