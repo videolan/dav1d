@@ -879,6 +879,8 @@ function inv_txfm_\variant\()add_8x8_neon
 
 .ifc \variant, identity_
         // The identity shl #1 and downshift srshr #1 cancel out
+
+        b               L(itx_8x8_epilog)
 .else
         blr             x4
 
@@ -890,19 +892,20 @@ function inv_txfm_\variant\()add_8x8_neon
         srshr           v21.8h,  v21.8h,  #1
         srshr           v22.8h,  v22.8h,  #1
         srshr           v23.8h,  v23.8h,  #1
-.endif
 
+L(itx_8x8_epilog):
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v24, v25
 
         blr             x5
 
         load_add_store_8x8 x0, x7
         ret             x15
+.endif
 endfunc
 .endm
 
-def_fn_8x8_base
 def_fn_8x8_base identity_
+def_fn_8x8_base
 
 .macro def_fn_8x8 txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_neon, export=1
