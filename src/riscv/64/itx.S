@@ -328,6 +328,8 @@ function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
 
 .ifc \variant, identity_
   // The identity vsadd.vv and downshift vssra.vi 1 cancel out
+
+  j L(itx_8x8_epilog)
 .else
   jalr t0, a4
 
@@ -339,8 +341,8 @@ function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
   vssra.vi v5, v5, 1
   vssra.vi v6, v6, 1
   vssra.vi v7, v7, 1
-.endif
 
+L(itx_8x8_epilog):
   vsseg8e16.v v0, (a2)
   vle16.v v0, (a2)
   addi t0, a2, 16
@@ -374,9 +376,7 @@ function inv_txfm_\variant\()add_8x8_rvv, export=1, ext=v
   vmv.v.x v8, zero
   vse16.v v8, (a2)
 
-.ifc \variant, identity_
 itx_8x8_end:
-.endif
   vsetivli zero, 8, e8, mf2, ta, ma
   vle8.v v8, (a0)
   add t0, a0, a1
@@ -441,11 +441,12 @@ itx_8x8_end:
   vse8.v v15, (a0)
 
   ret
+.endif
 endfunc
 .endm
 
-def_fn_8x8_base
 def_fn_8x8_base identity_
+def_fn_8x8_base
 
 function inv_identity_e16_x8_rvv, export=1, ext=v
   vsadd.vv v0, v0, v0
