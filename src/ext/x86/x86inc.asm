@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* x86inc.asm: x86 abstraction layer
 ;*****************************************************************************
-;* Copyright (C) 2005-2022 x264 project
+;* Copyright (C) 2005-2024 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Henrik Gramner <henrik@gramner.com>
@@ -845,9 +845,26 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     %1: %2
 %endmacro
 
-; This is needed for ELF, otherwise the GNU linker assumes the stack is executable by default.
 %if FORMAT_ELF
+    ; The GNU linker assumes the stack is executable by default.
     [SECTION .note.GNU-stack noalloc noexec nowrite progbits]
+
+    %ifdef __NASM_VER__
+        %if __NASM_VER__ >= 0x020e0300 ; 2.14.03
+            %if ARCH_X86_64
+                ; Control-flow Enforcement Technology (CET) properties.
+                [SECTION .note.gnu.property alloc noexec nowrite note align=gprsize]
+                dd 0x00000004  ; n_namesz
+                dd gprsize + 8 ; n_descsz
+                dd 0x00000005  ; n_type = NT_GNU_PROPERTY_TYPE_0
+                db "GNU",0     ; n_name
+                dd 0xc0000002  ; pr_type = GNU_PROPERTY_X86_FEATURE_1_AND
+                dd 0x00000004  ; pr_datasz
+                dd 0x00000002  ; pr_data = GNU_PROPERTY_X86_FEATURE_1_SHSTK
+                dd 0x00000000  ; pr_padding
+            %endif
+        %endif
+    %endif
 %endif
 
 ; Tell debuggers how large the function was.
@@ -883,21 +900,22 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
 %assign cpuflags_sse4      (1<<10) | cpuflags_ssse3
 %assign cpuflags_sse42     (1<<11) | cpuflags_sse4
 %assign cpuflags_aesni     (1<<12) | cpuflags_sse42
-%assign cpuflags_gfni      (1<<13) | cpuflags_sse42
-%assign cpuflags_avx       (1<<14) | cpuflags_sse42
-%assign cpuflags_xop       (1<<15) | cpuflags_avx
-%assign cpuflags_fma4      (1<<16) | cpuflags_avx
-%assign cpuflags_fma3      (1<<17) | cpuflags_avx
-%assign cpuflags_bmi1      (1<<18) | cpuflags_avx|cpuflags_lzcnt
-%assign cpuflags_bmi2      (1<<19) | cpuflags_bmi1
-%assign cpuflags_avx2      (1<<20) | cpuflags_fma3|cpuflags_bmi2
-%assign cpuflags_avx512    (1<<21) | cpuflags_avx2 ; F, CD, BW, DQ, VL
-%assign cpuflags_avx512icl (1<<22) | cpuflags_avx512|cpuflags_gfni ; VNNI, IFMA, VBMI, VBMI2, VPOPCNTDQ, BITALG, VAES, VPCLMULQDQ
+%assign cpuflags_clmul     (1<<13) | cpuflags_sse42
+%assign cpuflags_gfni      (1<<14) | cpuflags_aesni|cpuflags_clmul
+%assign cpuflags_avx       (1<<15) | cpuflags_sse42
+%assign cpuflags_xop       (1<<16) | cpuflags_avx
+%assign cpuflags_fma4      (1<<17) | cpuflags_avx
+%assign cpuflags_fma3      (1<<18) | cpuflags_avx
+%assign cpuflags_bmi1      (1<<19) | cpuflags_avx|cpuflags_lzcnt
+%assign cpuflags_bmi2      (1<<20) | cpuflags_bmi1
+%assign cpuflags_avx2      (1<<21) | cpuflags_fma3|cpuflags_bmi2
+%assign cpuflags_avx512    (1<<22) | cpuflags_avx2 ; F, CD, BW, DQ, VL
+%assign cpuflags_avx512icl (1<<23) | cpuflags_avx512|cpuflags_gfni ; VNNI, IFMA, VBMI, VBMI2, VPOPCNTDQ, BITALG, VAES, VPCLMULQDQ
 
-%assign cpuflags_cache32   (1<<23)
-%assign cpuflags_cache64   (1<<24)
-%assign cpuflags_aligned   (1<<25) ; not a cpu feature, but a function variant
-%assign cpuflags_atom      (1<<26)
+%assign cpuflags_cache32   (1<<24)
+%assign cpuflags_cache64   (1<<25)
+%assign cpuflags_aligned   (1<<26) ; not a cpu feature, but a function variant
+%assign cpuflags_atom      (1<<27)
 
 ; Returns a boolean value expressing whether or not the specified cpuflag is enabled.
 %define    cpuflag(x) (((((cpuflags & (cpuflags_ %+ x)) ^ (cpuflags_ %+ x)) - 1) >> 31) & 1)
@@ -1035,6 +1053,7 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     %if WIN64
         AVX512_MM_PERMUTATION 6 ; Swap callee-saved registers with volatile registers
     %endif
+    %xdefine bcstw 1to8
     %xdefine bcstd 1to4
     %xdefine bcstq 1to2
 %endmacro
@@ -1050,6 +1069,7 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     INIT_CPUFLAGS %1
     DEFINE_MMREGS ymm
     AVX512_MM_PERMUTATION
+    %xdefine bcstw 1to16
     %xdefine bcstd 1to8
     %xdefine bcstq 1to4
 %endmacro
@@ -1065,6 +1085,7 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     INIT_CPUFLAGS %1
     DEFINE_MMREGS zmm
     AVX512_MM_PERMUTATION
+    %xdefine bcstw 1to32
     %xdefine bcstd 1to16
     %xdefine bcstq 1to8
 %endmacro
@@ -1607,11 +1628,11 @@ AVX_INSTR pavgb, mmx2, 0, 0, 1
 AVX_INSTR pavgw, mmx2, 0, 0, 1
 AVX_INSTR pblendvb, sse4, 0, 1, 0 ; last operand must be xmm0 with legacy encoding
 AVX_INSTR pblendw, sse4, 0, 1, 0
-AVX_INSTR pclmulhqhqdq, fnord, 0, 0, 0
-AVX_INSTR pclmulhqlqdq, fnord, 0, 0, 0
-AVX_INSTR pclmullqhqdq, fnord, 0, 0, 0
-AVX_INSTR pclmullqlqdq, fnord, 0, 0, 0
-AVX_INSTR pclmulqdq, fnord, 0, 1, 0
+AVX_INSTR pclmulhqhqdq, clmul, 0, 0, 0
+AVX_INSTR pclmulhqlqdq, clmul, 0, 0, 0
+AVX_INSTR pclmullqhqdq, clmul, 0, 0, 0
+AVX_INSTR pclmullqlqdq, clmul, 0, 0, 0
+AVX_INSTR pclmulqdq, clmul, 0, 1, 0
 AVX_INSTR pcmpeqb, mmx, 0, 0, 1
 AVX_INSTR pcmpeqd, mmx, 0, 0, 1
 AVX_INSTR pcmpeqq, sse4, 0, 0, 1
@@ -1766,6 +1787,7 @@ GPR_INSTR blsi, bmi1
 GPR_INSTR blsmsk, bmi1
 GPR_INSTR blsr, bmi1
 GPR_INSTR bzhi, bmi2
+GPR_INSTR crc32, sse42
 GPR_INSTR mulx, bmi2
 GPR_INSTR pdep, bmi2
 GPR_INSTR pext, bmi2
