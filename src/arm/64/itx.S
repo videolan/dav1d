@@ -1515,6 +1515,8 @@ function inv_txfm_\variant\()add_16x4_neon
 .endr
 
         identity_8x16_shift1 v0.h[0]
+
+        b               L(itx_16x4_epilog)
 .else
 .irp i, v16.4h, v17.4h, v18.4h, v19.4h, v20.4h, v21.4h, v22.4h, v23.4h, v24.4h, v25.4h, v26.4h, v27.4h, v28.4h, v29.4h, v30.4h, v31.4h
         ld1             {\i},    [x2]
@@ -1530,33 +1532,29 @@ function inv_txfm_\variant\()add_16x4_neon
 .irp i, v16.8h, v17.8h, v18.8h, v19.8h
         srshr           \i,  \i,  #1
 .endr
-.endif
+
+        ins             v24.d[1], v28.d[0]
+        ins             v25.d[1], v29.d[0]
+        ins             v26.d[1], v30.d[0]
+        ins             v27.d[1], v31.d[0]
+        srshr           v20.8h,  v24.8h,  #1
+        srshr           v21.8h,  v25.8h,  #1
+        srshr           v22.8h,  v26.8h,  #1
+        srshr           v23.8h,  v27.8h,  #1
+
+L(itx_16x4_epilog):
         transpose_4x8h  v16, v17, v18, v19, v2,  v3,  v4,  v5
         blr             x5
         mov             x6,  x0
         load_add_store_8x4 x6, x7
 
-.ifc \variant, identity_
-        mov             v16.16b, v20.16b
-        mov             v17.16b, v21.16b
-        mov             v18.16b, v22.16b
-        mov             v19.16b, v23.16b
-.else
-        ins             v24.d[1], v28.d[0]
-        ins             v25.d[1], v29.d[0]
-        ins             v26.d[1], v30.d[0]
-        ins             v27.d[1], v31.d[0]
-        srshr           v16.8h,  v24.8h,  #1
-        srshr           v17.8h,  v25.8h,  #1
-        srshr           v18.8h,  v26.8h,  #1
-        srshr           v19.8h,  v27.8h,  #1
-.endif
-        transpose_4x8h  v16, v17, v18, v19, v2,  v3,  v4,  v5
+        transpose_4x8h_mov v20, v21, v22, v23, v2,  v3,  v4,  v5, v16, v17, v18, v19
         blr             x5
         add             x6,  x0,  #8
         load_add_store_8x4 x6, x7
 
         ret             x15
+.endif
 endfunc
 
 function inv_txfm_\variant\()add_4x16_neon
