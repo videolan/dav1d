@@ -1608,12 +1608,14 @@ function inv_txfm_\variant\()add_4x16_neon
         mov             w16, #(5793-4096)*8
         dup             v0.4h,   w16
         identity_8x4_shift1 v16, v17, v18, v19, v0.h[0]
+
+        b               L(itx_4x16_epilog)
 .else
         blr             x4
 .irp i, v16.8h, v17.8h, v18.8h, v19.8h
         srshr           \i,  \i,  #1
 .endr
-.endif
+L(itx_4x16_epilog):
         transpose_4x8h  v16, v17, v18, v19, v4,  v5,  v6,  v7
         ins             v20.d[0], v16.d[1]
         ins             v21.d[0], v17.d[1]
@@ -1625,11 +1627,12 @@ function inv_txfm_\variant\()add_4x16_neon
         load_add_store_4x16 x0, x6
 
         ret             x15
+.endif
 endfunc
 .endm
 
-def_fn_416_base
 def_fn_416_base identity_
+def_fn_416_base
 
 .macro def_fn_416 w, h, txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
