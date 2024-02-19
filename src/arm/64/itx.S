@@ -1798,14 +1798,16 @@ function inv_txfm_\variant\()add_8x16_neon
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
 .ifc \variant, identity_
         // The identity shl #1 and downshift srshr #1 cancel out
+
+        b               L(itx_8x16_epilog)
 .else
         blr             x4
 
 .irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
         srshr           \i,  \i,  #1
 .endr
-.endif
 
+L(itx_8x16_epilog):
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v2, v3
 
         blr             x5
@@ -1813,11 +1815,12 @@ function inv_txfm_\variant\()add_8x16_neon
         load_add_store_8x16 x0, x6
 
         ret             x15
+.endif
 endfunc
 .endm
 
-def_fn_816_base
 def_fn_816_base identity_
+def_fn_816_base
 
 .macro def_fn_816 w, h, txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
