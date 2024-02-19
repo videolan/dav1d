@@ -1857,6 +1857,10 @@ function inv_txfm_\variant\()add_8x16_neon
 .endr
 2:
 
+.ifc \variant, identity_
+        b               L(itx_8x16_epilog)
+.else
+L(itx_8x16_epilog):
 .irp i, 0, 4
         add             r6,  r0,  #(\i)
         add             r7,  sp,  #(\i*2)
@@ -1867,11 +1871,12 @@ function inv_txfm_\variant\()add_8x16_neon
         add_sp_align    256
         vpop            {q4-q7}
         pop             {r4-r11,pc}
+.endif
 endfunc
 .endm
 
-def_fn_816_base
 def_fn_816_base identity_
+def_fn_816_base
 
 .macro def_fn_816 w, h, txfm1, txfm2, eob_8x8, eob_4x4
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
