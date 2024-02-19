@@ -1773,8 +1773,7 @@ def_fn_416 \w, \h, identity, flipadst, 32
 def_fns_416 4, 16
 def_fns_416 16, 4
 
-.macro def_fn_816_base variant
-function inv_txfm_\variant\()add_16x8_neon
+function inv_txfm_add_16x8_neon
         sub_sp_align    256
 
 .irp i, 0, 4
@@ -1813,6 +1812,7 @@ function inv_txfm_\variant\()add_16x8_neon
         pop             {r4-r11,pc}
 endfunc
 
+.macro def_fn_816_base variant
 function inv_txfm_\variant\()add_8x16_neon
         sub_sp_align    256
 
@@ -1878,6 +1878,12 @@ endfunc
 def_fn_816_base identity_
 def_fn_816_base
 
+/* Define symbols used in .if statement */
+.equ dct, 1
+.equ identity, 2
+.equ adst, 3
+.equ flipadst, 4
+
 .macro def_fn_816 w, h, txfm1, txfm2, eob_8x8, eob_4x4
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
 .ifc \txfm1\()_\txfm2, dct_dct
@@ -1904,7 +1910,7 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
 .else
         mov             r10, #\eob_4x4
 .endif
-.ifc \txfm1, identity
+.if \w == 8 && \txfm1 == identity
         b               inv_txfm_identity_add_\w\()x\h\()_neon
 .else
         b               inv_txfm_add_\w\()x\h\()_neon
