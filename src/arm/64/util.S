@@ -226,4 +226,16 @@
         trn2            \r3\().4s,  \t5\().4s,  \t7\().4s
 .endm
 
+.macro  transpose_4x8h_mov r0, r1, r2, r3, t4, t5, t6, t7, o0, o1, o2, o3
+        trn1            \t4\().8h,  \r0\().8h,  \r1\().8h
+        trn2            \t5\().8h,  \r0\().8h,  \r1\().8h
+        trn1            \t6\().8h,  \r2\().8h,  \r3\().8h
+        trn2            \t7\().8h,  \r2\().8h,  \r3\().8h
+
+        trn1            \o0\().4s,  \t4\().4s,  \t6\().4s
+        trn2            \o2\().4s,  \t4\().4s,  \t6\().4s
+        trn1            \o1\().4s,  \t5\().4s,  \t7\().4s
+        trn2            \o3\().4s,  \t5\().4s,  \t7\().4s
+.endm
+
 #endif /* DAV1D_SRC_ARM_64_UTIL_S */
