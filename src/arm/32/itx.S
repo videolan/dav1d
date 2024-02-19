@@ -1699,12 +1699,14 @@ function inv_txfm_\variant\()add_4x16_neon
         movw            r12, #(5793-4096)*8
         vdup.16         d0,  r12
         identity_8x4_shift1 q8,  q9,  q10, q11, d0[0]
+
+        b               L(itx_4x16_epilog)
 .else
         blx             r4
 .irp i, q8, q9, q10, q11
         vrshr.s16       \i,  \i,  #1
 .endr
-.endif
+L(itx_4x16_epilog):
         transpose_4x8h  q8,  q9,  q10, q11
         vswp            d19, d21
         vswp            d18, d20
@@ -1717,11 +1719,12 @@ function inv_txfm_\variant\()add_4x16_neon
 
         vpop            {q4-q7}
         pop             {r4-r11,pc}
+.endif
 endfunc
 .endm
 
-def_fn_416_base
 def_fn_416_base identity_
+def_fn_416_base
 
 .macro def_fn_416 w, h, txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
