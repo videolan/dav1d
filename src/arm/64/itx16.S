@@ -1381,6 +1381,10 @@ function inv_txfm_horz\suffix\()_16x4_neon
         sqrshrn2        v21.8h,  v29.4s,  #\shift
         sqrshrn2        v22.8h,  v30.4s,  #\shift
         sqrshrn2        v23.8h,  v31.4s,  #\shift
+.if \scale
+        b               L(horz_16x4_epilog)
+.else
+L(horz_16x4_epilog):
         transpose_4x8h  v16, v17, v18, v19, v4,  v5,  v6,  v7
         transpose_4x8h  v20, v21, v22, v23, v4,  v5,  v6,  v7
 
@@ -1389,11 +1393,12 @@ function inv_txfm_horz\suffix\()_16x4_neon
 .endr
 
         ret             x14
+.endif
 endfunc
 .endm
 
-def_horz_16 scale=0, shift=2
 def_horz_16 scale=1, shift=1, suffix=_scale
+def_horz_16 scale=0, shift=2
 
 function inv_txfm_add_vert_8x16_neon
         mov             x14, x30
