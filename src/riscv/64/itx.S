@@ -1905,14 +1905,16 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
   vsmul.vx v\i, v\i, t1
 .endr
 
-.ifnc \variant, identity_
+.ifc \variant, identity_
+  j L(itx_8x16_epilog)
+.else
   jalr t0, a4
 
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7
   vssra.vi v\i, v\i, 1
 .endr
-.endif
 
+L(itx_8x16_epilog):
   addi t4, sp, -8*32
   vsseg8e16.v v0, (t4)
   addi t0, t4, 8*16
@@ -1923,6 +1925,7 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
   jal a7, inv_txfm_add_vert_8x16_rvv
 
   ret
+.endif
 endfunc
 
 function inv_txfm_\variant\()add_16x8_rvv, export=1, ext=v
@@ -2028,8 +2031,8 @@ function inv_txfm_\variant\()add_16x8_rvv, export=1, ext=v
 endfunc
 .endm
 
-def_fn_816_base
 def_fn_816_base identity_
+def_fn_816_base
 
 .macro def_fn_816 w, h, txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
