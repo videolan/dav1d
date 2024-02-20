@@ -1722,10 +1722,16 @@ function inv_txfm_\variant\()add_16x4_rvv, export=1, ext=v
   vssra.vi v16, v16, 1
   vsadd.vv v\i, v\i, v16
 .endr
+
+  j L(itx_16x4_epilog)
 .else
   jalr t0, a4
-.endif
 
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  vssra.vi v\i, v\i, 1
+.endr
+
+L(itx_16x4_epilog):
   li t0, 32
   vssseg8e16.v v0, (a2), t0
   addi t1, a2, 16
@@ -1743,13 +1749,6 @@ function inv_txfm_\variant\()add_16x4_rvv, export=1, ext=v
   vle16.v v\i, (t0)
   vse16.v v4, (t0)
 .endr
-
-.ifnc \variant, identity_
-  vssra.vi v0, v0, 1
-  vssra.vi v1, v1, 1
-  vssra.vi v2, v2, 1
-  vssra.vi v3, v3, 1
-.endif
 
   jalr t0, a5
 
@@ -1797,6 +1796,7 @@ function inv_txfm_\variant\()add_16x4_rvv, export=1, ext=v
 .endr
 
   ret
+.endif
 endfunc
 .endm
 
