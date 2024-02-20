@@ -1487,6 +1487,10 @@ function inv_txfm_horz\suffix\()_16x2_neon
         vqrshrn.s32     d21, q13, #\shift
         vqrshrn.s32     d22, q14, #\shift
         vqrshrn.s32     d23, q15, #\shift
+.if \scale
+        b               L(horz_16x2_epilog)
+.else
+L(horz_16x2_epilog):
         vuzp.16         q8,  q9
         vuzp.16         q10, q11
 
@@ -1495,11 +1499,12 @@ function inv_txfm_horz\suffix\()_16x2_neon
 .endr
 
         pop             {pc}
+.endif
 endfunc
 .endm
 
-def_horz_16 scale=0, shift=2
 def_horz_16 scale=1, shift=1, suffix=_scale
+def_horz_16 scale=0, shift=2
 
 function inv_txfm_add_vert_4x16_neon
         push            {lr}
