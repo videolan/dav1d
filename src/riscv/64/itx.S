@@ -1607,6 +1607,8 @@ function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
   vsmul.vx v8, v\i, t1
   vaadd.vv v\i, v\i, v8
 .endr
+
+  j L(itx_4x16_epilog)
 .else
   jalr t0, a4
 
@@ -1614,8 +1616,8 @@ function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
   vssra.vi v1, v1, 1
   vssra.vi v2, v2, 1
   vssra.vi v3, v3, 1
-.endif
 
+L(itx_4x16_epilog):
   vsseg4e16.v v0, (a2)
   addi t0, a2, 64
   vsseg4e16.v v4, (t0)
@@ -1698,6 +1700,7 @@ function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
 .endr
 
   ret
+.endif
 endfunc
 
 function inv_txfm_\variant\()add_16x4_rvv, export=1, ext=v
@@ -1797,8 +1800,8 @@ function inv_txfm_\variant\()add_16x4_rvv, export=1, ext=v
 endfunc
 .endm
 
-def_fn_416_base
 def_fn_416_base identity_
+def_fn_416_base
 
 .macro def_fn_416 w, h, txfm1, txfm2
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
