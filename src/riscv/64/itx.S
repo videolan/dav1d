@@ -1851,11 +1851,14 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
 
   vsetivli zero, 8, e16, m1, ta, ma
 
+  vmv.v.x v16, zero
   addi t0, a2, 16
   vle16.v v0, (t0)
+  vse16.v v16, (t0)
 .irp i, 1, 2, 3, 4, 5, 6, 7
   addi t0, t0, 32
   vle16.v v\i, (t0)
+  vse16.v v16, (t0)
 .endr
 
   li t1, 2896*8
@@ -1885,12 +1888,16 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
   vssra.vi v15, v7, 1
 .endif
 
+  vmv.v.x v16, zero
   vle16.v v0, (a2)
+  vse16.v v16, (a2)
   addi t0, a2, 32
   vle16.v v1, (t0)
+  vse16.v v16, (t0)
 .irp i, 2, 3, 4, 5, 6, 7
   addi t0, t0, 32
   vle16.v v\i, (t0)
+  vse16.v v16, (t0)
 .endr
 
   li t1, 2896*8
@@ -1906,83 +1913,14 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
 .endr
 .endif
 
-  vsseg8e16.v v0, (a2)
-  addi t0, a2, 128
+  addi t4, sp, -8*32
+  vsseg8e16.v v0, (t4)
+  addi t0, t4, 8*16
   vsseg8e16.v v8, (t0)
 
-  vsetivli zero, 8, e16, m1, ta, ma
-
-  vmv.v.x v16, zero
-  vle16.v v0, (a2)
-  vse16.v v16, (a2)
-.irp i, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  addi a2, a2, 16
-  vle16.v v\i, (a2)
-  vse16.v v16, (a2)
-.endr
-
-  jalr t0, a5
-
-.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vssra.vi v\i, v\i, 4
-.endr
-
-  vsetvli zero, zero, e8, mf2, ta, ma
-
-  vle8.v v16, (a0)
-  add t0, a0, a1
-  vle8.v v17, (t0)
-.irp i, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  add t0, t0, a1
-  vle8.v v\i, (t0)
-.endr
-
-  vwaddu.wv  v0,  v0, v16
-  vwaddu.wv  v1,  v1, v17
-  vwaddu.wv  v2,  v2, v18
-  vwaddu.wv  v3,  v3, v19
-  vwaddu.wv  v4,  v4, v20
-  vwaddu.wv  v5,  v5, v21
-  vwaddu.wv  v6,  v6, v22
-  vwaddu.wv  v7,  v7, v23
-  vwaddu.wv  v8,  v8, v24
-  vwaddu.wv  v9,  v9, v25
-  vwaddu.wv v10, v10, v26
-  vwaddu.wv v11, v11, v27
-  vwaddu.wv v12, v12, v28
-  vwaddu.wv v13, v13, v29
-  vwaddu.wv v14, v14, v30
-  vwaddu.wv v15, v15, v31
-
-  vsetvli zero, zero, e16, m1, ta, ma
-.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vmax.vx v\i, v\i, zero
-.endr
-
-  vsetvli zero, zero, e8, mf2, ta, ma
-
-  vnclipu.wi v16,  v0, 0
-  vnclipu.wi v17,  v1, 0
-  vnclipu.wi v18,  v2, 0
-  vnclipu.wi v19,  v3, 0
-  vnclipu.wi v20,  v4, 0
-  vnclipu.wi v21,  v5, 0
-  vnclipu.wi v22,  v6, 0
-  vnclipu.wi v23,  v7, 0
-  vnclipu.wi v24,  v8, 0
-  vnclipu.wi v25,  v9, 0
-  vnclipu.wi v26, v10, 0
-  vnclipu.wi v27, v11, 0
-  vnclipu.wi v28, v12, 0
-  vnclipu.wi v29, v13, 0
-  vnclipu.wi v30, v14, 0
-  vnclipu.wi v31, v15, 0
-
-  vse8.v v16, (a0)
-.irp i, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  add a0, a0, a1
-  vse8.v v\i, (a0)
-.endr
+  mv t5, a0
+  li t6, 16
+  jal a7, inv_txfm_add_vert_8x16_rvv
 
   ret
 endfunc
