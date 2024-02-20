@@ -1447,14 +1447,16 @@ function inv_txfm_horz\suffix\()_16x4_neon
 .else
         identity_4x16_shift1 d0[0]
 .endif
+        b               L(horz_16x4_epilog)
 .else
         blx             r4
-.endif
-.if \shift > 0
 .irp i, q8, q9, q10, q11, q12, q13, q14, q15
         vrshr.s16       \i,  \i,  #\shift
 .endr
-.endif
+.if \shift == 1
+        b               L(horz_16x4_epilog)
+.else
+L(horz_16x4_epilog):
         transpose_4x4h  q8,  q9,  d16, d17, d18, d19
         transpose_4x4h  q10, q11, d20, d21, d22, d23
         transpose_4x4h  q12, q13, d24, d25, d26, d27
@@ -1465,13 +1467,15 @@ function inv_txfm_horz\suffix\()_16x4_neon
 .endr
 
         pop             {pc}
+.endif
+.endif
 endfunc
 .endm
 
-def_horz_16 scale=0, identity=0, shift=2
-def_horz_16 scale=1, identity=0, shift=1, suffix=_scale
-def_horz_16 scale=0, identity=1, shift=-2, suffix=_identity
 def_horz_16 scale=1, identity=1, shift=-1, suffix=_scale_identity
+def_horz_16 scale=0, identity=1, shift=-2, suffix=_identity
+def_horz_16 scale=1, identity=0, shift=1, suffix=_scale
+def_horz_16 scale=0, identity=0, shift=2
 
 function inv_txfm_add_vert_4x16_neon
         push            {lr}
