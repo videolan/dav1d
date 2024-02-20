@@ -1407,10 +1407,12 @@ endfunc
 .macro def_horz_16 variant
 function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vmv.v.x v16, zero
-.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  vle16.v v0, (t4)
+  vse16.v v16, (t4)
+.irp i, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  add t4, t4, t6
   vle16.v v\i, (t4)
   vse16.v v16, (t4)
-  add t4, t4, t6
 .endr
 .ifc \variant, _identity
   li t1, 2*(5793-4096)*8
@@ -1425,9 +1427,10 @@ function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vssra.vi v\i, v\i, 2
 .endr
 .endif
-.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vsse16.v v\i, (t5), t6
+  vsse16.v v0, (t5), t6
+.irp i, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   addi t5, t5, 2
+  vsse16.v v\i, (t5), t6
 .endr
   jr a7
 endfunc
@@ -1438,10 +1441,13 @@ def_horz_16 _identity
 
 function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
   vsetivli zero, 8, e16, m1, ta, ma
-.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vle16.v v\i, (t4)
+
+  vle16.v v0, (t4)
+.irp i, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   add t4, t4, t6
+  vle16.v v\i, (t4)
 .endr
+
   jalr t0, a5
 
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
@@ -1449,10 +1455,13 @@ function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
 .endr
 
   vsetivli zero, 8, e8, mf2, ta, ma
-  mv t0, t5
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  vle8.v v\i, (t0)
+
+  vle8.v v16, (t5)
+  add t0, t5, a1
+  vle8.v v17, (t0)
+.irp i, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
   add t0, t0, a1
+  vle8.v v\i, (t0)
 .endr
 
   vwaddu.wv v0, v0, v16
@@ -1495,9 +1504,10 @@ function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
   vnclipu.wi v30, v14, 0
   vnclipu.wi v31, v15, 0
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  vse8.v v\i, (t5)
+  vse8.v v16, (t5)
+.irp i, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
   add t5, t5, a1
+  vse8.v v\i, (t5)
 .endr
 
   jr a7
