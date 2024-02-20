@@ -1600,6 +1600,8 @@ function inv_txfm_\variant\()add_16x4_neon
 .endr
 
         identity_4x16_shift1 d0[0]
+
+        b               L(itx_16x4_epilog)
 .else
         vmov.i16        q2,  #0
         vmov.i16        q3,  #0
@@ -1618,30 +1620,25 @@ function inv_txfm_\variant\()add_16x4_neon
         vswp            d19, d22
         vswp            d18, d20
         vswp            d19, d21
-.irp i, q8, q9, q10, q11
+        vswp            d25, d28
+        vswp            d27, d30
+        vswp            d26, d28
+        vswp            d27, d29
+.irp i, q8, q9, q10, q11, q12, q13, q14, q15
         vrshr.s16       \i,  \i,  #1
 .endr
-.endif
+
+L(itx_16x4_epilog):
         transpose_4x8h  q8,  q9,  q10, q11
         blx             r5
         mov             r6,  r0
         load_add_store_8x4 r6, r7
 
-.ifc \variant, identity_
         vmov            q8,  q12
         vmov            q9,  q13
         vmov            q10, q14
         vmov            q11, q15
-.else
-        vswp            d25, d28
-        vswp            d27, d30
-        vswp            d26, d28
-        vswp            d27, d29
-        vrshr.s16       q8,  q12, #1
-        vrshr.s16       q9,  q13, #1
-        vrshr.s16       q10, q14, #1
-        vrshr.s16       q11, q15, #1
-.endif
+
         transpose_4x8h  q8,  q9,  q10, q11
         blx             r5
         add             r6,  r0,  #8
@@ -1649,6 +1646,7 @@ function inv_txfm_\variant\()add_16x4_neon
 
         vpop            {q4-q7}
         pop             {r4-r11,pc}
+.endif
 endfunc
 
 function inv_txfm_\variant\()add_4x16_neon
