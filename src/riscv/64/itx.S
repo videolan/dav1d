@@ -1421,23 +1421,25 @@ function inv_txfm_horz\variant\()_16x8_rvv, export=1, ext=v
   vsra.vi v16, v16, 1
   vaadd.vv v\i, v\i, v16
 .endr
+  j L(horz_16x8_epilog)
 .else
   jalr t0, a4
 .irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vssra.vi v\i, v\i, 2
 .endr
-.endif
+L(horz_16x8_epilog):
   vsse16.v v0, (t5), t6
 .irp i, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   addi t5, t5, 2
   vsse16.v v\i, (t5), t6
 .endr
   jr a7
+.endif
 endfunc
 .endm
 
-def_horz_16
 def_horz_16 _identity
+def_horz_16
 
 function inv_txfm_add_vert_8x16_rvv, export=1, ext=v
   vsetivli zero, 8, e16, m1, ta, ma
