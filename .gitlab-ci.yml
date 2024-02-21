@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20240113214804
+    image: registry.videolan.org/dav1d-debian-unstable:20240221150801
     stage: build
     tags:
         - docker
@@ -220,7 +220,7 @@ build-debian-avx512:
         - cd build
         - time meson test -v --suite checkasm
 
-build-debian-clang14:
+build-debian-clang:
     extends: .debian-amd64-common
     variables:
         CC: clang
