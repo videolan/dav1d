@@ -29,11 +29,10 @@
 
 #if BITDEPTH == 8
 static inline i16x8 vconstrain(const i16x8 diff, const int16_t threshold,
-                               const int damping)
+                               const uint16_t shift)
 {
     const i16x8 zero = vec_splat_s16(0);
     if (!threshold) return zero;
-    const uint16_t shift = imax(0, damping - ulog2(threshold));
     const i16x8 abs_diff = vec_abs(diff);
     const b16x8 mask = vec_cmplt(diff, zero);
     const i16x8 thr = vec_splats(threshold);
@@ -240,16 +239,16 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
     const i16x8 p ## 2 = vec_xxpermdi(p ## a ## 2, p ## b ## 2, 0); \
     const i16x8 p ## 3 = vec_xxpermdi(p ## a ## 3, p ## b ## 3, 0);
 
-#define CONSTRAIN(p, strength) \
+#define CONSTRAIN(p, strength, shift) \
     const i16x8 p ## _d0 = vec_sub(p ## 0, px); \
     const i16x8 p ## _d1 = vec_sub(p ## 1, px); \
     const i16x8 p ## _d2 = vec_sub(p ## 2, px); \
     const i16x8 p ## _d3 = vec_sub(p ## 3, px); \
 \
-    i16x8 p ## _c0 = vconstrain(p ## _d0, strength, damping); \
-    i16x8 p ## _c1 = vconstrain(p ## _d1, strength, damping); \
-    i16x8 p ## _c2 = vconstrain(p ## _d2, strength, damping); \
-    i16x8 p ## _c3 = vconstrain(p ## _d3, strength, damping);
+    i16x8 p ## _c0 = vconstrain(p ## _d0, strength, shift); \
+    i16x8 p ## _c1 = vconstrain(p ## _d1, strength, shift); \
+    i16x8 p ## _c2 = vconstrain(p ## _d2, strength, shift); \
+    i16x8 p ## _c3 = vconstrain(p ## _d3, strength, shift);
 
 #define SETUP_MINMAX \
     i16x8 max = px; \
@@ -363,8 +362,8 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int sec_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
-           uint16_t *tmp)
+           const int pri_shift, const int sec_shift,
+           const enum CdefEdgeFlags edges, uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
     const int off1 = cdef_directions4[dir][0];
@@ -386,7 +385,7 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
         // Primary pass
         LOAD_DIR4(p, tmp, off1, off1_1)
 
-        CONSTRAIN(p, pri_strength)
+        CONSTRAIN(p, pri_strength, pri_shift)
 
         MIN_MAX(p)
 
@@ -395,7 +394,7 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 1
         LOAD_DIR4(s, tmp, off2, off3)
 
-        CONSTRAIN(s, sec_strength)
+        CONSTRAIN(s, sec_strength, sec_shift)
 
         MIN_MAX(s)
 
@@ -404,7 +403,7 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 2
         LOAD_DIR4(s2, tmp, off2_1, off3_1)
 
-        CONSTRAIN(s2, sec_strength)
+        CONSTRAIN(s2, sec_strength, sec_shift)
 
         MIN_MAX(s2)
 
@@ -420,7 +419,7 @@ filter_4xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
+           const int pri_shift, const enum CdefEdgeFlags edges,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
@@ -435,7 +434,7 @@ filter_4xN_pri(pixel *dst, const ptrdiff_t dst_stride,
         // Primary pass
         LOAD_DIR4(p, tmp, off1, off1_1)
 
-        CONSTRAIN(p, pri_strength)
+        CONSTRAIN(p, pri_strength, pri_shift)
 
         PRI_0_UPDATE_SUM(p)
 
@@ -448,7 +447,7 @@ filter_4xN_sec(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int sec_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
+           const int sec_shift, const enum CdefEdgeFlags edges,
            uint16_t *tmp)
 {
     const int off2 = cdef_directions4[(dir + 2) & 7][0];
@@ -462,14 +461,14 @@ filter_4xN_sec(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 1
         LOAD_DIR4(s, tmp, off2, off3)
 
-        CONSTRAIN(s, sec_strength)
+        CONSTRAIN(s, sec_strength, sec_shift)
 
         SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR4(s2, tmp, off2_1, off3_1)
 
-        CONSTRAIN(s2, sec_strength)
+        CONSTRAIN(s2, sec_strength, sec_shift)
 
         UPDATE_SUM(s2)
 
@@ -482,7 +481,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int sec_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
+           const int pri_shift, const int sec_shift, const enum CdefEdgeFlags edges,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
@@ -506,7 +505,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
         // Primary pass
         LOAD_DIR(p, tmp, off1, off1_1)
 
-        CONSTRAIN(p, pri_strength)
+        CONSTRAIN(p, pri_strength, pri_shift)
 
         MIN_MAX(p)
 
@@ -515,7 +514,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 1
         LOAD_DIR(s, tmp, off2, off3)
 
-        CONSTRAIN(s, sec_strength)
+        CONSTRAIN(s, sec_strength, sec_shift)
 
         MIN_MAX(s)
 
@@ -524,7 +523,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 2
         LOAD_DIR(s2, tmp, off2_1, off3_1)
 
-        CONSTRAIN(s2, sec_strength)
+        CONSTRAIN(s2, sec_strength, sec_shift)
 
         MIN_MAX(s2)
 
@@ -541,7 +540,7 @@ filter_8xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
+           const int pri_shift, const enum CdefEdgeFlags edges,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
@@ -556,7 +555,7 @@ filter_8xN_pri(pixel *dst, const ptrdiff_t dst_stride,
         // Primary pass
         LOAD_DIR(p, tmp, off1, off1_1)
 
-        CONSTRAIN(p, pri_strength)
+        CONSTRAIN(p, pri_strength, pri_shift)
 
         PRI_0_UPDATE_SUM(p)
 
@@ -569,7 +568,7 @@ filter_8xN_sec(pixel *dst, const ptrdiff_t dst_stride,
            const pixel (*left)[2], const pixel *const top,
            const pixel *const bottom, const int w, const int h,
            const int sec_strength, const int dir,
-           const int damping, const enum CdefEdgeFlags edges,
+           const int sec_shift, const enum CdefEdgeFlags edges,
            uint16_t *tmp)
 {
     const int off2 = cdef_directions8[(dir + 2) & 7][0];
@@ -584,14 +583,14 @@ filter_8xN_sec(pixel *dst, const ptrdiff_t dst_stride,
         // Secondary pass 1
         LOAD_DIR(s, tmp, off2, off3)
 
-        CONSTRAIN(s, sec_strength)
+        CONSTRAIN(s, sec_strength, sec_shift)
 
         SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR(s2, tmp, off2_1, off3_1)
 
-        CONSTRAIN(s2, sec_strength)
+        CONSTRAIN(s2, sec_strength, sec_shift)
 
         UPDATE_SUM(s2)
 
@@ -615,16 +614,19 @@ void dav1d_cdef_filter_##w##x##h##_vsx(pixel *const dst, \
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 2; \
     copy##w##xN(tmp - 2, dst, dst_stride, left, top, bottom, w, h, edges); \
     if (pri_strength) { \
+        const int pri_shift = imax(0, damping - ulog2(pri_strength)); \
         if (sec_strength) { \
+            const int sec_shift = damping - ulog2(sec_strength); \
             filter_##w##xN(dst, dst_stride, left, top, bottom, w, h, pri_strength, \
-                           sec_strength, dir, damping, edges, tmp); \
+                           sec_strength, dir, pri_shift, sec_shift, edges, tmp); \
         } else { \
             filter_##w##xN_pri(dst, dst_stride, left, top, bottom, w, h, pri_strength, \
-                               dir, damping, edges, tmp); \
+                               dir, pri_shift, edges, tmp); \
         } \
     } else { \
+        const int sec_shift = damping - ulog2(sec_strength); \
         filter_##w##xN_sec(dst, dst_stride, left, top, bottom, w, h, sec_strength, \
-                           dir, damping, edges, tmp); \
+                           dir, sec_shift, edges, tmp); \
     } \
 }
 
