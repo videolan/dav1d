@@ -44,7 +44,7 @@ static inline i16x8 vconstrain(const i16x8 diff, const int16_t threshold,
     return vec_sel(min, neg, mask);
 }
 
-static inline void copy4xN(uint16_t *tmp, const ptrdiff_t tmp_stride,
+static inline void copy4xN(uint16_t *tmp,
                            const uint8_t *src, const ptrdiff_t src_stride,
                            const uint8_t (*left)[2], const uint8_t *const top,
                            const uint8_t *const bottom, const int w, const int h,
@@ -114,7 +114,7 @@ static inline void copy4xN(uint16_t *tmp, const ptrdiff_t tmp_stride,
     }
 }
 
-static inline void copy8xN(uint16_t *tmp, const ptrdiff_t tmp_stride,
+static inline void copy8xN(uint16_t *tmp,
                            const uint8_t *src, const ptrdiff_t src_stride,
                            const uint8_t (*left)[2], const uint8_t *const top,
                            const uint8_t *const bottom, const int w, const int h,
@@ -222,7 +222,7 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
 
 #define LOAD_PIX4(addr) \
     const i16x8 a = (i16x8)vec_vsx_ld(0, addr); \
-    const i16x8 b = (i16x8)vec_vsx_ld(0, addr + tmp_stride); \
+    const i16x8 b = (i16x8)vec_vsx_ld(0, addr + 8); \
     const i16x8 px = vec_xxpermdi(a, b, 0); \
     i16x8 sum = vec_splat_s16(0);
 
@@ -234,7 +234,7 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
 
 #define LOAD_DIR4(p, addr, o0, o1) \
     LOAD_DIR(p ## a, addr, o0, o1) \
-    LOAD_DIR(p ## b, addr + tmp_stride, o0, o1) \
+    LOAD_DIR(p ## b, addr + 8, o0, o1) \
     const i16x8 p ## 0 = vec_xxpermdi(p ## a ## 0, p ## b ## 0, 0); \
     const i16x8 p ## 1 = vec_xxpermdi(p ## a ## 1, p ## b ## 1, 0); \
     const i16x8 p ## 2 = vec_xxpermdi(p ## a ## 2, p ## b ## 2, 0); \
@@ -295,14 +295,14 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
     dst[2] = vdst[2]; \
     dst[3] = vdst[3]; \
 \
-    tmp += tmp_stride; \
+    tmp += 8; \
     dst += PXSTRIDE(dst_stride); \
     dst[0] = vdst[4]; \
     dst[1] = vdst[5]; \
     dst[2] = vdst[6]; \
     dst[3] = vdst[7]; \
 \
-    tmp += tmp_stride; \
+    tmp += 8; \
     dst += PXSTRIDE(dst_stride);
 
 #define STORE4_CLAMPED \
@@ -326,7 +326,7 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
     dst[6] = vdst[6]; \
     dst[7] = vdst[7]; \
 \
-    tmp += tmp_stride; \
+    tmp += 16; \
     dst += PXSTRIDE(dst_stride);
 
 #define STORE8_CLAMPED \
@@ -340,6 +340,20 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
     i16x8 vdst = vec_add(px, vec_sra(vec_add(sum, bias), vec_splat_u16(4))); \
     STORE8
 
+#define DIRECTIONS(w, tmp_stride) \
+    static const int8_t cdef_directions##w[8 /* dir */][2 /* pass */] = { \
+        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 }, \
+        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 }, \
+        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 }, \
+        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 }, \
+        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 }, \
+        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 }, \
+        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 }, \
+        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 } \
+    };
+
+DIRECTIONS(4, 8)
+DIRECTIONS(8, 16)
 
 static inline void
 filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
@@ -347,30 +361,18 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int sec_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-    const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
     const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
-    const int off1 = cdef_directions[dir][0];
-    const int off1_1 = cdef_directions[dir][1];
+    const int off1 = cdef_directions4[dir][0];
+    const int off1_1 = cdef_directions4[dir][1];
 
-    const int off2 = cdef_directions[(dir + 2) & 7][0];
-    const int off3 = cdef_directions[(dir + 6) & 7][0];
+    const int off2 = cdef_directions4[(dir + 2) & 7][0];
+    const int off3 = cdef_directions4[(dir + 6) & 7][0];
 
-    const int off2_1 = cdef_directions[(dir + 2) & 7][1];
-    const int off3_1 = cdef_directions[(dir + 6) & 7][1];
-
-    copy4xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off2_1 = cdef_directions4[(dir + 2) & 7][1];
+    const int off3_1 = cdef_directions4[(dir + 6) & 7][1];
 
     for (int y = 0; y < h / 2; y++) {
         LOAD_PIX4(tmp)
@@ -420,25 +422,12 @@ filter_4xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-     const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
-
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
     const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
-    const int off1 = cdef_directions[dir][0];
-    const int off1_1 = cdef_directions[dir][1];
-
-    copy4xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off1 = cdef_directions4[dir][0];
+    const int off1_1 = cdef_directions4[dir][1];
 
     for (int y = 0; y < h / 2; y++) {
         LOAD_PIX4(tmp)
@@ -463,29 +452,13 @@ filter_4xN_sec(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int sec_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-     const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
+    const int off2 = cdef_directions4[(dir + 2) & 7][0];
+    const int off3 = cdef_directions4[(dir + 6) & 7][0];
 
-    // const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-    // const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
-
-    const int off2 = cdef_directions[(dir + 2) & 7][0];
-    const int off3 = cdef_directions[(dir + 6) & 7][0];
-
-    const int off2_1 = cdef_directions[(dir + 2) & 7][1];
-    const int off3_1 = cdef_directions[(dir + 6) & 7][1];
-
-    copy4xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off2_1 = cdef_directions4[(dir + 2) & 7][1];
+    const int off3_1 = cdef_directions4[(dir + 6) & 7][1];
 
     for (int y = 0; y < h / 2; y++) {
         LOAD_PIX4(tmp)
@@ -515,32 +488,19 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int sec_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-    const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
 
-
     const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
-    const int off1 = cdef_directions[dir][0];
-    const int off1_1 = cdef_directions[dir][1];
+    const int off1 = cdef_directions8[dir][0];
+    const int off1_1 = cdef_directions8[dir][1];
 
-    const int off2 = cdef_directions[(dir + 2) & 7][0];
-    const int off3 = cdef_directions[(dir + 6) & 7][0];
+    const int off2 = cdef_directions8[(dir + 2) & 7][0];
+    const int off3 = cdef_directions8[(dir + 6) & 7][0];
 
-    const int off2_1 = cdef_directions[(dir + 2) & 7][1];
-    const int off3_1 = cdef_directions[(dir + 6) & 7][1];
-
-    copy8xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off2_1 = cdef_directions8[(dir + 2) & 7][1];
+    const int off3_1 = cdef_directions8[(dir + 6) & 7][1];
 
     for (int y = 0; y < h; y++) {
         LOAD_PIX(tmp)
@@ -591,26 +551,12 @@ filter_8xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int pri_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-    const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-
-
     const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
-    const int off1 = cdef_directions[dir][0];
-    const int off1_1 = cdef_directions[dir][1];
-
-    copy8xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off1 = cdef_directions8[dir][0];
+    const int off1_1 = cdef_directions8[dir][1];
 
     for (int y = 0; y < h; y++) {
         LOAD_PIX(tmp)
@@ -635,25 +581,13 @@ filter_8xN_sec(pixel *dst, const ptrdiff_t dst_stride,
            const pixel *const bottom, const int w, const int h,
            const int sec_strength, const int dir,
            const int damping, const enum CdefEdgeFlags edges,
-           const ptrdiff_t tmp_stride, uint16_t *tmp)
+           uint16_t *tmp)
 {
-    const int8_t cdef_directions[8 /* dir */][2 /* pass */] = {
-        { -1 * tmp_stride + 1, -2 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1, -1 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  0 * tmp_stride + 2 },
-        {  0 * tmp_stride + 1,  1 * tmp_stride + 2 },
-        {  1 * tmp_stride + 1,  2 * tmp_stride + 2 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 1 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride + 0 },
-        {  1 * tmp_stride + 0,  2 * tmp_stride - 1 }
-    };
-    const int off2 = cdef_directions[(dir + 2) & 7][0];
-    const int off3 = cdef_directions[(dir + 6) & 7][0];
+    const int off2 = cdef_directions8[(dir + 2) & 7][0];
+    const int off3 = cdef_directions8[(dir + 6) & 7][0];
 
-    const int off2_1 = cdef_directions[(dir + 2) & 7][1];
-    const int off3_1 = cdef_directions[(dir + 6) & 7][1];
-
-    copy8xN(tmp - 2, tmp_stride, dst, dst_stride, left, top, bottom, w, h, edges);
+    const int off2_1 = cdef_directions8[(dir + 2) & 7][1];
+    const int off3_1 = cdef_directions8[(dir + 6) & 7][1];
 
     for (int y = 0; y < h; y++) {
         LOAD_PIX(tmp)
@@ -692,17 +626,18 @@ void dav1d_cdef_filter_##w##x##h##_vsx(pixel *const dst, \
 { \
     ALIGN_STK_16(uint16_t, tmp_buf, 12 * tmp_stride + 8,); \
     uint16_t *tmp = tmp_buf + 2 * tmp_stride + 2; \
+    copy##w##xN(tmp - 2, dst, dst_stride, left, top, bottom, w, h, edges); \
     if (pri_strength) { \
         if (sec_strength) { \
             filter_##w##xN(dst, dst_stride, left, top, bottom, w, h, pri_strength, \
-                           sec_strength, dir, damping, edges, tmp_stride, tmp); \
+                           sec_strength, dir, damping, edges, tmp); \
         } else { \
             filter_##w##xN_pri(dst, dst_stride, left, top, bottom, w, h, pri_strength, \
-                               dir, damping, edges, tmp_stride, tmp); \
+                               dir, damping, edges, tmp); \
         } \
     } else { \
         filter_##w##xN_sec(dst, dst_stride, left, top, bottom, w, h, sec_strength, \
-                           dir, damping, edges, tmp_stride, tmp); \
+                           dir, damping, edges, tmp); \
     } \
 }
 
