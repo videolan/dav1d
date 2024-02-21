@@ -265,25 +265,28 @@ static inline i16x8 max_mask(i16x8 a, i16x8 b) {
     max = max_mask(p ## 3, max); \
     min = vec_min(p ## 3, min);
 
-#define PRI_0(p) \
-    p ## _c0 = vec_add(vec_sl(p ## _c0, vec_splat_u16(1)), vec_sl(p ## _c0, vec_splats(tap_even))); \
-    p ## _c1 = vec_add(vec_sl(p ## _c1, vec_splat_u16(1)), vec_sl(p ## _c1, vec_splats(tap_even)));
+#define MAKE_TAPS \
+    const int16_t tap_odd = (pri_strength >> bitdepth_min_8) & 1; \
+    const i16x8 tap0 = vec_splats((int16_t)(4 - tap_odd)); \
+    const i16x8 tap1 = vec_splats((int16_t)(2 + tap_odd));
 
-#define PRI_1(p) \
-    p ## _c2 = vec_sub(vec_sl(p ## _c2, vec_splat_u16(2)), vec_sl(p ## _c2, vec_splats(tap_even))); \
-    p ## _c3 = vec_sub(vec_sl(p ## _c3, vec_splat_u16(2)), vec_sl(p ## _c3, vec_splats(tap_even)));
-
-#define SEC_0(p) \
-    p ## _c0 = vec_sl(p ## _c0, vec_splat_u16(1)); \
-    p ## _c1 = vec_sl(p ## _c1, vec_splat_u16(1)); \
-    p ## _c2 = vec_sl(p ## _c2, vec_splat_u16(1)); \
-    p ## _c3 = vec_sl(p ## _c3, vec_splat_u16(1));
+#define PRI_0_UPDATE_SUM(p) \
+    sum = vec_madd(tap0, p ## _c0, sum); \
+    sum = vec_madd(tap0, p ## _c1, sum); \
+    sum = vec_madd(tap1, p ## _c2, sum); \
+    sum = vec_madd(tap1, p ## _c3, sum);
 
 #define UPDATE_SUM(p) \
     const i16x8 p ## sum0 = vec_add(p ## _c0, p ## _c1); \
     const i16x8 p ## sum1 = vec_add(p ## _c2, p ## _c3); \
     sum = vec_add(sum, p ## sum0); \
     sum = vec_add(sum, p ## sum1);
+
+#define SEC_0_UPDATE_SUM(p) \
+    sum = vec_madd(vec_splat_s16(2), p ## _c0, sum); \
+    sum = vec_madd(vec_splat_s16(2), p ## _c1, sum); \
+    sum = vec_madd(vec_splat_s16(2), p ## _c2, sum); \
+    sum = vec_madd(vec_splat_s16(2), p ## _c3, sum);
 
 #define BIAS \
     i16x8 bias = vec_and((i16x8)vec_cmplt(sum, vec_splat_s16(0)), vec_splat_s16(1)); \
@@ -364,7 +367,6 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-    const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
     const int off1 = cdef_directions4[dir][0];
     const int off1_1 = cdef_directions4[dir][1];
 
@@ -373,6 +375,8 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
 
     const int off2_1 = cdef_directions4[(dir + 2) & 7][1];
     const int off3_1 = cdef_directions4[(dir + 6) & 7][1];
+
+    MAKE_TAPS
 
     for (int y = 0; y < h / 2; y++) {
         LOAD_PIX4(tmp)
@@ -386,10 +390,7 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
 
         MIN_MAX(p)
 
-        PRI_0(p)
-        PRI_1(p)
-
-        UPDATE_SUM(p)
+        PRI_0_UPDATE_SUM(p)
 
         // Secondary pass 1
         LOAD_DIR4(s, tmp, off2, off3)
@@ -398,9 +399,7 @@ filter_4xN(pixel *dst, const ptrdiff_t dst_stride,
 
         MIN_MAX(s)
 
-        SEC_0(s)
-
-        UPDATE_SUM(s)
+        SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR4(s2, tmp, off2_1, off3_1)
@@ -425,9 +424,10 @@ filter_4xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-    const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
     const int off1 = cdef_directions4[dir][0];
     const int off1_1 = cdef_directions4[dir][1];
+
+    MAKE_TAPS
 
     for (int y = 0; y < h / 2; y++) {
         LOAD_PIX4(tmp)
@@ -437,10 +437,7 @@ filter_4xN_pri(pixel *dst, const ptrdiff_t dst_stride,
 
         CONSTRAIN(p, pri_strength)
 
-        PRI_0(p)
-        PRI_1(p)
-
-        UPDATE_SUM(p)
+        PRI_0_UPDATE_SUM(p)
 
         STORE4_UNCLAMPED
     }
@@ -467,9 +464,7 @@ filter_4xN_sec(pixel *dst, const ptrdiff_t dst_stride,
 
         CONSTRAIN(s, sec_strength)
 
-        SEC_0(s)
-
-        UPDATE_SUM(s)
+        SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR4(s2, tmp, off2_1, off3_1)
@@ -492,7 +487,6 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
 
-    const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
     const int off1 = cdef_directions8[dir][0];
     const int off1_1 = cdef_directions8[dir][1];
 
@@ -501,6 +495,8 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
 
     const int off2_1 = cdef_directions8[(dir + 2) & 7][1];
     const int off3_1 = cdef_directions8[(dir + 6) & 7][1];
+
+    MAKE_TAPS
 
     for (int y = 0; y < h; y++) {
         LOAD_PIX(tmp)
@@ -514,10 +510,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
 
         MIN_MAX(p)
 
-        PRI_0(p)
-        PRI_1(p)
-
-        UPDATE_SUM(p)
+        PRI_0_UPDATE_SUM(p)
 
         // Secondary pass 1
         LOAD_DIR(s, tmp, off2, off3)
@@ -526,9 +519,7 @@ filter_8xN(pixel *dst, const ptrdiff_t dst_stride,
 
         MIN_MAX(s)
 
-        SEC_0(s)
-
-        UPDATE_SUM(s)
+        SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR(s2, tmp, off2_1, off3_1)
@@ -554,9 +545,10 @@ filter_8xN_pri(pixel *dst, const ptrdiff_t dst_stride,
            uint16_t *tmp)
 {
     const int bitdepth_min_8 = bitdepth_from_max(bitdepth_max) - 8;
-    const uint16_t tap_even = !((pri_strength >> bitdepth_min_8) & 1);
     const int off1 = cdef_directions8[dir][0];
     const int off1_1 = cdef_directions8[dir][1];
+
+    MAKE_TAPS
 
     for (int y = 0; y < h; y++) {
         LOAD_PIX(tmp)
@@ -566,10 +558,7 @@ filter_8xN_pri(pixel *dst, const ptrdiff_t dst_stride,
 
         CONSTRAIN(p, pri_strength)
 
-        PRI_0(p)
-        PRI_1(p)
-
-        UPDATE_SUM(p)
+        PRI_0_UPDATE_SUM(p)
 
         STORE8_UNCLAMPED
     }
@@ -597,9 +586,7 @@ filter_8xN_sec(pixel *dst, const ptrdiff_t dst_stride,
 
         CONSTRAIN(s, sec_strength)
 
-        SEC_0(s)
-
-        UPDATE_SUM(s)
+        SEC_0_UPDATE_SUM(s)
 
         // Secondary pass 2
         LOAD_DIR(s2, tmp, off2_1, off3_1)
