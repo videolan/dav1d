@@ -427,9 +427,12 @@ build-debian-riscv64:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
                             --werror
-                            --cross-file package/crossfiles/riscv64-linux.meson
+                            --cross-file package/crossfiles/${CROSSFILE}.meson
         - ninja -C build
         - cd build && meson test -v
+    parallel:
+      matrix:
+        - CROSSFILE: [riscv64-linux, riscv64-linux-clang]
 
 build-debian-loongarch64:
     extends: .debian-amd64-common
