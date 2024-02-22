@@ -738,7 +738,7 @@ function inv_txfm_add_4x8_rvv, export=1, ext=v
   vle16.v v3, (t0)
 
   li t1, 2896*8
-.irp i 0, 1, 2, 3
+.irp i, 0, 1, 2, 3
   vsmul.vx v\i, v\i, t1
 .endr
 
@@ -818,7 +818,7 @@ function inv_txfm_add_8x4_rvv, export=1, ext=v
 .endr
 
   li t1, 2896*8
-.irp i 0, 1, 2, 3, 4, 5, 6, 7
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7
   vsmul.vx v\i, v\i, t1
 .endr
 
@@ -1943,7 +1943,7 @@ function inv_txfm_\variant\()add_16x8_rvv, export=1, ext=v
 .endr
 
   li t1, 2896*8
-.irp i 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+.irp i, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
   vsmul.vx v\i, v\i, t1
 .endr
 
