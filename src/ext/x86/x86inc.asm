@@ -104,7 +104,7 @@
 %endif
 
 %define HAVE_PRIVATE_EXTERN 1
-%ifdef __NASM_VER__
+%ifdef __NASM_VERSION_ID__
     %use smartalign
     %if __NASM_VERSION_ID__ < 0x020e0000 ; 2.14
         %define HAVE_PRIVATE_EXTERN 0
@@ -849,8 +849,8 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     ; The GNU linker assumes the stack is executable by default.
     [SECTION .note.GNU-stack noalloc noexec nowrite progbits]
 
-    %ifdef __NASM_VER__
-        %if __NASM_VER__ >= 0x020e0300 ; 2.14.03
+    %ifdef __NASM_VERSION_ID__
+        %if __NASM_VERSION_ID__ >= 0x020e0300 ; 2.14.03
             %if ARCH_X86_64
                 ; Control-flow Enforcement Technology (CET) properties.
                 [SECTION .note.gnu.property alloc noexec nowrite note align=gprsize]
@@ -957,13 +957,13 @@ BRANCH_INSTR jz, je, jnz, jne, jl, jle, jnl, jnle, jg, jge, jng, jnge, ja, jae, 
     %endif
 
     %if ARCH_X86_64 || cpuflag(sse2)
-        %ifdef __NASM_VER__
+        %ifdef __NASM_VERSION_ID__
             ALIGNMODE p6
         %else
             CPU amdnop
         %endif
     %else
-        %ifdef __NASM_VER__
+        %ifdef __NASM_VERSION_ID__
             ALIGNMODE nop
         %else
             CPU basicnop
