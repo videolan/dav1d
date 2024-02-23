@@ -219,7 +219,13 @@ enum CpuMask {
 
 static const EnumParseTable cpu_mask_tbl[] = {
 #if ARCH_AARCH64 || ARCH_ARM
-    { "neon", DAV1D_ARM_CPU_FLAG_NEON },
+    { "neon",    DAV1D_ARM_CPU_FLAG_NEON },
+    { "dotprod", DAV1D_ARM_CPU_FLAG_DOTPROD },
+    { "i8mm",    DAV1D_ARM_CPU_FLAG_I8MM },
+#if ARCH_AARCH64
+    { "sve",     DAV1D_ARM_CPU_FLAG_SVE },
+    { "sve2",    DAV1D_ARM_CPU_FLAG_SVE2 },
+#endif /* ARCH_AARCH64 */
 #elif ARCH_LOONGARCH
     { "lsx", DAV1D_LOONGARCH_CPU_FLAG_LSX },
     { "lasx", DAV1D_LOONGARCH_CPU_FLAG_LASX },
