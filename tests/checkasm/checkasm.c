@@ -119,7 +119,9 @@ static const struct {
     { 0 }
 };
 
-#if ARCH_RISCV
+#if ARCH_AARCH64 && HAVE_SVE
+int checkasm_sve_length(void);
+#elif ARCH_RISCV
 int checkasm_get_vlenb(void);
 #endif
 
@@ -760,6 +762,11 @@ int main(int argc, char *argv[]) {
             const int vlen = 8*checkasm_get_vlenb();
             snprintf(buf, sizeof(buf), "VLEN=%i bits, ", vlen);
         }
+        fprintf(stderr, "checkasm: %susing random seed %u\n", buf, state.seed);
+#elif ARCH_AARCH64 && HAVE_SVE
+        char buf[48] = "";
+        if (cpu_flags & DAV1D_ARM_CPU_FLAG_SVE)
+            snprintf(buf, sizeof(buf), "SVE %d bits, ", checkasm_sve_length());
         fprintf(stderr, "checkasm: %susing random seed %u\n", buf, state.seed);
 #else
         fprintf(stderr, "checkasm: using random seed %u\n", state.seed);

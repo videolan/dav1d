@@ -209,3 +209,13 @@ function checked_call, export=1
         ldp             x29, x30, [sp], #16
         ret
 endfunc
+
+#if HAVE_SVE
+ENABLE_SVE
+function sve_length, export=1
+        cntb            x0
+        lsl             x0,  x0,  #3
+        ret
+endfunc
+DISABLE_SVE
+#endif
