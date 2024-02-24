@@ -1519,11 +1519,26 @@ function inv_txfm_add_16x16_rvv, export=1, ext=v
   csrw vxrm, zero
   vsetivli zero, 8, e16, m1, ta, ma
   addi sp, sp, -16*32
-.irp i, 0, 8
+.irp i, 8, 0
   addi t4, a2, \i*2
   addi t5, sp, \i*16*2
+.if \i == 8
+  blt a3, a7, 1f
+.endif
   li t6, 16*2
   jalr a7, a6
+.if \i == 8
+  j 2f
+1:
+  li t1, 64
+  vsetvli zero, t1, e16, m8, ta, ma
+  vmv.v.x v0, zero
+  vse16.v v0, (t5)
+  addi t5, t5, 128
+  vse16.v v0, (t5)
+  vsetivli zero, 8, e16, m1, ta, ma
+2:
+.endif
 .endr
 .irp i, 0, 8
   addi t4, sp, \i*2
@@ -1535,7 +1550,7 @@ function inv_txfm_add_16x16_rvv, export=1, ext=v
   ret
 endfunc
 
-.macro def_fn_16x16 txfm1, txfm2
+.macro def_fn_16x16 txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
 .ifc \txfm1, identity
   la a6, inv_txfm_horz_identity_16x8_rvv
@@ -1544,22 +1559,23 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
   la a4, inv_\txfm1\()_e16_x16_rvv
 .endif
   la a5, inv_\txfm2\()_e16_x16_rvv
+  li a7, \eob_half
   j inv_txfm_add_16x16_rvv
 endfunc
 .endm
 
-def_fn_16x16 dct, dct
-def_fn_16x16 identity, identity
-def_fn_16x16 dct, adst
-def_fn_16x16 dct, flipadst
-def_fn_16x16 dct, identity
-def_fn_16x16 adst, dct
-def_fn_16x16 adst, adst
-def_fn_16x16 adst, flipadst
-def_fn_16x16 flipadst, dct
-def_fn_16x16 flipadst, adst
-def_fn_16x16 flipadst, flipadst
-def_fn_16x16 identity, dct
+def_fn_16x16 dct, dct, 36
+def_fn_16x16 identity, identity, 36
+def_fn_16x16 dct, adst, 36
+def_fn_16x16 dct, flipadst, 36
+def_fn_16x16 dct, identity, 8
+def_fn_16x16 adst, dct, 36
+def_fn_16x16 adst, adst, 36
+def_fn_16x16 adst, flipadst, 36
+def_fn_16x16 flipadst, dct, 36
+def_fn_16x16 flipadst, adst, 36
+def_fn_16x16 flipadst, flipadst, 36
+def_fn_16x16 identity, dct, 8
 
 .macro def_fn_416_base variant
 function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
