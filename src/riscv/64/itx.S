@@ -1567,6 +1567,8 @@ function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
 
   vsetivli zero, 8, e16, m1, ta, ma
 
+  blt a3, a6, 1f
+
   addi t0, a2, 16
   vle16.v v0, (t0)
   addi t0, t0, 32
@@ -1595,6 +1597,14 @@ function inv_txfm_\variant\()add_4x16_rvv, export=1, ext=v
   vssra.vi v7, v3, 1
 .endif
 
+  j 2f
+
+1:
+.irp i, 4, 5, 6, 7
+  vmv.v.x v\i, zero
+.endr
+
+2:
   vle16.v v0, (a2)
   addi t0, a2, 32
   vle16.v v1, (t0)
@@ -1805,7 +1815,7 @@ endfunc
 def_fn_416_base identity_
 def_fn_416_base
 
-.macro def_fn_416 w, h, txfm1, txfm2
+.macro def_fn_416 w, h, txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
 .if \w == 4 && (\txfm1 == adst || \txfm1 == flipadst)
   la a4, inv_\txfm1\()_e16_x\w\()w_rvv
@@ -1817,6 +1827,9 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
 .else
   la a5, inv_\txfm2\()_e16_x\h\()_rvv
 .endif
+.if \w == 4
+  li a6, \eob_half
+.endif
 .ifc \txfm1, identity
   j inv_txfm_identity_add_\w\()x\h\()_rvv
 .else
@@ -1826,22 +1839,22 @@ endfunc
 .endm
 
 .macro def_fns_416 w, h
-def_fn_416 \w, \h, dct, dct
-def_fn_416 \w, \h, identity, identity
-def_fn_416 \w, \h, dct, adst
-def_fn_416 \w, \h, dct, flipadst
-def_fn_416 \w, \h, dct, identity
-def_fn_416 \w, \h, adst, dct
-def_fn_416 \w, \h, adst, adst
-def_fn_416 \w, \h, adst, flipadst
-def_fn_416 \w, \h, flipadst, dct
-def_fn_416 \w, \h, flipadst, adst
-def_fn_416 \w, \h, flipadst, flipadst
-def_fn_416 \w, \h, identity, dct
-def_fn_416 \w, \h, adst, identity
-def_fn_416 \w, \h, flipadst, identity
-def_fn_416 \w, \h, identity, adst
-def_fn_416 \w, \h, identity, flipadst
+def_fn_416 \w, \h, dct, dct, 29
+def_fn_416 \w, \h, identity, identity, 29
+def_fn_416 \w, \h, dct, adst, 29
+def_fn_416 \w, \h, dct, flipadst, 29
+def_fn_416 \w, \h, dct, identity, 8
+def_fn_416 \w, \h, adst, dct, 29
+def_fn_416 \w, \h, adst, adst, 29
+def_fn_416 \w, \h, adst, flipadst, 29
+def_fn_416 \w, \h, flipadst, dct, 29
+def_fn_416 \w, \h, flipadst, adst, 29
+def_fn_416 \w, \h, flipadst, flipadst, 29
+def_fn_416 \w, \h, identity, dct, 32
+def_fn_416 \w, \h, adst, identity, 8
+def_fn_416 \w, \h, flipadst, identity, 8
+def_fn_416 \w, \h, identity, adst, 32
+def_fn_416 \w, \h, identity, flipadst, 32
 .endm
 
 def_fns_416 4, 16
