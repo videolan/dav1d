@@ -514,13 +514,17 @@ function inv_txfm_add_wht_wht_4x4_16bpc_neon, export=1
         b               L(itx_4x4_end)
 endfunc
 
+// HBD inv_txfm_add_4x4_neon deviates from the common pattern with registers
+// x0-x4  external parameters
+// x5     function pointer to first transform
+// x6     function pointer to second transform
 function inv_txfm_add_4x4_neon
         movi            v30.4s,  #0
         movi            v31.4s,  #0
         ld1             {v16.4s,v17.4s,v18.4s,v19.4s}, [x2]
         st1             {v30.4s, v31.4s}, [x2], #32
 
-        blr             x4
+        blr             x5
 
         st1             {v30.4s, v31.4s}, [x2], #32
         sqxtn           v16.4h,  v16.4s
@@ -529,7 +533,7 @@ function inv_txfm_add_4x4_neon
         sqxtn           v19.4h,  v19.4s
         transpose_4x4h  v16, v17, v18, v19, v20, v21, v22, v23
 
-        blr             x5
+        blr             x6
 
         ld1             {v0.d}[0], [x0], x1
         ld1             {v0.d}[1], [x0], x1
@@ -541,7 +545,7 @@ function inv_txfm_add_4x4_neon
         srshr           v18.8h,  v18.8h,  #4
 
 L(itx_4x4_end):
-        mvni            v31.8h,  #0xfc, lsl #8 // 0x3ff
+        dup             v31.8h,  w4
         sub             x0,  x0,  x1, lsl #2
         usqadd          v0.8h,   v16.8h
         usqadd          v1.8h,   v18.8h
@@ -579,8 +583,8 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_16bpc_neon, export=1
         b               L(itx_4x4_end)
 1:
 .endif
-        adr             x4,  inv_\txfm1\()_4s_x4_neon
-        movrel          x5,  X(inv_\txfm2\()_4h_x4_neon)
+        adr             x5,  inv_\txfm1\()_4s_x4_neon
+        movrel          x6,  X(inv_\txfm2\()_4h_x4_neon)
         b               inv_txfm_add_4x4_neon
 endfunc
 .endm
