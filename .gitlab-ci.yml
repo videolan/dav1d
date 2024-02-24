@@ -737,6 +737,33 @@ test-debian-riscv64:
                       "rv64,v=true,vext_spec=v1.0,vlen=512,elen=64",
                       "rv64,v=true,vext_spec=v1.0,vlen=1024,elen=64" ]
 
+test-debian-aarch64-qemu:
+    extends:
+        - .debian-amd64-common
+        - .test-common
+    needs: ["build-debian-aarch64"]
+    script:
+        - meson setup build --buildtype release
+                            -Dtestdata_tests=true
+                            -Dlogging=false
+                            -Dtrim_dsp=false
+                            --cross-file package/crossfiles/aarch64-linux.meson
+        - ninja -C build
+        - cd build && time meson test -v --timeout-multiplier 2
+    variables:
+        QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
+    parallel:
+      matrix:
+        # sve-default-vector-length sets the max vector length in bytes;
+        # the default is 64, allowing up to 512 bit vectors. Testing 1024
+        # and 2048 bit vectors requires raising this limit. The sve<n>
+        # option sets the active vector length in bits.
+        - QEMU_CPU: [ "max,sve-default-vector-length=256,sve128=on",
+                      "max,sve-default-vector-length=256,sve256=on",
+                      "max,sve-default-vector-length=256,sve512=on",
+                      "max,sve-default-vector-length=256,sve1024=on",
+                      "max,sve-default-vector-length=256,sve2048=on" ]
+
 test-debian-armv7-clang-5:
     extends:
         - .debian-armv7-common
