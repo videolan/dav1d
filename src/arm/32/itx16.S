@@ -598,7 +598,9 @@ function inv_txfm_add_4x4_neon
         vld1.16         {d3}, [r0, :64], r1
 
 L(itx_4x4_end):
-        vmvn.i16        q15, #0xfc00 // 0x3ff
+        // read bitdepth_max from the callers stack
+        ldr             r4,  [sp, #44]
+        vdup.i16        q15, r4
         sub             r0,  r0,  r1, lsl #2
         vqadd.s16       q8,  q8,  q0
         vqadd.s16       q9,  q9,  q1
