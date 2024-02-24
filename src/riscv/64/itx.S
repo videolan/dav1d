@@ -1866,6 +1866,8 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
 
   vsetivli zero, 8, e16, m1, ta, ma
 
+  blt a3, a6, 1f
+
   vmv.v.x v16, zero
   addi t0, a2, 16
   vle16.v v0, (t0)
@@ -1903,6 +1905,14 @@ function inv_txfm_\variant\()add_8x16_rvv, export=1, ext=v
   vssra.vi v15, v7, 1
 .endif
 
+  j 2f
+
+1:
+.irp i, 8, 9, 10, 11, 12, 13, 14, 15
+  vmv.v.x v\i, zero
+.endr
+
+2:
   vmv.v.x v16, zero
   vle16.v v0, (a2)
   vse16.v v16, (a2)
@@ -2050,12 +2060,15 @@ endfunc
 def_fn_816_base identity_
 def_fn_816_base
 
-.macro def_fn_816 w, h, txfm1, txfm2
+.macro def_fn_816 w, h, txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_rvv, export=1
 .ifnc \txfm1, identity
   la a4, inv_\txfm1\()_e16_x\w\()_rvv
 .endif
   la a5, inv_\txfm2\()_e16_x\h\()_rvv
+.if \w == 8
+  li a6, \eob_half
+.endif
 .ifc \txfm1, identity
   j inv_txfm_identity_add_\w\()x\h\()_rvv
 .else
@@ -2065,22 +2078,22 @@ endfunc
 .endm
 
 .macro def_fns_816 w, h
-def_fn_816 \w, \h, dct, dct
-def_fn_816 \w, \h, identity, identity
-def_fn_816 \w, \h, dct, adst
-def_fn_816 \w, \h, dct, flipadst
-def_fn_816 \w, \h, dct, identity
-def_fn_816 \w, \h, adst, dct
-def_fn_816 \w, \h, adst, adst
-def_fn_816 \w, \h, adst, flipadst
-def_fn_816 \w, \h, flipadst, dct
-def_fn_816 \w, \h, flipadst, adst
-def_fn_816 \w, \h, flipadst, flipadst
-def_fn_816 \w, \h, identity, dct
-def_fn_816 \w, \h, adst, identity
-def_fn_816 \w, \h, flipadst, identity
-def_fn_816 \w, \h, identity, adst
-def_fn_816 \w, \h, identity, flipadst
+def_fn_816 \w, \h, dct, dct, 43
+def_fn_816 \w, \h, identity, identity, 43
+def_fn_816 \w, \h, dct, adst, 43
+def_fn_816 \w, \h, dct, flipadst, 43
+def_fn_816 \w, \h, dct, identity, 8
+def_fn_816 \w, \h, adst, dct, 43
+def_fn_816 \w, \h, adst, adst, 43
+def_fn_816 \w, \h, adst, flipadst, 43
+def_fn_816 \w, \h, flipadst, dct, 43
+def_fn_816 \w, \h, flipadst, adst, 43
+def_fn_816 \w, \h, flipadst, flipadst, 43
+def_fn_816 \w, \h, identity, dct, 64
+def_fn_816 \w, \h, adst, identity, 8
+def_fn_816 \w, \h, flipadst, identity, 8
+def_fn_816 \w, \h, identity, adst, 64
+def_fn_816 \w, \h, identity, flipadst, 64
 .endm
 
 def_fns_816 8, 16
