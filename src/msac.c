@@ -73,7 +73,10 @@ int dav1d_msac_decode_subexp(MsacContext *const s, const int ref,
                           n - 1 - inv_recenter(n - 1 - ref, v);
 }
 
-#if !(HAVE_ASM && TRIM_DSP_FUNCTIONS && ARCH_AARCH64)
+#if !(HAVE_ASM && TRIM_DSP_FUNCTIONS && ( \
+  ARCH_AARCH64 || \
+  (ARCH_ARM && (defined(__ARM_NEON) || defined(__APPLE__) || defined(_WIN32))) \
+))
 /* Takes updated dif and range values, renormalizes them so that
  * 32768 <= rng < 65536 (reading more bytes from the stream into dif if
  * necessary), and stores them back in the decoder context.
