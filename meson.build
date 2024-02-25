@@ -309,6 +309,10 @@ if (host_machine.system() in ['darwin', 'ios', 'tvos'] and cc.get_id() == 'clang
     optional_arguments += '-fno-stack-check'
 endif
 
+if (host_machine.cpu_family() == 'aarch64' or host_machine.cpu_family().startswith('arm'))
+    optional_arguments += '-fno-align-functions'
+endif
+
 add_project_arguments(cc.get_supported_arguments(optional_arguments), language : 'c')
 add_project_link_arguments(cc.get_supported_link_arguments(optional_link_arguments), language : 'c')
 
