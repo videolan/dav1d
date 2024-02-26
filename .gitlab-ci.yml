@@ -355,6 +355,18 @@ build-debian-aarch64-clang-5:
         - ninja -C build
         - cd build && meson test -v
 
+build-debian-aarch64-clang-17:
+    extends: .debian-amd64-common
+    variables:
+        QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
+    script:
+        - meson setup build --buildtype release
+                            -Dtrim_dsp=false
+                            --werror
+                            --cross-file package/crossfiles/aarch64-linux-clang.meson
+        - ninja -C build
+        - cd build && meson test -v
+
 build-macos:
     stage: build
     tags:
