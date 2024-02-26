@@ -83,6 +83,11 @@ endconst
 
 thread_local saved_regs, quads=29 # 5 + 12 + 12
 
+function get_vlenb, export=1
+  csrr a0, vlenb
+  ret
+endfunc
+
 function checked_call, export=1, ext=v
   /* Save the function ptr, RA, SP, unallocatable and callee-saved registers */
   la.tls.ie t0, saved_regs

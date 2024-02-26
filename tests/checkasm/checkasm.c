@@ -113,6 +113,10 @@ static const struct {
     { 0 }
 };
 
+#if ARCH_RISCV
+int checkasm_get_vlenb(void);
+#endif
+
 typedef struct CheckasmFuncVersion {
     struct CheckasmFuncVersion *next;
     void *func;
@@ -720,6 +724,13 @@ int main(int argc, char *argv[]) {
         for (size_t len = strlen(name); len && name[len-1] == ' '; len--)
             name[len-1] = '\0'; /* trim trailing whitespace */
         fprintf(stderr, "checkasm: %s (%08X) using random seed %u\n", name, cpuid, state.seed);
+#elif ARCH_RISCV
+        char buf[32] = "";
+        if (dav1d_get_cpu_flags() & DAV1D_RISCV_CPU_FLAG_V) {
+            const int vlen = 8*checkasm_get_vlenb();
+            snprintf(buf, sizeof(buf), "VLEN=%i bits, ", vlen);
+        }
+        fprintf(stderr, "checkasm: %susing random seed %u\n", buf, state.seed);
 #else
         fprintf(stderr, "checkasm: using random seed %u\n", state.seed);
 #endif
