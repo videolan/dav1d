@@ -104,7 +104,7 @@ static const struct option long_opts[] = {
 #elif ARCH_LOONGARCH
 #define ALLOWED_CPU_MASKS ", 'lsx' or 'lasx'"
 #elif ARCH_PPC64LE
-#define ALLOWED_CPU_MASKS " or 'vsx'"
+#define ALLOWED_CPU_MASKS ", 'vsx' or 'pwr9'"
 #elif ARCH_RISCV
 #define ALLOWED_CPU_MASKS " or 'rvv'"
 #elif ARCH_X86
@@ -243,6 +243,7 @@ static const EnumParseTable cpu_mask_tbl[] = {
     { "lasx", DAV1D_LOONGARCH_CPU_FLAG_LASX },
 #elif ARCH_PPC64LE
     { "vsx", DAV1D_PPC_CPU_FLAG_VSX },
+    { "pwr9", DAV1D_PPC_CPU_FLAG_PWR9 },
 #elif ARCH_RISCV
     { "rvv", DAV1D_RISCV_CPU_FLAG_V },
 #elif ARCH_X86

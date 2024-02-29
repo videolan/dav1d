@@ -116,6 +116,7 @@ static const struct {
     { "LASX",               "lasx",      DAV1D_LOONGARCH_CPU_FLAG_LASX },
 #elif ARCH_PPC64LE
     { "VSX",                "vsx",       DAV1D_PPC_CPU_FLAG_VSX },
+    { "PWR9",               "pwr9",      DAV1D_PPC_CPU_FLAG_PWR9 },
 #elif ARCH_RISCV
     { "RVV",                "rvv",       DAV1D_RISCV_CPU_FLAG_V },
 #endif
