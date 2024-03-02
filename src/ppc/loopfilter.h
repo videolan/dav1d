@@ -1,6 +1,6 @@
 /*
- * Copyright © 2019, VideoLAN and dav1d authors
- * Copyright © 2019, Luca Barbato
+ * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2018, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,34 +25,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_SRC_PPC_TYPES_H
-#define DAV1D_SRC_PPC_TYPES_H
+#include "src/cpu.h"
+#include "src/loopfilter.h"
 
-#include <altivec.h>
-#undef pixel
+decl_loopfilter_sb_fn(BF(dav1d_lpf_h_sb_y, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_v_sb_y, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_h_sb_uv, pwr9));
+decl_loopfilter_sb_fn(BF(dav1d_lpf_v_sb_uv, pwr9));
 
-#define u8x16 vector unsigned char
-#define i8x16 vector signed char
-#define b8x16 vector bool char
-#define u16x8 vector unsigned short
-#define i16x8 vector signed short
-#define b16x8 vector bool short
-#define u32x4 vector unsigned int
-#define i32x4 vector signed int
-#define b32x4 vector bool int
-#define u64x2 vector unsigned long long
-#define i64x2 vector signed long long
-#define b64x2 vector bool long long
+static ALWAYS_INLINE void loop_filter_dsp_init_ppc(Dav1dLoopFilterDSPContext *const c) {
+    const unsigned flags = dav1d_get_cpu_flags();
 
-#define i8h_to_i16(v) ((i16x8) vec_unpackh((i8x16)v))
-#define i8l_to_i16(v) ((i16x8) vec_unpackl((i8x16)v))
-#define u8h_to_i16(v) ((i16x8) vec_mergeh((u8x16) v, vec_splat_u8(0)))
-#define u8l_to_i16(v) ((i16x8) vec_mergel((u8x16) v, vec_splat_u8(0)))
-#define u8h_to_u16(v) ((u16x8) vec_mergeh((u8x16) v, vec_splat_u8(0)))
-#define u8l_to_u16(v) ((u16x8) vec_mergel((u8x16) v, vec_splat_u8(0)))
-#define u16h_to_i32(v) ((i32x4) vec_mergeh((u16x8) v, vec_splat_u16(0)))
-#define i16h_to_i32(v) ((i32x4) vec_unpackh((i16x8)v))
-#define u16l_to_i32(v) ((i32x4) vec_mergel((u16x8) v, vec_splat_u16(0)))
-#define i16l_to_i32(v) ((i32x4) vec_unpackl((i16x8)v))
+    if (!(flags & DAV1D_PPC_CPU_FLAG_PWR9)) return;
 
-#endif /* DAV1D_SRC_PPC_TYPES_H */
+#if BITDEPTH == 8
+    c->loop_filter_sb[0][0] = BF(dav1d_lpf_h_sb_y, pwr9);
+    c->loop_filter_sb[0][1] = BF(dav1d_lpf_v_sb_y, pwr9);
+    c->loop_filter_sb[1][0] = BF(dav1d_lpf_h_sb_uv, pwr9);
+    c->loop_filter_sb[1][1] = BF(dav1d_lpf_v_sb_uv, pwr9);
+#endif
+}
