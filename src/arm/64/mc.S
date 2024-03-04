@@ -2198,8 +2198,13 @@ L(\type\()_\taps\()_filter_2):
 480:    // 4x8, 4x16, 4x32 hv
         ld1             {v1.8b},  [\xmy]
         sub             \src, \src, #1
+.ifc \taps, 6tap
+        sub             \sr2, \src, \s_strd
+        sub             \src, \src, \s_strd, lsl #1
+.else
         sub             \sr2, \src, \s_strd, lsl #1
         sub             \src, \sr2, \s_strd
+.endif
         add             \ds2, \dst, \d_strd
         lsl             \s_strd, \s_strd, #1
         lsl             \d_strd, \d_strd, #1
@@ -2216,11 +2221,15 @@ L(\type\()_\taps\()_filter_2):
         mla             v31.4h,  v28.4h,  v0.h[1]
         mla             v31.4h,  v29.4h,  v0.h[2]
         mla             v31.4h,  v30.4h,  v0.h[3]
+.ifc \taps, 6tap
+        srshr           v18.4h,  v31.4h,  #2
+.else
         srshr           v16.4h,  v31.4h,  #2
 
         bl              L(\type\()_\taps\()_filter_4)
         mov             v17.8b, v28.8b
         mov             v18.8b, v29.8b
+.endif
         bl              L(\type\()_\taps\()_filter_4)
         mov             v19.8b, v28.8b
         mov             v20.8b, v29.8b
@@ -2231,18 +2240,18 @@ L(\type\()_\taps\()_filter_2):
 48:
         bl              L(\type\()_\taps\()_filter_4)
 .ifc \taps, 6tap
-        smull           v2.4s,  v17.4h, v1.h[1]
-        smlal           v2.4s,  v18.4h, v1.h[2]
-        smlal           v2.4s,  v19.4h, v1.h[3]
-        smlal           v2.4s,  v20.4h, v1.h[4]
-        smlal           v2.4s,  v21.4h, v1.h[5]
-        smlal           v2.4s,  v22.4h, v1.h[6]
-        smull           v3.4s,  v18.4h, v1.h[1]
-        smlal           v3.4s,  v19.4h, v1.h[2]
-        smlal           v3.4s,  v20.4h, v1.h[3]
-        smlal           v3.4s,  v21.4h, v1.h[4]
-        smlal           v3.4s,  v22.4h, v1.h[5]
-        smlal           v3.4s,  v28.4h, v1.h[6]
+        smull           v2.4s,  v18.4h, v1.h[1]
+        smlal           v2.4s,  v19.4h, v1.h[2]
+        smlal           v2.4s,  v20.4h, v1.h[3]
+        smlal           v2.4s,  v21.4h, v1.h[4]
+        smlal           v2.4s,  v22.4h, v1.h[5]
+        smlal           v2.4s,  v28.4h, v1.h[6]
+        smull           v3.4s,  v19.4h, v1.h[1]
+        smlal           v3.4s,  v20.4h, v1.h[2]
+        smlal           v3.4s,  v21.4h, v1.h[3]
+        smlal           v3.4s,  v22.4h, v1.h[4]
+        smlal           v3.4s,  v28.4h, v1.h[5]
+        smlal           v3.4s,  v29.4h, v1.h[6]
 .else   // 8tap
         smull           v2.4s,  v16.4h, v1.h[0]
         smlal           v2.4s,  v17.4h, v1.h[1]
@@ -2274,8 +2283,10 @@ L(\type\()_\taps\()_filter_2):
         st1             {v3.4h}, [\ds2], \d_strd
 .endif
         b.le            0f
+.ifc \taps, 8tap
         mov             v16.8b,  v18.8b
         mov             v17.8b,  v19.8b
+.endif
         mov             v18.8b,  v20.8b
         mov             v19.8b,  v21.8b
         mov             v20.8b,  v22.8b
@@ -2395,7 +2406,9 @@ L(\type\()_\taps\()_filter_4):
         ld1             {v0.8b},  [\xmx]
         ld1             {v1.8b},  [\xmy]
         sub             \src,  \src,  #3
+.ifc \taps, 8tap
         sub             \src,  \src,  \s_strd
+.endif
         sub             \src,  \src,  \s_strd, lsl #1
         sxtl            v0.8h,  v0.8b
         sxtl            v1.8h,  v1.8b
@@ -2409,9 +2422,13 @@ L(\type\()_\taps\()_filter_4):
         lsl             \s_strd, \s_strd, #1
 
         bl              L(\type\()_\taps\()_filter_8_first)
+.ifc \taps, 6tap
+        mov             v18.16b, v16.16b
+.else
         bl              L(\type\()_\taps\()_filter_8)
         mov             v17.16b, v24.16b
         mov             v18.16b, v25.16b
+.endif
         bl              L(\type\()_\taps\()_filter_8)
         mov             v19.16b, v24.16b
         mov             v20.16b, v25.16b
@@ -2421,31 +2438,31 @@ L(\type\()_\taps\()_filter_4):
 
 88:
 .ifc \taps, 6tap
-        smull           v2.4s,  v17.4h, v1.h[1]
-        smull2          v3.4s,  v17.8h, v1.h[1]
+        smull           v2.4s,  v18.4h, v1.h[1]
+        smull2          v3.4s,  v18.8h, v1.h[1]
         bl              L(\type\()_\taps\()_filter_8)
-        smull           v4.4s,  v18.4h, v1.h[1]
-        smull2          v5.4s,  v18.8h, v1.h[1]
-        smlal           v2.4s,  v18.4h, v1.h[2]
-        smlal2          v3.4s,  v18.8h, v1.h[2]
-        smlal           v4.4s,  v19.4h, v1.h[2]
-        smlal2          v5.4s,  v19.8h, v1.h[2]
-        smlal           v2.4s,  v19.4h, v1.h[3]
-        smlal2          v3.4s,  v19.8h, v1.h[3]
-        smlal           v4.4s,  v20.4h, v1.h[3]
-        smlal2          v5.4s,  v20.8h, v1.h[3]
-        smlal           v2.4s,  v20.4h, v1.h[4]
-        smlal2          v3.4s,  v20.8h, v1.h[4]
-        smlal           v4.4s,  v21.4h, v1.h[4]
-        smlal2          v5.4s,  v21.8h, v1.h[4]
-        smlal           v2.4s,  v21.4h, v1.h[5]
-        smlal2          v3.4s,  v21.8h, v1.h[5]
-        smlal           v4.4s,  v22.4h, v1.h[5]
-        smlal2          v5.4s,  v22.8h, v1.h[5]
-        smlal           v2.4s,  v22.4h, v1.h[6]
-        smlal2          v3.4s,  v22.8h, v1.h[6]
-        smlal           v4.4s,  v24.4h, v1.h[6]
-        smlal2          v5.4s,  v24.8h, v1.h[6]
+        smull           v4.4s,  v19.4h, v1.h[1]
+        smull2          v5.4s,  v19.8h, v1.h[1]
+        smlal           v2.4s,  v19.4h, v1.h[2]
+        smlal2          v3.4s,  v19.8h, v1.h[2]
+        smlal           v4.4s,  v20.4h, v1.h[2]
+        smlal2          v5.4s,  v20.8h, v1.h[2]
+        smlal           v2.4s,  v20.4h, v1.h[3]
+        smlal2          v3.4s,  v20.8h, v1.h[3]
+        smlal           v4.4s,  v21.4h, v1.h[3]
+        smlal2          v5.4s,  v21.8h, v1.h[3]
+        smlal           v2.4s,  v21.4h, v1.h[4]
+        smlal2          v3.4s,  v21.8h, v1.h[4]
+        smlal           v4.4s,  v22.4h, v1.h[4]
+        smlal2          v5.4s,  v22.8h, v1.h[4]
+        smlal           v2.4s,  v22.4h, v1.h[5]
+        smlal2          v3.4s,  v22.8h, v1.h[5]
+        smlal           v4.4s,  v24.4h, v1.h[5]
+        smlal2          v5.4s,  v24.8h, v1.h[5]
+        smlal           v2.4s,  v24.4h, v1.h[6]
+        smlal2          v3.4s,  v24.8h, v1.h[6]
+        smlal           v4.4s,  v25.4h, v1.h[6]
+        smlal2          v5.4s,  v25.8h, v1.h[6]
 .else   // 8tap
         smull           v2.4s,  v16.4h, v1.h[0]
         smull2          v3.4s,  v16.8h, v1.h[0]
@@ -2496,8 +2513,10 @@ L(\type\()_\taps\()_filter_4):
         st1             {v4.8h}, [\ds2], \d_strd
 .endif
         b.le            9f
+.ifc \taps, 8tap
         mov             v16.16b, v18.16b
         mov             v17.16b, v19.16b
+.endif
         mov             v18.16b, v20.16b
         mov             v19.16b, v21.16b
         mov             v20.16b, v22.16b
@@ -2518,6 +2537,9 @@ L(\type\()_\taps\()_filter_4):
         add             \dst,  \dst,  #8
 .else
         add             \dst,  \dst,  #16
+.endif
+.ifc \taps, 6tap
+        add             \src,  \src,  \s_strd,  lsl #1
 .endif
         b               168b
 0:
