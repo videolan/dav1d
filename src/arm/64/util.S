@@ -32,6 +32,10 @@
 #include "config.h"
 #include "src/arm/asm.S"
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 .macro  movrel rd, val, offset=0
 #if defined(__APPLE__)
   .if \offset < 0
@@ -51,6 +55,10 @@
         adrp            \rd, \val+(\offset)
         add             \rd, \rd, :lo12:\val+(\offset)
   .endif
+#elif __has_feature(hwaddress_sanitizer)
+        adrp            \rd, :pg_hi21_nc:\val+(\offset)
+        movk            \rd, #:prel_g3:\val+0x100000000
+        add             \rd, \rd, :lo12:\val+(\offset)
 #elif defined(PIC)
         adrp            \rd, \val+(\offset)
         add             \rd, \rd, :lo12:\val+(\offset)
