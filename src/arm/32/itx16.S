@@ -547,11 +547,11 @@ function inv_txfm_add_wht_wht_4x4_16bpc_neon, export=1
         vmov.i16        q15, #0
         vld1.32         {q8,  q9},  [r2, :128]
         vst1.32         {q14, q15}, [r2, :128]!
-        vshr.s16        q8,  q8,  #2
+        vshr.s32        q8,  q8,  #2
         vld1.32         {q10, q11}, [r2, :128]
-        vshr.s16        q9,  q9,  #2
-        vshr.s16        q10, q10, #2
-        vshr.s16        q11, q11, #2
+        vshr.s32        q9,  q9,  #2
+        vshr.s32        q10, q10, #2
+        vshr.s32        q11, q11, #2
 
         iwht4
 
