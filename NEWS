@@ -1,6 +1,8 @@
 Changes for 1.4.1 'Road Runner':
 --------------------------------
 
+1.4.1 is a small release of dav1d, improving notably ARM and RISC-V speed
+
 - Optimizations for 6tap filters for NEON (ARM)
 - More RISC-V optimizations for itx (4x8, 8x4, 4x16, 16x4, 8x16, 16x8)
 - Reduction of binary size on ARM64, ARM32 and RISC-V
