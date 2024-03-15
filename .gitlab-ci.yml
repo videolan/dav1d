@@ -146,6 +146,7 @@ build-debian32:
     extends: .debian-amd64-common
     script:
         - meson setup build --buildtype release
+                            -Dtrim_dsp=false
                             --werror
                             --cross-file package/crossfiles/i686-linux32.meson
         - ninja -C build
