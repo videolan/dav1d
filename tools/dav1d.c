@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -181,6 +182,11 @@ static void picture_release(Dav1dPicture *const p, void *const _) {
     free(p->allocator_data);
 }
 
+static volatile sig_atomic_t signal_terminate;
+static void signal_handler(const int s) {
+    signal_terminate = 1;
+}
+
 int main(const int argc, char *const *const argv) {
     const int istty = isatty(fileno(stderr));
     int res = 0;
@@ -273,7 +279,21 @@ int main(const int argc, char *const *const argv) {
     }
     tfirst = get_time_nanos();
 
+#ifdef _WIN32
+    signal(SIGINT,  signal_handler);
+    signal(SIGTERM, signal_handler);
+#else
+    static const struct sigaction sa = {
+        .sa_handler = signal_handler,
+        .sa_flags = SA_RESETHAND,
+    };
+    sigaction(SIGINT,  &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+#endif
+
     do {
+        if ((res = signal_terminate)) break;
+
         memset(&p, 0, sizeof(p));
         if ((res = dav1d_send_data(c, &data)) < 0) {
             if (res != DAV1D_ERR(EAGAIN)) {
@@ -320,6 +340,8 @@ int main(const int argc, char *const *const argv) {
 
     // flush
     if (res == 0) while (!cli_settings.limit || n_out < cli_settings.limit) {
+        if ((res = signal_terminate)) break;
+
         if ((res = dav1d_get_picture(c, &p)) < 0) {
             if (res != DAV1D_ERR(EAGAIN)) {
                 fprintf(stderr, "Error decoding frame: %s\n",
