@@ -146,6 +146,9 @@ static inline uint64_t readtime(void) {
 }
 #define readtime readtime
 #endif
+#elif CONFIG_MACOS_KPERF
+uint64_t checkasm_kperf_cycles(void);
+#define readtime() checkasm_kperf_cycles()
 #elif (ARCH_AARCH64 || ARCH_ARM) && defined(__APPLE__)
 #include <mach/mach_time.h>
 #define readtime() mach_absolute_time()

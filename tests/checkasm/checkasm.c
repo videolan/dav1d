@@ -54,6 +54,9 @@
 #include <mach/mach_time.h>
 #endif
 #endif
+#if CONFIG_MACOS_KPERF
+#include <dlfcn.h>
+#endif
 
 #define COLOR_RED    31
 #define COLOR_GREEN  32
@@ -205,6 +208,82 @@ int xor128_rand(void) {
 
     return w >> 1;
 }
+
+#if CONFIG_MACOS_KPERF
+
+static int (*kpc_get_thread_counters)(int, unsigned int, void *);
+
+#define CFGWORD_EL0A64EN_MASK (0x20000)
+
+#define CPMU_CORE_CYCLE 0x02
+
+#define KPC_CLASS_FIXED_MASK        (1 << 0)
+#define KPC_CLASS_CONFIGURABLE_MASK (1 << 1)
+
+#define COUNTERS_COUNT 10
+#define CONFIG_COUNT 8
+#define KPC_MASK (KPC_CLASS_CONFIGURABLE_MASK | KPC_CLASS_FIXED_MASK)
+
+static int kperf_init(void) {
+    uint64_t config[COUNTERS_COUNT] = { 0 };
+
+    void *kperf = dlopen("/System/Library/PrivateFrameworks/kperf.framework/kperf", RTLD_LAZY);
+    if (!kperf) {
+        fprintf(stderr, "checkasm: Unable to load kperf: %s\n", dlerror());
+        return 1;
+    }
+
+    int (*kpc_force_all_ctrs_set)(int) = dlsym(kperf, "kpc_force_all_ctrs_set");
+    int (*kpc_set_counting)(uint32_t) = dlsym(kperf, "kpc_set_counting");
+    int (*kpc_set_thread_counting)(uint32_t) = dlsym(kperf, "kpc_set_thread_counting");
+    int (*kpc_set_config)(uint32_t, void *) = dlsym(kperf, "kpc_set_config");
+    uint32_t (*kpc_get_counter_count)(uint32_t) = dlsym(kperf, "kpc_get_counter_count");
+    uint32_t (*kpc_get_config_count)(uint32_t) = dlsym(kperf, "kpc_get_config_count");
+    kpc_get_thread_counters = dlsym(kperf, "kpc_get_thread_counters");
+
+    if (!kpc_get_thread_counters) {
+        fprintf(stderr, "checkasm: Unable to load kpc_get_thread_counters\n");
+        return 1;
+    }
+
+    if (!kpc_get_counter_count || kpc_get_counter_count(KPC_MASK) != COUNTERS_COUNT) {
+        fprintf(stderr, "checkasm: Unxpected kpc_get_counter_count\n");
+        return 1;
+    }
+    if (!kpc_get_config_count || kpc_get_config_count(KPC_MASK) != CONFIG_COUNT) {
+        fprintf(stderr, "checkasm: Unxpected kpc_get_config_count\n");
+        return 1;
+    }
+
+    config[0] = CPMU_CORE_CYCLE | CFGWORD_EL0A64EN_MASK;
+
+    if (!kpc_set_config || kpc_set_config(KPC_MASK, config)) {
+        fprintf(stderr, "checkasm: The kperf API needs to be run as root\n");
+        return 1;
+    }
+    if (!kpc_force_all_ctrs_set || kpc_force_all_ctrs_set(1)) {
+        fprintf(stderr, "checkasm: kpc_force_all_ctrs_set failed\n");
+        return 1;
+    }
+    if (!kpc_set_counting || kpc_set_counting(KPC_MASK)) {
+        fprintf(stderr, "checkasm: kpc_set_counting failed\n");
+        return 1;
+    }
+    if (!kpc_set_counting || kpc_set_thread_counting(KPC_MASK)) {
+        fprintf(stderr, "checkasm: kpc_set_thread_counting failed\n");
+        return 1;
+    }
+    return 0;
+}
+
+uint64_t checkasm_kperf_cycles(void) {
+    uint64_t counters[COUNTERS_COUNT];
+    if (kpc_get_thread_counters(0, COUNTERS_COUNT, counters))
+        return -1;
+
+    return counters[0];
+}
+#endif
 
 static int is_negative(const intfloat u) {
     return u.i >> 31;
@@ -714,6 +793,10 @@ int main(int argc, char *argv[]) {
 
 #ifdef readtime
     if (state.run_mode == RUN_BENCHMARK) {
+#if CONFIG_MACOS_KPERF
+        if (kperf_init())
+            return 1;
+#endif
         if (!checkasm_save_context()) {
             checkasm_set_signal_handler_state(1);
             readtime();
