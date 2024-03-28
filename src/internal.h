@@ -376,7 +376,10 @@ struct Dav1dTileState {
     const uint16_t (*dq)[3][2];
     int last_qidx;
 
-    int8_t last_delta_lf[4];
+    union {
+        int8_t i8[4];
+        uint32_t u32;
+    } last_delta_lf;
     uint8_t lflvlmem[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
     const uint8_t (*lflvl)[4][8][2];
 

@@ -1001,8 +1001,7 @@ static int decode_b(Dav1dTaskContext *const t,
         const int have_delta_q = f->frame_hdr->delta.q.present &&
             (bs != (f->seq_hdr->sb128 ? BS_128x128 : BS_64x64) || !b->skip);
 
-        int8_t prev_delta_lf[4];
-        memcpy(prev_delta_lf, ts->last_delta_lf, 4);
+        uint32_t prev_delta_lf = ts->last_delta_lf.u32;
 
         if (have_delta_q) {
             int delta_q = dav1d_msac_decode_symbol_adapt4(&ts->msac,
@@ -1038,8 +1037,8 @@ static int decode_b(Dav1dTaskContext *const t,
                             delta_lf = -delta_lf;
                         delta_lf *= 1 << f->frame_hdr->delta.lf.res_log2;
                     }
-                    ts->last_delta_lf[i] =
-                        iclip(ts->last_delta_lf[i] + delta_lf, -63, 63);
+                    ts->last_delta_lf.i8[i] =
+                        iclip(ts->last_delta_lf.i8[i] + delta_lf, -63, 63);
                     if (have_delta_q && DEBUG_BLOCK_INFO)
                         printf("Post-delta_lf[%d:%d]: r=%d\n", i, delta_lf,
                                ts->msac.rng);
@@ -1054,13 +1053,13 @@ static int decode_b(Dav1dTaskContext *const t,
             init_quant_tables(f->seq_hdr, f->frame_hdr, ts->last_qidx, ts->dqmem);
             ts->dq = ts->dqmem;
         }
-        if (!memcmp(ts->last_delta_lf, (int8_t[4]) { 0, 0, 0, 0 }, 4)) {
+        if (!ts->last_delta_lf.u32) {
             // assign frame-wide lf values to this sb
             ts->lflvl = f->lf.lvl;
-        } else if (memcmp(ts->last_delta_lf, prev_delta_lf, 4)) {
+        } else if (ts->last_delta_lf.u32 != prev_delta_lf) {
             // find sb-specific lf lvl parameters
-            dav1d_calc_lf_values(ts->lflvlmem, f->frame_hdr, ts->last_delta_lf);
             ts->lflvl = ts->lflvlmem;
+            dav1d_calc_lf_values(ts->lflvlmem, f->frame_hdr, ts->last_delta_lf.i8);
         }
     }
 
@@ -2495,7 +2494,7 @@ static void setup_tile(Dav1dTileState *const ts,
 
     dav1d_cdf_thread_copy(&ts->cdf, &f->in_cdf);
     ts->last_qidx = f->frame_hdr->quant.yac;
-    memset(ts->last_delta_lf, 0, sizeof(ts->last_delta_lf));
+    ts->last_delta_lf.u32 = 0;
 
     dav1d_msac_init(&ts->msac, data, sz, f->frame_hdr->disable_cdf_update);
 
