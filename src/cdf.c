@@ -3951,10 +3951,8 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
 {
 #define update_cdf_1d(n1d, name) \
     do { \
-        memcpy(dst->name, src->name, sizeof(dst->name)); \
         dst->name[n1d] = 0; \
     } while (0)
-
 #define update_cdf_2d(n1d, n2d, name) \
     for (int j = 0; j < (n1d); j++) update_cdf_1d(n2d, name[j])
 #define update_cdf_3d(n1d, n2d, n3d, name) \
@@ -3962,29 +3960,8 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
 #define update_cdf_4d(n1d, n2d, n3d, n4d, name) \
     for (int l = 0; l < (n1d); l++) update_cdf_3d(n2d, n3d, n4d, name[l])
 
-#define update_bit_0d(name) \
-    do { \
-        dst->name[0] = src->name[0]; \
-        dst->name[1] = 0; \
-    } while (0)
+    memcpy(dst, src, offsetof(CdfContext, m.intrabc));
 
-#define update_bit_1d(n1d, name) \
-    for (int i = 0; i < (n1d); i++) update_bit_0d(name[i])
-#define update_bit_2d(n1d, n2d, name) \
-    for (int j = 0; j < (n1d); j++) update_bit_1d(n2d, name[j])
-#define update_bit_3d(n1d, n2d, n3d, name) \
-    for (int k = 0; k < (n1d); k++) update_bit_2d(n2d, n3d, name[k])
-
-    update_bit_1d(N_BS_SIZES, m.use_filter_intra);
-    update_cdf_1d(4, m.filter_intra);
-    update_cdf_3d(2, N_INTRA_PRED_MODES, N_UV_INTRA_PRED_MODES - 1 - !k, m.uv_mode);
-    update_cdf_2d(8, 6, m.angle_delta);
-    update_cdf_3d(N_TX_SIZES - 1, 3, imin(k + 1, 2), m.txsz);
-    update_cdf_3d(2, N_INTRA_PRED_MODES, 6, m.txtp_intra1);
-    update_cdf_3d(3, N_INTRA_PRED_MODES, 4, m.txtp_intra2);
-    update_bit_1d(3, m.skip);
-    update_cdf_3d(N_BL_LEVELS, 4, dav1d_partition_type_count[k], m.partition);
-    update_bit_2d(N_TX_SIZES, 13, coef.skip);
     update_cdf_3d(2, 2, 4, coef.eob_bin_16);
     update_cdf_3d(2, 2, 5, coef.eob_bin_32);
     update_cdf_3d(2, 2, 6, coef.eob_bin_64);
@@ -3992,68 +3969,85 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     update_cdf_3d(2, 2, 8, coef.eob_bin_256);
     update_cdf_2d(2, 9, coef.eob_bin_512);
     update_cdf_2d(2, 10, coef.eob_bin_1024);
-    update_bit_3d(N_TX_SIZES, 2, 11 /*22*/, coef.eob_hi_bit);
     update_cdf_4d(N_TX_SIZES, 2, 4, 2, coef.eob_base_tok);
     update_cdf_4d(N_TX_SIZES, 2, 41 /*42*/, 3, coef.base_tok);
-    update_bit_2d(2, 3, coef.dc_sign);
     update_cdf_4d(4, 2, 21, 3, coef.br_tok);
-    update_cdf_2d(3, DAV1D_MAX_SEGMENTS - 1, m.seg_id);
-    update_cdf_1d(7, m.cfl_sign);
+    update_cdf_4d(N_TX_SIZES, 2, 11 /*22*/, 1, coef.eob_hi_bit);
+    update_cdf_3d(N_TX_SIZES, 13, 1, coef.skip);
+    update_cdf_3d(2, 3, 1, coef.dc_sign);
+
+    update_cdf_3d(2, N_INTRA_PRED_MODES, N_UV_INTRA_PRED_MODES - 1 - !k, m.uv_mode);
+    update_cdf_2d(4, N_PARTITIONS - 3, m.partition[BL_128X128]);
+    for (int k = BL_64X64; k < BL_8X8; k++)
+        update_cdf_2d(4, N_PARTITIONS - 1, m.partition[k]);
+    update_cdf_2d(4, N_SUB8X8_PARTITIONS - 1, m.partition[BL_8X8]);
     update_cdf_2d(6, 15, m.cfl_alpha);
-    update_bit_0d(m.restore_wiener);
-    update_bit_0d(m.restore_sgrproj);
-    update_cdf_1d(2, m.restore_switchable);
-    update_cdf_1d(3, m.delta_q);
-    update_cdf_2d(5, 3, m.delta_lf);
-    update_bit_2d(7, 3, m.pal_y);
-    update_bit_1d(2, m.pal_uv);
-    update_cdf_3d(2, 7, 6, m.pal_sz);
-    update_cdf_4d(2, 7, 5, k + 1, m.color_map);
-    update_bit_2d(7, 3, m.txpart);
     update_cdf_2d(2, 15, m.txtp_inter1);
     update_cdf_1d(11, m.txtp_inter2);
-    update_bit_1d(4, m.txtp_inter3);
+    update_cdf_3d(2, N_INTRA_PRED_MODES, 6, m.txtp_intra1);
+    update_cdf_3d(3, N_INTRA_PRED_MODES, 4, m.txtp_intra2);
+    update_cdf_1d(7, m.cfl_sign);
+    update_cdf_2d(8, 6, m.angle_delta);
+    update_cdf_1d(4, m.filter_intra);
+    update_cdf_2d(3, DAV1D_MAX_SEGMENTS - 1, m.seg_id);
+    update_cdf_3d(2, 7, 6, m.pal_sz);
+    update_cdf_4d(2, 7, 5, k + 1, m.color_map);
+    update_cdf_3d(N_TX_SIZES - 1, 3, imin(k + 1, 2), m.txsz);
+    update_cdf_1d(3, m.delta_q);
+    update_cdf_2d(5, 3, m.delta_lf);
+    update_cdf_1d(2, m.restore_switchable);
+    update_cdf_1d(1, m.restore_wiener);
+    update_cdf_1d(1, m.restore_sgrproj);
+    update_cdf_2d(4, 1, m.txtp_inter3);
+    update_cdf_2d(N_BS_SIZES, 1, m.use_filter_intra);
+    update_cdf_3d(7, 3, 1, m.txpart);
+    update_cdf_2d(3, 1, m.skip);
+    update_cdf_3d(7, 3, 1, m.pal_y);
+    update_cdf_2d(2, 1, m.pal_uv);
 
     if (IS_KEY_OR_INTRA(hdr))
         return;
 
-    update_bit_1d(3, m.skip_mode);
+    memcpy(dst->m.y_mode, src->m.y_mode,
+           offsetof(CdfContext, kfym) - offsetof(CdfContext, m.y_mode));
+
     update_cdf_2d(4, N_INTRA_PRED_MODES - 1, m.y_mode);
-    update_cdf_3d(2, 8, DAV1D_N_SWITCHABLE_FILTERS - 1, m.filter);
-    update_bit_1d(6, m.newmv_mode);
-    update_bit_1d(2, m.globalmv_mode);
-    update_bit_1d(6, m.refmv_mode);
-    update_bit_1d(3, m.drl_bit);
-    update_cdf_2d(8, N_COMP_INTER_PRED_MODES - 1, m.comp_inter_mode);
-    update_bit_1d(4, m.intra);
-    update_bit_1d(5, m.comp);
-    update_bit_1d(5, m.comp_dir);
-    update_bit_1d(6, m.jnt_comp);
-    update_bit_1d(6, m.mask_comp);
-    update_bit_1d(9, m.wedge_comp);
     update_cdf_2d(9, 15, m.wedge_idx);
-    update_bit_2d(6, 3, m.ref);
-    update_bit_2d(3, 3, m.comp_fwd_ref);
-    update_bit_2d(2, 3, m.comp_bwd_ref);
-    update_bit_2d(3, 3, m.comp_uni_ref);
-    update_bit_1d(3, m.seg_pred);
-    update_bit_1d(4, m.interintra);
-    update_bit_1d(7, m.interintra_wedge);
+    update_cdf_2d(8, N_COMP_INTER_PRED_MODES - 1, m.comp_inter_mode);
+    update_cdf_3d(2, 8, DAV1D_N_SWITCHABLE_FILTERS - 1, m.filter);
     update_cdf_2d(4, 3, m.interintra_mode);
     update_cdf_2d(N_BS_SIZES, 2, m.motion_mode);
-    update_bit_1d(N_BS_SIZES, m.obmc);
+    update_cdf_2d(3, 1, m.skip_mode);
+    update_cdf_2d(6, 1, m.newmv_mode);
+    update_cdf_2d(2, 1, m.globalmv_mode);
+    update_cdf_2d(6, 1, m.refmv_mode);
+    update_cdf_2d(3, 1, m.drl_bit);
+    update_cdf_2d(4, 1, m.intra);
+    update_cdf_2d(5, 1, m.comp);
+    update_cdf_2d(5, 1, m.comp_dir);
+    update_cdf_2d(6, 1, m.jnt_comp);
+    update_cdf_2d(6, 1, m.mask_comp);
+    update_cdf_2d(9, 1, m.wedge_comp);
+    update_cdf_3d(6, 3, 1, m.ref);
+    update_cdf_3d(3, 3, 1, m.comp_fwd_ref);
+    update_cdf_3d(2, 3, 1, m.comp_bwd_ref);
+    update_cdf_3d(3, 3, 1, m.comp_uni_ref);
+    update_cdf_2d(3, 1, m.seg_pred);
+    update_cdf_2d(4, 1, m.interintra);
+    update_cdf_2d(7, 1, m.interintra_wedge);
+    update_cdf_2d(N_BS_SIZES, 1, m.obmc);
 
-    update_cdf_1d(N_MV_JOINTS - 1, mv.joint);
     for (int k = 0; k < 2; k++) {
         update_cdf_1d(10, mv.comp[k].classes);
-        update_bit_0d(mv.comp[k].class0);
-        update_bit_1d(10, mv.comp[k].classN);
+        update_cdf_1d(1, mv.comp[k].sign);
+        update_cdf_1d(1, mv.comp[k].class0);
         update_cdf_2d(2, 3, mv.comp[k].class0_fp);
+        update_cdf_1d(1, mv.comp[k].class0_hp);
+        update_cdf_2d(10, 1, mv.comp[k].classN);
         update_cdf_1d(3, mv.comp[k].classN_fp);
-        update_bit_0d(mv.comp[k].class0_hp);
-        update_bit_0d(mv.comp[k].classN_hp);
-        update_bit_0d(mv.comp[k].sign);
+        update_cdf_1d(1, mv.comp[k].classN_hp);
     }
+    update_cdf_1d(N_MV_JOINTS - 1, mv.joint);
 }
 
 /*
