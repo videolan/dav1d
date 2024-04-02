@@ -4014,18 +4014,8 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
     update_cdf_1d(11, m.txtp_inter2);
     update_bit_1d(4, m.txtp_inter3);
 
-    if (IS_KEY_OR_INTRA(hdr)) {
-        update_bit_0d(m.intrabc);
-
-        update_cdf_1d(N_MV_JOINTS - 1, dmv.joint);
-        for (int k = 0; k < 2; k++) {
-            update_cdf_1d(10, dmv.comp[k].classes);
-            update_bit_0d(dmv.comp[k].class0);
-            update_bit_1d(10, dmv.comp[k].classN);
-            update_bit_0d(dmv.comp[k].sign);
-        }
+    if (IS_KEY_OR_INTRA(hdr))
         return;
-    }
 
     update_bit_1d(3, m.skip_mode);
     update_cdf_2d(4, N_INTRA_PRED_MODES - 1, m.y_mode);
