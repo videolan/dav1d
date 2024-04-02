@@ -4079,9 +4079,7 @@ void dav1d_cdf_thread_copy(CdfContext *const dst, const CdfThreadContext *const 
         memcpy(dst->kfym, default_kf_y_mode_cdf, sizeof(default_kf_y_mode_cdf));
         dst->coef = av1_default_coef_cdf[src->data.qcat];
         memcpy(dst->mv.joint, default_mv_joint_cdf, sizeof(default_mv_joint_cdf));
-        memcpy(dst->dmv.joint, default_mv_joint_cdf, sizeof(default_mv_joint_cdf));
-        dst->mv.comp[0] = dst->mv.comp[1] = dst->dmv.comp[0] = dst->dmv.comp[1] =
-            default_mv_component_cdf;
+        dst->mv.comp[0] = dst->mv.comp[1] = default_mv_component_cdf;
     }
 }
 

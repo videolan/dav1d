@@ -108,13 +108,13 @@ typedef struct CdfCoefContext {
 
 typedef struct CdfMvComponent {
     ALIGN(uint16_t classes[11 + 5], 32);
-    ALIGN(uint16_t class0_fp[2][4], 8);
-    ALIGN(uint16_t classN_fp[4], 8);
-    ALIGN(uint16_t class0_hp[2], 4);
-    ALIGN(uint16_t classN_hp[2], 4);
-    ALIGN(uint16_t class0[2], 4);
-    ALIGN(uint16_t classN[10][2], 4);
     ALIGN(uint16_t sign[2], 4);
+    ALIGN(uint16_t class0[2], 4);
+    ALIGN(uint16_t class0_fp[2][4], 8);
+    ALIGN(uint16_t class0_hp[2], 4);
+    ALIGN(uint16_t classN[10][2], 4);
+    ALIGN(uint16_t classN_fp[4], 8);
+    ALIGN(uint16_t classN_hp[2], 4);
 } CdfMvComponent;
 
 typedef struct CdfMvContext {
@@ -126,7 +126,7 @@ typedef struct CdfContext {
     CdfModeContext m;
     ALIGN(uint16_t kfym[5][5][N_INTRA_PRED_MODES + 3], 32);
     CdfCoefContext coef;
-    CdfMvContext mv, dmv;
+    CdfMvContext mv;
 } CdfContext;
 
 typedef struct CdfThreadContext {

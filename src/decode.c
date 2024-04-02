@@ -1323,7 +1323,7 @@ static int decode_b(Dav1dTaskContext *const t,
         }
 
         const union mv ref = b->mv[0];
-        read_mv_residual(t, &b->mv[0], &ts->cdf.dmv, 0);
+        read_mv_residual(t, &b->mv[0], &ts->cdf.mv, 0);
 
         // clip intrabc motion vector to decoded parts of current tile
         int border_left = ts->tiling.col_start * 4;
