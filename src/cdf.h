@@ -138,7 +138,7 @@ typedef struct CdfThreadContext {
     atomic_uint *progress;
 } CdfThreadContext;
 
-void dav1d_cdf_thread_init_static(CdfThreadContext *cdf, int qidx);
+void dav1d_cdf_thread_init_static(CdfThreadContext *cdf, unsigned qidx);
 int dav1d_cdf_thread_alloc(Dav1dContext *c, CdfThreadContext *cdf,
                            const int have_frame_mt);
 void dav1d_cdf_thread_copy(CdfContext *dst, const CdfThreadContext *src);

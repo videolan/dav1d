@@ -4059,16 +4059,9 @@ void dav1d_cdf_thread_update(const Dav1dFrameHeader *const hdr,
 /*
  * CDF threading wrappers.
  */
-static inline int get_qcat_idx(const int q) {
-    if (q <= 20) return 0;
-    if (q <= 60) return 1;
-    if (q <= 120) return 2;
-    return 3;
-}
-
-void dav1d_cdf_thread_init_static(CdfThreadContext *const cdf, const int qidx) {
+void dav1d_cdf_thread_init_static(CdfThreadContext *const cdf, const unsigned qidx) {
     cdf->ref = NULL;
-    cdf->data.qcat = get_qcat_idx(qidx);
+    cdf->data.qcat = (qidx > 20) + (qidx > 60) + (qidx > 120);
 }
 
 void dav1d_cdf_thread_copy(CdfContext *const dst, const CdfThreadContext *const src) {
