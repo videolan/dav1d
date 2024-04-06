@@ -1,6 +1,6 @@
 [binaries]
-c = 'armv7a-linux-androideabi19-clang'
-cpp = 'armv7a-linux-androideabi19-clang++'
+c = 'armv7a-linux-androideabi21-clang'
+cpp = 'armv7a-linux-androideabi21-clang++'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 pkgconfig = 'pkg-config'

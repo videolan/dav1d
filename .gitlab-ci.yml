@@ -46,7 +46,7 @@ stages:
         - ppc64le
 
 .android-common:
-    image: registry.videolan.org/vlc-debian-android:20231013040434
+    image: registry.videolan.org/vlc-debian-android:20240406142551
     stage: build
     tags:
         - docker
