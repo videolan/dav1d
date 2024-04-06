@@ -4,42 +4,42 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20240226203953
+    image: registry.videolan.org/dav1d-debian-unstable:20240406142551
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-amd64-minimum:
-    image: registry.videolan.org/dav1d-debian-minimum:20231024033032
+    image: registry.videolan.org/dav1d-debian-minimum:20240406142551
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20231024033032
+    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20240406142551
     stage: build
     tags:
         - docker
         - amd64
 
 .debian-aarch64-common:
-    image: registry.videolan.org/dav1d-debian-bookworm-aarch64:20231018041418
+    image: registry.videolan.org/dav1d-debian-bookworm-aarch64:20240401050239
     stage: build
     tags:
         - docker
         - aarch64
 
 .debian-armv7-common:
-    image: registry.videolan.org/dav1d-debian-bookworm-armv7:20231018042237
+    image: registry.videolan.org/dav1d-debian-bookworm-armv7:20240401050040
     stage: build
     tags:
         - docker
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20231020040221
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20240401050321
     stage: build
     tags:
         - docker
@@ -53,7 +53,7 @@ stages:
         - amd64
 
 .debian-wasm-emscripten-common:
-    image: registry.videolan.org/vlc-debian-wasm-emscripten:20231024033032
+    image: registry.videolan.org/vlc-debian-wasm-emscripten:20240313095757
     stage: build
     tags:
         - docker
@@ -356,7 +356,7 @@ build-debian-aarch64-clang-5:
         - ninja -C build
         - cd build && meson test -v
 
-build-debian-aarch64-clang-17:
+build-debian-aarch64-clang-18:
     extends: .debian-amd64-common
     variables:
         QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
