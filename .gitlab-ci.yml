@@ -865,31 +865,34 @@ test-debian-argon-avx512:
         - ../tests/dav1d_argon.bash -t 2 -c avx512icl || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
-.test-debian-arm-argon:
+test-debian-armv7-argon:
     extends:
+        - .debian-armv7-common
         - .test-argon
+    needs: ["build-debian-armv7"]
     script:
-        - meson setup build --buildtype release
-                            -Dlogging=false
-                            -Dtrim_dsp=false
-        - cd build && ninja
-        - exit_code=0
+        - *test-argon-script
         - ../tests/dav1d_argon.bash -t 2 -c 0         || exit_code=$((exit_code + $?))
         - ../tests/dav1d_argon.bash -t 2 -c neon      || exit_code=$((exit_code + $?))
         - ../tests/dav1d_argon.bash -t 2 -c neon -g 0 || exit_code=$((exit_code + $?))
         - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
-test-debian-armv7-argon:
-    extends:
-        - .debian-armv7-common
-        - .test-debian-arm-argon
-    needs: ["build-debian-armv7"]
-
 test-debian-aarch64-argon:
     extends:
         - .debian-aarch64-common
-        - .test-debian-arm-argon
+        - .test-argon
     needs: ["build-debian-aarch64"]
+    tags:
+        - docker
+        - aarch64
+        - dotprod
+    script:
+        - *test-argon-script
+        - ../tests/dav1d_argon.bash -t 2 -c 0         || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c neon      || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c neon -g 0 || exit_code=$((exit_code + $?))
+        - ../tests/dav1d_argon.bash -t 2 -c dotprod   || exit_code=$((exit_code + $?))
+        - if [ $exit_code -ne 0 ]; then exit $exit_code; fi
 
 
 .pages-common:
