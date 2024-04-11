@@ -100,7 +100,7 @@ static const struct option long_opts[] = {
 #endif
 
 #if ARCH_AARCH64 || ARCH_ARM
-#define ALLOWED_CPU_MASKS " or 'neon'"
+#define ALLOWED_CPU_MASKS ", 'neon', 'dotprod' or 'i8mm'"
 #elif ARCH_LOONGARCH
 #define ALLOWED_CPU_MASKS ", 'lsx' or 'lasx'"
 #elif ARCH_PPC64LE
