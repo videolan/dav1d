@@ -55,8 +55,8 @@ typedef struct {
 static void randomize_cdf(uint16_t *const cdf, const int n) {
     int i;
     for (i = 15; i > n; i--)
-        cdf[i] = rnd(); // padding
-    cdf[i] = 0;         // count
+        cdf[i] = 0; // padding
+    cdf[i] = 0;     // count
     do {
         cdf[i - 1] = cdf[i] + rnd() % (32768 - cdf[i] - i) + 1;
     } while (--i > 0);
