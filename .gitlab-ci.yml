@@ -18,7 +18,7 @@ stages:
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20240406142551
+    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20240415145055
     stage: build
     tags:
         - docker
@@ -276,7 +276,7 @@ build-win-arm:
                             --werror
                             --libdir lib
                             --prefix "$(pwd)/build/dav1d_install"
-                            --cross-file /opt/crossfiles/${CROSSFILE}.meson
+                            --cross-file package/crossfiles/${CROSSFILE}.meson
                             -Ddefault_library=both
                             -Dtrim_dsp=false
         - ninja -C build
