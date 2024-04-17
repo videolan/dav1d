@@ -113,11 +113,19 @@ L(\type\()_8tap_v_\isa):
         madd            \my, \my, w11, w10
         ldr             q6, L(v_tbl_neon_dotprod)
         sub             \src, \src, \s_strd
-.ifc \type, prep
+.ifc \isa, neon_i8mm
+    .ifc \type, prep
+        movi            v4.4s, #2           // rounding
+    .else
+        movi            v4.4s, #0
+    .endif
+.else   // neon_dotprod
+    .ifc \type, prep
         mov             w8, 0x2002          // FILTER_WEIGHT * 128 + rounding
         dup             v4.4s, w8
-.else
+    .else
         movi            v4.4s, #32, lsl 8   // FILTER_WEIGHT * 128, bias for SDOT
+    .endif
 .endif
         ubfx            w11, \my, #7, #7
         and             \my, \my, #0x7F
@@ -127,7 +135,9 @@ L(\type\()_8tap_v_\isa):
         sub             \src, \src, \s_strd, lsl #1     // src - s_strd * 3
         add             \xmy, x12, \xmy, lsl #3         // subpel V filter address
         ldr             q29, L(v_tbl_neon_dotprod) + 32
+.ifc \isa, neon_dotprod
         movi            v5.16b, #128
+.endif
         ldr             d7, [\xmy]
         cmp             \w, #8
         b.eq            80f
@@ -179,7 +189,7 @@ L(\type\()_8tap_v_\isa):
         zip2            v20.8h, v18.8h, v24.8h
         zip1            v23.8h, v21.8h, v27.8h
         zip2            v26.8h, v21.8h, v27.8h
-
+.ifc \isa, neon_dotprod
         sub             v16.16b, v16.16b, v5.16b
         sub             v19.16b, v19.16b, v5.16b
         sub             v22.16b, v22.16b, v5.16b
@@ -189,7 +199,7 @@ L(\type\()_8tap_v_\isa):
         sub             v20.16b, v20.16b, v5.16b
         sub             v23.16b, v23.16b, v5.16b
         sub             v26.16b, v26.16b, v5.16b
-
+.endif
         .align LOOP_ALIGN
 16:
         ld1             {v27.16b}, [\lsrc], \s_strd
@@ -198,12 +208,16 @@ L(\type\()_8tap_v_\isa):
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-
+.ifc \isa, neon_i8mm
+        mov             v18.16b, v27.16b
+        mov             v21.16b, v27.16b
+        mov             v24.16b, v27.16b
+.else   // neon_dotprod
         sub             v18.16b, v27.16b, v5.16b
         sub             v21.16b, v27.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
         sub             v27.16b, v27.16b, v5.16b
-
+.endif
         \dot            v0.4s, v16.16b, v7.4b[0]
         \dot            v1.4s, v19.16b, v7.4b[0]
         \dot            v2.4s, v22.16b, v7.4b[0]
@@ -297,11 +311,12 @@ L(\type\()_8tap_v_\isa):
         zip2            v19.8h,  v0.8h,  v2.8h
         zip1            v17.8h, v18.8h, v24.8h
         zip2            v20.8h, v18.8h, v24.8h
-
+.ifc \isa, neon_dotprod
         sub             v16.16b, v16.16b, v5.16b
         sub             v19.16b, v19.16b, v5.16b
         sub             v17.16b, v17.16b, v5.16b
         sub             v20.16b, v20.16b, v5.16b
+.endif
 .ifc \type, put
         b.eq            82f
 .endif
@@ -315,12 +330,15 @@ L(\type\()_8tap_v_\isa):
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-
+.ifc \isa, neon_i8mm
+        mov             v18.16b, v21.16b
+        mov             v24.16b, v27.16b
+.else   // neon_dotprod
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
         sub             v27.16b, v27.16b, v5.16b
-
+.endif
         tbl             v22.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v25.16b, {v19.16b, v20.16b}, v6.16b
         tbl             v23.16b, {v17.16b, v18.16b}, v28.16b
@@ -367,10 +385,12 @@ L(\type\()_8tap_v_\isa):
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-
+.ifc \isa, neon_i8mm
+        mov             v18.16b, v21.16b
+.else
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
-
+.endif
         tbl             v22.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v25.16b, {v19.16b, v20.16b}, v6.16b
         tbl             v23.16b, {v17.16b, v18.16b}, v28.16b
@@ -428,9 +448,10 @@ L(\type\()_8tap_v_\isa):
 
         zip1            v16.8h, v0.8h, v2.8h
         zip1            v17.8h, v18.8h, v24.8h
-
+.ifc \isa, neon_dotprod
         sub             v16.16b, v16.16b, v5.16b
         sub             v17.16b, v17.16b, v5.16b
+.endif
 .ifc \type, put
         b.eq            42f
 .endif
@@ -442,10 +463,10 @@ L(\type\()_8tap_v_\isa):
 
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-
+.ifc \isa, neon_dotprod
         sub             v18.16b, v18.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
-
+.endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v20.16b, {v17.16b, v18.16b}, v28.16b
 
@@ -482,9 +503,9 @@ L(\type\()_8tap_v_\isa):
 
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-
+.ifc \isa, neon_dotprod
         sub             v18.16b, v18.16b, v5.16b
-
+.endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v20.16b, {v17.16b, v18.16b}, v28.16b
 
@@ -532,10 +553,10 @@ L(\type\()_8tap_v_\isa):
 
         zip1            v16.4h, v0.4h, v2.4h
         zip1            v17.4h, v18.4h, v24.4h
-
+    .ifc \isa, neon_dotprod
         sub             v16.8b, v16.8b, v5.8b
         sub             v17.8b, v17.8b, v5.8b
-
+    .endif
         b.eq            22f
 
         .align LOOP_ALIGN
@@ -546,10 +567,10 @@ L(\type\()_8tap_v_\isa):
 
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-
+    .ifc \isa, neon_dotprod
         sub             v18.8b, v18.8b, v5.8b
         sub             v21.8b, v21.8b, v5.8b
-
+    .endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v20.16b, {v17.16b, v18.16b}, v28.16b
 
@@ -579,9 +600,9 @@ L(\type\()_8tap_v_\isa):
 
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-
+    .ifc \isa, neon_dotprod
         sub             v18.8b, v18.8b, v5.8b
-
+    .endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
         tbl             v20.16b, {v17.16b, v18.16b}, v28.16b
 
@@ -606,8 +627,12 @@ L(\type\()_8tap_h_hv_\isa):
         madd            \mx, \mx, w11, w9
         madd            w14, \my, w11, w10      // for HV
         ldr             q28, L(h_tbl_neon_dotprod)
+.ifc \isa, neon_i8mm
+        movi            v27.4s, #2              // rounding
+.else
         mov             w13, 0x2002             // FILTER_WEIGHT * 128 + rounding
         dup             v27.4s, w13             // put H overrides this
+.endif
         sub             \src, \src, #4          // src - 4
         ubfx            w9, \mx, #7, #7
         and             \mx, \mx, #0x7F
@@ -616,7 +641,9 @@ L(\type\()_8tap_h_hv_\isa):
         cmp             \w, #4
         csel            \mx, \mx, w9, le
         add             \xmx, x12, \xmx, lsl #3 // subpel H filter address
+.ifc \isa, neon_dotprod
         movi            v24.16b, #128
+.endif
         cbz             \my, L(\type\()_8tap_h_\isa)
 
         // HV cases
@@ -677,9 +704,9 @@ L(\type\()_8tap_h_hv_\isa):
         smull           v0.4s, v16.4h, v7.h[0]
         smull2          v1.4s, v16.8h, v7.h[0]
         mov             v16.16b, v17.16b
-
+.ifc \isa, neon_dotprod
         sub             v23.16b, v23.16b, v24.16b
-
+.endif
         mov             v5.16b, v27.16b
         mov             v6.16b, v27.16b
 
@@ -774,9 +801,9 @@ L(\type\()_8tap_h_hv_\isa):
         smlal           v0.4s, v17.4h, v7.h[1]
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
-
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
-
+.endif
         smlal           v0.4s, v18.4h, v7.h[2]
         smlal           v0.4s, v19.4h, v7.h[3]
         tbl             v2.16b, {v4.16b}, v28.16b
@@ -838,9 +865,9 @@ L(\type\()_8tap_h_hv_\isa):
         smlal           v0.4s, v17.4h, v7.h[1]
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
-
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
-
+.endif
         smlal           v0.4s, v18.4h, v7.h[2]
         smlal           v0.4s, v19.4h, v7.h[3]
         tbl             v2.16b, {v4.16b}, v28.16b
@@ -912,7 +939,9 @@ L(\type\()_6tap_hv_\isa):
 
         smull           v0.4s, v16.4h, v7.h[1]
         smull2          v1.4s, v16.8h, v7.h[1]
+.ifc \isa, neon_dotprod
         sub             v23.16b, v23.16b, v24.16b
+.endif
         mov             v16.16b, v17.16b
 
         mov             v5.16b, v27.16b
@@ -969,7 +998,9 @@ L(\type\()_6tap_hv_\isa):
         .align FUNC_ALIGN
 L(\type\()_hv_filter8_\isa):
         ld1             {v4.16b}, [\lsrc], \s_strd
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
+.endif
         mov             v22.16b, v27.16b
         mov             v23.16b, v27.16b
         tbl             v2.16b, {v4.16b}, v28.16b
@@ -987,7 +1018,9 @@ L(\type\()_hv_filter8_\isa):
 L(\type\()_hv_filter4_\isa):
         ld1             {v4.8b}, [\src], \s_strd
         mov             v22.16b, v27.16b
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
+.endif
         tbl             v2.16b, {v4.16b}, v28.16b
         \dot            v22.4s, v2.16b, v26.4b[0]
         shrn            v22.4h, v22.4s, #2
@@ -1015,7 +1048,9 @@ L(\type\()_hv_filter4_\isa):
 
         smull           v0.4s, v16.4h, v7.h[1]
         smlal           v0.4s, v17.4h, v7.h[2]
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
+.endif
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
 
@@ -1067,7 +1102,9 @@ L(\type\()_hv_filter4_\isa):
 
         smull           v0.4s, v16.4h, v7.h[1]
         smlal           v0.4s, v17.4h, v7.h[2]
+.ifc \isa, neon_dotprod
         sub             v4.16b, v4.16b, v24.16b
+.endif
         mov             v16.16b, v17.16b
         mov             v17.16b, v18.16b
 
@@ -1100,8 +1137,12 @@ L(\type\()_8tap_h_\isa):
         adr             x9, L(\type\()_8tap_h_\isa\()_tbl)
         ldrh            w8, [x9, x8, lsl #1]
 .ifc \type, put
+    .ifc \isa, neon_i8mm
+        movi            v27.4s, #34     // special rounding
+    .else
         mov             w10, #0x2022    // 64 * 128 + 34, bias and rounding for SDOT
         dup             v27.4s, w10
+    .endif
 .endif
         sub             x9, x9, x8
         br              x9
@@ -1118,10 +1159,10 @@ L(\type\()_8tap_h_\isa):
         ldr             d0, [\src]
         ldr             d1, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
+    .ifc \isa, neon_dotprod
         sub             v0.8b, v0.8b, v24.8b
         sub             v1.8b, v1.8b, v24.8b
-
+    .endif
         mov             v4.16b, v27.16b
         mov             v5.16b, v27.16b
 
@@ -1155,10 +1196,10 @@ L(\type\()_8tap_h_\isa):
         ldr             d0, [\src]
         ldr             d1, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
+.ifc \isa, neon_dotprod
         sub             v0.8b, v0.8b, v24.8b
         sub             v1.8b, v1.8b, v24.8b
-
+.endif
         mov             v4.16b, v27.16b
         mov             v5.16b, v27.16b
 
@@ -1197,10 +1238,10 @@ L(\type\()_8tap_h_\isa):
         ldr             q0, [\src]
         ldr             q16, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
+.ifc \isa, neon_dotprod
         sub             v0.16b, v0.16b, v24.16b
         sub             v16.16b, v16.16b, v24.16b
-
+.endif
         mov             v4.16b, v27.16b
         mov             v5.16b, v27.16b
         mov             v20.16b, v27.16b
@@ -1252,10 +1293,10 @@ L(\type\()_8tap_h_\isa):
         ldr             q16, [\src]
         ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, \s_strd
-
+.ifc \isa, neon_dotprod
         sub             v16.16b, v16.16b, v24.16b
         sub             v17.16b, v17.16b, v24.16b
-
+.endif
         mov             v6.16b, v27.16b
         mov             v7.16b, v27.16b
         mov             v22.16b, v27.16b
@@ -1311,10 +1352,10 @@ L(\type\()_8tap_h_\isa):
         ldr             q16, [\src]
         ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, #16
-
+.ifc \isa, neon_dotprod
         sub             v16.16b, v16.16b, v24.16b
         sub             v17.16b, v17.16b, v24.16b
-
+.endif
         mov             v6.16b, v27.16b
         mov             v7.16b, v27.16b
         mov             v22.16b, v27.16b
@@ -1380,6 +1421,20 @@ filter_8tap_fn prep, sdot, neon_dotprod, x0, x7, x1, x2, w3, w4, w5, w6, x5, x6,
 // dst(x0) d_strd(x1) src(x2) s_strd(x3) w(w4) h(w5) mx(w6) my(w7)
 // xmx(x6), xmy(x7), ldst(x6), lsrc(x7), wd_strd(w1)
 filter_8tap_fn  put, sdot, neon_dotprod, x0, x1, x2, x3, w4, w5, w6, w7, x6, x7, x6, x7, w1
+
+#if HAVE_I8MM
+ENABLE_I8MM
+
+// dst(x0), d_strd(x7), src(x1), s_strd(x2), w(w3), h(w4), mx(w5), my(w6)
+// xmx(x5), xmy(x6), ldst(x5), lsrc(x6), wd_strd(w7)
+filter_8tap_fn prep, usdot, neon_i8mm, x0, x7, x1, x2, w3, w4, w5, w6, x5, x6, x5, x6, w7
+
+// dst(x0) d_strd(x1) src(x2) s_strd(x3) w(w4) h(w5) mx(w6) my(w7)
+// xmx(x6), xmy(x7), ldst(x6), lsrc(x7), wd_strd(w1)
+filter_8tap_fn  put, usdot, neon_i8mm, x0, x1, x2, x3, w4, w5, w6, w7, x6, x7, x6, x7, w1
+
+DISABLE_I8MM
+#endif  // HAVE_I8MM
 
 DISABLE_DOTPROD
 #endif  // HAVE_DOTPROD
