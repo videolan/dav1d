@@ -1397,6 +1397,7 @@ L(\type\()_8tap_h_\isa\()_tbl):
         .hword (L(\type\()_8tap_h_\isa\()_tbl) - 40b)
 .ifc \type, put
         .hword (L(\type\()_8tap_h_\isa\()_tbl) - 20b)
+        .hword 0
 .endif
 endfunc
 .endm
