@@ -136,7 +136,7 @@ function msac_decode_symbol_adapt4_neon, export=1
         add_n           v4,  v5,  v2,  v3,  v4,  v5,  \sz, \n     // v = cdf + EC_MIN_PROB * (n_symbols - ret)
         add_n           v4,  v5,  v6,  v7,  v4,  v5,  \sz, \n     // v = ((cdf >> EC_PROB_SHIFT) * r) >> 1 + EC_MIN_PROB * (n_symbols - ret)
 
-        ld1r            {v6.8h},  [x8]                            // dif >> (EC_WIN_SIZE - 16)
+        ld1r            {v6\sz},  [x8]                            // dif >> (EC_WIN_SIZE - 16)
         str_n           q4,  q5,  sp, #16, \n                     // store v values to allow indexed access
 
         cmhs_n          v2,  v3,  v6,  v6,  v4,  v5,  \sz,  \n    // c >= v
@@ -154,7 +154,6 @@ function msac_decode_symbol_adapt4_neon, export=1
         cbz             w4,  L(renorm)
         // update_cdf
         ldrh            w3,  [x1, x2, lsl #1]                     // count = cdf[n_symbols]
-        movi            v5\szb, #0xff
 .if \n == 16
         mov             w4,  #-5
 .else
@@ -187,10 +186,9 @@ function msac_decode_symbol_adapt4_neon, export=1
         decode_update   .4h, .8b, 4
 
 L(renorm):
-        add             x8,  sp,  #16
-        add             x8,  x8,  w15, uxtw #1
-        ldrh            w3,  [x8]              // v
-        ldurh           w4,  [x8, #-2]         // u
+        add             x8,  sp,  w15, uxtw #1
+        ldrh            w3,  [x8, #16]         // v
+        ldurh           w4,  [x8, #14]         // u
         ldr             w6,  [x0, #CNT]
         ldr             x7,  [x0, #DIF]
         sub             w4,  w4,  w3           // rng = u - v
@@ -296,7 +294,6 @@ function msac_decode_hi_tok_neon, export=1
         addv            h6,  v2.4h                // -4 + ret
         add             w13, w13, #5
         smov            w15, v6.h[0]
-        add             x8,  sp,  #16
         add             w15, w15, #4              // ret
 
         cbz             w10, 2f
@@ -317,9 +314,9 @@ function msac_decode_hi_tok_neon, export=1
         strh            w9,  [x1, #6]
 
 2:
-        add             x8,  x8,  w15, uxtw #1
-        ldrh            w3,  [x8]              // v
-        ldurh           w4,  [x8, #-2]         // u
+        add             x8,  sp,  w15, uxtw #1
+        ldrh            w3,  [x8, #16]         // v
+        ldurh           w4,  [x8, #14]         // u
         sub             w4,  w4,  w3           // rng = u - v
         clz             w5,  w4                // clz(rng)
         eor             w5,  w5,  #16          // d = clz(rng) ^ 16
