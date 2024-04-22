@@ -32,7 +32,7 @@
 
 #define assert_eq(a, b) \
     if ((a) != (b)) \
-        printf("%d vs %d\n", a, b); \
+        printf("%d: %d vs %d\n", __LINE__, a, b); \
     assert((a) == (b));
 
 // Transpose a 4x4 matrix of i32x4 vectors
