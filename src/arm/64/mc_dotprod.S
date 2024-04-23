@@ -115,8 +115,10 @@ L(\type\()_8tap_v_\isa):
         ldr             q6, L(v_tbl_neon_dotprod)
         sub             \src, \src, \s_strd
 .ifc \type, prep
-        mov             w8, 0x2002  // FILTER_WEIGHT * 128 + rounding
+        mov             w8, 0x2002          // FILTER_WEIGHT * 128 + rounding
         dup             v4.4s, w8
+.else
+        movi            v4.4s, #32, lsl 8   // FILTER_WEIGHT * 128, bias for SDOT
 .endif
         ubfx            w11, \my, #7, #7
         and             \my, \my, #0x7F
@@ -191,19 +193,13 @@ L(\type\()_8tap_v_\isa):
 
         .align LOOP_ALIGN
 16:
-        ldr             q27, [\lsrc]
-        add             \lsrc, \lsrc, \s_strd
-.ifc \type, prep
+        ld1             {v27.16b}, [\lsrc], \s_strd
+
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.else
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-        movi            v2.4s, #32, lsl 8
-        movi            v3.4s, #32, lsl 8
-.endif
+
         sub             v18.16b, v27.16b, v5.16b
         sub             v21.16b, v27.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
@@ -243,17 +239,11 @@ L(\type\()_8tap_v_\isa):
 .endif
         b.gt            16b
 
-.ifc \type, prep
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.else
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-        movi            v2.4s, #32, lsl 8
-        movi            v3.4s, #32, lsl 8
-.endif
+
         \dot            v0.4s, v16.16b, v7.4b[0]
         \dot            v1.4s, v19.16b, v7.4b[0]
         \dot            v2.4s, v22.16b, v7.4b[0]
@@ -321,17 +311,12 @@ L(\type\()_8tap_v_\isa):
         ldr             d21, [\src]
         ldr             d27, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-.ifc \type, prep
+
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.else
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-        movi            v2.4s, #32, lsl 8
-        movi            v3.4s, #32, lsl 8
-.endif
+
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
@@ -376,18 +361,14 @@ L(\type\()_8tap_v_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 82:
+.endif
         ldr             d21, [\src]
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-        movi            v2.4s, #32, lsl 8
-        movi            v3.4s, #32, lsl 8
-.else
-        ldr             d21, [\src]
+
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.endif
+
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
 
@@ -459,13 +440,10 @@ L(\type\()_8tap_v_\isa):
         ldr             s18, [\src]
         ldr             s21, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-.ifc \type, prep
+
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-.else
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-.endif
+
         sub             v18.16b, v18.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
 
@@ -500,14 +478,12 @@ L(\type\()_8tap_v_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 42:
+.endif
         ldr             s18, [\src]
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
-.else
-        ldr             s18, [\src]
+
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-.endif
+
         sub             v18.16b, v18.16b, v5.16b
 
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
@@ -569,8 +545,8 @@ L(\type\()_8tap_v_\isa):
         ldr             h21, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
 
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
+        mov             v0.16b, v4.16b
+        mov             v1.16b, v4.16b
 
         sub             v18.8b, v18.8b, v5.8b
         sub             v21.8b, v21.8b, v5.8b
@@ -602,8 +578,8 @@ L(\type\()_8tap_v_\isa):
 22:
         ldr             h18, [\src]
 
-        movi            v0.4s, #32, lsl 8   // 64 * 128, bias for SDOT
-        movi            v1.4s, #32, lsl 8
+        mov             v0.16b, v4.16b
+        mov             v1.16b, v4.16b
 
         sub             v18.8b, v18.8b, v5.8b
 
