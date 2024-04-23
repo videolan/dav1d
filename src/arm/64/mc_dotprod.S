@@ -60,7 +60,6 @@ L(h_tbl_neon_dotprod):
         .byte  1,  2,  3,  4,   2,  3,  4,  5,   3,  4,  5,  6,   4,  5,  6,  7
         .byte  5,  6,  7,  8,   6,  7,  8,  9,   7,  8,  9, 10,   8,  9, 10, 11
         .byte  9, 10, 11, 12,  10, 11, 12, 13,  11, 12, 13, 14,  12, 13, 14, 15
-        .byte 13, 14, 15, 16,  14, 15, 16, 17,  15, 16, 17, 18,  16, 17, 18, 19
 
 // Vertical convolutions are also using SDOT instructions, where a 128-bit
 // register contains a transposed 4x4 matrix of values. Subsequent iterations of
@@ -1249,12 +1248,12 @@ L(\type\()_8tap_h_\isa):
         AARCH64_VALID_JUMP_TARGET
         ldr             q29, L(h_tbl_neon_dotprod) + 16
         ldr             q30, L(h_tbl_neon_dotprod) + 32
-        ldr             q31, L(h_tbl_neon_dotprod) + 48
         ldr             d26, [\xmx]
 
         .align LOOP_ALIGN
 16:
-        ldp             q16, q17, [\src]
+        ldr             q16, [\src]
+        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, \s_strd
 
         sub             v16.16b, v16.16b, v24.16b
@@ -1268,8 +1267,8 @@ L(\type\()_8tap_h_\isa):
         tbl             v0.16b, {v16.16b}, v28.16b
         tbl             v1.16b, {v16.16b}, v29.16b
         tbl             v2.16b, {v16.16b}, v30.16b
-        tbl             v3.16b, {v16.16b, v17.16b}, v31.16b
-        tbl             v4.16b, {v17.16b}, v28.16b
+        tbl             v3.16b, {v17.16b}, v28.16b
+        tbl             v4.16b, {v17.16b}, v29.16b
 
         \dot            v6.4s, v0.16b, v26.4b[0]
         \dot            v7.4s, v1.16b, v26.4b[0]
@@ -1291,8 +1290,7 @@ L(\type\()_8tap_h_\isa):
         sqshrun         v6.8b, v6.8h, #6
         sqshrun2        v6.16b, v22.8h, #6
         subs            \h, \h, #1
-        str             q6, [\dst]
-        add             \dst, \dst, \d_strd
+        st1             {v6.16b}, [\dst], \d_strd
 .endif
         b.gt            16b
         ret
@@ -1304,7 +1302,6 @@ L(\type\()_8tap_h_\isa):
         AARCH64_VALID_JUMP_TARGET
         ldr             q29, L(h_tbl_neon_dotprod) + 16
         ldr             q30, L(h_tbl_neon_dotprod) + 32
-        ldr             q31, L(h_tbl_neon_dotprod) + 48
         ldr             d26, [\xmx]
 .ifc \type, put
         sub             \d_strd, \d_strd, \w, uxtw
@@ -1314,7 +1311,9 @@ L(\type\()_8tap_h_\isa):
 
         .align LOOP_ALIGN
 32:
-        ldp             q16, q17, [\src], #16
+        ldr             q16, [\src]
+        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
+        add             \src, \src, #16
 
         sub             v16.16b, v16.16b, v24.16b
         sub             v17.16b, v17.16b, v24.16b
@@ -1327,8 +1326,8 @@ L(\type\()_8tap_h_\isa):
         tbl             v0.16b, {v16.16b}, v28.16b
         tbl             v1.16b, {v16.16b}, v29.16b
         tbl             v2.16b, {v16.16b}, v30.16b
-        tbl             v3.16b, {v16.16b, v17.16b}, v31.16b
-        tbl             v4.16b, {v17.16b}, v28.16b
+        tbl             v3.16b, {v17.16b}, v28.16b
+        tbl             v4.16b, {v17.16b}, v29.16b
 
         \dot            v6.4s, v0.16b, v26.4b[0]
         \dot            v7.4s, v1.16b, v26.4b[0]
