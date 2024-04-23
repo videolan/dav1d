@@ -724,18 +724,20 @@ L(\type\()_8tap_h_hv_\isa):
         smlal2          v1.4s, v22.8h, v7.h[7]
         rshrn           v0.4h, v0.4s, #6
         rshrn2          v0.8h, v1.4s, #6
-        subs            w8, w8, #1
-        st1             {v0.8h}, [\ldst], \d_strd
-        b.gt            8b
-        add             \dst, \dst, #16
 .else   // put
         shrn            v22.4h, v5.4s, #2
         shrn2           v22.8h, v6.4s, #2
         smlal           v0.4s, v22.4h, v7.h[7]
         smlal2          v1.4s, v22.8h, v7.h[7]
         tbl             v0.16b, {v0.16b, v1.16b}, v25.16b
-        subs            w8, w8, #1
         sqrshrun        v0.8b, v0.8h, #2
+.endif
+        subs            w8, w8, #1
+.ifc \type, prep
+        st1             {v0.8h}, [\ldst], \d_strd
+        b.gt            8b
+        add             \dst, \dst, #16
+.else
         st1             {v0.8b}, [\ldst], \d_strd
         b.gt            8b
         add             \dst, \dst, #8
@@ -789,9 +791,7 @@ L(\type\()_8tap_h_hv_\isa):
         \dot            v5.4s, v2.16b, v26.4b[0]
         mov             v20.16b, v21.16b
         mov             v21.16b, v22.16b
-.ifc \type, put
-        subs            \h, \h, #1
-.endif
+
         smlal           v0.4s, v22.4h, v7.h[6]
         shrn            v22.4h, v5.4s, #2
 
@@ -801,6 +801,7 @@ L(\type\()_8tap_h_hv_\isa):
         str             d0, [\dst], #8
         subs            \h, \h, #1
 .else
+        subs            \h, \h, #1
         tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
         str             s0, [\dst]
@@ -855,11 +856,12 @@ L(\type\()_8tap_h_hv_\isa):
         mov             v20.16b, v21.16b
         mov             v21.16b, v22.16b
 
-        subs            \h, \h, #1
         smlal           v0.4s, v22.4h, v7.h[6]
         shrn            v22.4h, v5.4s, #2
 
         smlal           v0.4s, v22.4h, v7.h[7]
+
+        subs            \h, \h, #1
         tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
 
@@ -942,19 +944,17 @@ L(\type\()_6tap_hv_\isa):
         smlal           v0.4s, v20.4h, v7.h[5]
         smlal2          v1.4s, v20.8h, v7.h[5]
         sshr            v20.8h, v23.8h, #2
-.ifc \type, prep
+
+        subs            w8, w8, #1
         smlal           v0.4s, v20.4h, v7.h[6]
         smlal2          v1.4s, v20.8h, v7.h[6]
+.ifc \type, prep
         rshrn           v0.4h, v0.4s, #6
         rshrn2          v0.8h, v1.4s, #6
         st1             {v0.8h}, [\ldst], \d_strd
-        subs            w8, w8, #1
         b.gt            8b
         add             \dst, \dst, #16
 .else
-        subs            w8, w8, #1
-        smlal           v0.4s, v20.4h, v7.h[6]
-        smlal2          v1.4s, v20.8h, v7.h[6]
         tbl             v0.16b, {v0.16b, v1.16b}, v25.16b
         sqrshrun        v0.8b, v0.8h, #2
         st1             {v0.8b}, [\ldst], \d_strd
@@ -985,8 +985,8 @@ L(\type\()_hv_filter8_\isa):
 
         .align FUNC_ALIGN
 L(\type\()_hv_filter4_\isa):
-        mov             v22.16b, v27.16b
         ld1             {v4.8b}, [\src], \s_strd
+        mov             v22.16b, v27.16b
         sub             v4.16b, v4.16b, v24.16b
         tbl             v2.16b, {v4.16b}, v28.16b
         \dot            v22.4s, v2.16b, v26.4b[0]
@@ -1030,14 +1030,12 @@ L(\type\()_hv_filter4_\isa):
 
         smlal           v0.4s, v20.4h, v7.h[5]
         shrn            v20.4h, v5.4s, #2
-.ifc \type, prep
+        subs            \h, \h, #1
         smlal           v0.4s, v20.4h, v7.h[6]
+.ifc \type, prep
         rshrn           v0.4h, v0.4s, #6
         str             d0, [\dst], #8
-        subs            \h, \h, #1
 .else
-        subs            \h, \h, #1
-        smlal           v0.4s, v20.4h, v7.h[6]
         tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
         str             s0, [\dst]
