@@ -801,7 +801,7 @@ L(\type\()_8tap_h_hv_\isa):
         str             d0, [\dst], #8
         subs            \h, \h, #1
 .else
-        tbl             v0.16b, {v0.16b, v1.16b}, v25.16b
+        tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
         str             s0, [\dst]
         add             \dst, \dst, \d_strd
@@ -860,7 +860,7 @@ L(\type\()_8tap_h_hv_\isa):
         shrn            v22.4h, v5.4s, #2
 
         smlal           v0.4s, v22.4h, v7.h[7]
-        tbl             v0.16b, {v0.16b, v1.16b}, v25.16b
+        tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
 
         str             h0, [\dst]
@@ -1039,7 +1039,7 @@ L(\type\()_hv_filter4_\isa):
 .else
         subs            \h, \h, #1
         smlal           v0.4s, v20.4h, v7.h[6]
-        tbl             v0.16b, {v0.16b}, v25.16b
+        tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
         str             s0, [\dst]
         add             \dst, \dst, \d_strd
@@ -1089,7 +1089,7 @@ L(\type\()_hv_filter4_\isa):
         subs            \h, \h, #1
         smlal           v0.4s, v20.4h, v7.h[6]
 
-        tbl             v0.16b, {v0.16b}, v25.16b
+        tbl             v0.8b, {v0.16b}, v25.8b
         sqrshrun        v0.8b, v0.8h, #2
 
         str             h0, [\dst]
