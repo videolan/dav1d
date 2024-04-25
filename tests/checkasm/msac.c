@@ -144,7 +144,7 @@ static void check_decode_symbol(MsacDSPContext *const c, uint8_t *const buf) {
     MsacContext s_c, s_a;
 
     declare_func(unsigned, MsacContext *s, uint16_t *cdf, size_t n_symbols);
-    CHECK_SYMBOL_ADAPT( 4, 1,  4);
+    CHECK_SYMBOL_ADAPT( 4, 1,  3);
     CHECK_SYMBOL_ADAPT( 8, 1,  7);
     CHECK_SYMBOL_ADAPT(16, 3, 15);
     report("decode_symbol");
