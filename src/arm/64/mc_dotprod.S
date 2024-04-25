@@ -968,8 +968,7 @@ L(\type\()_6tap_hv_\isa):
 
         .align FUNC_ALIGN
 L(\type\()_hv_filter8_\isa):
-        ldr             q4, [\lsrc]
-        add             \lsrc, \lsrc, \s_strd
+        ld1             {v4.16b}, [\lsrc], \s_strd
         sub             v4.16b, v4.16b, v24.16b
         mov             v22.16b, v27.16b
         mov             v23.16b, v27.16b
