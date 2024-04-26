@@ -113,13 +113,7 @@ L(\type\()_8tap_v_\isa):
         madd            \my, \my, w11, w10
         ldr             q6, L(v_tbl_neon_dotprod)
         sub             \src, \src, \s_strd
-.ifc \isa, neon_i8mm
-    .ifc \type, prep
-        movi            v4.4s, #2           // rounding
-    .else
-        movi            v4.4s, #0
-    .endif
-.else   // neon_dotprod
+.ifc \isa, neon_dotprod
     .ifc \type, prep
         mov             w8, 0x2002          // FILTER_WEIGHT * 128 + rounding
         dup             v4.4s, w8
@@ -202,17 +196,21 @@ L(\type\()_8tap_v_\isa):
 .endif
         .align LOOP_ALIGN
 16:
+.ifc \isa, neon_i8mm
+        ld1             {v18.16b}, [\lsrc], \s_strd
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+        movi            v2.4s, #0
+        movi            v3.4s, #0
+        mov             v21.16b, v18.16b
+        mov             v24.16b, v18.16b
+        mov             v27.16b, v18.16b
+.else   // neon_dotprod
         ld1             {v27.16b}, [\lsrc], \s_strd
-
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.ifc \isa, neon_i8mm
-        mov             v18.16b, v27.16b
-        mov             v21.16b, v27.16b
-        mov             v24.16b, v27.16b
-.else   // neon_dotprod
         sub             v18.16b, v27.16b, v5.16b
         sub             v21.16b, v27.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
@@ -242,8 +240,13 @@ L(\type\()_8tap_v_\isa):
         uzp1            v0.8h, v0.8h, v1.8h
         uzp1            v2.8h, v2.8h, v3.8h
 .ifc \type, prep
+    .ifc \isa, neon_i8mm
+        srshr           v0.8h, v0.8h, #2
+        srshr           v1.8h, v2.8h, #2
+    .else
         sshr            v0.8h, v0.8h, #2
         sshr            v1.8h, v2.8h, #2
+    .endif
         st1             {v0.8h, v1.8h}, [\ldst], \d_strd
 .else   // put
         sqrshrun        v0.8b, v0.8h, #6
@@ -252,11 +255,17 @@ L(\type\()_8tap_v_\isa):
 .endif
         b.gt            16b
 
+.ifc \isa, neon_i8mm
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+        movi            v2.4s, #0
+        movi            v3.4s, #0
+.else   // neon_dotprod
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-
+.endif
         \dot            v0.4s, v16.16b, v7.4b[0]
         \dot            v1.4s, v19.16b, v7.4b[0]
         \dot            v2.4s, v22.16b, v7.4b[0]
@@ -271,8 +280,13 @@ L(\type\()_8tap_v_\isa):
         uzp1            v0.8h, v0.8h, v1.8h
         uzp1            v2.8h, v2.8h, v3.8h
 .ifc \type, prep
+    .ifc \isa, neon_i8mm
+        srshr           v0.8h, v0.8h, #2
+        srshr           v1.8h, v2.8h, #2
+    .else
         sshr            v0.8h, v0.8h, #2
         sshr            v1.8h, v2.8h, #2
+    .endif
         stp             q0, q1, [\ldst]
         add             \dst, \dst, #32
 .else   // put
@@ -322,18 +336,24 @@ L(\type\()_8tap_v_\isa):
 .endif
         .align LOOP_ALIGN
 8:
+.ifc \isa, neon_i8mm
+        ldr             d18, [\src]
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+        ldr             d24, [\src, \s_strd]
+        add             \src, \src, \s_strd, lsl #1
+        movi            v2.4s, #0
+        movi            v3.4s, #0
+        mov             v21.8b, v18.8b
+        mov             v27.8b, v24.8b
+.else   // neon_dotprod
         ldr             d21, [\src]
         ldr             d27, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.ifc \isa, neon_i8mm
-        mov             v18.16b, v21.16b
-        mov             v24.16b, v27.16b
-.else   // neon_dotprod
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
         sub             v24.16b, v27.16b, v5.16b
@@ -363,8 +383,13 @@ L(\type\()_8tap_v_\isa):
         uzp1            v0.8h, v0.8h, v1.8h
         uzp1            v2.8h, v2.8h, v3.8h
 .ifc \type, prep
+    .ifc \isa, neon_i8mm
+        srshr           v0.8h, v0.8h, #2
+        srshr           v1.8h, v2.8h, #2
+    .else
         sshr            v0.8h, v0.8h, #2
         sshr            v1.8h, v2.8h, #2
+    .endif
         stp             q0, q1, [\dst], #32
 .else   // put
         sqrshrun        v0.8b, v0.8h, #6
@@ -379,15 +404,19 @@ L(\type\()_8tap_v_\isa):
         .align JUMP_ALIGN
 82:
 .endif
+.ifc \isa, neon_i8mm
+        ldr             d18, [\src]
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+        movi            v2.4s, #0
+        movi            v3.4s, #0
+        mov             v21.8b, v18.8b
+.else   // neon_dotprod
         ldr             d21, [\src]
-
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
         mov             v2.16b, v4.16b
         mov             v3.16b, v4.16b
-.ifc \isa, neon_i8mm
-        mov             v18.16b, v21.16b
-.else
         sub             v18.16b, v21.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
 .endif
@@ -409,8 +438,13 @@ L(\type\()_8tap_v_\isa):
         uzp1            v0.8h, v0.8h, v1.8h
         uzp1            v2.8h, v2.8h, v3.8h
 .ifc \type, prep
+    .ifc \isa, neon_i8mm
+        srshr           v0.8h, v0.8h, #2
+        srshr           v1.8h, v2.8h, #2
+    .else
         sshr            v0.8h, v0.8h, #2
         sshr            v1.8h, v2.8h, #2
+    .endif
         stp             q0, q1, [\dst]
 .else   // put
         sqrshrun        v0.8b, v0.8h, #6
@@ -460,10 +494,12 @@ L(\type\()_8tap_v_\isa):
         ldr             s18, [\src]
         ldr             s21, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
+.ifc \isa, neon_i8mm
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+.else   // neon_dotprod
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-.ifc \isa, neon_dotprod
         sub             v18.16b, v18.16b, v5.16b
         sub             v21.16b, v21.16b, v5.16b
 .endif
@@ -480,8 +516,13 @@ L(\type\()_8tap_v_\isa):
         \dot            v1.4s, v20.16b, v7.4b[1]
 .ifc \type, prep
         subs            \h, \h, #2
+    .ifc \isa, neon_i8mm
+        rshrn           v0.4h, v0.4s, #2
+        rshrn2          v0.8h, v1.4s, #2
+    .else
         shrn            v0.4h, v0.4s, #2
         shrn2           v0.8h, v1.4s, #2
+    .endif
         str             q0, [\dst], #16
 .else
         uzp1            v0.8h, v0.8h, v1.8h
@@ -500,10 +541,12 @@ L(\type\()_8tap_v_\isa):
 42:
 .endif
         ldr             s18, [\src]
-
+.ifc \isa, neon_i8mm
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+.else   // neon_dotprod
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-.ifc \isa, neon_dotprod
         sub             v18.16b, v18.16b, v5.16b
 .endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
@@ -515,8 +558,13 @@ L(\type\()_8tap_v_\isa):
         \dot            v1.4s, v19.16b, v7.4b[0]
         \dot            v1.4s, v20.16b, v7.4b[1]
 .ifc \type, prep
+    .ifc \isa, neon_i8mm
+        rshrn           v0.4h, v0.4s, #2
+        rshrn2          v0.8h, v1.4s, #2
+    .else
         shrn            v0.4h, v0.4s, #2
         shrn2           v0.8h, v1.4s, #2
+    .endif
         str             q0, [\dst]
 .else
         uzp1            v0.8h, v0.8h, v1.8h
@@ -564,10 +612,12 @@ L(\type\()_8tap_v_\isa):
         ldr             h18, [\src]
         ldr             h21, [\src, \s_strd]
         add             \src, \src, \s_strd, lsl #1
-
+    .ifc \isa, neon_i8mm
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+    .else   // put
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-    .ifc \isa, neon_dotprod
         sub             v18.8b, v18.8b, v5.8b
         sub             v21.8b, v21.8b, v5.8b
     .endif
@@ -597,10 +647,12 @@ L(\type\()_8tap_v_\isa):
         .align JUMP_ALIGN
 22:
         ldr             h18, [\src]
-
+    .ifc \isa, neon_i8mm
+        movi            v0.4s, #0
+        movi            v1.4s, #0
+    .else   // put
         mov             v0.16b, v4.16b
         mov             v1.16b, v4.16b
-    .ifc \isa, neon_dotprod
         sub             v18.8b, v18.8b, v5.8b
     .endif
         tbl             v19.16b, {v16.16b, v17.16b}, v6.16b
