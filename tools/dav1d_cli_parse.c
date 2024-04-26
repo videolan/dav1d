@@ -215,16 +215,28 @@ enum CpuMask {
     X86_CPU_MASK_AVX2      = DAV1D_X86_CPU_FLAG_AVX2      | X86_CPU_MASK_SSE41,
     X86_CPU_MASK_AVX512ICL = DAV1D_X86_CPU_FLAG_AVX512ICL | X86_CPU_MASK_AVX2,
 };
+#elif ARCH_AARCH64 || ARCH_ARM
+enum CpuMask {
+    ARM_CPU_MASK_NEON      = DAV1D_ARM_CPU_FLAG_NEON,
+    ARM_CPU_MASK_DOTPROD   = DAV1D_ARM_CPU_FLAG_DOTPROD | ARM_CPU_MASK_NEON,
+    ARM_CPU_MASK_I8MM      = DAV1D_ARM_CPU_FLAG_I8MM    | ARM_CPU_MASK_DOTPROD,
+#if ARCH_AARCH64
+    // SVE doesn't imply DOTPROD or I8MM.
+    ARM_CPU_MASK_SVE       = DAV1D_ARM_CPU_FLAG_SVE     | ARM_CPU_MASK_NEON,
+    // SVE2 implies DOTPROD, but not I8MM.
+    ARM_CPU_MASK_SVE2      = DAV1D_ARM_CPU_FLAG_SVE2    | ARM_CPU_MASK_SVE | ARM_CPU_MASK_DOTPROD,
+#endif
+};
 #endif
 
 static const EnumParseTable cpu_mask_tbl[] = {
 #if ARCH_AARCH64 || ARCH_ARM
-    { "neon",    DAV1D_ARM_CPU_FLAG_NEON },
-    { "dotprod", DAV1D_ARM_CPU_FLAG_DOTPROD },
-    { "i8mm",    DAV1D_ARM_CPU_FLAG_I8MM },
+    { "neon",    ARM_CPU_MASK_NEON },
+    { "dotprod", ARM_CPU_MASK_DOTPROD },
+    { "i8mm",    ARM_CPU_MASK_I8MM },
 #if ARCH_AARCH64
-    { "sve",     DAV1D_ARM_CPU_FLAG_SVE },
-    { "sve2",    DAV1D_ARM_CPU_FLAG_SVE2 },
+    { "sve",     ARM_CPU_MASK_SVE },
+    { "sve2",    ARM_CPU_MASK_SVE2 },
 #endif /* ARCH_AARCH64 */
 #elif ARCH_LOONGARCH
     { "lsx", DAV1D_LOONGARCH_CPU_FLAG_LSX },
