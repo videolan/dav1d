@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2024, VideoLAN and dav1d authors
  * Copyright © 2024, Nathan Egge
  * All rights reserved.
  *
@@ -36,6 +36,10 @@ decl_blend_fn(BF(dav1d_blend_vl256, rvv));
 decl_blend_dir_fn(BF(dav1d_blend_h_vl256, rvv));
 decl_blend_dir_fn(BF(dav1d_blend_v_vl256, rvv));
 
+decl_avg_fn(BF(dav1d_avg, rvv));
+decl_w_avg_fn(BF(dav1d_w_avg, rvv));
+decl_mask_fn(BF(dav1d_mask, rvv));
+
 static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
   const unsigned flags = dav1d_get_cpu_flags();
 
@@ -51,5 +55,9 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
     c->blend_h = BF(dav1d_blend_h_vl256, rvv);
     c->blend_v = BF(dav1d_blend_v_vl256, rvv);
   }
+
+  c->avg     = BF(dav1d_avg, rvv);
+  c->w_avg   = BF(dav1d_w_avg, rvv);
+  c->mask    = BF(dav1d_mask, rvv);
 #endif
 }
