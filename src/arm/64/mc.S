@@ -840,7 +840,7 @@ endfunc
 function put_neon, export=1
         adr             x9,  L(put_tbl)
         ldrh            w8,  [x9, x8, lsl #1]
-        sub             x9,  x9,  w8, uxtw
+        sub             x9,  x9,  x8
         br              x9
 
 20:
