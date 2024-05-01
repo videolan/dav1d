@@ -953,8 +953,9 @@ function prep_neon, export=1
         sub             x9,  x9,  w8, uxtw
         br              x9
 
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld1             {v0.s}[0], [x1], x2
         ld1             {v1.s}[0], [x1], x2
         subs            w4,  w4,  #2
@@ -963,8 +964,9 @@ function prep_neon, export=1
         st1             {v0.4h, v1.4h}, [x0], #16
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld1             {v0.8b}, [x1], x2
         ld1             {v1.8b}, [x1], x2
         subs            w4,  w4,  #2
@@ -1071,8 +1073,8 @@ L(prep_tbl):
         .hword L(prep_tbl) -  640b
         .hword L(prep_tbl) -  320b
         .hword L(prep_tbl) -  160b
-        .hword L(prep_tbl) -    8b
-        .hword L(prep_tbl) -    4b
+        .hword L(prep_tbl) -   80b
+        .hword L(prep_tbl) -   40b
 endfunc
 
 
