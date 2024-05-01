@@ -35,19 +35,46 @@
         printf("%d: %d vs %d\n", __LINE__, a, b); \
     assert((a) == (b));
 
+#define MERGE_I32(a, b, h, l) \
+{ \
+    h = vec_mergeh(a, b); \
+    l = vec_mergel(a, b); \
+}
+
+#define DECLARE_MERGE_I32(a, b, h, l) \
+    i32x4 h, l; \
+    MERGE_I32(a, b, h, l)
+
+
 // Transpose a 4x4 matrix of i32x4 vectors
 #define TRANSPOSE4_I32(c0, c1, c2, c3) \
 { \
-    i32x4 v02h = vec_mergeh(c0, c2); \
-    i32x4 v02l = vec_mergel(c0, c2); \
-    i32x4 v13h = vec_mergeh(c1, c3); \
-    i32x4 v13l = vec_mergel(c1, c3); \
+    DECLARE_MERGE_I32(c0, c2, m02h, m02l) \
+    DECLARE_MERGE_I32(c1, c3, m13h, m13l) \
 \
-    c0 = vec_mergeh(v02h, v13h); \
-    c1 = vec_mergel(v02h, v13h); \
-    c2 = vec_mergeh(v02l, v13l); \
-    c3 = vec_mergel(v02l, v13l); \
+    MERGE_I32(m02h, m13h, c0, c1) \
+    MERGE_I32(m02l, m13l, c2, c3) \
 }
 
-
+#define TRANSPOSE8_I32(c0, c1, c2, c3, c4, c5, c6, c7, \
+                       c8, c9, cA, cB, cC, cD, cE, cF) \
+{ \
+    DECLARE_MERGE_I32(c0, c2, m02h, m02l) \
+    DECLARE_MERGE_I32(c1, c3, m13h, m13l) \
+    DECLARE_MERGE_I32(c4, c6, m46h, m46l) \
+    DECLARE_MERGE_I32(c5, c7, m57h, m57l) \
+    DECLARE_MERGE_I32(c8, cA, m8Ah, m8Al) \
+    DECLARE_MERGE_I32(c9, cB, m9Bh, m9Bl) \
+    DECLARE_MERGE_I32(cC, cE, mCEh, mCEl) \
+    DECLARE_MERGE_I32(cD, cF, mDFh, mDFl) \
+\
+    MERGE_I32(m02h, m13h, c0, c1) \
+    MERGE_I32(m02l, m13l, c2, c3) \
+    MERGE_I32(m46h, m57h, c8, c9) \
+    MERGE_I32(m46l, m57l, cA, cB) \
+    MERGE_I32(m8Ah, m9Bh, c4, c5) \
+    MERGE_I32(m8Al, m9Bl, c6, c7) \
+    MERGE_I32(mCEh, mDFh, cC, cD) \
+    MERGE_I32(mCEl, mDFl, cE, cF) \
+}
 #endif // DAV1D_SRC_PPC_UTILS_H

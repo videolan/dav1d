@@ -56,27 +56,8 @@ static ALWAYS_INLINE void itx_dsp_init_ppc(Dav1dInvTxfmDSPContext *const c, cons
 
 #if BITDEPTH == 8
     assign_itx17_fn( ,  4,  4, pwr9);
-
     assign_itx16_fn(R,  4,  8, pwr9);
     assign_itx16_fn(R,  8,  4, pwr9);
-
-/*
-    assign_itx16_fn(R,  4, 16, pwr9);
-    assign_itx16_fn( ,  8,  8, pwr9);
-    assign_itx16_fn(R,  8, 16, pwr9);
-    assign_itx2_fn (R,  8, 32, pwr9);
-    assign_itx16_fn(R, 16,  4, pwr9);
-    assign_itx16_fn(R, 16,  8, pwr9);
-    assign_itx12_fn( , 16, 16, pwr9);
-    assign_itx2_fn (R, 16, 32, pwr9);
-    assign_itx1_fn (R, 16, 64, pwr9);
-    assign_itx2_fn (R, 32,  8, pwr9);
-    assign_itx2_fn (R, 32, 16, pwr9);
-    assign_itx2_fn ( , 32, 32, pwr9);
-    assign_itx1_fn (R, 32, 64, pwr9);
-    assign_itx1_fn (R, 64, 16, pwr9);
-    assign_itx1_fn (R, 64, 32, pwr9);
-    assign_itx1_fn ( , 64, 64, pwr9);
-*/
+    assign_itx16_fn(,   8,  8, pwr9);
 #endif
 }
