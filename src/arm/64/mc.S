@@ -843,8 +843,9 @@ function put_neon, export=1
         sub             x9,  x9,  w8, uxtw
         br              x9
 
-2:
+20:
         AARCH64_VALID_JUMP_TARGET
+2:
         ld1             {v0.h}[0], [x2], x3
         ld1             {v1.h}[0], [x2], x3
         subs            w5,  w5,  #2
@@ -852,8 +853,9 @@ function put_neon, export=1
         st1             {v1.h}[0], [x0], x1
         b.gt            2b
         ret
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld1             {v0.s}[0], [x2], x3
         ld1             {v1.s}[0], [x2], x3
         subs            w5,  w5,  #2
@@ -861,8 +863,9 @@ function put_neon, export=1
         st1             {v1.s}[0], [x0], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld1             {v0.8b}, [x2], x3
         ld1             {v1.8b}, [x2], x3
         subs            w5,  w5,  #2
@@ -884,8 +887,9 @@ function put_neon, export=1
         st1             {v1.16b}, [x8], x1
         b.gt            16b
         ret
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
+32:
         ldp             x6,  x7,  [x2]
         ldp             x8,  x9,  [x2, #16]
         stp             x6,  x7,  [x0]
@@ -895,8 +899,9 @@ function put_neon, export=1
         add             x0,  x0,  x1
         b.gt            32b
         ret
-64:
+640:
         AARCH64_VALID_JUMP_TARGET
+64:
         ldp             x6,  x7,  [x2]
         ldp             x8,  x9,  [x2, #16]
         stp             x6,  x7,  [x0]
@@ -910,8 +915,9 @@ function put_neon, export=1
         add             x0,  x0,  x1
         b.gt            64b
         ret
-128:
+1280:
         AARCH64_VALID_JUMP_TARGET
+128:
         ldp             q0,  q1,  [x2]
         ldp             q2,  q3,  [x2, #32]
         stp             q0,  q1,  [x0]
@@ -927,13 +933,13 @@ function put_neon, export=1
         ret
 
 L(put_tbl):
-        .hword L(put_tbl) - 128b
-        .hword L(put_tbl) -  64b
-        .hword L(put_tbl) -  32b
-        .hword L(put_tbl) - 160b
-        .hword L(put_tbl) -   8b
-        .hword L(put_tbl) -   4b
-        .hword L(put_tbl) -   2b
+        .hword L(put_tbl) - 1280b
+        .hword L(put_tbl) -  640b
+        .hword L(put_tbl) -  320b
+        .hword L(put_tbl) -  160b
+        .hword L(put_tbl) -   80b
+        .hword L(put_tbl) -   40b
+        .hword L(put_tbl) -   20b
 endfunc
 
 
