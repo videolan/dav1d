@@ -846,89 +846,91 @@ function put_neon, export=1
 20:
         AARCH64_VALID_JUMP_TARGET
 2:
-        ld1             {v0.h}[0], [x2], x3
-        ld1             {v1.h}[0], [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.h}[0], [x0], x1
-        st1             {v1.h}[0], [x0], x1
+        ldrh            w9, [x2]
+        ldrh            w10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        strh            w9, [x0]
+        strh            w10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            2b
         ret
 40:
         AARCH64_VALID_JUMP_TARGET
 4:
-        ld1             {v0.s}[0], [x2], x3
-        ld1             {v1.s}[0], [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.s}[0], [x0], x1
-        st1             {v1.s}[0], [x0], x1
+        ldr             w9, [x2]
+        ldr             w10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             w9, [x0]
+        str             w10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            4b
         ret
 80:
         AARCH64_VALID_JUMP_TARGET
 8:
-        ld1             {v0.8b}, [x2], x3
-        ld1             {v1.8b}, [x2], x3
-        subs            w5,  w5,  #2
-        st1             {v0.8b}, [x0], x1
-        st1             {v1.8b}, [x0], x1
+        ldr             x9, [x2]
+        ldr             x10, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             x9, [x0]
+        str             x10, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            8b
         ret
 160:
         AARCH64_VALID_JUMP_TARGET
-        add             x8,  x0,  x1
-        lsl             x1,  x1,  #1
-        add             x9,  x2,  x3
-        lsl             x3,  x3,  #1
 16:
-        ld1             {v0.16b}, [x2], x3
-        ld1             {v1.16b}, [x9], x3
-        subs            w5,  w5,  #2
-        st1             {v0.16b}, [x0], x1
-        st1             {v1.16b}, [x8], x1
+        ldr             q0, [x2]
+        ldr             q1, [x2, x3]
+        add             x2, x2, x3, lsl #1
+        subs            w5, w5, #2
+        str             q0, [x0]
+        str             q1, [x0, x1]
+        add             x0, x0, x1, lsl #1
         b.gt            16b
         ret
 320:
         AARCH64_VALID_JUMP_TARGET
 32:
-        ldp             x6,  x7,  [x2]
-        ldp             x8,  x9,  [x2, #16]
-        stp             x6,  x7,  [x0]
-        subs            w5,  w5,  #1
-        stp             x8,  x9,  [x0, #16]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+        ldp             q0, q1, [x2]
+        add             x2, x2, x3
+        stp             q0, q1, [x0]
+        add             x0, x0, x1
+        ldp             q2, q3, [x2]
+        add             x2, x2, x3
+        stp             q2, q3, [x0]
+        subs            w5, w5, #2
+        add             x0, x0, x1
         b.gt            32b
         ret
 640:
         AARCH64_VALID_JUMP_TARGET
 64:
-        ldp             x6,  x7,  [x2]
-        ldp             x8,  x9,  [x2, #16]
-        stp             x6,  x7,  [x0]
-        ldp             x10, x11, [x2, #32]
-        stp             x8,  x9,  [x0, #16]
-        subs            w5,  w5,  #1
-        ldp             x12, x13, [x2, #48]
-        stp             x10, x11, [x0, #32]
-        stp             x12, x13, [x0, #48]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+        ldp             q0, q1, [x2]
+        stp             q0, q1, [x0]
+        ldp             q2, q3, [x2, #32]
+        add             x2, x2, x3
+        stp             q2, q3, [x0, #32]
+        subs            w5, w5, #1
+        add             x0, x0, x1
         b.gt            64b
         ret
 1280:
         AARCH64_VALID_JUMP_TARGET
 128:
-        ldp             q0,  q1,  [x2]
-        ldp             q2,  q3,  [x2, #32]
-        stp             q0,  q1,  [x0]
-        ldp             q4,  q5,  [x2, #64]
-        stp             q2,  q3,  [x0, #32]
-        ldp             q6,  q7,  [x2, #96]
-        subs            w5,  w5,  #1
-        stp             q4,  q5,  [x0, #64]
-        stp             q6,  q7,  [x0, #96]
-        add             x2,  x2,  x3
-        add             x0,  x0,  x1
+        ldp             q0, q1, [x2]
+        stp             q0, q1, [x0]
+        ldp             q2, q3, [x2, #32]
+        stp             q2, q3, [x0, #32]
+        ldp             q4, q5, [x2, #64]
+        stp             q4, q5, [x0, #64]
+        ldp             q6, q7, [x2, #96]
+        add             x2, x2, x3
+        stp             q6, q7, [x0, #96]
+        subs            w5, w5, #1
+        add             x0, x0, x1
         b.gt            128b
         ret
 
