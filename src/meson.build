@@ -273,6 +273,7 @@ if is_asm_enabled
                 'riscv/64/cpu.S',
                 'riscv/64/itx.S',
                 'riscv/64/pal.S',
+                'riscv/64/mc.S',
             )
 
             if dav1d_bitdepths.contains('8')
