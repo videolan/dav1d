@@ -27,47 +27,19 @@
 
 #include "src/riscv/asm.S"
 
-function blend_vl256_8bpc_rvv, export=1, ext=v
-  li t0, 4
-  beq a3, t0, 4f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-32:
-  vsetvli zero, a3, e8, m1, ta, ma
-  j L(blend_epilog)
-16:
-  vsetvli zero, a3, e8, mf2, ta, ma
-  j L(blend_epilog)
-8:
-  vsetvli zero, a3, e8, mf4, ta, ma
-  j L(blend_epilog)
-4:
-  vsetvli zero, a3, e8, mf8, ta, ma
+function blend_vl256_8bpc_rvv, export=1, ext=zbb
+  ctz t0, a3
+  addi t0, t0, 0xc3
   j L(blend_epilog)
 endfunc
 
-function blend_8bpc_rvv, export=1, ext=v
-  li t0, 4
-  beq a3, t0, 4f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-32:
-  vsetvli zero, a3, e8, m2, ta, ma
-  j L(blend_epilog)
-16:
-  vsetvli zero, a3, e8, m1, ta, ma
-  j L(blend_epilog)
-8:
-  vsetvli zero, a3, e8, mf2, ta, ma
-  j L(blend_epilog)
-4:
-  vsetvli zero, a3, e8, mf4, ta, ma
+function blend_8bpc_rvv, export=1, ext="v,zbb"
+  ctz t0, a3
+  addi t0, t0, 0xc4
 L(blend_epilog):
   csrw vxrm, zero
+  andi t0, t0, 0xc7
+  vsetvl zero, a3, t0
   li t1, 64
 1:
   addi a4, a4, -2
