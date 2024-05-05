@@ -51,6 +51,13 @@
 #define EXTERN PRIVATE_PREFIX
 #endif
 
+.macro arch ext:req, more:vararg
+    .option arch, +\ext
+    .ifnb \more
+        arch \more
+    .endif
+.endm
+
 .macro function name, export=0, ext=
     .macro endfunc
 #ifdef __ELF__
@@ -62,7 +69,7 @@
         .text
         .option push
     .ifnb \ext
-        .option arch, +\ext
+        arch \ext
     .endif
     .if \export
         .global EXTERN\name
