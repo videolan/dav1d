@@ -56,6 +56,7 @@
     MERGE_I32(m02l, m13l, c2, c3) \
 }
 
+// Transpose a 8x8 matrix of i32x4 vectors
 #define TRANSPOSE8_I32(c0, c1, c2, c3, c4, c5, c6, c7, \
                        c8, c9, cA, cB, cC, cD, cE, cF) \
 { \
@@ -77,4 +78,28 @@
     MERGE_I32(mCEh, mDFh, cC, cD) \
     MERGE_I32(mCEl, mDFl, cE, cF) \
 }
+
+// Transpose a 4x16 matrix of i32x4 vectors
+#define TRANSPOSE4x16_I32(c0, c1, c2, c3, c4, c5, c6, c7, \
+                          c8, c9, cA, cB, cC, cD, cE, cF) \
+{ \
+    DECLARE_MERGE_I32(c0, c2, m02h, m02l) \
+    DECLARE_MERGE_I32(c1, c3, m13h, m13l) \
+    DECLARE_MERGE_I32(c4, c6, m46h, m46l) \
+    DECLARE_MERGE_I32(c5, c7, m57h, m57l) \
+    DECLARE_MERGE_I32(c8, cA, m8Ah, m8Al) \
+    DECLARE_MERGE_I32(c9, cB, m9Bh, m9Bl) \
+    DECLARE_MERGE_I32(cC, cE, mCEh, mCEl) \
+    DECLARE_MERGE_I32(cD, cF, mDFh, mDFl) \
+\
+    MERGE_I32(m02h, m13h, c0, c1) \
+    MERGE_I32(m02l, m13l, c2, c3) \
+    MERGE_I32(m46h, m57h, c4, c5) \
+    MERGE_I32(m46l, m57l, c6, c7) \
+    MERGE_I32(m8Ah, m9Bh, c8, c9) \
+    MERGE_I32(m8Al, m9Bl, cA, cB) \
+    MERGE_I32(mCEh, mDFh, cC, cD) \
+    MERGE_I32(mCEl, mDFl, cE, cF) \
+}
+
 #endif // DAV1D_SRC_PPC_UTILS_H
