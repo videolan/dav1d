@@ -69,88 +69,27 @@ L(blend_epilog):
   ret
 endfunc
 
-function blend_h_vl256_8bpc_rvv, export=1, ext=v
-  li t0, 4
-  ble a3, t0, 24f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-  li t0, 32
-  beq a3, t0, 32f
-  li t0, 64
-  beq a3, t0, 64f
-  vsetvli zero, a3, e8, m4, ta, ma
-  j L(blend_h_epilog)
-64:
-  vsetvli zero, a3, e8, m2, ta, ma
-  j L(blend_h_epilog)
-32:
-  vsetvli zero, a3, e8, m1, ta, ma
-  j L(blend_h_epilog)
-16:
-  vsetivli zero, 16, e8, mf2, ta, ma
-  j L(blend_h_epilog)
-8:
-  vsetivli zero, 8, e8, mf4, ta, ma
-  j L(blend_h_epilog)
-24:
-  vsetvli zero, a3, e8, mf8, ta, ma
+function blend_h_vl256_8bpc_rvv, export=1, ext=zbb
+  srai t0, a3, 2
+  li t2, 64
+  ctz t0, t0
+  addi t0, t0, 0xc5
   j L(blend_h_epilog)
 endfunc
 
-function blend_h_8bpc_rvv, export=1, ext=v
-  li t0, 2
-  beq a3, t0, 2f
-  li t0, 4
-  beq a3, t0, 4f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-  li t0, 32
-  beq a3, t0, 32f
-  li t0, 64
-  vsetvli zero, t0, e8, m4, ta, ma
-  beq a3, t0, L(blend_h_epilog)
-128:
-  csrw vxrm, zero
-  la t1, dav1d_obmc_masks
-  srai t0, a4, 2
-  add t1, t1, a4
-  sub a4, a4, t0
+function blend_h_8bpc_rvv, export=1, ext="v,zbb"
   li t2, 64
-  mv a5, a0
-  mv a6, a2
-  mv a7, a4
-  jal t5, 1f
-  add t1, t1, a4
-  add a0, a5, t2
-  add a2, a6, t2
-  mv a4, a7
-  sub t1, t1, a4
-  j 0f
-32:
-  vsetvli zero, a3, e8, m2, ta, ma
-  j L(blend_h_epilog)
-16:
-  vsetivli zero, 16, e8, m1, ta, ma
-  j L(blend_h_epilog)
-8:
-  vsetivli zero, 8, e8, mf2, ta, ma
-  j L(blend_h_epilog)
-4:
-  vsetivli zero, 4, e8, mf4, ta, ma
-  j L(blend_h_epilog)
-2:
-  vsetivli zero, 2, e8, mf8, ta, ma
+  bgt a3, t2, 128f
+  ctz t0, a3
+  addi t0, t0, 0xc4
 L(blend_h_epilog):
   csrw vxrm, zero
+  andi t0, t0, 0xc7
+  vsetvl zero, a3, t0
   la t1, dav1d_obmc_masks
   srai t0, a4, 2
   add t1, t1, a4
   sub a4, a4, t0
-  li t2, 64
 0:
   mv t5, ra
 1:
@@ -179,6 +118,23 @@ L(blend_h_epilog):
   add a0, t0, a1
   bgtz a4, 1b
   jr t5
+128:
+  csrw vxrm, zero
+  vsetvli zero, t2, e8, m4, ta, ma
+  la t1, dav1d_obmc_masks
+  srai t0, a4, 2
+  add t1, t1, a4
+  sub a4, a4, t0
+  mv a5, a0
+  mv a6, a2
+  mv a7, a4
+  jal t5, 1b
+  add t1, t1, a4
+  add a0, a5, t2
+  add a2, a6, t2
+  mv a4, a7
+  sub t1, t1, a4
+  j 0b
 endfunc
 
 function blend_v_vl256_8bpc_rvv, export=1, ext=v
