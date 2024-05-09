@@ -731,21 +731,37 @@ L(\type\()_8tap_h_hv_\isa):
         mov             \lsrc, \src
         mov             \ldst, \dst
         mov             w8, \h
-
+.ifc \isa, neon_i8mm
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v16.16b, v22.16b
+        srshr           v16.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v17.16b, v22.16b
+        srshr           v17.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v18.16b, v22.16b
+        srshr           v18.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v19.16b, v22.16b
+        srshr           v19.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v20.16b, v22.16b
+        srshr           v20.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v21.16b, v22.16b
+        srshr           v21.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-
+        srshr           v22.8h, v22.8h, #2
+.else
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v16.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v17.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v18.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v19.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v20.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v21.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v22.8h, v22.8h, #2
+.endif
         .align LOOP_ALIGN
 8:
         ldr             q23, [\lsrc]
@@ -850,18 +866,19 @@ L(\type\()_8tap_h_hv_\isa):
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v16.16b, v22.16b
+        shrn            v16.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v17.16b, v22.16b
+        shrn            v17.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v18.16b, v22.16b
+        shrn            v18.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v19.16b, v22.16b
+        shrn            v19.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v20.16b, v22.16b
+        shrn            v20.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v21.16b, v22.16b
+        shrn            v21.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
+        shrn            v22.4h, v22.4s, #2
 
         .align LOOP_ALIGN
 4:
@@ -919,18 +936,19 @@ L(\type\()_8tap_h_hv_\isa):
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v16.16b, v22.16b
+        shrn            v16.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v17.16b, v22.16b
+        shrn            v17.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v18.16b, v22.16b
+        shrn            v18.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v19.16b, v22.16b
+        shrn            v19.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v20.16b, v22.16b
+        shrn            v20.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v21.16b, v22.16b
+        shrn            v21.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
+        shrn            v22.4h, v22.4s, #2
 
         .align LOOP_ALIGN
 2:
@@ -1001,18 +1019,29 @@ L(\type\()_6tap_hv_\isa):
         mov             \lsrc, \src
         mov             \ldst, \dst
         mov             w8, \h
-
+.ifc \isa, neon_i8mm
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v16.16b, v22.16b
+        srshr           v16.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v17.16b, v22.16b
+        srshr           v17.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v18.16b, v22.16b
+        srshr           v18.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v19.16b, v22.16b
+        srshr           v19.8h, v22.8h, #2
         bl              L(\type\()_hv_filter8_\isa)
-        mov             v20.16b, v22.16b
-
+        srshr           v20.8h, v22.8h, #2
+.else
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v16.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v17.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v18.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v19.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter8_\isa)
+        sshr            v20.8h, v22.8h, #2
+.endif
         .align LOOP_ALIGN
 8:
         ldr             q23, [\xmy]
@@ -1100,13 +1129,7 @@ L(\type\()_hv_filter8_\isa):
         \dot            v23.4s, v3.16b, v26.4b[0]
         \dot            v22.4s, v3.16b, v26.4b[1]
         \dot            v23.4s, v4.16b, v26.4b[1]
-.ifc \isa, neon_i8mm
         uzp1            v22.8h, v22.8h, v23.8h
-        srshr           v22.8h, v22.8h, #2
-.else
-        shrn            v22.4h, v22.4s, #2
-        shrn2           v22.8h, v23.4s, #2
-.endif
         ret
 
         .align FUNC_ALIGN
@@ -1120,7 +1143,6 @@ L(\type\()_hv_filter4_\isa):
 .endif
         tbl             v2.16b, {v4.16b}, v28.16b
         \dot            v22.4s, v2.16b, v26.4b[0]
-        shrn            v22.4h, v22.4s, #2
         ret
 
         .align JUMP_ALIGN
@@ -1129,15 +1151,15 @@ L(\type\()_hv_filter4_\isa):
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v16.16b, v22.16b
+        shrn            v16.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v17.16b, v22.16b
+        shrn            v17.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v18.16b, v22.16b
+        shrn            v18.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v19.16b, v22.16b
+        shrn            v19.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v20.16b, v22.16b
+        shrn            v20.4h, v22.4s, #2
 
         .align LOOP_ALIGN
 4:
@@ -1190,15 +1212,15 @@ L(\type\()_hv_filter4_\isa):
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v16.16b, v22.16b
+        shrn            v16.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v17.16b, v22.16b
+        shrn            v17.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v18.16b, v22.16b
+        shrn            v18.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v19.16b, v22.16b
+        shrn            v19.4h, v22.4s, #2
         bl              L(\type\()_hv_filter4_\isa)
-        mov             v20.16b, v22.16b
+        shrn            v20.4h, v22.4s, #2
 
         .align LOOP_ALIGN
 2:
