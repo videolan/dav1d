@@ -132,4 +132,18 @@ EXTERN\name:
 
 #define L(x) .L ## x
 
+#define MA      (1 << 7)
+#define TA      (1 << 6)
+#define E8      (0 << 3)
+#define E16     (1 << 3)
+#define E32     (2 << 3)
+#define E64     (3 << 3)
+#define M1      0
+#define M2      1
+#define M4      2
+#define M8      3
+#define MF2     7
+#define MF4     6
+#define MF8     5
+
 #endif /* DAV1D_SRC_RISCV_ASM_S */
