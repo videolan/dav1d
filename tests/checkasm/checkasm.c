@@ -543,34 +543,33 @@ checkasm_context checkasm_context_buf;
 #ifdef _WIN32
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
-    if (state.sig != SIG_ATOMIC_MAX)
-        return EXCEPTION_CONTINUE_SEARCH;
-
-    int s;
-    switch (e->ExceptionRecord->ExceptionCode) {
-    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-    case EXCEPTION_INT_DIVIDE_BY_ZERO:
-        s = SIGFPE;
-        break;
-    case EXCEPTION_ILLEGAL_INSTRUCTION:
-    case EXCEPTION_PRIV_INSTRUCTION:
-        s = SIGILL;
-        break;
-    case EXCEPTION_ACCESS_VIOLATION:
-    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-    case EXCEPTION_DATATYPE_MISALIGNMENT:
-    case EXCEPTION_STACK_OVERFLOW:
-        s = SIGSEGV;
-        break;
-    case EXCEPTION_IN_PAGE_ERROR:
-        s = SIGBUS;
-        break;
-    default:
-        return EXCEPTION_CONTINUE_SEARCH;
+    if (state.sig == SIG_ATOMIC_MAX) {
+        int s;
+        switch (e->ExceptionRecord->ExceptionCode) {
+        case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        case EXCEPTION_INT_DIVIDE_BY_ZERO:
+            s = SIGFPE;
+            break;
+        case EXCEPTION_ILLEGAL_INSTRUCTION:
+        case EXCEPTION_PRIV_INSTRUCTION:
+            s = SIGILL;
+            break;
+        case EXCEPTION_ACCESS_VIOLATION:
+        case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        case EXCEPTION_DATATYPE_MISALIGNMENT:
+        case EXCEPTION_STACK_OVERFLOW:
+            s = SIGSEGV;
+            break;
+        case EXCEPTION_IN_PAGE_ERROR:
+            s = SIGBUS;
+            break;
+        default:
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
+        state.sig = s;
+        checkasm_load_context();
     }
-    state.sig = s;
-    checkasm_load_context();
-    return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
 #else
