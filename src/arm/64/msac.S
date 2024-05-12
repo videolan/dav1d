@@ -189,11 +189,16 @@ function msac_decode_symbol_adapt4_neon, export=1
         // update_cdf
         ldrh            w3,  [x1, x2, lsl #1]                     // count = cdf[n_symbols]
 .if \n == 16
+        // 16 case has a lower bound that guarantees n_symbols > 2
         mov             w4,  #-5
-.else
+.elseif \n == 8
         mvn             w14, w2
         mov             w4,  #-4
         cmn             w14, #3                                   // set C if n_symbols <= 2
+.else
+        // if n_symbols < 4 (or < 6 even) then
+        //   (1 + n_symbols) >> 2 == n_symbols > 2
+        add             w14, w2,  #17                             // (1 + n_symbols) + (4 << 2)
 .endif
         sub_n           v16, v17, v0,  v1,  v2,  v3,  \sz, \n     // cdf + (i >= val ? 1 : 0)
         orr             v2\sz, #0x80, lsl #8
@@ -202,9 +207,12 @@ function msac_decode_symbol_adapt4_neon, export=1
 .endif
 .if \n == 16
         sub             w4,  w4,  w3, lsr #4                      // -((count >> 4) + 5)
-.else
+.elseif \n == 8
         lsr             w14, w3,  #4                              // count >> 4
         sbc             w4,  w4,  w14                             // -((count >> 4) + (n_symbols > 2) + 4)
+.else
+        neg             w4, w14, lsr #2                           // -((n_symbols > 2) + 4)
+        sub             w4,  w4,  w3,  lsr #4                     // -((count >> 4) + (n_symbols > 2) + 4)
 .endif
         sub_n           v2,  v3,  v2,  v3,  v0,  v1,  \sz, \n     // (32768 - cdf[i]) or (-1 - cdf[i])
         dup             v6\sz,    w4                              // -rate
