@@ -169,7 +169,7 @@ static struct {
     unsigned seed;
     CheckasmRunMode run_mode;
     int verbose;
-    volatile sig_atomic_t catch_signals;
+    volatile sig_atomic_t sig; // SIG_ATOMIC_MAX = signal handling enabled
     int suffix_length;
     int max_function_name_length;
 #if ARCH_X86_64
@@ -543,7 +543,7 @@ checkasm_context checkasm_context_buf;
 #ifdef _WIN32
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
-    if (!state.catch_signals)
+    if (state.sig != SIG_ATOMIC_MAX)
         return EXCEPTION_CONTINUE_SEARCH;
 
     int s;
@@ -568,8 +568,8 @@ static LONG NTAPI signal_handler(EXCEPTION_POINTERS *const e) {
     default:
         return EXCEPTION_CONTINUE_SEARCH;
     }
-    state.catch_signals = 0;
-    checkasm_load_context(s);
+    state.sig = s;
+    checkasm_load_context();
     return EXCEPTION_CONTINUE_EXECUTION; /* never reached, but shuts up gcc */
 }
 #endif
@@ -582,10 +582,10 @@ static const struct sigaction signal_handler_act = {
 };
 
 static void signal_handler(const int s) {
-    if (state.catch_signals) {
-        state.catch_signals = 0;
+    if (state.sig == SIG_ATOMIC_MAX) {
+        state.sig = s;
         sigaction(s, &signal_handler_act, NULL);
-        checkasm_load_context(s);
+        checkasm_load_context();
     }
 }
 #endif
@@ -1018,17 +1018,15 @@ void checkasm_report(const char *const name, ...) {
 }
 
 void checkasm_set_signal_handler_state(const int enabled) {
-    state.catch_signals = enabled;
+    state.sig = enabled ? SIG_ATOMIC_MAX : 0;
 }
 
-int checkasm_handle_signal(const int s) {
-    if (s) {
-        checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
-                           s == SIGILL ? "illegal instruction" :
-                           s == SIGBUS ? "bus error" :
-                                         "segmentation fault");
-    }
-    return s;
+void checkasm_handle_signal(void) {
+    const int s = state.sig;
+    checkasm_fail_func(s == SIGFPE ? "fatal arithmetic error" :
+                       s == SIGILL ? "illegal instruction" :
+                       s == SIGBUS ? "bus error" :
+                                     "segmentation fault");
 }
 
 static int check_err(const char *const file, const int line,

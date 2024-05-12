@@ -38,8 +38,8 @@
 #if ARCH_X86_32
 #include <setjmp.h>
 typedef jmp_buf checkasm_context;
-#define checkasm_save_context() checkasm_handle_signal(setjmp(checkasm_context_buf))
-#define checkasm_load_context(s) longjmp(checkasm_context_buf, s)
+#define checkasm_save_context() setjmp(checkasm_context_buf)
+#define checkasm_load_context() longjmp(checkasm_context_buf, 1)
 #elif WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 /* setjmp/longjmp on Windows on architectures using SEH (all except x86_32)
  * will try to use SEH to unwind the stack, which doesn't work for assembly
@@ -48,9 +48,9 @@ typedef struct { CONTEXT c; int status; } checkasm_context;
 #define checkasm_save_context() \
     (checkasm_context_buf.status = 0, \
      RtlCaptureContext(&checkasm_context_buf.c), \
-     checkasm_handle_signal(checkasm_context_buf.status))
-#define checkasm_load_context(s) \
-    (checkasm_context_buf.status = s, \
+     checkasm_context_buf.status)
+#define checkasm_load_context() \
+    (checkasm_context_buf.status = 1, \
      RtlRestoreContext(&checkasm_context_buf.c, NULL))
 #else
 typedef void* checkasm_context;
@@ -60,8 +60,8 @@ typedef void* checkasm_context;
 #else
 #include <setjmp.h>
 typedef sigjmp_buf checkasm_context;
-#define checkasm_save_context() checkasm_handle_signal(sigsetjmp(checkasm_context_buf, 1))
-#define checkasm_load_context(s) siglongjmp(checkasm_context_buf, s)
+#define checkasm_save_context() sigsetjmp(checkasm_context_buf, 1)
+#define checkasm_load_context() siglongjmp(checkasm_context_buf, 1)
 #endif
 
 #include "include/common/attributes.h"
@@ -92,7 +92,7 @@ int checkasm_fail_func(const char *msg, ...);
 void checkasm_update_bench(int iterations, uint64_t cycles);
 void checkasm_report(const char *name, ...);
 void checkasm_set_signal_handler_state(int enabled);
-int checkasm_handle_signal(int s);
+void checkasm_handle_signal(void);
 extern checkasm_context checkasm_context_buf;
 
 /* float compare utilities */
@@ -119,7 +119,7 @@ int float_near_abs_eps_array_ulp(const float *a, const float *b, float eps,
     declare_new(ret, __VA_ARGS__)\
     void *func_ref, *func_new;\
     typedef ret func_type(__VA_ARGS__);\
-    checkasm_save_context()
+    if (checkasm_save_context()) checkasm_handle_signal()
 
 /* Indicate that the current test has failed */
 #define fail() checkasm_fail_func("%s:%d", __FILE__, __LINE__)
