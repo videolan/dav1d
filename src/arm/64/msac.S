@@ -147,7 +147,7 @@ function msac_decode_symbol_adapt4_neon, export=1
 
         dup             v30\sz, v28.h[3]                          // dif >> (EC_WIN_SIZE - 16)
 .if \n == 8
-        ldr             q31, [x9, #MASKS8_OFFSET]
+        ldur            q31, [x9, #MASKS8_OFFSET]
 .elseif \n == 16
         str_n           q4,  q5,  sp, #16, \n                     // store v values to allow indexed access
 .endif
