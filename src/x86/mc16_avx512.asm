@@ -1501,19 +1501,6 @@ cglobal %1_%2_16bpc
 %endif
 %endmacro
 
-%macro MC_8TAP_FN 4 ; prefix, type, type_h, type_v
-cglobal %1_8tap_%2_16bpc
-    mov                 t0d, FILTER_%3
-%ifidn %3, %4
-    mov                 t1d, t0d
-%else
-    mov                 t1d, FILTER_%4
-%endif
-%ifnidn %2, regular ; skip the jump in the last filter
-    jmp mangle(private_prefix %+ _%1_8tap_16bpc %+ SUFFIX)
-%endif
-%endmacro
-
 %if WIN64
 DECLARE_REG_TMP 4, 5
 %define buf rsp+stack_offset+8 ; shadow space
