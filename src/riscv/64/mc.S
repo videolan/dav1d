@@ -204,22 +204,23 @@ function \type\()_8bpc_rvv, export=1, ext="v,zba,zbb"
 .ifc \type, mask
     li a7, 64
 .endif
-    csrw vxrm, zero
     li t0, 4
+    csrw vxrm, zero
     beq t0, a4, 4f
     csrr t0, vlenb
-    ctz t0, t0
     ctz t1, a4
+    ctz t0, t0
+    li t2, 1
     sub t0, t1, t0
-    li t1, 1
-    bgt t0, t1, 2f
-    li t1, -3
-    max t0, t0, t1
+    li t4, -3
+    bgt t0, t2, 2f
+    max t0, t0, t4
     andi t1, t0, 0x7
     addi t0, t1, 1 # may overflow into E16 bit
     ori t0, t0, MA | TA | E16
     ori t1, t1, MA | TA | E8
 1:
+    addi a5, a5, -4
 .rept 2
     vsetvl zero, a4, t0
     sh1add t3, a4, a2
@@ -250,14 +251,16 @@ function \type\()_8bpc_rvv, export=1, ext="v,zba,zbb"
     add a0, a1, t3
     vse8.v v2, (t3)
 .endr
-    addi a5, a5, -4
     bnez a5, 1b
     ret
 2:
     mv t0, a0
     neg t4, a4
+    add a0, a1, a0
+    addi a5, a5, -1
 20:
     vsetvli t2, a4, e16, m4, ta, ma
+    sh1add t4, t2, t4
     sh1add t3, t2, a2
     vle16.v v0, (a2)
     sh1add a2, t2, t3
@@ -285,10 +288,7 @@ function \type\()_8bpc_rvv, export=1, ext="v,zba,zbb"
     vse8.v v0, (t0)
     add t0, t2, t3
     vse8.v v2, (t3)
-    sh1add t4, t2, t4
     bnez t4, 20b
-    add a0, a1, a0
-    addi a5, a5, -1
     bnez a5, 2b
     ret
 4:
@@ -310,9 +310,9 @@ function \type\()_8bpc_rvv, export=1, ext="v,zba,zbb"
     vsetvli t1, a5, e32, m2, ta, ma
     vsse32.v v0, (a0), a1
     ctz t0, t1
+    sub a5, a5, t1
     sll t0, a1, t0
     add a0, t0, a0
-    sub a5, a5, t1
     bnez a5, 4b
     ret
 endfunc
