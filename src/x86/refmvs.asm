@@ -341,7 +341,7 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
                                     stride, rp_proj, roff, troff, \
                                     xendi, xstarti, iw8, ih8, dst
     xor           r14d, r14d
-    cmp dword [rfq+212], 1          ; n_tile_threads
+    cmp dword [rfq+200], 1          ; n_tile_threads
     mov           ih8d, [rfq+20]    ; rf->ih8
     mov           iw8d, [rfq+16]    ; rf->iw8
     mov        xstartd, xstartd
