@@ -657,8 +657,7 @@ void dav1d_refmvs_tile_sbrow_init(refmvs_tile *const rt, const refmvs_frame *con
 {
     if (rf->n_tile_threads == 1) tile_row_idx = 0;
     rt->rp_proj = &rf->rp_proj[16 * rf->rp_stride * tile_row_idx];
-    const int uses_2pass = rf->n_tile_threads > 1 && rf->n_frame_threads > 1;
-    const ptrdiff_t pass_off = (uses_2pass && pass == 2) ?
+    const ptrdiff_t pass_off = (rf->n_frame_threads > 1 && pass == 2) ?
         35 * rf->r_stride * rf->n_tile_rows : 0;
     refmvs_block *r = &rf->r[35 * rf->r_stride * tile_row_idx + pass_off];
     const int sbsz = rf->sbsz;
@@ -816,7 +815,7 @@ int dav1d_refmvs_init_frame(refmvs_frame *const rf,
     const int n_tile_rows = n_tile_threads > 1 ? frm_hdr->tiling.rows : 1;
     if (r_stride != rf->r_stride || n_tile_rows != rf->n_tile_rows) {
         if (rf->r) dav1d_freep_aligned(&rf->r);
-        const int uses_2pass = n_tile_threads > 1 && n_frame_threads > 1;
+        const int uses_2pass = n_frame_threads > 1;
         /* sizeof(refmvs_block) == 12 but it's accessed using 16-byte loads in asm,
          * so add 4 bytes of padding to avoid buffer overreads. */
         rf->r = dav1d_alloc_aligned(ALLOC_REFMVS, sizeof(*rf->r) * 35 * r_stride * n_tile_rows * (1 + uses_2pass) + 4, 64);
