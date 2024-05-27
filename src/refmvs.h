@@ -122,7 +122,6 @@ typedef struct Dav1dRefmvsDSPContext {
 } Dav1dRefmvsDSPContext;
 
 // call once per frame thread
-void dav1d_refmvs_init(refmvs_frame *rf);
 void dav1d_refmvs_clear(refmvs_frame *rf);
 
 // call once per frame

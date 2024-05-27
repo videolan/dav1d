@@ -895,13 +895,6 @@ int dav1d_refmvs_init_frame(refmvs_frame *const rf,
     return 0;
 }
 
-void dav1d_refmvs_init(refmvs_frame *const rf) {
-    rf->r = NULL;
-    rf->r_stride = 0;
-    rf->rp_proj = NULL;
-    rf->rp_stride = 0;
-}
-
 void dav1d_refmvs_clear(refmvs_frame *const rf) {
     if (rf->r) dav1d_freep_aligned(&rf->r);
     if (rf->rp_proj) dav1d_freep_aligned(&rf->rp_proj);

@@ -263,7 +263,6 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         f->c = c;
         f->task_thread.ttd = &c->task_thread;
         f->lf.last_sharpness = -1;
-        dav1d_refmvs_init(&f->rf);
     }
 
     for (unsigned m = 0; m < c->n_tc; m++) {
