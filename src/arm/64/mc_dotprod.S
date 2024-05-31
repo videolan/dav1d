@@ -52,14 +52,12 @@ L(hv_tbl_neon_dotprod):
 
 // Shuffle indices to permute horizontal samples in preparation for input to
 // SDOT instructions. The 8-tap horizontal convolution uses sample indices in the
-// interval of [-3, 4] relative to the current sample position. We load samples
-// from index value -4 to keep loads word aligned, so the shuffle bytes are
-// translated by 1 to handle this.
+// interval of [-3, 4] relative to the current sample position.
         .align 4
 L(h_tbl_neon_dotprod):
-        .byte  1,  2,  3,  4,   2,  3,  4,  5,   3,  4,  5,  6,   4,  5,  6,  7
-        .byte  5,  6,  7,  8,   6,  7,  8,  9,   7,  8,  9, 10,   8,  9, 10, 11
-        .byte  9, 10, 11, 12,  10, 11, 12, 13,  11, 12, 13, 14,  12, 13, 14, 15
+        .byte  0,  1,  2,  3,   1,  2,  3,  4,   2,  3,  4,  5,   3,  4,  5,  6
+        .byte  4,  5,  6,  7,   5,  6,  7,  8,   6,  7,  8,  9,   7,  8,  9, 10
+        .byte  8,  9, 10, 11,   9, 10, 11, 12,  10, 11, 12, 13,  11, 12, 13, 14
 
 // Vertical convolutions are also using SDOT instructions, where a 128-bit
 // register contains a transposed 4x4 matrix of values. Subsequent iterations of
@@ -683,7 +681,7 @@ L(\type\()_8tap_h_hv_\isa):
         mov             w13, 0x2002             // FILTER_WEIGHT * 128 + rounding
         dup             v27.4s, w13             // put H overrides this
 .endif
-        sub             \src, \src, #4          // src - 4
+        sub             \src, \src, #3          // src - 3
         ubfx            w9, \mx, #7, #7
         and             \mx, \mx, #0x7F
         ubfx            w11, w14, #7, #7        // for HV
@@ -699,7 +697,7 @@ L(\type\()_8tap_h_hv_\isa):
         // HV cases
         cmp             \h, #4
         csel            w14, w14, w11, le
-        sub             \src, \src, \s_strd, lsl #1 // src - s_strd * 2 - 4
+        sub             \src, \src, \s_strd, lsl #1 // src - s_strd * 2 - 3
         add             \xmy, x12, x14, lsl #3      // subpel V filter address
         mov             x15, x30
         ldr             d7, [\xmy]
@@ -711,7 +709,7 @@ L(\type\()_8tap_h_hv_\isa):
         b.ne            L(\type\()_6tap_hv_\isa)    // vertical != SHARP1
 
         // HV 8-tap cases
-        sub             \src, \src, \s_strd         // src - s_strd * 3 - 4
+        sub             \src, \src, \s_strd         // src - s_strd * 3 - 3
         cmp             \w, #4
         b.eq            40f
 .ifc \type, put
