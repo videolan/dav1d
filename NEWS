@@ -1,3 +1,11 @@
+Changes for 1.4.3 'Road Runner':
+--------------------------------
+
+1.4.3 is a small release focused on security issues
+ - AArch64: Fix potential out of bounds access in DotProd H/HV filters
+ - cli: Prevent buffer over-read
+
+
 Changes for 1.4.2 'Road Runner':
 --------------------------------
 

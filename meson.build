@@ -1,4 +1,4 @@
-# Copyright © 2018-2022, VideoLAN and dav1d authors
+# Copyright © 2018-2024, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 project('dav1d', ['c'],
-    version: '1.4.2',
+    version: '1.4.3',
     default_options: ['c_std=c99',
                       'warning_level=2',
                       'buildtype=release',
