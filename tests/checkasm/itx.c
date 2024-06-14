@@ -130,7 +130,8 @@ static void fwht4_1d(double *const out, const double *const in)
 
 static int copy_subcoefs(coef *coeff,
                          const enum RectTxfmSize tx, const enum TxfmType txtp,
-                         const int sw, const int sh, const int subsh)
+                         const int sw, const int sh, const int subsh,
+                         int *const max_eob)
 {
     /* copy the topleft coefficients such that the return value (being the
      * coefficient scantable index for the eob token) guarantees that only
@@ -160,6 +161,7 @@ static int copy_subcoefs(coef *coeff,
         } else if (!eob && (rcx > sub_low || rcy > sub_low))
             eob = n; /* lower boundary */
     }
+    *max_eob = n - 1;
 
     if (eob)
         eob += rnd() % (n - eob - 1);
@@ -182,7 +184,7 @@ static int copy_subcoefs(coef *coeff,
 
 static int ftx(coef *const buf, const enum RectTxfmSize tx,
                const enum TxfmType txtp, const int w, const int h,
-               const int subsh, const int bitdepth_max)
+               const int subsh, int *const max_eob, const int bitdepth_max)
 {
     double out[64 * 64], temp[64 * 64];
     const double scale = scaling_factors[ctz(w * h) - 4];
@@ -236,7 +238,7 @@ static int ftx(coef *const buf, const enum RectTxfmSize tx,
         for (int x = 0; x < sw; x++)
             buf[y * sw + x] = (coef) (out[y * w + x] + 0.5);
 
-    return copy_subcoefs(buf, tx, txtp, sw, sh, subsh);
+    return copy_subcoefs(buf, tx, txtp, sw, sh, subsh, max_eob);
 }
 
 static void check_itxfm_add(Dav1dInvTxfmDSPContext *const c,
@@ -272,7 +274,9 @@ static void check_itxfm_add(Dav1dInvTxfmDSPContext *const c,
                                bpc))
                 {
                     const int bitdepth_max = (1 << bpc) - 1;
-                    const int eob = ftx(coeff[0], tx, txtp, w, h, subsh, bitdepth_max);
+                    int max_eob;
+                    const int eob = ftx(coeff[0], tx, txtp, w, h, subsh, &max_eob,
+                                        bitdepth_max);
                     memcpy(coeff[1], coeff[0], sizeof(*coeff));
 
                     CLEAR_PIXEL_RECT(c_dst);
@@ -295,7 +299,7 @@ static void check_itxfm_add(Dav1dInvTxfmDSPContext *const c,
                         fail();
 
                     bench_new(alternate(c_dst, a_dst), a_dst_stride,
-                              alternate(coeff[0], coeff[1]), eob HIGHBD_TAIL_SUFFIX);
+                              alternate(coeff[0], coeff[1]), max_eob HIGHBD_TAIL_SUFFIX);
                 }
     }
     report("add_%dx%d", w, h);
