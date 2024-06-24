@@ -860,7 +860,7 @@ L(\type\()_8tap_h_hv_\isa):
 
         .align JUMP_ALIGN
 40:     // HV8 - 4xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -930,7 +930,7 @@ L(\type\()_8tap_h_hv_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 20:     // HV8 - 2xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1145,7 +1145,7 @@ L(\type\()_hv_filter4_\isa):
 
         .align JUMP_ALIGN
 40:     // HV6 - 4xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1206,7 +1206,7 @@ L(\type\()_hv_filter4_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 20:     // HV6 - 2xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1284,7 +1284,7 @@ L(\type\()_8tap_h_\isa):
 20:     // H - 2xN
         AARCH64_VALID_JUMP_TARGET
         add             \src, \src, #2
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
 
         .align LOOP_ALIGN
 2:
@@ -1321,7 +1321,7 @@ L(\type\()_8tap_h_\isa):
 40:     // H - 4xN
         AARCH64_VALID_JUMP_TARGET
         add             \src, \src, #2
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
 
         .align LOOP_ALIGN
 4:
@@ -1443,7 +1443,7 @@ L(\type\()_8tap_h_\isa):
         .align LOOP_ALIGN
 16:
         ldr             q16, [\src]
-        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
+        ldur            q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, \s_strd
 .ifc \type\()_\isa, prep_neon_i8mm
         movi            v6.4s, #0
@@ -1513,7 +1513,7 @@ L(\type\()_8tap_h_\isa):
         .align LOOP_ALIGN
 32:
         ldr             q16, [\src]
-        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
+        ldur            q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, #16
 .ifc \type\()_\isa, prep_neon_i8mm
         movi            v6.4s, #0
