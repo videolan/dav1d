@@ -145,11 +145,11 @@ function \type\()_16bpc_neon, export=1
         dup             v27.4s,  w6
         neg             v27.4s,  v27.4s
 .endif
-        adr             x7,  L(\type\()_tbl)
+        movrel          x7,  \type\()_tbl
         sub             w4,  w4,  #24
         \type           v4,  v5,  v0,  v1,  v2,  v3
-        ldrh            w4,  [x7, x4, lsl #1]
-        sub             x7,  x7,  w4, uxtw
+        ldrsw           x4,  [x7, x4, lsl #2]
+        add             x7,  x7,  x4
         br              x7
 40:
         AARCH64_VALID_JUMP_TARGET
@@ -230,14 +230,16 @@ function \type\()_16bpc_neon, export=1
         b               128b
 0:
         ret
-L(\type\()_tbl):
-        .hword L(\type\()_tbl) - 1280b
-        .hword L(\type\()_tbl) -  640b
-        .hword L(\type\()_tbl) -  320b
-        .hword L(\type\()_tbl) -  160b
-        .hword L(\type\()_tbl) -   80b
-        .hword L(\type\()_tbl) -   40b
 endfunc
+
+jumptable \type\()_tbl
+        .word 1280b - \type\()_tbl
+        .word 640b  - \type\()_tbl
+        .word 320b  - \type\()_tbl
+        .word 160b  - \type\()_tbl
+        .word 80b   - \type\()_tbl
+        .word 40b   - \type\()_tbl
+endjumptable
 .endm
 
 bidir_fn avg, w6
@@ -249,12 +251,12 @@ bidir_fn mask, w7
 function w_mask_\type\()_16bpc_neon, export=1
         ldr             w8,  [sp]
         clz             w9,  w4
-        adr             x10, L(w_mask_\type\()_tbl)
+        movrel          x10, w_mask_\type\()_tbl
         dup             v31.8h,  w8   // bitdepth_max
         sub             w9,  w9,  #24
         clz             w8,  w8       // clz(bitdepth_max)
-        ldrh            w9,  [x10,  x9,  lsl #1]
-        sub             x10, x10, w9,  uxtw
+        ldrsw           x9,  [x10,  x9,  lsl #2]
+        add             x10, x10, x9
         sub             w8,  w8,  #12 // sh = intermediate_bits + 6 = clz(bitdepth_max) - 12
         mov             w9,  #PREP_BIAS*64
         neg             w8,  w8       // -sh
@@ -545,14 +547,16 @@ function w_mask_\type\()_16bpc_neon, export=1
         add             x12, x12, x1
         b.gt            161b
         ret
-L(w_mask_\type\()_tbl):
-        .hword L(w_mask_\type\()_tbl) - 1280b
-        .hword L(w_mask_\type\()_tbl) -  640b
-        .hword L(w_mask_\type\()_tbl) -  320b
-        .hword L(w_mask_\type\()_tbl) -  160b
-        .hword L(w_mask_\type\()_tbl) -   80b
-        .hword L(w_mask_\type\()_tbl) -   40b
 endfunc
+
+jumptable w_mask_\type\()_tbl
+        .word 1280b - w_mask_\type\()_tbl
+        .word 640b  - w_mask_\type\()_tbl
+        .word 320b  - w_mask_\type\()_tbl
+        .word 160b  - w_mask_\type\()_tbl
+        .word 80b   - w_mask_\type\()_tbl
+        .word 40b   - w_mask_\type\()_tbl
+endjumptable
 .endm
 
 w_mask_fn 444
@@ -561,11 +565,11 @@ w_mask_fn 420
 
 
 function blend_16bpc_neon, export=1
-        adr             x6,  L(blend_tbl)
+        movrel          x6,  blend_tbl
         clz             w3,  w3
         sub             w3,  w3,  #26
-        ldrh            w3,  [x6,  x3,  lsl #1]
-        sub             x6,  x6,  w3,  uxtw
+        ldrsw           x3,  [x6,  x3,  lsl #2]
+        add             x6,  x6,  x3
         add             x8,  x0,  x1
         br              x6
 40:
@@ -678,15 +682,17 @@ function blend_16bpc_neon, export=1
         st1             {v0.8h, v1.8h, v2.8h, v3.8h}, [x0], x1
         b.gt            32b
         ret
-L(blend_tbl):
-        .hword L(blend_tbl) - 320b
-        .hword L(blend_tbl) - 160b
-        .hword L(blend_tbl) -  80b
-        .hword L(blend_tbl) -  40b
 endfunc
 
+jumptable blend_tbl
+        .word 320b - blend_tbl
+        .word 160b - blend_tbl
+        .word 80b  - blend_tbl
+        .word 40b  - blend_tbl
+endjumptable
+
 function blend_h_16bpc_neon, export=1
-        adr             x6,  L(blend_h_tbl)
+        movrel          x6,  blend_h_tbl
         movrel          x5,  X(obmc_masks)
         add             x5,  x5,  w4,  uxtw
         sub             w4,  w4,  w4,  lsr #2
@@ -694,8 +700,8 @@ function blend_h_16bpc_neon, export=1
         add             x8,  x0,  x1
         lsl             x1,  x1,  #1
         sub             w7,  w7,  #24
-        ldrh            w7,  [x6,  x7,  lsl #1]
-        sub             x6,  x6,  w7, uxtw
+        ldrsw           x7,  [x6,  x7,  lsl #2]
+        add             x6,  x6,  x7
         br              x6
 20:
         AARCH64_VALID_JUMP_TARGET
@@ -844,26 +850,28 @@ function blend_h_16bpc_neon, export=1
         add             x7,  x7,  w3,  uxtw #1
         b.gt            321b
         ret
-L(blend_h_tbl):
-        .hword L(blend_h_tbl) - 1280b
-        .hword L(blend_h_tbl) -  640b
-        .hword L(blend_h_tbl) -  320b
-        .hword L(blend_h_tbl) -  160b
-        .hword L(blend_h_tbl) -   80b
-        .hword L(blend_h_tbl) -   40b
-        .hword L(blend_h_tbl) -   20b
 endfunc
 
+jumptable blend_h_tbl
+        .word 1280b - blend_h_tbl
+        .word 640b  - blend_h_tbl
+        .word 320b  - blend_h_tbl
+        .word 160b  - blend_h_tbl
+        .word 80b   - blend_h_tbl
+        .word 40b   - blend_h_tbl
+        .word 20b   - blend_h_tbl
+endjumptable
+
 function blend_v_16bpc_neon, export=1
-        adr             x6,  L(blend_v_tbl)
+        movrel          x6,  blend_v_tbl
         movrel          x5,  X(obmc_masks)
         add             x5,  x5,  w3,  uxtw
         clz             w3,  w3
         add             x8,  x0,  x1
         lsl             x1,  x1,  #1
         sub             w3,  w3,  #26
-        ldrh            w3,  [x6,  x3,  lsl #1]
-        sub             x6,  x6,  w3,  uxtw
+        ldrsw           x3,  [x6,  x3,  lsl #2]
+        add             x6,  x6,  x3
         br              x6
 20:
         AARCH64_VALID_JUMP_TARGET
@@ -1001,21 +1009,23 @@ function blend_v_16bpc_neon, export=1
         st1             {v4.8h, v5.8h, v6.8h}, [x8], x1
         b.gt            32b
         ret
-L(blend_v_tbl):
-        .hword L(blend_v_tbl) - 320b
-        .hword L(blend_v_tbl) - 160b
-        .hword L(blend_v_tbl) -  80b
-        .hword L(blend_v_tbl) -  40b
-        .hword L(blend_v_tbl) -  20b
 endfunc
+
+jumptable blend_v_tbl
+        .word 320b - blend_v_tbl
+        .word 160b - blend_v_tbl
+        .word 80b  - blend_v_tbl
+        .word 40b  - blend_v_tbl
+        .word 20b  - blend_v_tbl
+endjumptable
 
 
 // This has got the same signature as the put_8tap functions,
 // and assumes that x9 is set to (clz(w)-24).
 function put_16bpc_neon, export=1
-        adr             x10, L(put_16bpc_tbl)
-        ldrh            w9, [x10, x9, lsl #1]
-        sub             x10, x10, w9, uxtw
+        movrel          x10, put_16bpc_tbl
+        ldrsw           x9, [x10, x9, lsl #2]
+        add             x10, x10, x9
         br              x10
 
 20:
@@ -1120,27 +1130,28 @@ function put_16bpc_neon, export=1
         add             x0,  x0,  x1
         b.gt            128b
         ret
-
-L(put_16bpc_tbl):
-        .hword L(put_16bpc_tbl) - 1280b
-        .hword L(put_16bpc_tbl) -  640b
-        .hword L(put_16bpc_tbl) -  320b
-        .hword L(put_16bpc_tbl) -  160b
-        .hword L(put_16bpc_tbl) -   80b
-        .hword L(put_16bpc_tbl) -   40b
-        .hword L(put_16bpc_tbl) -   20b
 endfunc
+
+jumptable put_16bpc_tbl
+        .word 1280b - put_16bpc_tbl
+        .word 640b  - put_16bpc_tbl
+        .word 320b  - put_16bpc_tbl
+        .word 160b  - put_16bpc_tbl
+        .word 80b   - put_16bpc_tbl
+        .word 40b   - put_16bpc_tbl
+        .word 20b   - put_16bpc_tbl
+endjumptable
 
 
 // This has got the same signature as the prep_8tap functions,
 // and assumes that x9 is set to (clz(w)-24), w7 to intermediate_bits and
 // x8 to w*2.
 function prep_16bpc_neon
-        adr             x10, L(prep_16bpc_tbl)
-        ldrh            w9, [x10, x9, lsl #1]
+        movrel          x10, prep_16bpc_tbl
+        ldrsw           x9, [x10, x9, lsl #2]
         dup             v31.8h,  w7   // intermediate_bits
         movi            v30.8h,  #(PREP_BIAS >> 8), lsl #8
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
         br              x10
 
 40:
@@ -1296,15 +1307,16 @@ function prep_16bpc_neon
         add             x0,  x0,  x8
         b.gt            128b
         ret
-
-L(prep_16bpc_tbl):
-        .hword L(prep_16bpc_tbl) - 1280b
-        .hword L(prep_16bpc_tbl) -  640b
-        .hword L(prep_16bpc_tbl) -  320b
-        .hword L(prep_16bpc_tbl) -  160b
-        .hword L(prep_16bpc_tbl) -   80b
-        .hword L(prep_16bpc_tbl) -   40b
 endfunc
+
+jumptable prep_16bpc_tbl
+        .word 1280b - prep_16bpc_tbl
+        .word 640b  - prep_16bpc_tbl
+        .word 320b  - prep_16bpc_tbl
+        .word 160b  - prep_16bpc_tbl
+        .word 80b   - prep_16bpc_tbl
+        .word 40b   - prep_16bpc_tbl
+endjumptable
 
 
 .macro load_slice s0, s1, strd, wd, d0, d1, d2, d3, d4, d5, d6
@@ -1588,16 +1600,16 @@ L(\type\()_\taps\()_h):
         add             \xmx, x11, \mx, uxtw #3
         b.ne            L(\type\()_\taps\()_hv)
 
-        adr             x10, L(\type\()_\taps\()_h_tbl)
+        movrel          x10, \type\()_\taps\()_h_tbl
         dup             v30.4s,  w12           // 6 - intermediate_bits
-        ldrh            w9,  [x10, x9, lsl #1]
+        ldrsw           x9,  [x10, x9, lsl #2]
         neg             v30.4s,  v30.4s        // -(6-intermediate_bits)
 .ifc \type, put
         dup             v29.8h,  \bdmax        // intermediate_bits
 .else
         movi            v28.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
 .ifc \type, put
         neg             v29.8h,  v29.8h        // -intermediate_bits
 .endif
@@ -1775,19 +1787,20 @@ L(\type\()_\taps\()_h):
         subs            \h,  \h,  #2
         b.gt            81b
         ret
+endfunc
 
-L(\type\()_\taps\()_h_tbl):
-        .hword L(\type\()_\taps\()_h_tbl) - 1280b
-        .hword L(\type\()_\taps\()_h_tbl) -  640b
-        .hword L(\type\()_\taps\()_h_tbl) -  320b
-        .hword L(\type\()_\taps\()_h_tbl) -  160b
-        .hword L(\type\()_\taps\()_h_tbl) -   80b
-        .hword L(\type\()_\taps\()_h_tbl) -   40b
-        .hword L(\type\()_\taps\()_h_tbl) -   20b
-        .hword 0
+jumptable \type\()_\taps\()_h_tbl
+        .word 1280b - \type\()_\taps\()_h_tbl
+        .word 640b  - \type\()_\taps\()_h_tbl
+        .word 320b  - \type\()_\taps\()_h_tbl
+        .word 160b  - \type\()_\taps\()_h_tbl
+        .word 80b   - \type\()_\taps\()_h_tbl
+        .word 40b   - \type\()_\taps\()_h_tbl
+        .word 20b   - \type\()_\taps\()_h_tbl
+endjumptable
 
 
-L(\type\()_\taps\()_v):
+function L(\type\()_\taps\()_v)
         cmp             \h,  #4
         ubfx            w10, \my, #7, #7
         and             \my, \my, #0x7f
@@ -1800,12 +1813,12 @@ L(\type\()_\taps\()_v):
         dup             v30.4s,  w12           // 6 - intermediate_bits
         movi            v29.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
-        adr             x10, L(\type\()_\taps\()_v_tbl)
-        ldrh            w9,  [x10, x9, lsl #1]
+        movrel          x10, \type\()_\taps\()_v_tbl
+        ldrsw           x9,  [x10, x9, lsl #2]
 .ifc \type, prep
         neg             v30.4s,  v30.4s        // -(6-intermediate_bits)
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
         br              x10
 
 20:     // 2xN v
@@ -2070,18 +2083,19 @@ L(\type\()_\taps\()_v):
         b               16b
 0:
         ret
+endfunc
 
-L(\type\()_\taps\()_v_tbl):
-        .hword L(\type\()_\taps\()_v_tbl) - 1280b
-        .hword L(\type\()_\taps\()_v_tbl) -  640b
-        .hword L(\type\()_\taps\()_v_tbl) -  320b
-        .hword L(\type\()_\taps\()_v_tbl) -  160b
-        .hword L(\type\()_\taps\()_v_tbl) -   80b
-        .hword L(\type\()_\taps\()_v_tbl) -   40b
-        .hword L(\type\()_\taps\()_v_tbl) -   20b
-        .hword 0
+jumptable \type\()_\taps\()_v_tbl
+        .word 1280b - \type\()_\taps\()_v_tbl
+        .word 640b  - \type\()_\taps\()_v_tbl
+        .word 320b  - \type\()_\taps\()_v_tbl
+        .word 160b  - \type\()_\taps\()_v_tbl
+        .word 80b   - \type\()_\taps\()_v_tbl
+        .word 40b   - \type\()_\taps\()_v_tbl
+        .word 20b   - \type\()_\taps\()_v_tbl
+endjumptable
 
-L(\type\()_\taps\()_hv):
+function L(\type\()_\taps\()_hv)
         cmp             \h,  #4
         ubfx            w10, \my, #7, #7
         and             \my, \my, #0x7f
@@ -2090,16 +2104,16 @@ L(\type\()_\taps\()_hv):
 4:
         add             \xmy, x11, \my, uxtw #3
 
-        adr             x10, L(\type\()_\taps\()_hv_tbl)
+        movrel          x10, \type\()_\taps\()_hv_tbl
         dup             v30.4s,  w12           // 6 - intermediate_bits
-        ldrh            w9,  [x10, x9, lsl #1]
+        ldrsw           x9,  [x10, x9, lsl #2]
         neg             v30.4s,  v30.4s        // -(6-intermediate_bits)
 .ifc \type, put
         dup             v29.4s,  w13           // 6 + intermediate_bits
 .else
         movi            v29.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
 .ifc \type, put
         neg             v29.4s,  v29.4s        // -(6+intermediate_bits)
 .endif
@@ -2766,17 +2780,17 @@ L(\type\()_\taps\()_filter_8):
         uzp1            v23.8h,  v25.8h,  v26.8h // Same as xtn, xtn2
         uzp1            v24.8h,  v27.8h,  v28.8h // Ditto
         ret
-
-L(\type\()_\taps\()_hv_tbl):
-        .hword L(\type\()_\taps\()_hv_tbl) - 1280b
-        .hword L(\type\()_\taps\()_hv_tbl) -  640b
-        .hword L(\type\()_\taps\()_hv_tbl) -  320b
-        .hword L(\type\()_\taps\()_hv_tbl) -  160b
-        .hword L(\type\()_\taps\()_hv_tbl) -   80b
-        .hword L(\type\()_\taps\()_hv_tbl) -   40b
-        .hword L(\type\()_\taps\()_hv_tbl) -   20b
-        .hword 0
 endfunc
+
+jumptable \type\()_\taps\()_hv_tbl
+        .word 1280b - \type\()_\taps\()_hv_tbl
+        .word 640b  - \type\()_\taps\()_hv_tbl
+        .word 320b  - \type\()_\taps\()_hv_tbl
+        .word 160b  - \type\()_\taps\()_hv_tbl
+        .word 80b   - \type\()_\taps\()_hv_tbl
+        .word 40b   - \type\()_\taps\()_hv_tbl
+        .word 20b   - \type\()_\taps\()_hv_tbl
+endjumptable
 .endm
 
 
@@ -2811,16 +2825,16 @@ function \type\()_bilin_16bpc_neon, export=1
 L(\type\()_bilin_h):
         cbnz            \my, L(\type\()_bilin_hv)
 
-        adr             x10, L(\type\()_bilin_h_tbl)
+        movrel          x10, \type\()_bilin_h_tbl
         dup             v31.8h,  w11      // 4 - intermediate_bits
-        ldrh            w9,  [x10, x9, lsl #1]
+        ldrsw           x9,  [x10, x9, lsl #2]
         neg             v31.8h,  v31.8h   // -(4-intermediate_bits)
 .ifc \type, put
         dup             v30.8h,  \bdmax   // intermediate_bits
 .else
         movi            v29.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
 .ifc \type, put
         neg             v30.8h,  v30.8h   // -intermediate_bits
 .endif
@@ -2977,30 +2991,31 @@ L(\type\()_bilin_h):
         subs            \h,  \h,  #2
         b.gt            161b
         ret
+endfunc
 
-L(\type\()_bilin_h_tbl):
-        .hword L(\type\()_bilin_h_tbl) - 1280b
-        .hword L(\type\()_bilin_h_tbl) -  640b
-        .hword L(\type\()_bilin_h_tbl) -  320b
-        .hword L(\type\()_bilin_h_tbl) -  160b
-        .hword L(\type\()_bilin_h_tbl) -   80b
-        .hword L(\type\()_bilin_h_tbl) -   40b
-        .hword L(\type\()_bilin_h_tbl) -   20b
-        .hword 0
+jumptable \type\()_bilin_h_tbl
+        .word 1280b - \type\()_bilin_h_tbl
+        .word 640b  - \type\()_bilin_h_tbl
+        .word 320b  - \type\()_bilin_h_tbl
+        .word 160b  - \type\()_bilin_h_tbl
+        .word 80b   - \type\()_bilin_h_tbl
+        .word 40b   - \type\()_bilin_h_tbl
+        .word 20b   - \type\()_bilin_h_tbl
+endjumptable
 
 
-L(\type\()_bilin_v):
+function L(\type\()_bilin_v)
         cmp             \h,  #4
-        adr             x10, L(\type\()_bilin_v_tbl)
+        movrel          x10, \type\()_bilin_v_tbl
 .ifc \type, prep
         dup             v31.8h,  w11      // 4 - intermediate_bits
 .endif
-        ldrh            w9,  [x10, x9, lsl #1]
+        ldrsw           x9,  [x10, x9, lsl #2]
 .ifc \type, prep
         movi            v29.8h,  #(PREP_BIAS >> 8), lsl #8
         neg             v31.8h,  v31.8h   // -(4-intermediate_bits)
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
         br              x10
 
 20:     // 2xN v
@@ -3175,28 +3190,29 @@ L(\type\()_bilin_v):
         b               1b
 0:
         ret
+endfunc
 
-L(\type\()_bilin_v_tbl):
-        .hword L(\type\()_bilin_v_tbl) - 1280b
-        .hword L(\type\()_bilin_v_tbl) -  640b
-        .hword L(\type\()_bilin_v_tbl) -  320b
-        .hword L(\type\()_bilin_v_tbl) -  160b
-        .hword L(\type\()_bilin_v_tbl) -   80b
-        .hword L(\type\()_bilin_v_tbl) -   40b
-        .hword L(\type\()_bilin_v_tbl) -   20b
-        .hword 0
+jumptable \type\()_bilin_v_tbl
+        .word 1280b - \type\()_bilin_v_tbl
+        .word 640b  - \type\()_bilin_v_tbl
+        .word 320b  - \type\()_bilin_v_tbl
+        .word 160b  - \type\()_bilin_v_tbl
+        .word 80b   - \type\()_bilin_v_tbl
+        .word 40b   - \type\()_bilin_v_tbl
+        .word 20b   - \type\()_bilin_v_tbl
+endjumptable
 
-L(\type\()_bilin_hv):
-        adr             x10, L(\type\()_bilin_hv_tbl)
+function L(\type\()_bilin_hv)
+        movrel          x10, \type\()_bilin_hv_tbl
         dup             v31.8h,  w11      // 4 - intermediate_bits
-        ldrh            w9,  [x10, x9, lsl #1]
+        ldrsw           x9,  [x10, x9, lsl #2]
         neg             v31.8h,  v31.8h   // -(4-intermediate_bits)
 .ifc \type, put
         dup             v30.4s,  w12      // 4 + intermediate_bits
 .else
         movi            v29.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
-        sub             x10, x10, w9, uxtw
+        add             x10, x10, x9
 .ifc \type, put
         neg             v30.4s,  v30.4s   // -(4+intermediate_bits)
 .endif
@@ -3369,17 +3385,17 @@ L(\type\()_bilin_hv):
         b               1b
 0:
         ret
-
-L(\type\()_bilin_hv_tbl):
-        .hword L(\type\()_bilin_hv_tbl) - 1280b
-        .hword L(\type\()_bilin_hv_tbl) -  640b
-        .hword L(\type\()_bilin_hv_tbl) -  320b
-        .hword L(\type\()_bilin_hv_tbl) -  160b
-        .hword L(\type\()_bilin_hv_tbl) -   80b
-        .hword L(\type\()_bilin_hv_tbl) -   40b
-        .hword L(\type\()_bilin_hv_tbl) -   20b
-        .hword 0
 endfunc
+
+jumptable \type\()_bilin_hv_tbl
+        .word 1280b - \type\()_bilin_hv_tbl
+        .word 640b  - \type\()_bilin_hv_tbl
+        .word 320b  - \type\()_bilin_hv_tbl
+        .word 160b  - \type\()_bilin_hv_tbl
+        .word 80b   - \type\()_bilin_hv_tbl
+        .word 40b   - \type\()_bilin_hv_tbl
+        .word 20b   - \type\()_bilin_hv_tbl
+endjumptable
 .endm
 
 make_8tap_fn    put,  regular_sharp,  REGULAR, SHARP,   8tap

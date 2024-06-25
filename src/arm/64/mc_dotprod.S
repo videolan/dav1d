@@ -1365,8 +1365,8 @@ L(\type\()_hv_filter4_\isa):
 
         .align JUMP_ALIGN
 L(\type\()_8tap_h_\isa):
-        adr             x11, L(\type\()_8tap_h_\isa\()_tbl)
-        ldrh            w8, [x11, x8, lsl #1]
+        movrel          x11, \type\()_8tap_h_\isa\()_tbl
+        ldrsw           x8, [x11, x8, lsl #2]
 .ifc \type, put
     .ifc \isa, neon_i8mm
         movi            v27.4s, #34     // special rounding
@@ -1375,7 +1375,7 @@ L(\type\()_8tap_h_\isa):
         dup             v27.4s, w10
     .endif
 .endif
-        sub             x11, x11, x8
+        add             x11, x11, x8
         br              x11
 
 .ifc \type, put
@@ -1839,19 +1839,19 @@ L(\type\()_8tap_h_\isa):
         subs            \h, \h, #1
         b.gt            32b
         ret
-
-L(\type\()_8tap_h_\isa\()_tbl):
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 1280b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 640b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 320b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 160b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 80b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 40b)
-.ifc \type, put
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 20b)
-        .hword 0
-.endif
 endfunc
+
+jumptable \type\()_8tap_h_\isa\()_tbl
+        .word 1280b - \type\()_8tap_h_\isa\()_tbl
+        .word 640b  - \type\()_8tap_h_\isa\()_tbl
+        .word 320b  - \type\()_8tap_h_\isa\()_tbl
+        .word 160b  - \type\()_8tap_h_\isa\()_tbl
+        .word 80b   - \type\()_8tap_h_\isa\()_tbl
+        .word 40b   - \type\()_8tap_h_\isa\()_tbl
+.ifc \type, put
+        .word 20b   - \type\()_8tap_h_\isa\()_tbl
+.endif
+endjumptable
 .endm
 
 // dst(x0), d_strd(x7), src(x1), s_strd(x2), w(w3), h(w4), mx(w5), my(w6)

@@ -1055,8 +1055,8 @@ L(\type\()_hv_filter4_\isa):
 
         .align JUMP_ALIGN
 L(\type\()_8tap_h_\isa):
-        adr             x11, L(\type\()_8tap_h_\isa\()_tbl)
-        ldrh            w12, [x11, x8, lsl #1]
+        movrel          x11, \type\()_8tap_h_\isa\()_tbl
+        ldrsw           x12, [x11, x8, lsl #2]
 .ifc \bdmax, w8
         ldr             \bdmax, [sp]
 .endif
@@ -1072,7 +1072,7 @@ L(\type\()_8tap_h_\isa):
         dup             v5.8h, \bdmax
         dup             v6.2d, x9
 .endif
-        sub             x11, x11, x12
+        add             x11, x11, x12
         ld1sb           {z4.h}, p0/z, [\xmx]
         br              x11
 
@@ -1457,28 +1457,28 @@ L(\type\()_8tap_h_\isa):
         mov             w8, \w
         b.gt            32b
         ret
-
-L(\type\()_8tap_h_\isa\()_tbl):
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 1280b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 640b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 320b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 160b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 80b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 40b)
-.ifc \type, put
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 20b)
-        .hword 0
-.endif
 endfunc
+
+jumptable \type\()_8tap_h_\isa\()_tbl
+        .word 1280b - \type\()_8tap_h_\isa\()_tbl
+        .word 640b  - \type\()_8tap_h_\isa\()_tbl
+        .word 320b  - \type\()_8tap_h_\isa\()_tbl
+        .word 160b  - \type\()_8tap_h_\isa\()_tbl
+        .word 80b   - \type\()_8tap_h_\isa\()_tbl
+        .word 40b   - \type\()_8tap_h_\isa\()_tbl
+.ifc \type, put
+        .word 20b   - \type\()_8tap_h_\isa\()_tbl
+.endif
+endjumptable
 .endm
 
 
 function prep_sve
-        adr             x9, L(prep_tbl)
+        movrel          x9, prep_tbl
         mov             w6, #19
-        ldrh            w8, [x9, x8, lsl #1]
+        ldrsw           x8, [x9, x8, lsl #2]
         sub             w6, w6, w7, lsr #8          // 19 - bdmax / 256
-        sub             x9, x9, x8
+        add             x9, x9, x8
         movi            v30.8h, #PREP_BIAS_NEG
         dup             v29.8h, w6                  // 10b: 1 << 4, 12b: 1 << 2
         br              x9
@@ -1624,15 +1624,16 @@ function prep_sve
         add             x0, x0, #256
         b.gt            128b
         ret
-
-L(prep_tbl):
-        .hword L(prep_tbl) - 1280b
-        .hword L(prep_tbl) -  640b
-        .hword L(prep_tbl) -  320b
-        .hword L(prep_tbl) -  160b
-        .hword L(prep_tbl) -   80b
-        .hword L(prep_tbl) -   40b
 endfunc
+
+jumptable prep_tbl
+        .word 1280b - prep_tbl
+        .word 640b  - prep_tbl
+        .word 320b  - prep_tbl
+        .word 160b  - prep_tbl
+        .word 80b   - prep_tbl
+        .word 40b   - prep_tbl
+endjumptable
 
 
 // dst(x0), d_strd(x9), src(x1), s_strd(x2), w(w3), h(w4), mx(w5), my(w6), bdmax(w7)
