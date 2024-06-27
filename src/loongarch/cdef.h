@@ -33,6 +33,9 @@
 #include "src/cpu.h"
 
 decl_cdef_dir_fn(BF(dav1d_cdef_find_dir, lsx));
+decl_cdef_fn(BF(dav1d_cdef_filter_block_4x4, lsx));
+decl_cdef_fn(BF(dav1d_cdef_filter_block_4x8, lsx));
+decl_cdef_fn(BF(dav1d_cdef_filter_block_8x8, lsx));
 
 static ALWAYS_INLINE void cdef_dsp_init_loongarch(Dav1dCdefDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -41,6 +44,9 @@ static ALWAYS_INLINE void cdef_dsp_init_loongarch(Dav1dCdefDSPContext *const c) 
 
 #if BITDEPTH == 8
     c->dir = BF(dav1d_cdef_find_dir, lsx);
+    c->fb[0] = BF(dav1d_cdef_filter_block_8x8, lsx);
+    c->fb[1] = BF(dav1d_cdef_filter_block_4x8, lsx);
+    c->fb[2] = BF(dav1d_cdef_filter_block_4x4, lsx);
 #endif
 }
 
