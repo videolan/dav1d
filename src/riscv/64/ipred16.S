@@ -1,0 +1,233 @@
+/******************************************************************************
+ * Copyright © 2018, VideoLAN and dav1d authors
+ * Copyright © 2024, Bogdan Gligorijevic
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
+
+#include "src/riscv/asm.S"
+
+function dc_gen_16bpc_rvv, export=1, ext="v,zba,zbb"
+    .variant_cc dav1d_dc_gen_8bpc_rvv
+    add t1, a1, a2
+    srli t5, t1, 1
+    mv t1, a1
+    addi t2, a0, 2
+    vsetvli zero, t1, e32, m8, ta, ma
+    vmv.v.x v0, zero
+1:
+    vsetvli t3, t1, e16, m4, tu, ma
+    vle16.v v8, (t2)
+    vwaddu.wv v0, v0, v8
+    sub t1, t1, t3
+
+    sh1add t2, t3, t2
+    bnez t1, 1b
+
+    mv t1, a2
+    mv t2, a0
+    vsetvli zero, t1, e32, m8, ta, ma
+    vmv.v.x v16, zero
+2:
+    vsetvli t3, t1, e16, m4, tu, ma
+    sub t1, t1, t3
+    sll t3, t3, 1
+    sub t2, t2, t3
+    vle16.v v8, (t2)
+    vwaddu.wv v16, v16, v8
+
+    bnez t1, 2b
+
+    vsetvli zero, a1, e32, m8, ta, ma
+    vmv.s.x v24, t5
+    vmv.s.x v25, zero
+    vredsum.vs v8, v0, v24
+    vsetvli zero, a2, e32, m8, ta, ma
+    vredsum.vs v0, v16, v25
+    vmv.x.s t5, v8
+    vmv.x.s t1, v0
+    add t5, t5, t1
+
+    add t1, a1, a2
+    ctz t1, t1
+
+    srl a0, t5, t1
+
+    beq a1, a2, 5f
+    slli t1, a1, 1
+    sltu t2, t1, a2
+    slli t3, a2, 1
+    sltu t1, t3, a1
+    or t1, t1, t2
+    bnez t1, 3f
+
+    li t1, 0xAAAB
+    j 4f
+3:
+    li t1, 0x6667
+4:
+    mul a0, a0, t1
+    li t1, 17
+    srl a0, a0, t1
+5:
+    jr t0
+endfunc
+
+function dc_gen_top_16bpc_rvv, export=1, ext="v,zba,zbb"
+    .variant_cc dav1d_dc_gen_top_16bpc_rvv
+    mv t1, a1
+    srli t5, a1, 1
+    addi a0, a0, 2
+    vsetvli zero, t1, e32, m2, ta, ma
+    vmv.v.x v0, zero
+1:
+    vsetvli t3, t1, e16, m1, tu, ma
+    vle16.v v4, (a0)
+    vwaddu.wv v0, v0, v4
+
+    sh1add a0, t3, a0
+    sub t1, t1, t3
+    bnez t1, 1b
+
+    j dc_gen_sum_up_16bpc_rvv
+endfunc
+
+function dc_gen_left_16bpc_rvv, export=1, ext="v,zba,zbb"
+    .variant_cc dav1d_dc_gen_left_16bpc_rvv
+    mv t1, a1
+    srli t5, a1, 1
+    vsetvli zero, t1, e32, m2, ta, ma
+    vmv.v.x v0, zero
+1:
+    vsetvli t3, t1, e16, m1, tu, ma
+    sub t1, t1, t3
+    slli t3, t3, 1
+    sub a0, a0, t3
+    vle16.v v4, (a0)
+    vwaddu.wv v0, v0, v4
+
+    bnez t1, 1b
+
+    j dc_gen_sum_up_16bpc_rvv
+endfunc
+
+function dc_gen_sum_up_16bpc_rvv, export=1, ext="v,zba,zbb"
+    .variant_cc dav1d_dc_gen_sum_up_16bpc_rvv
+
+    vsetvli zero, a1, e32, m2, ta, ma
+    vmv.s.x v4, t5
+    vredsum.vs v8, v0, v4
+    vmv.x.s t5, v8
+
+    ctz t1, a1
+
+    srl a0, t5, t1
+    jr t0
+endfunc
+
+function cfl_pred_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+1:
+    li t2, 0
+    mv t3, a2
+2:
+    vsetvli t0, t3, e16, m2, ta, ma
+    sh1add t4, t2, a0
+    vle16.v v0, (a5)
+    sh1add a5, t0, a5
+
+    vwmul.vx v4, v0, a6
+    vsetvli zero, zero, e32, m4, ta, mu
+    vneg.v v8, v4
+    vmslt.vx v0, v4, x0
+    vmax.vv v12, v8, v4
+    vssra.vi v16, v12, 6
+    vneg.v v16, v16, v0.t
+    vadd.vx v20, v16, a4
+    vmax.vx v0, v20, zero
+    vmin.vx v0, v0, a7
+    vsetvli zero, zero, e16, m2, ta, ma
+    vnclipu.wi v4, v0, 0
+    vse16.v v4, (t4)
+    add t2, t0, t2
+    sub t3, t3, t0
+    bnez t3, 2b
+    addi a3, a3, -1
+    add a0, a0, a1
+
+    bnez a3, 1b
+    ret
+endfunc
+
+function ipred_cfl_16bpc_rvv, export=1, ext=v
+    mv t6, a0 # dst
+    mv a0, a2 # topleft
+    mv t4, a1 # stride
+    mv a1, a3 # width
+    mv a2, a4 # height
+    jal t0, dc_gen_16bpc_rvv
+    mv a2, a3 # width
+    mv a3, a4 # height
+    mv a4, a0 # dc_get_top
+    mv a0, t6 # dst
+    mv a1, t4 # stride
+    j cfl_pred_16bpc_rvv
+endfunc
+
+function ipred_cfl_128_16bpc_rvv, export=1, ext="v,zba"
+    # dc = (bitdepth_max + 1) >> 1, then just rearrange registers
+    mv a2, a3
+    mv a3, a4
+    addi a4, a7, 1
+    srli a4, a4, 1
+
+    j cfl_pred_16bpc_rvv
+endfunc
+
+function ipred_cfl_top_16bpc_rvv, export=1, ext=v
+    mv t6, a0 # dst
+    mv a0, a2 # topleft
+    mv t4, a1 # stride
+    mv a1, a3 # width
+    jal t0, dc_gen_top_16bpc_rvv
+    mv a3, a4 # height
+    mv a4, a0 # dc_get_top
+    mv a0, t6 # dst
+    mv a2, a1 # width
+    mv a1, t4 # stride
+    j cfl_pred_16bpc_rvv
+endfunc
+
+function ipred_cfl_left_16bpc_rvv, export=1, ext=v
+    mv t6, a0 # dst
+    mv a0, a2 # topleft
+    mv t4, a1 # stride
+    mv a1, a4 # height
+    mv a2, a3 # width
+    jal t0, dc_gen_left_16bpc_rvv
+    mv a3, a4 # height
+    mv a4, a0 # dc_get_top
+    mv a1, t4 # stride
+    mv a0, t6 # dst
+    j cfl_pred_16bpc_rvv
+endfunc
