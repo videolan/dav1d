@@ -231,3 +231,152 @@ function ipred_cfl_left_16bpc_rvv, export=1, ext=v
     mv a0, t6 # dst
     j cfl_pred_16bpc_rvv
 endfunc
+
+function ipred_smooth_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    la t0, dav1d_sm_weights
+    add t1, t0, a3
+    sh1add t2, a3, a2
+    slli t3, a4, 1
+    add t0, t0, a4
+    lhu t2, (t2)
+    sub t3, a2, t3
+    addi a6, a2, -2
+    addi a2, a2, 2
+    lhu t3, (t3)
+1:
+    mv t6, a3
+
+    lhu a7, (a6)
+    lbu t4, (t0)
+2:
+    li a5, 256
+    vsetvli t5, t6, e16, m2, ta, ma
+    vle8.v v2, (t1)
+    add t1, t1, t5
+    vle16.v v4, (a2)
+    sh1add a2, t5, a2
+    sub a5, a5, t4
+
+    vwmul.vx v8, v4, t4
+    mul a5, a5, t3
+
+    vsetvli zero, zero, e32, m4, ta, ma
+    vadd.vx v4, v8, a5
+
+    li a5, 256
+    vzext.vf4 v12, v2
+    vmul.vx v8, v12, a7
+
+    vrsub.vx v12, v12, a5
+    vmacc.vx v8, t2, v12
+    vadd.vv v12, v4, v8
+    vsetvli zero, zero, e32, m4, ta, ma
+
+    sub a5, a3, t6
+    sub t6, t6, t5
+    sh1add a5, a5, a0
+    vsetvli zero, zero, e16, m2, ta, ma
+    vnclipu.wi v2, v12, 9
+    vse16.v v2, (a5)
+
+    bnez t6, 2b
+
+    sub t1, t1, a3
+    slli t6, a3, 1
+    add a0, a0, a1
+    sub a2, a2, t6
+    addi a4, a4, -1
+    addi t0, t0, 1
+    addi a6, a6, -2
+    bnez a4, 1b
+
+    ret
+endfunc
+
+function ipred_smooth_v_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    la t0, dav1d_sm_weights
+    slli t3, a4, 1
+    add t0, t0, a4
+    sub t3, a2, t3
+    addi a2, a2, 2
+    lhu t3, (t3)
+1:
+    mv t6, a3
+
+    lbu t4, (t0)
+2:
+    li a5, 256
+    vsetvli t5, t6, e16, m2, ta, ma
+    vle16.v v4, (a2)
+    sh1add a2, t5, a2
+    sub a5, a5, t4
+
+    vwmul.vx v8, v4, t4
+    mul a5, a5, t3
+
+    vsetvli zero, zero, e32, m4, ta, ma
+    vadd.vx v4, v8, a5
+    vsetvli zero, zero, e32, m4, ta, ma
+
+    sub a5, a3, t6
+    sub t6, t6, t5
+    sh1add a5, a5, a0
+    vsetvli zero, zero, e16, m2, ta, ma
+    vnclipu.wi v2, v4, 8
+    vse16.v v2, (a5)
+
+    bnez t6, 2b
+
+    slli t6, a3, 1
+    add a0, a0, a1
+    sub a2, a2, t6
+    addi a4, a4, -1
+    addi t0, t0, 1
+    bnez a4, 1b
+
+    ret
+endfunc
+
+function ipred_smooth_h_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    la t0, dav1d_sm_weights
+    add t1, t0, a3
+    sh1add t2, a3, a2
+    lhu t2, (t2)
+    addi a6, a2, -2
+1:
+    mv t6, a3
+
+    lhu a7, (a6)
+2:
+    vsetvli t5, t6, e16, m2, ta, ma
+    vle8.v v2, (t1)
+    add t1, t1, t5
+
+    li a5, 256
+    vsetvli zero, zero, e32, m4, ta, ma
+    vzext.vf4 v12, v2
+    vmul.vx v8, v12, a7
+
+    vrsub.vx v12, v12, a5
+    vmacc.vx v8, t2, v12
+
+    sub a5, a3, t6
+    sub t6, t6, t5
+    sh1add a5, a5, a0
+    vsetvli zero, zero, e16, m2, ta, ma
+    vnclipu.wi v2, v8, 8
+    vse16.v v2, (a5)
+
+    bnez t6, 2b
+
+    sub t1, t1, a3
+    add a0, a0, a1
+    addi a4, a4, -1
+    addi a6, a6, -2
+    bnez a4, 1b
+
+    ret
+endfunc
