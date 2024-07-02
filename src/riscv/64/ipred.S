@@ -373,3 +373,34 @@ function ipred_smooth_h_8bpc_rvv, export=1, ext="v,zba"
 
     ret
 endfunc
+
+function pal_pred_8bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    vsetivli t5, 8, e8, m1, ta, ma
+    vle8.v v30, (a2)
+    li t0, 2
+    srli t1, a4, 1
+1:
+    mv t4, a4
+2:
+    vsetvli t5, t1, e8, m1, ta, ma
+    vle8.v v0, (a3)
+    add a3, a3, t5
+    vsrl.vi v2, v0, 4
+    sub t6, a4, t4
+    vand.vi v1, v0, 7
+    add t6, a0, t6
+    vrgather.vv v3, v30, v1
+    addi t2, t6, 1
+    vrgather.vv v4, v30, v2
+    slli t5, t5, 1
+    vsse8.v v3, (t6), t0
+    sub t4, t4, t5
+    vsse8.v v4, (t2), t0
+
+    bnez t4, 2b
+    addi a5, a5, -1
+    add a0, a0, a1
+    bnez a5, 1b
+    ret
+endfunc

@@ -380,3 +380,38 @@ function ipred_smooth_h_16bpc_rvv, export=1, ext="v,zba"
 
     ret
 endfunc
+
+function pal_pred_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    vsetivli t5, 8, e16, m1, ta, ma
+    vle16.v v30, (a2)
+    li t0, 4
+    srli t1, a4, 1
+    li t2, 1
+1:
+    mv t4, a4
+2:
+    vsetvli t5, t1, e8, mf2, ta, ma
+    vle8.v v0, (a3)
+    add a3, a3, t5
+    vand.vi v1, v0, 7
+    sub t6, a4, t4
+    vsrl.vi v2, v0, 4
+    vwmul.vx v4, v1, t2
+    vwmul.vx v6, v2, t2
+    vsetvli zero, zero, e16, m1, ta, ma
+    sh1add t6, t6, a0
+    vrgather.vv v8, v30, v4
+    addi t3, t6, 2
+    vrgather.vv v10, v30, v6
+    slli t5, t5, 1
+    vsse16.v v8, (t6), t0
+    vsse16.v v10, (t3), t0
+
+    sub t4, t4, t5
+    bnez t4, 2b
+    add a0, a0, a1
+    addi a5, a5, -1
+    bnez a5, 1b
+    ret
+endfunc

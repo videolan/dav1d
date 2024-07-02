@@ -38,6 +38,8 @@ decl_angular_ipred_fn(BF(dav1d_ipred_smooth_v, rvv));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_h, rvv));
 
 
+decl_pal_pred_fn(BF(dav1d_pal_pred, rvv));
+
 static ALWAYS_INLINE void intra_pred_dsp_init_riscv(Dav1dIntraPredDSPContext *const c) {
   const unsigned flags = dav1d_get_cpu_flags();
 
@@ -52,6 +54,8 @@ static ALWAYS_INLINE void intra_pred_dsp_init_riscv(Dav1dIntraPredDSPContext *co
     c->intra_pred[SMOOTH_PRED  ] = dav1d_ipred_smooth_8bpc_rvv;
     c->intra_pred[SMOOTH_V_PRED] = dav1d_ipred_smooth_v_8bpc_rvv;
     c->intra_pred[SMOOTH_H_PRED] = dav1d_ipred_smooth_h_8bpc_rvv;
+
+    c->pal_pred = dav1d_pal_pred_8bpc_rvv;
 #elif BITDEPTH == 16
     c->cfl_pred[DC_PRED     ] = dav1d_ipred_cfl_16bpc_rvv;
     c->cfl_pred[DC_128_PRED ] = dav1d_ipred_cfl_128_16bpc_rvv;
@@ -61,5 +65,7 @@ static ALWAYS_INLINE void intra_pred_dsp_init_riscv(Dav1dIntraPredDSPContext *co
     c->intra_pred[SMOOTH_PRED  ] = dav1d_ipred_smooth_16bpc_rvv;
     c->intra_pred[SMOOTH_V_PRED] = dav1d_ipred_smooth_v_16bpc_rvv;
     c->intra_pred[SMOOTH_H_PRED] = dav1d_ipred_smooth_h_16bpc_rvv;
+
+    c->pal_pred = dav1d_pal_pred_16bpc_rvv;
 #endif
 }
