@@ -9479,6 +9479,45 @@ function inv_txfm_add_dct_dct_8x32_8bpc_lsx
 .DCT_DCT_8X32_END:
 endfunc
 
+function inv_txfm_add_identity_identity_8x32_8bpc_lsx
+
+    la.local      t7,       eob_8x32
+    alsl.d        t2,       a1,       a0,     1
+
+.IDENTITY_IDENTITY_EOB_8x32:
+    ld.h          t6,       t7,       0
+    addi.d        t7,       t7,       2
+    vld_x8 a2, 0, 64, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    vreplgr2vr.h  vr23,     zero
+    vst_x8 a2, 0, 64, vr23, vr23, vr23, vr23, vr23, vr23, vr23, vr23
+
+.irp i, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+    vsrari.h       \i,       \i,       1
+.endr
+
+    LSX_TRANSPOSE8x8_H vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7, \
+                   vr16, vr17, vr18, vr19, vr20, vr21, vr22, vr23, \
+                   vr8, vr9, vr10, vr11, vr12, vr13, vr14, vr15
+
+.irp i, vr16, vr17, vr18, vr19, vr20, vr21, vr22, vr23
+    vsrari.h       \i,       \i,       2
+.endr
+
+    VLD_DST_ADD_W8 vr16, vr17, vr18, vr19
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    VLD_DST_ADD_W8 vr20, vr21, vr22, vr23
+
+    alsl.d        a0,       a1,       a0,     2
+    alsl.d        t2,       a1,       a0,     1
+
+    addi.d        a2,       a2,       16
+    bge           a3,       t6,       .IDENTITY_IDENTITY_EOB_8x32
+endfunc
+
 function inv_txfm_add_dct_dct_16x8_8bpc_lsx
     bnez          a3,       .NO_HAS_DCONLY_16x8
 
