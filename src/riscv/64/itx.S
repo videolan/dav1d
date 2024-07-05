@@ -1568,14 +1568,37 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
 1:
   csrw vxrm, zero
   vsetivli zero, 16, e16, m2, ta, ma
-  ld t2, (a2)
-  li t1, 2896*8
+  lh t2, (a2)
+  li t3, 2896*8
+  li t4, 1<<14
+  li t5, 0xFFFF
+  li t6, -0x10000
+
+  sh x0, (a2)
+
+  mul t2, t2, t3
+  add t2, t2, t4
+  srai t2, t2, 15
+  ble t2, t5, 3f
+  mv t2, t5
+3:
+  ble t6, t2, 4f
+  mv t2, t6
+4:
+  addi t2, t2, 2
+  srai t2, t2, 2
+  mul t2, t2, t3
+  add t2, t2, t4
+  srai t2, t2, 15
+  ble t2, t5, 5f
+  mv t2, t5
+5:
+  ble t6, t2, 6f
+  mv t2, t6
+6:
+  addi t2, t2, 8
+  srai t2, t2, 4
   vmv.v.x v24, t2
-  vsmul.vx v24, v24, t1
-  sd x0, (a2)
-  vssra.vi v24, v24, 2
-  vsmul.vx v24, v24, t1
-  vssra.vi v24, v24, 4
 
   vsetvli zero, zero, e8, m1, ta, ma
   add t2, a1, a1
