@@ -367,3 +367,130 @@ function ipred_dc_left_8bpc_lsx
     ipred_splat_dc    a0, a1, a3, a4, t0
 
 endfunc
+
+.macro pixel_set_8bpc dst_ptr, src_ptr, width
+    vldrepl.b      vr0,     \src_ptr, 0
+1:
+    andi           a5,      \width,   64
+    beqz           a5,      2f
+
+    vst            vr0,     \dst_ptr, 0
+    vst            vr0,     \dst_ptr, 16
+    vst            vr0,     \dst_ptr, 32
+    vst            vr0,     \dst_ptr, 48
+    b              6f
+2:
+    andi           a5,      \width,   32
+    beqz           a5,      3f
+
+    vst            vr0,     \dst_ptr, 0
+    vst            vr0,     \dst_ptr, 16
+    b              6f
+3:
+    andi           a5,      \width,   16
+    beqz           a5,      4f
+
+    vst            vr0,     \dst_ptr, 0
+    b              6f
+4:
+    andi           a5,      \width,   8
+    beqz           a5,      5f
+
+    fst.d          f0,      \dst_ptr, 0
+    b              6f
+5:
+    andi           a5,      \width,   4
+    beqz           a5,      6f
+
+    fst.s          f0,      \dst_ptr, 0
+6:
+.endm
+
+// void ipred_h_c(pixel *dst, const ptrdiff_t stride,
+//                const pixel *const topleft,
+//                const int width, const int height, const int a,
+//                const int max_width, const int max_height
+//                HIGHBD_DECL_SUFFIX)
+function ipred_h_8bpc_lsx
+    beqz           a4,      .IPRED_H_END
+.IPRED_H_LOOP:
+    addi.d         a2,      a2,      -1
+
+    pixel_set_8bpc a0, a2, a3
+
+    add.d          a0,      a0,      a1
+    addi.d         a4,      a4,      -1
+    bnez           a4,      .IPRED_H_LOOP
+
+.IPRED_H_END:
+endfunc
+
+.macro pixel_copy_8bpc dst_ptr, src_ptr, width
+1:
+    andi           a5,      \width,   64
+    beqz           a5,      2f
+
+    vld            vr0,     \src_ptr, 0
+    vld            vr1,     \src_ptr, 16
+    vld            vr2,     \src_ptr, 32
+    vld            vr3,     \src_ptr, 48
+
+    vst            vr0,     \dst_ptr, 0
+    vst            vr1,     \dst_ptr, 16
+    vst            vr2,     \dst_ptr, 32
+    vst            vr3,     \dst_ptr, 48
+
+    b              6f
+2:
+    andi           a5,      \width,   32
+    beqz           a5,      3f
+
+    vld            vr0,     \src_ptr, 0
+    vld            vr1,     \src_ptr, 16
+
+    vst            vr0,     \dst_ptr, 0
+    vst            vr1,     \dst_ptr, 16
+
+    b              6f
+3:
+    andi           a5,      \width,   16
+    beqz           a5,      4f
+
+    vld            vr0,     \src_ptr, 0
+    vst            vr0,     \dst_ptr, 0
+
+    b              6f
+4:
+    andi           a5,      \width,   8
+    beqz           a5,      5f
+
+    fld.d          f0,      \src_ptr, 0
+    fst.d          f0,      \dst_ptr, 0
+
+    b              6f
+5:
+    andi           a5,      \width,   4
+    beqz           a5,      6f
+
+    fld.s          f0,      \src_ptr, 0
+    fst.s          f0,      \dst_ptr, 0
+6:
+.endm
+
+// void ipred_v_lsx(pixel *dst, const ptrdiff_t stride,
+//                  const pixel *const topleft,
+//                  const int width, const int height, const int a,
+//                  const int max_width, const int max_height
+//                  HIGHBD_DECL_SUFFIX)
+function ipred_v_8bpc_lsx
+    beqz           a4,      .IPRED_V_END
+    addi.d         a2,      a2,      1
+.IPRED_V_LOOP:
+    pixel_copy_8bpc  a0, a2, a3
+
+    add.d          a0,      a0,      a1
+    addi.d         a4,      a4,      -1
+    bnez           a4,      .IPRED_V_LOOP
+
+.IPRED_V_END:
+endfunc
