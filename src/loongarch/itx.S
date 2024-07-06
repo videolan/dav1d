@@ -9518,6 +9518,203 @@ function inv_txfm_add_identity_identity_8x32_8bpc_lsx
     bge           a3,       t6,       .IDENTITY_IDENTITY_EOB_8x32
 endfunc
 
+.macro fld_x8 src, start, stride, in0, in1, in2, in3, in4, in5, in6, in7
+    fld.d         \in0,     \src,     \start
+    fld.d         \in1,     \src,     \start+(\stride*1)
+    fld.d         \in2,     \src,     \start+(\stride*2)
+    fld.d         \in3,     \src,     \start+(\stride*3)
+    fld.d         \in4,     \src,     \start+(\stride*4)
+    fld.d         \in5,     \src,     \start+(\stride*5)
+    fld.d         \in6,     \src,     \start+(\stride*6)
+    fld.d         \in7,     \src,     \start+(\stride*7)
+.endm
+
+function inv_txfm_add_dct_dct_16x4_8bpc_lsx
+    bnez          a3,       .NO_HAS_DCONLY_16x4
+
+    ld.h          t2,       a2,       0      // dc
+    vldi          vr0,      0x8b5            // 181
+    vreplgr2vr.w  vr1,      t2
+    vldi          vr5,      0x880            // 128
+    vmul.w        vr2,      vr0,      vr1    // dc * 181
+    st.h          zero,     a2,       0
+    vsrari.w      vr2,      vr2,      8      // (dc * 181 + 128) >> 8
+    alsl.d        t2,       a1,       a0,    1
+    vsrari.w      vr2,      vr2,      1      // (dc + rnd) >> shift
+    vldx          vr1,      a0,       a1
+    vmadd.w       vr5,      vr2,      vr0
+    vldx          vr3,      t2,       a1
+    vssrarni.h.w  vr5,      vr5,      12
+    vld           vr0,      a0,       0
+    vld           vr2,      t2,       0
+
+    DST_ADD_W16 vr0, vr1, vr2, vr3, vr5, vr5, vr5, vr5, vr5, vr5, vr5, vr5
+
+    b             .DCT_DCT_16x4_END
+
+.NO_HAS_DCONLY_16x4:
+    addi.d        sp,       sp,       -64
+    fst.d         f24,      sp,       0
+    fst.d         f25,      sp,       8
+    fst.d         f26,      sp,       16
+    fst.d         f27,      sp,       24
+    fst.d         f28,      sp,       32
+    fst.d         f29,      sp,       40
+    fst.d         f30,      sp,       48
+    fst.d         f31,      sp,       56
+
+    fld_x8 a2, 0, 8, f0, f1, f2, f3, f4, f5, f6, f7
+    fld_x8 a2, 64, 8, f19, f24, f25, f26, f27, f28, f29, f30
+
+    vreplgr2vr.h  vr23,     zero
+    vst_x8 a2, 0, 16, vr23, vr23, vr23, vr23, vr23, vr23, vr23, vr23
+
+    la.local      t0,       idct_coeffs
+
+    inv_dct16_lsx no_rect2
+
+    vsrari.h      vr8,      vr20,     1
+    vsrari.h      vr19,     vr21,     1
+    vsrari.h      vr11,     vr23,     1
+.irp i, vr22, vr18, vr17, vr28, vr14, vr15, vr16, \
+    vr27, vr30, vr29, vr26, vr25, vr24
+    vsrari.h      \i,       \i,       1
+.endr
+
+    LSX_TRANSPOSE4x4_H vr22, vr18, vr17, vr28, vr22, vr18, vr17, vr28, vr13, vr31
+
+    LSX_TRANSPOSE4x4_H vr8, vr14, vr15, vr16, vr8, vr14, vr15, vr16, vr13, vr31
+
+    vilvl.d       vr28,     vr16,     vr28
+    vilvl.d       vr18,     vr14,     vr18
+    vilvl.d       vr17,     vr15,     vr17
+    vilvl.d       vr16,     vr8,      vr22
+
+    la.local      t0,       idct_coeffs
+
+    inv_dct4_lsx vr16, vr18, vr17, vr28, vr16, vr18, vr17, vr28
+
+    LSX_TRANSPOSE4x4_H vr27, vr30, vr11, vr19, vr27, vr30, vr11, vr19, vr13, vr31
+
+    LSX_TRANSPOSE4x4_H vr29, vr26, vr25, vr24, vr29, vr26, vr25, vr24, vr13, vr31
+
+    vilvl.d       vr27,     vr29,     vr27
+    vilvl.d       vr30,     vr26,     vr30
+    vilvl.d       vr15,     vr25,     vr11
+    vilvl.d       vr19,     vr24,     vr19
+
+    inv_dct4_lsx vr27, vr30, vr15, vr19, vr27, vr30, vr15, vr19
+
+    alsl.d        t2,       a1,       a0,    1
+    VLD_DST_ADD_W16 vr16, vr27, vr18, vr30, vr17, vr15, vr28, vr19, 4
+
+    fld.d         f24,      sp,       0
+    fld.d         f25,      sp,       8
+    fld.d         f26,      sp,       16
+    fld.d         f27,      sp,       24
+    fld.d         f28,      sp,       32
+    fld.d         f29,      sp,       40
+    fld.d         f30,      sp,       48
+    fld.d         f31,      sp,       56
+    addi.d        sp,       sp,       64
+.DCT_DCT_16x4_END:
+endfunc
+
+.macro LSX_TRANSPOSE8x4_H in0, in1, in2, in3, in4, in5, in6, in7, out0, out1, \
+                          out2, out3, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5
+
+    vilvl.h       \tmp0,    \in1,     \in0
+    vilvl.h       \tmp1,    \in3,     \in2
+    vilvl.w       \tmp2,    \tmp1,    \tmp0
+    vilvh.w       \tmp3,    \tmp1,    \tmp0
+    vilvl.h       \tmp0,    \in5,     \in4
+    vilvl.h       \tmp1,    \in7,     \in6
+    vilvl.w       \tmp4,    \tmp1,    \tmp0
+    vilvh.w       \tmp5,    \tmp1,    \tmp0
+    vilvl.d       \out0,    \tmp4,    \tmp2
+    vilvh.d       \out1,    \tmp4,    \tmp2
+    vilvl.d       \out2,    \tmp5,    \tmp3
+    vilvh.d       \out3,    \tmp5,    \tmp3
+.endm
+
+function inv_txfm_add_identity_identity_16x4_8bpc_lsx
+    vld_x8 a2, 0, 16, vr0, vr1, vr2, vr3, vr8, vr9, vr10, vr11
+
+    vreplgr2vr.h  vr23,     zero
+    vst_x8 a2, 0, 16, vr23, vr23, vr23, vr23, vr23, vr23, vr23, vr23
+
+    li.w          t0,       1697
+    vreplgr2vr.w  vr20,     t0
+
+.irp i, vr0, vr1, vr2, vr3, vr8, vr9, vr10, vr11
+    inv_identity16_lsx \i, \i, vr20, \i, \i
+.endr
+
+.irp i, vr0, vr1, vr2, vr3, vr8, vr9, vr10, vr11
+    vsrari.h      \i,       \i,       1
+.endr
+
+    inv_identity4_lsx_x2 vr0, vr1, vr20, vr0, vr1, vr14, vr15
+    inv_identity4_lsx_x2 vr2, vr3, vr20, vr2, vr3, vr16, vr17
+    inv_identity4_lsx_x2 vr8, vr9, vr20, vr8, vr9, vr8, vr9
+    inv_identity4_lsx_x2 vr10, vr11, vr20, vr10, vr11, vr18, vr19
+
+    vbsrl.v       vr4,      vr14,     8
+    vbsrl.v       vr5,      vr15,     8
+    vbsrl.v       vr6,      vr16,     8
+    vbsrl.v       vr7,      vr17,     8
+
+    LSX_TRANSPOSE8x4_H vr14, vr4, vr15, vr5, vr16, vr6, vr17, vr7, vr14, vr15, \
+                       vr16, vr17, vr20, vr21, vr22, vr23, vr12, vr13
+
+    vbsrl.v       vr4,      vr8,      8
+    vbsrl.v       vr5,      vr9,      8
+    vbsrl.v       vr6,      vr18,     8
+    vbsrl.v       vr7,      vr19,     8
+
+    LSX_TRANSPOSE8x4_H vr8, vr4, vr9, vr5, vr18, vr6, vr19, vr7, vr8, vr9, \
+                       vr18, vr19, vr20, vr21, vr22, vr23, vr12, vr13
+
+    alsl.d        t2,       a1,       a0,    1
+    VLD_DST_ADD_W16 vr14, vr8, vr15, vr9, vr16, vr18, vr17, vr19, 4
+
+endfunc
+
+function inv_txfm_add_adst_dct_16x4_8bpc_lsx
+    fld_x8 a2, 0, 8, f0, f1, f2, f3, f4, f5, f6, f7
+    fld_x8 a2, 64, 8, f8, f9, f10, f11, f12, f13, f14, f15
+
+    vreplgr2vr.h  vr23,     zero
+    vst_x8 a2, 0, 16, vr23, vr23, vr23, vr23, vr23, vr23, vr23, vr23
+
+    inv_adst16_lsx , ,
+
+.irp i, vr1,  vr0,  vr19,  vr17,  vr3,   vr9,   vr13,  vr15
+    vsrari.h      \i,       \i,       1
+.endr
+
+    LSX_TRANSPOSE8x4_H vr1, vr0, vr19, vr17, vr3, vr9, vr13, vr15, vr13, vr15, \
+                       vr17, vr19, vr20, vr21, vr22, vr23, vr12, vr16
+
+    vsrari.h      vr14,     vr14,     1
+    vsrari.h      vr18,     vr18,     1
+    vsrari.h      vr2,      vr2,      1
+    vsrari.h      vr0,      vr5,      1
+    vsrari.h      vr1,      vr7,      1
+    vsrari.h      vr3,      vr4,      1
+    vsrari.h      vr11,     vr8,      1
+    vsrari.h      vr10,     vr10,     1
+
+    LSX_TRANSPOSE8x4_H vr14, vr18, vr2, vr0, vr1, vr3, vr11, vr10, vr0, vr1, \
+                       vr2, vr3, vr20, vr21, vr22, vr23, vr12, vr16
+
+    inv_dct4_lsx vr13, vr15, vr17, vr19, vr16, vr17, vr18, vr19
+    inv_dct4_lsx vr0, vr1, vr2, vr3, vr20, vr21, vr22, vr23
+
+    alsl.d        t2,       a1,       a0,    1
+    VLD_DST_ADD_W16 vr20, vr16, vr21, vr17, vr22, vr18, vr23, vr19, 4
+endfunc
+
 function inv_txfm_add_dct_dct_16x8_8bpc_lsx
     bnez          a3,       .NO_HAS_DCONLY_16x8
 
@@ -9527,6 +9724,7 @@ function inv_txfm_add_dct_dct_16x8_8bpc_lsx
     vldi          vr5,      0x880            // 128
     vmul.w        vr2,      vr0,      vr1    // dc * 181
     st.h          zero,     a2,       0
+
     vsrari.w      vr2,      vr2,      8      // (dc * 181 + 128) >> 8
     alsl.d        t2,       a1,       a0,    1
     vmul.w        vr2,      vr2,      vr0
