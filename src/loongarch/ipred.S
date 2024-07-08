@@ -494,3 +494,338 @@ function ipred_v_8bpc_lsx
 
 .IPRED_V_END:
 endfunc
+
+// void ipred_paeth_lsx(pixel *dst, const ptrdiff_t stride,
+//                      const pixel *const tl_ptr,
+//                      const int width, const int height, const int a,
+//                      const int max_width, const int max_height
+//                      HIGHBD_DECL_SUFFIX)
+function ipred_paeth_8bpc_lsx
+    vldrepl.b      vr0,     a2,      0    //topleft
+    vsllwil.hu.bu  vr0,     vr0,     0
+    or             a6,      a2,      a2
+    addi.d         a7,      a2,      1
+
+.IPRED_PAETH_H_LOOP:
+    addi.d         a6,      a6,      -1
+    vldrepl.b      vr1,     a6,      0   //left
+    vsllwil.hu.bu  vr1,     vr1,     0
+
+.IPRED_PAETH_W_LOOP64:
+    andi           a5,      a3,      64
+    beqz           a5,      .IPRED_PAETH_W_LOOP32
+
+    vld            vr2,     a7,      0   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      0
+
+    vld            vr2,     a7,      16   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      16
+
+    vld            vr2,     a7,      32   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      32
+
+    vld            vr2,     a7,      48   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      48
+
+    b              .IPRED_PAETH_W_LOOPEND
+
+.IPRED_PAETH_W_LOOP32:
+    andi           a5,      a3,      32
+    beqz           a5,      .IPRED_PAETH_W_LOOP16
+
+    vld            vr2,     a7,      0   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      0
+
+    vld            vr2,     a7,      16   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      16
+
+    b              .IPRED_PAETH_W_LOOPEND
+
+.IPRED_PAETH_W_LOOP16:
+    andi           a5,      a3,      16
+    beqz           a5,      .IPRED_PAETH_W_LOOP8
+
+    vld            vr2,     a7,      0   //top
+    vpermi.w       vr9,     vr2,     0x0e
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr9,     vr9,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+    vabsd.hu       vr10,    vr0,     vr9
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vadd.h         vr11,    vr1,     vr9
+    vabsd.hu       vr6,     vr3,     vr6  //tldiff
+    vabsd.hu       vr11,    vr3,     vr11 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+
+    vsle.hu        vr12,    vr5,     vr11
+    vbitsel.v      vr7,     vr0,     vr9,    vr12
+    vsle.hu        vr12,    vr10,    vr5
+    vsle.hu        vr8,     vr10,    vr11
+    vand.v         vr12,    vr12,    vr8
+    vbitsel.v      vr12,    vr7,     vr1,    vr12
+    vsrlni.b.h     vr12,    vr12,    0
+
+    vpermi.w       vr12,    vr3,     0x44
+
+    vst            vr12,    a0,      0
+
+    b              .IPRED_PAETH_W_LOOPEND
+
+.IPRED_PAETH_W_LOOP8:
+    andi           a5,      a3,      8
+    beqz           a5,      .IPRED_PAETH_W_LOOP4
+
+    fld.d          f2,      a7,      0   //top
+    vsllwil.hu.bu  vr2,     vr2,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vabsd.hu       vr6,     vr3,     vr6 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+    fst.d          f3,      a0,      0
+
+    b              .IPRED_PAETH_W_LOOPEND
+
+.IPRED_PAETH_W_LOOP4:
+    andi           a5,      a3,      4
+    beqz           a5,      .IPRED_PAETH_W_LOOPEND
+
+    fld.s          f2,      a7,      0   //top
+    vsllwil.hu.bu  vr2,     vr2,     0
+
+    vabsd.hu       vr5,     vr0,     vr1  //tdiff
+    vabsd.hu       vr4,     vr0,     vr2  //ldiff
+
+    vadd.h         vr3,     vr0,     vr0
+    vadd.h         vr6,     vr1,     vr2
+    vabsd.hu       vr6,     vr3,     vr6 //tldiff
+
+    vsle.hu        vr3,     vr5,     vr6
+    vbitsel.v      vr7,     vr0,     vr2,    vr3
+    vsle.hu        vr3,     vr4,     vr5
+    vsle.hu        vr8,     vr4,     vr6
+    vand.v         vr3,     vr3,     vr8
+    vbitsel.v      vr3,     vr7,     vr1,    vr3
+    vsrlni.b.h     vr3,     vr3,     0
+    fst.s          f3,      a0,      0
+
+    b              .IPRED_PAETH_W_LOOPEND
+
+.IPRED_PAETH_W_LOOPEND:
+    add.d         a0,       a0,      a1
+    addi.d        a4,       a4,      -1
+    bnez          a4,       .IPRED_PAETH_H_LOOP
+endfunc
