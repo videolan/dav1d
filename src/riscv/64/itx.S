@@ -1606,34 +1606,16 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
 2:
   add t0, a0, a1
   vle8.v v16, (a0)
-  add t1, a0, t2
   vle8.v v17, (t0)
-  add t0, t0, t2
-  vle8.v v18, (t1)
-  add t1, t1, t2
-  vle8.v v19, (t0)
-  add t0, t0, t2
-  vle8.v v20, (t1)
-  add t1, t1, t2
-  vle8.v v21, (t0)
-  add t0, t0, t2
-  vle8.v v22, (t1)
-  vle8.v v23, (t0)
 
   vwaddu.wv v0, v24, v16
   vwaddu.wv v2, v24, v17
-  vwaddu.wv v4, v24, v18
-  vwaddu.wv v6, v24, v19
-  vwaddu.wv v8, v24, v20
-  vwaddu.wv v10, v24, v21
-  vwaddu.wv v12, v24, v22
-  vwaddu.wv v14, v24, v23
 
-  addi t3, t3, -8 # loop counter
+  addi t3, t3, -2 # loop counter
 
 
   vsetvli zero, zero, e16, m2, ta, ma
-.irp i, 0, 2, 4, 6, 8, 10, 12, 14
+.irp i, 0, 2
   vmax.vx v\i, v\i, zero
 .endr
 
@@ -1641,30 +1623,12 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
 
   vnclipu.wi  v16, v0, 0
   vnclipu.wi  v17, v2, 0
-  vnclipu.wi  v18, v4, 0
-  vnclipu.wi  v19, v6, 0
-  vnclipu.wi  v20, v8, 0
-  vnclipu.wi  v21, v10, 0
-  vnclipu.wi  v22, v12, 0
-  vnclipu.wi  v23, v14, 0
 
   add t0, a0, a1
   vse8.v v16, (a0)
-  add t1, a0, t2
+  add a0, a0, t2
   vse8.v v17, (t0)
-  add t0, t0, t2
-  vse8.v v18, (t1)
-  add t1, t1, t2
-  vse8.v v19, (t0)
-  add t0, t0, t2
-  vse8.v v20, (t1)
-  add t1, t1, t2
-  vse8.v v21, (t0)
-  add t0, t0, t2
-  vse8.v v22, (t1)
-  vse8.v v23, (t0)
 
-  add a0, t0, a1
   bnez t3, 2b
 
   ret
