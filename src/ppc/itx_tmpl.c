@@ -162,6 +162,36 @@
     cd = vec_packsu(cds, cds); \
 }
 
+#define APPLY_COEFF_16x4(a, b, c, d, \
+                         c00c01, c02c03, c04c05, c06c07, \
+                         c08c09, c10c11, c12c13, c14c15) \
+{ \
+    i16x8 ah = u8h_to_i16(a); \
+    i16x8 al = u8l_to_i16(a); \
+    i16x8 bh = u8h_to_i16(b); \
+    i16x8 bl = u8l_to_i16(b); \
+    i16x8 ch = u8h_to_i16(c); \
+    i16x8 cl = u8l_to_i16(c); \
+    i16x8 dh = u8h_to_i16(d); \
+    i16x8 dl = u8l_to_i16(d); \
+    SCALE_ROUND_4(c00c01, c02c03, c04c05, c06c07, vec_splat_s16(8), vec_splat_u16(4)) \
+    SCALE_ROUND_4(c08c09, c10c11, c12c13, c14c15, vec_splat_s16(8), vec_splat_u16(4)) \
+ \
+    ah = vec_adds(ah, c00c01); \
+    al = vec_adds(al, c02c03); \
+    bh = vec_adds(bh, c04c05); \
+    bl = vec_adds(bl, c06c07); \
+    ch = vec_adds(ch, c08c09); \
+    cl = vec_adds(cl, c10c11); \
+    dh = vec_adds(dh, c12c13); \
+    dl = vec_adds(dl, c14c15); \
+ \
+    a = vec_packsu(ah, al); \
+    b = vec_packsu(bh, bl); \
+    c = vec_packsu(ch, cl); \
+    d = vec_packsu(dh, dl); \
+}
+
 #define IDCT_4_INNER(c0, c1, c2, c3) \
 { \
     i32x4 o0 = vec_add(c0, c2); \
@@ -679,10 +709,10 @@ inv_txfm_fn4x4(flipadst, flipadst)
     ADD_SUB_PAIR(r0, r1, ca, cb, va, vb)
 
 #define SCALE_ROUND_4(a, b, c, d, rnd, shift) \
-    a = vec_add(a, rnd); \
-    b = vec_add(b, rnd); \
-    c = vec_add(c, rnd); \
-    d = vec_add(d, rnd); \
+    a = vec_adds(a, rnd); \
+    b = vec_adds(b, rnd); \
+    c = vec_adds(c, rnd); \
+    d = vec_adds(d, rnd); \
     a = vec_sra(a, shift); \
     b = vec_sra(b, shift); \
     c = vec_sra(c, shift); \
@@ -1254,6 +1284,34 @@ inv_txfm_fn8x8_identity(identity)
     IDENTITY_16_V(c14c15) \
 }
 
+#define IDENTITY_16_4_I32(a, b, c, d) \
+{ \
+    i32x4 a2 = vec_add(a, a); \
+    i32x4 b2 = vec_add(b, b); \
+    i32x4 c2 = vec_add(c, c); \
+    i32x4 d2 = vec_add(d, d); \
+    MUL_4_INPLACE(a, b, c, d, v1697) \
+    SCALE_ROUND_4(a, b, c, d, v1024, vec_splat_u32(11)); \
+    a = vec_add(a2, a); \
+    b = vec_add(b2, b); \
+    c = vec_add(c2, c); \
+    d = vec_add(d2, d); \
+}
+
+
+#define identity_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                       c08, c09, c10, c11, c12, c13, c14, c15, \
+                       c00c01, c02c03, c04c05, c06c07, \
+                       c08c09, c10c11, c12c13, c14c15) \
+{ \
+    DECLARE_SPLAT_I32(1697) \
+    DECLARE_SPLAT_I32(1024) \
+    IDENTITY_16_4_I32(c00, c01, c02, c03) \
+    IDENTITY_16_4_I32(c04, c05, c06, c07) \
+    IDENTITY_16_4_I32(c08, c09, c10, c11) \
+    IDENTITY_16_4_I32(c12, c13, c14, c15) \
+}
+
 #define identity_16_out(c00, c01, c02, c03, c04, c05, c06, c07, \
                         c08, c09, c10, c11, c12, c13, c14, c15, \
                         c00c01, c02c03, c04c05, c06c07, \
@@ -1352,7 +1410,7 @@ inv_txfm_fn8x8_identity(identity)
 \
     i16x8 c00c03, c01c02, c07c04, c06c05, c08c11, c09c10, c14c13, c15c12; \
     IDCT_16_INNER(c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, \
-                  c00c03, c01c02, c07c04, c06c05, c08c11, c09c10, c14c13, c15c12); \
+                  c00c03, c01c02, c07c04, c06c05, c08c11, c09c10, c14c13, c15c12) \
     c00c01 = (i16x8)vec_mergeh((u64x2)c00c03, (u64x2)c01c02); \
     c02c03 = (i16x8)vec_mergel((u64x2)c01c02, (u64x2)c00c03); \
     c04c05 = (i16x8)vec_mergel((u64x2)c07c04, (u64x2)c06c05); \
@@ -1361,6 +1419,21 @@ inv_txfm_fn8x8_identity(identity)
     c10c11 = (i16x8)vec_mergel((u64x2)c09c10, (u64x2)c08c11); \
     c12c13 = (i16x8)vec_mergel((u64x2)c15c12, (u64x2)c14c13); \
     c14c15 = (i16x8)vec_mergeh((u64x2)c14c13, (u64x2)c15c12); \
+
+#define dct_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                  c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00c03, c01c02, c07c04, c06c05, c08c11, c09c10, c14c13, c15c12) \
+\
+    IDCT_16_INNER(c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00c03, c01c02, c07c04, c06c05, c08c11, c09c10, c14c13, c15c12) \
+    UNPACK_PAIR_I16_I32(c00, c03, c00c03) \
+    UNPACK_PAIR_I16_I32(c01, c02, c01c02) \
+    UNPACK_PAIR_I16_I32(c07, c04, c07c04) \
+    UNPACK_PAIR_I16_I32(c06, c05, c06c05) \
+    UNPACK_PAIR_I16_I32(c08, c11, c08c11) \
+    UNPACK_PAIR_I16_I32(c09, c10, c09c10) \
+    UNPACK_PAIR_I16_I32(c14, c13, c14c13) \
+    UNPACK_PAIR_I16_I32(c15, c12, c15c12) \
 
 
 #define dct_4x4_in(cA0, cA1, cA2, cA3, cB0, cB1, cB2, cB3, \
@@ -1371,6 +1444,41 @@ inv_txfm_fn8x8_identity(identity)
     dct_4_in(cC0, cC1, cC2, cC3, a2b2, c2d2) \
     dct_4_in(cD0, cD1, cD2, cD3, a3b3, c3d3)
 
+
+#define PACK_4x4(c00, c01, c02, c03, \
+                 c04, c05, c06, c07, \
+                 c08, c09, c10, c11, \
+                 c12, c13, c14, c15, \
+                 c00c01, c02c03, c04c05, c06c07, \
+                 c08c09, c10c11, c12c13, c14c15) \
+{ \
+    c00c01 = vec_packs(c00, c04); c02c03 = vec_packs(c08, c12); \
+    c04c05 = vec_packs(c01, c05); c06c07 = vec_packs(c09, c13); \
+    c08c09 = vec_packs(c02, c06); c10c11 = vec_packs(c10, c14); \
+    c12c13 = vec_packs(c03, c07); c14c15 = vec_packs(c11, c15); \
+}
+
+
+
+#define dct_4x4_out(c00, c01, c02, c03, \
+                    c04, c05, c06, c07, \
+                    c08, c09, c10, c11, \
+                    c12, c13, c14, c15, \
+                    c00c01, c02c03, c04c05, c06c07, \
+                    c08c09, c10c11, c12c13, c14c15) \
+{ \
+    IDCT_4_INNER(c00, c01, c02, c03) \
+    IDCT_4_INNER(c04, c05, c06, c07) \
+    IDCT_4_INNER(c08, c09, c10, c11) \
+    IDCT_4_INNER(c12, c13, c14, c15) \
+\
+    PACK_4x4(c00, c01, c02, c03, \
+             c04, c05, c06, c07, \
+             c08, c09, c10, c11, \
+             c12, c13, c14, c15, \
+             c00c01, c02c03, c04c05, c06c07, \
+             c08c09, c10c11, c12c13, c14c15) \
+}
 
 #define IDENTITY_4_I32(a, b, c, d) \
 { \
@@ -1390,6 +1498,25 @@ inv_txfm_fn8x8_identity(identity)
     IDENTITY_4_I32(cD0, cD1, cD2, cD3) \
 }
 
+#define identity_4x4_out(c00, c01, c02, c03, \
+                         c04, c05, c06, c07, \
+                         c08, c09, c10, c11, \
+                         c12, c13, c14, c15, \
+                         c00c01, c02c03, c04c05, c06c07, \
+                         c08c09, c10c11, c12c13, c14c15) \
+{ \
+    PACK_4x4(c00, c01, c02, c03, \
+             c04, c05, c06, c07, \
+             c08, c09, c10, c11, \
+             c12, c13, c14, c15, \
+             c00c01, c02c03, c04c05, c06c07, \
+             c08c09, c10c11, c12c13, c14c15) \
+    IDENTITY_4(c00c01, c02c03) \
+    IDENTITY_4(c04c05, c06c07) \
+    IDENTITY_4(c08c09, c10c11) \
+    IDENTITY_4(c12c13, c14c15) \
+}
+
 #define adst_4x4_in(cA0, cA1, cA2, cA3, cB0, cB1, cB2, cB3, \
                     cC0, cC1, cC2, cC3, cD0, cD1, cD2, cD3, \
                     a0b0, c0d0, a1b1, c1d1, a2b2, c2d2, a3b3, c3d3) \
@@ -1398,6 +1525,26 @@ inv_txfm_fn8x8_identity(identity)
     adst_4_in(cC0, cC1, cC2, cC3, a2b2, c2d2) \
     adst_4_in(cD0, cD1, cD2, cD3, a3b3, c3d3)
 
+#define adst_4x4_out(c00, c01, c02, c03, \
+                     c04, c05, c06, c07, \
+                     c08, c09, c10, c11, \
+                     c12, c13, c14, c15, \
+                     c00c01, c02c03, c04c05, c06c07, \
+                     c08c09, c10c11, c12c13, c14c15) \
+{ \
+    ADST_INNER_4(c00, c01, c02, c03, c00, c01, c02, c03) \
+    ADST_INNER_4(c04, c05, c06, c07, c04, c05, c06, c07) \
+    ADST_INNER_4(c08, c09, c10, c11, c08, c09, c10, c11) \
+    ADST_INNER_4(c12, c13, c14, c15, c12, c13, c14, c15) \
+\
+    PACK_4x4(c00, c01, c02, c03, \
+             c04, c05, c06, c07, \
+             c08, c09, c10, c11, \
+             c12, c13, c14, c15, \
+             c00c01, c02c03, c04c05, c06c07, \
+             c08c09, c10c11, c12c13, c14c15) \
+}
+
 #define flipadst_4x4_in(cA0, cA1, cA2, cA3, cB0, cB1, cB2, cB3, \
                         cC0, cC1, cC2, cC3, cD0, cD1, cD2, cD3, \
                         a0b0, c0d0, a1b1, c1d1, a2b2, c2d2, a3b3, c3d3) \
@@ -1405,6 +1552,26 @@ inv_txfm_fn8x8_identity(identity)
     flipadst_4_in(cB0, cB1, cB2, cB3, a1b1, c1d1) \
     flipadst_4_in(cC0, cC1, cC2, cC3, a2b2, c2d2) \
     flipadst_4_in(cD0, cD1, cD2, cD3, a3b3, c3d3)
+
+#define flipadst_4x4_out(c00, c01, c02, c03, \
+                         c04, c05, c06, c07, \
+                         c08, c09, c10, c11, \
+                         c12, c13, c14, c15, \
+                         c00c01, c02c03, c04c05, c06c07, \
+                         c08c09, c10c11, c12c13, c14c15) \
+{ \
+    ADST_INNER_4(c00, c01, c02, c03, c03, c02, c01, c00) \
+    ADST_INNER_4(c04, c05, c06, c07, c07, c06, c05, c04) \
+    ADST_INNER_4(c08, c09, c10, c11, c11, c10, c09, c08) \
+    ADST_INNER_4(c12, c13, c14, c15, c15, c14, c13, c12) \
+\
+    PACK_4x4(c00, c01, c02, c03, \
+             c04, c05, c06, c07, \
+             c08, c09, c10, c11, \
+             c12, c13, c14, c15, \
+             c00c01, c02c03, c04c05, c06c07, \
+             c08c09, c10c11, c12c13, c14c15) \
+}
 
 #define ADST_INNER_16(c00, c01, c02, c03, c04, c05, c06, c07, \
                       c08, c09, c10, c11, c12, c13, c14, c15, \
@@ -1553,6 +1720,15 @@ inv_txfm_fn8x8_identity(identity)
     o13 = -o13; \
     o15 = -o15; \
 
+#define adst_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                   c08, c09, c10, c11, c12, c13, c14, c15, \
+                   c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15) \
+{ \
+    ADST_INNER_16(c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00c01, c02c03, c04c05, c06c07) \
+}
+
 #define adst_16_out(c00, c01, c02, c03, c04, c05, c06, c07, \
                     c08, c09, c10, c11, c12, c13, c14, c15, \
                     c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15) \
@@ -1563,6 +1739,15 @@ inv_txfm_fn8x8_identity(identity)
     PACK_8(c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15, \
            c00, c02, c04, c06, c08, c10, c12, c14, \
            c01, c03, c05, c07, c09, c11, c13, c15) \
+}
+
+#define flipadst_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                       c08, c09, c10, c11, c12, c13, c14, c15, \
+                       c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15) \
+{ \
+    ADST_INNER_16(c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c15, c14, c13, c12, c11, c10, c09, c08, c07, c06, c05, c04, c03, c02, c01, c00, \
+                  c00c01, c02c03, c04c05, c06c07) \
 }
 
 #define flipadst_16_out(c00, c01, c02, c03, c04, c05, c06, c07, \
@@ -1699,6 +1884,192 @@ inv_txfm_fn4x16(identity, identity)
 inv_txfm_fn4x16(adst,     adst    )
 inv_txfm_fn4x16(flipadst, flipadst)
 
+#define STORE_16(dst, stride, l0, l1, l2, l3) \
+{ \
+    uint8_t *dst##2 = dst; \
+    vec_xst(l0, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l1, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l2, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l3, 0, dst##2); \
+}
 
+void dav1d_inv_txfm_add_dct_dct_16x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride,
+                                               int16_t *const coeff, const int eob)
+{
+    i16x8 v = vec_splats((int16_t)(2896*8));
+
+    if (eob < 1) {
+        int dc = coeff[0];
+        i16x8 vdc = vec_splats((int16_t)dc);
+        coeff[0] = 0;
+        vdc = vec_mradds(vdc, v, vec_splat_s16(1));
+        vdc = vec_sra(vdc, vec_splat_u16(1));
+        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
+        vdc = vec_sra(vdc, vec_splat_u16(4));
+
+        LOAD_DECLARE_4(dst, stride, a, b, c, d)
+
+        i16x8 ah = u8h_to_i16(a);
+        i16x8 bh = u8h_to_i16(b);
+        i16x8 ch = u8h_to_i16(c);
+        i16x8 dh = u8h_to_i16(d);
+        i16x8 al = u8l_to_i16(a);
+        i16x8 bl = u8l_to_i16(b);
+        i16x8 cl = u8l_to_i16(c);
+        i16x8 dl = u8l_to_i16(d);
+
+        ah = vec_adds(ah, vdc);
+        bh = vec_adds(bh, vdc);
+        ch = vec_adds(ch, vdc);
+        dh = vec_adds(dh, vdc);
+        al = vec_adds(al, vdc);
+        bl = vec_adds(bl, vdc);
+        cl = vec_adds(cl, vdc);
+        dl = vec_adds(dl, vdc);
+
+        a = vec_packsu(ah, al);
+        b = vec_packsu(bh, bl);
+        c = vec_packsu(ch, cl);
+        d = vec_packsu(dh, dl);
+
+        STORE_16(dst, stride, a, b, c, d)
+
+        return;
+    }
+
+    LOAD_DECLARE_2_I16(coeff, c00c01, c02c03) \
+    LOAD_DECLARE_2_I16(coeff+16, c04c05, c06c07) \
+    LOAD_DECLARE_2_I16(coeff+32, c08c09, c10c11) \
+    LOAD_DECLARE_2_I16(coeff+48, c12c13, c14c15) \
+    UNPACK_DECLARE_4_I16_I32(c00c01, c02c03, c00, c01, c02, c03)
+    UNPACK_DECLARE_4_I16_I32(c04c05, c06c07, c04, c05, c06, c07)
+    UNPACK_DECLARE_4_I16_I32(c08c09, c10c11, c08, c09, c10, c11)
+    UNPACK_DECLARE_4_I16_I32(c12c13, c14c15, c12, c13, c14, c15)
+
+    dct_16_in(c00, c01, c02, c03, c04, c05, c06, c07,
+              c08, c09, c10, c11, c12, c13, c14, c15,
+              c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15)
+    memset(coeff, 0, sizeof(*coeff) * 16 * 4);
+    SCALE_ROUND_4(c00, c01, c02, c03, vec_splat_s32(1), vec_splat_u32(1))
+    SCALE_ROUND_4(c04, c05, c06, c07, vec_splat_s32(1), vec_splat_u32(1))
+    SCALE_ROUND_4(c08, c09, c10, c11, vec_splat_s32(1), vec_splat_u32(1))
+    SCALE_ROUND_4(c12, c13, c14, c15, vec_splat_s32(1), vec_splat_u32(1))
+
+    TRANSPOSE4_I32(c00, c01, c02, c03);
+    TRANSPOSE4_I32(c04, c05, c06, c07);
+    TRANSPOSE4_I32(c08, c09, c10, c11);
+    TRANSPOSE4_I32(c12, c13, c14, c15);
+
+    dct_4x4_out(c00, c01, c02, c03,
+                c04, c05, c06, c07,
+                c08, c09, c10, c11,
+                c12, c13, c14, c15,
+                c00c01, c02c03, c04c05, c06c07,
+                c08c09, c10c11, c12c13, c14c15)
+
+    LOAD_DECLARE_4(dst, stride, l0, l1, l2, l3)
+
+    APPLY_COEFF_16x4(l0, l1, l2, l3,
+                     c00c01, c02c03, c04c05, c06c07,
+                     c08c09, c10c11, c12c13, c14c15)
+
+    STORE_16(dst, stride, l0, l1, l2, l3)
+}
+
+#define inv_txfm_fn16x4(type1, type2) \
+void dav1d_inv_txfm_add_##type1##_##type2##_16x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride, \
+                                                          int16_t *const coeff, const int eob) \
+{ \
+    LOAD_DECLARE_2_I16(coeff, c00c01, c02c03) \
+    LOAD_DECLARE_2_I16(coeff+16, c04c05, c06c07) \
+    LOAD_DECLARE_2_I16(coeff+32, c08c09, c10c11) \
+    LOAD_DECLARE_2_I16(coeff+48, c12c13, c14c15) \
+    UNPACK_DECLARE_4_I16_I32(c00c01, c02c03, c00, c01, c02, c03) \
+    UNPACK_DECLARE_4_I16_I32(c04c05, c06c07, c04, c05, c06, c07) \
+    UNPACK_DECLARE_4_I16_I32(c08c09, c10c11, c08, c09, c10, c11) \
+    UNPACK_DECLARE_4_I16_I32(c12c13, c14c15, c12, c13, c14, c15) \
+    type1##_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                  c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15) \
+    memset(coeff, 0, sizeof(*coeff) * 16 * 4); \
+    SCALE_ROUND_4(c00, c01, c02, c03, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c04, c05, c06, c07, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c08, c09, c10, c11, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c12, c13, c14, c15, vec_splat_s32(1), vec_splat_u32(1)) \
+    TRANSPOSE4_I32(c00, c01, c02, c03); \
+    TRANSPOSE4_I32(c04, c05, c06, c07); \
+    TRANSPOSE4_I32(c08, c09, c10, c11); \
+    TRANSPOSE4_I32(c12, c13, c14, c15); \
+    type2##_4x4_out(c00, c01, c02, c03, \
+                    c04, c05, c06, c07, \
+                    c08, c09, c10, c11, \
+                    c12, c13, c14, c15, \
+                    c00c01, c02c03, c04c05, c06c07, \
+                    c08c09, c10c11, c12c13, c14c15); \
+    LOAD_DECLARE_4(dst, stride, l0, l1, l2, l3) \
+    APPLY_COEFF_16x4(l0, l1, l2, l3, \
+                     c00c01, c02c03, c04c05, c06c07, \
+                     c08c09, c10c11, c12c13, c14c15) \
+    STORE_16(dst, stride, l0, l1, l2, l3) \
+}
+
+inv_txfm_fn16x4(adst,     dct     )
+inv_txfm_fn16x4(dct,      adst    )
+inv_txfm_fn16x4(dct,      flipadst)
+inv_txfm_fn16x4(flipadst, dct     )
+inv_txfm_fn16x4(adst,     flipadst)
+inv_txfm_fn16x4(flipadst, adst    )
+inv_txfm_fn16x4(dct,      identity)
+inv_txfm_fn16x4(flipadst, identity)
+inv_txfm_fn16x4(adst,     identity)
+inv_txfm_fn16x4(identity, identity)
+inv_txfm_fn16x4(adst,     adst    )
+inv_txfm_fn16x4(flipadst, flipadst)
+
+#define inv_txfm_fn16x4_identity(type2) \
+void dav1d_inv_txfm_add_identity_##type2##_16x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride, \
+                                                          int16_t *const coeff, const int eob) \
+{ \
+    LOAD_DECLARE_2_I16(coeff, c00c01, c02c03) \
+    LOAD_DECLARE_2_I16(coeff+16, c04c05, c06c07) \
+    LOAD_DECLARE_2_I16(coeff+32, c08c09, c10c11) \
+    LOAD_DECLARE_2_I16(coeff+48, c12c13, c14c15) \
+    UNPACK_DECLARE_4_I16_I32(c00c01, c02c03, c00, c01, c02, c03) \
+    UNPACK_DECLARE_4_I16_I32(c04c05, c06c07, c04, c05, c06, c07) \
+    UNPACK_DECLARE_4_I16_I32(c08c09, c10c11, c08, c09, c10, c11) \
+    UNPACK_DECLARE_4_I16_I32(c12c13, c14c15, c12, c13, c14, c15) \
+    identity_16_in(c00, c01, c02, c03, c04, c05, c06, c07, \
+                  c08, c09, c10, c11, c12, c13, c14, c15, \
+                  c00c01, c02c03, c04c05, c06c07, c08c09, c10c11, c12c13, c14c15) \
+    memset(coeff, 0, sizeof(*coeff) * 16 * 4); \
+    SCALE_ROUND_4(c00, c01, c02, c03, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c04, c05, c06, c07, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c08, c09, c10, c11, vec_splat_s32(1), vec_splat_u32(1)) \
+    SCALE_ROUND_4(c12, c13, c14, c15, vec_splat_s32(1), vec_splat_u32(1)) \
+    CLIP16_I32_8(c00, c01, c02, c03, c04, c05, c06, c07, c00c01, c02c03, c04c05, c06c07) \
+    CLIP16_I32_8(c08, c09, c10, c11, c12, c13, c14, c15, c08c09, c10c11, c12c13, c14c15) \
+    TRANSPOSE4_I32(c00, c01, c02, c03); \
+    TRANSPOSE4_I32(c04, c05, c06, c07); \
+    TRANSPOSE4_I32(c08, c09, c10, c11); \
+    TRANSPOSE4_I32(c12, c13, c14, c15); \
+    type2##_4x4_out(c00, c01, c02, c03, \
+                    c04, c05, c06, c07, \
+                    c08, c09, c10, c11, \
+                    c12, c13, c14, c15, \
+                    c00c01, c02c03, c04c05, c06c07, \
+                    c08c09, c10c11, c12c13, c14c15); \
+    LOAD_DECLARE_4(dst, stride, l0, l1, l2, l3) \
+    APPLY_COEFF_16x4(l0, l1, l2, l3, \
+                     c00c01, c02c03, c04c05, c06c07, \
+                     c08c09, c10c11, c12c13, c14c15) \
+    STORE_16(dst, stride, l0, l1, l2, l3) \
+}
+
+inv_txfm_fn16x4_identity(dct)
+inv_txfm_fn16x4_identity(adst)
+inv_txfm_fn16x4_identity(flipadst)
 
 #endif // BITDEPTH
