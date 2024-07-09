@@ -829,3 +829,241 @@ function ipred_paeth_8bpc_lsx
     addi.d        a4,       a4,      -1
     bnez          a4,       .IPRED_PAETH_H_LOOP
 endfunc
+
+const dav1d_sm_weights
+    .byte  0,   0
+    // bs = 2
+    .byte  255, 128
+    // bs = 4
+    .byte  255, 149,  85,  64
+    // bs = 8
+    .byte  255, 197, 146, 105,  73,  50,  37,  32
+    // bs = 16
+    .byte  255, 225, 196, 170, 145, 123, 102,  84
+    .byte  68,  54,  43,  33,  26,  20,  17,  16
+    // bs = 32
+    .byte  255, 240, 225, 210, 196, 182, 169, 157
+    .byte  145, 133, 122, 111, 101,  92,  83,  74
+    .byte  66,  59,  52,  45,  39,  34,  29,  25
+    .byte  21,  17,  14,  12,  10,   9,   8,   8
+    // bs = 64
+    .byte  255, 248, 240, 233, 225, 218, 210, 203
+    .byte  196, 189, 182, 176, 169, 163, 156, 150
+    .byte  144, 138, 133, 127, 121, 116, 111, 106
+    .byte  101,  96,  91,  86,  82,  77,  73,  69
+    .byte  65,  61,  57,  54,  50,  47,  44,  41
+    .byte  38,  35,  32,  29,  27,  25,  22,  20
+    .byte  18,  16,  15,  13,  12,  10,   9,   8
+    .byte  7,   6,   6,   5,   5,   4,   4,   4
+endconst
+
+// void ipred_smooth_lsx(pixel *dst, const ptrdiff_t stride,
+//                       const pixel *const topleft,
+//                       const int width, const int height, const int a,
+//                       const int max_width, const int max_height
+//                       HIGHBD_DECL_SUFFIX)
+function ipred_smooth_8bpc_lsx
+    la.local       a5,      dav1d_sm_weights
+    add.d          a6,      a5,      a3  //hor
+    add.d          a5,      a5,      a4  //ver
+
+    add.d          a7,      a2,      a3
+    sub.d          t0,      a2,      a4
+
+    vldrepl.b      vr0,     a7,      0  //right
+    vldrepl.b      vr1,     t0,      0  //bottom
+
+    vsllwil.hu.bu  vr0,     vr0,     0
+    vsllwil.wu.hu  vr0,     vr0,     0
+    vsllwil.hu.bu  vr1,     vr1,     0
+    vsllwil.wu.hu  vr1,     vr1,     0
+
+    li.w           t0,      256
+    vreplgr2vr.w   vr6,     t0
+
+    addi.d         t0,      a2,      1   //ptr topleft[x]
+    addi.d         t3,      a2,      -1  //ptr topleft[y]
+
+.IPRED_SMOOTH_H_LOOP:
+    vldrepl.b      vr2,     a5,      0  //ver[y]
+    vldrepl.b      vr3,     t3,      0  //topleft[y]
+
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.wu.hu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vsllwil.wu.hu  vr3,     vr3,     0
+
+    vsub.w         vr7,     vr6,     vr2  //256-ver[y]
+
+    or             t1,      zero,    zero  //xx
+    srai.d         t2,      a3,      2     //loop max
+
+.IPRED_SMOOTH_W_LOOP:
+    fldx.s         f4,      t0,      t1   //topleft[x]
+    fldx.s         f5,      a6,      t1   //hor[x]
+
+    vsllwil.hu.bu  vr4,     vr4,     0
+    vsllwil.wu.hu  vr4,     vr4,     0
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.wu.hu  vr5,     vr5,     0
+
+    vsub.w         vr8,     vr6,     vr5  //256-hor[x]
+
+    vmul.w         vr9,     vr8,     vr0
+    vmadd.w        vr9,     vr5,     vr3
+    vmadd.w        vr9,     vr7,     vr1
+    vmadd.w        vr9,     vr2,     vr4  //pred
+
+    vadd.w         vr9,     vr9,     vr6
+    vsrlni.h.w     vr9,     vr9,     9
+    vsrlni.b.h     vr9,     vr9,     0
+
+    fstx.s         f9,      a0,      t1
+
+    addi.d         t1,      t1,      4
+    addi.d         t2,      t2,      -1
+    bnez           t2,      .IPRED_SMOOTH_W_LOOP
+
+.IPRED_SMOOTH_W_LOOP_END:
+    addi.d         t3,      t3,      -1
+    addi.d         a5,      a5,      1
+    add.d          a0,      a0,      a1
+    addi.d         a4,      a4,      -1
+    bnez           a4,      .IPRED_SMOOTH_H_LOOP
+
+endfunc
+
+// void ipred_smooth_v_lsx(pixel *dst, const ptrdiff_t stride,
+//                         const pixel *const topleft,
+//                         const int width, const int height, const int a,
+//                         const int max_width, const int max_height
+//                         HIGHBD_DECL_SUFFIX)
+function ipred_smooth_v_8bpc_lsx
+    la.local       a5,      dav1d_sm_weights
+    add.d          a5,      a5,      a4  //ver
+
+    sub.d          t0,      a2,      a4
+    vldrepl.b      vr0,     t0,      0  //bottom
+    vsllwil.hu.bu  vr0,     vr0,     0
+
+    li.w           t0,      256
+    vreplgr2vr.h   vr2,     t0
+    li.w           t0,      128
+    vreplgr2vr.h   vr3,     t0
+
+    addi.d         t0,      a2,      1   //ptr topleft[x]
+
+.IPRED_SMOOTH_V_H_LOOP:
+    vldrepl.b      vr1,     a5,      0  //ver[y]
+    vsllwil.hu.bu  vr1,     vr1,     0
+    vsub.h         vr5,     vr2,     vr1  //256-ver[y]
+
+    or             t1,      zero,    zero  //xx
+    srai.d         t2,      a3,      3     //loop max
+    beqz           t2,      .IPRED_SMOOTH_V_W_LOOP4
+
+.IPRED_SMOOTH_V_W_LOOP8:
+    fldx.d         f4,      t0,      t1   //topleft[x]
+    vsllwil.hu.bu  vr4,     vr4,     0
+
+    vmul.h         vr6,     vr5,     vr0
+    vmadd.h        vr6,     vr1,     vr4  //pred
+    vadd.h         vr6,     vr6,     vr3
+    vsrlni.b.h     vr6,     vr6,     8
+
+    fstx.d         f6,      a0,      t1
+
+    addi.d         t1,      t1,      8
+    addi.d         t2,      t2,      -1
+    bnez           t2,      .IPRED_SMOOTH_V_W_LOOP8
+    b              .IPRED_SMOOTH_V_W_LOOP_END
+
+.IPRED_SMOOTH_V_W_LOOP4:
+    fldx.s         f4,      t0,      t1   //topleft[x]
+    vsllwil.hu.bu  vr4,     vr4,     0
+
+    vmul.h         vr6,     vr5,     vr0
+    vmadd.h        vr6,     vr1,     vr4  //pred
+    vadd.h         vr6,     vr6,     vr3
+    vsrai.h        vr6,     vr6,     8
+    vsrlni.b.h     vr6,     vr6,     0
+
+    fstx.s         f6,      a0,      t1
+
+    addi.d         t1,      t1,      4
+
+.IPRED_SMOOTH_V_W_LOOP_END:
+    addi.d         a5,      a5,      1
+    add.d          a0,      a0,      a1
+    addi.d         a4,      a4,      -1
+    bnez           a4,      .IPRED_SMOOTH_V_H_LOOP
+
+endfunc
+
+// void ipred_smooth_h_lsx(pixel *dst, const ptrdiff_t stride,
+//                         const pixel *const topleft,
+//                         const int width, const int height, const int a,
+//                         const int max_width, const int max_height
+//                         HIGHBD_DECL_SUFFIX)
+function ipred_smooth_h_8bpc_lsx
+    la.local       a5,      dav1d_sm_weights
+    add.d          a6,      a5,      a3  //hor
+
+    add.d          a7,      a2,      a3
+    vldrepl.b      vr0,     a7,      0  //right
+    vsllwil.hu.bu  vr0,     vr0,     0
+
+    li.w           t0,      256
+    vreplgr2vr.h   vr1,     t0
+    li.w           t0,      128
+    vreplgr2vr.h   vr2,     t0
+
+    addi.d         t3,      a2,      -1  //ptr topleft[y]
+
+.IPRED_SMOOTH_H_H_LOOP:
+    vldrepl.b      vr3,     t3,      0  //topleft[y]
+    vsllwil.hu.bu  vr3,     vr3,     0
+
+    or             t1,      zero,    zero  //xx
+    srai.d         t2,      a3,      3     //loop max
+    beqz           t2,      .IPRED_SMOOTH_H_W_LOOP4
+
+.IPRED_SMOOTH_H_W_LOOP8:
+    fldx.d         f5,      a6,      t1   //hor[x]
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsub.h         vr4,     vr1,     vr5  //256-hor[x]
+
+    vmul.h         vr6,     vr4,     vr0
+    vmadd.h        vr6,     vr5,     vr3  //pred
+    vadd.h         vr6,     vr6,     vr2
+    vsrlni.b.h     vr6,     vr6,     8
+
+    fstx.d         f6,      a0,      t1
+
+    addi.d         t1,      t1,      8
+    addi.d         t2,      t2,      -1
+    bnez           t2,      .IPRED_SMOOTH_H_W_LOOP8
+    b              .IPRED_SMOOTH_W_H_LOOP_END
+
+.IPRED_SMOOTH_H_W_LOOP4:
+    fldx.s         f5,      a6,      t1   //hor[x]
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsub.h         vr4,     vr1,     vr5  //256-hor[x]
+
+    vmul.h         vr6,     vr4,     vr0
+    vmadd.h        vr6,     vr5,     vr3  //pred
+    vadd.h         vr6,     vr6,     vr2
+    vsrai.h        vr6,     vr6,     8
+    vsrlni.b.h     vr6,     vr6,     0
+
+    fstx.s         f6,      a0,      t1
+
+    addi.d         t1,      t1,      4
+
+.IPRED_SMOOTH_W_H_LOOP_END:
+    addi.d         t3,      t3,      -1
+    add.d          a0,      a0,      a1
+    addi.d         a4,      a4,      -1
+    bnez           a4,      .IPRED_SMOOTH_H_H_LOOP
+
+endfunc
