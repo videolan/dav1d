@@ -43,6 +43,8 @@ decl_mask_fn(BF(dav1d_mask, lsx));
 decl_warp8x8_fn(BF(dav1d_warp_affine_8x8, lsx));
 decl_warp8x8t_fn(BF(dav1d_warp_affine_8x8t, lsx));
 decl_w_mask_fn(BF(dav1d_w_mask_420, lsx));
+decl_blend_fn(BF(dav1d_blend, lsx));
+decl_blend_dir_fn(BF(dav1d_blend_v, lsx));
 
 decl_mc_fn(BF(dav1d_put_8tap_regular,          lsx));
 decl_mc_fn(BF(dav1d_put_8tap_regular_smooth,   lsx));
@@ -83,6 +85,8 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
     c->warp8x8 = BF(dav1d_warp_affine_8x8, lsx);
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, lsx);
     c->w_mask[2] = BF(dav1d_w_mask_420, lsx);
+    c->blend = BF(dav1d_blend, lsx);
+    c->blend_v = BF(dav1d_blend_v, lsx);
 
     init_mc_fn(FILTER_2D_8TAP_REGULAR,         8tap_regular,        lsx);
     init_mc_fn(FILTER_2D_8TAP_REGULAR_SMOOTH,  8tap_regular_smooth, lsx);
