@@ -5144,3 +5144,517 @@ function blend_v_8bpc_lsx
 .BLEND_V_END_LSX:
 
 endfunc
+
+/*
+ * static void blend_h_lsx(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                           const int w, int h)
+ */
+function blend_h_8bpc_lsx
+    la.local      t8,     obmc_masks_la
+    alsl.d        t8,     a4,      t8,    1
+    srli.d        t0,     a4,      1
+    srli.d        t1,     a4,      2
+    add.d         a4,     t0,      t1  // h = (h * 3) >> 2;
+    slli.d        a4,     a4,      1
+    add.d         a4,     a4,      t8
+
+    clz.w         t0,     a3
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .BLEND_H_LSX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0  // The jump addresses are relative to JRTABLE
+    add.d         t1,     t1,      t2 // Get absolute address
+    jirl          $r0,    t1,      0
+
+    .align   3
+.BLEND_H_LSX_JRTABLE:
+    .hword .BLEND_H_W128_LSX - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W64_LSX  - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W32_LSX  - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W16_LSX  - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W8_LSX   - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W4_LSX   - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_W2_LSX   - .BLEND_H_LSX_JRTABLE
+    .hword .BLEND_H_END_LSX  - .BLEND_H_LSX_JRTABLE  //Instructions must be 4-byte aligned
+
+.BLEND_H_W2_LSX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.h        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      2
+
+    blt             t8,     a4,     .BLEND_H_W2_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W4_LSX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.w        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      4
+
+    blt             t8,     a4,     .BLEND_H_W4_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W8_LSX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.d        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      8
+
+    blt             t8,     a4,     .BLEND_H_W8_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W16_LSX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr2,    vr1,     vr0
+    vilvh.b         vr3,    vr1,     vr0
+    vmulwev.h.bu    vr4,    vr2,     vr20
+    vmulwev.h.bu    vr5,    vr3,     vr20
+    vmaddwod.h.bu   vr4,    vr2,     vr20
+    vmaddwod.h.bu   vr5,    vr3,     vr20
+    vssrarni.bu.h   vr5,    vr4,     6
+
+    vst             vr5,    a0,      0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      16
+
+    blt             t8,     a4,     .BLEND_H_W16_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W32_LSX:
+    vldrepl.h       vr20,   t8,      0
+
+    vld             vr0,    a0,      0
+    vld             vr1,    a0,      16
+    vld             vr2,    a2,      0
+    vld             vr3,    a2,      16
+
+    vilvl.b         vr4,    vr2,     vr0
+    vilvh.b         vr5,    vr2,     vr0
+    vilvl.b         vr6,    vr3,     vr1
+    vilvh.b         vr3,    vr3,     vr1
+    vmulwev.h.bu    vr7,    vr4,     vr20
+    vmulwev.h.bu    vr8,    vr5,     vr20
+    vmulwev.h.bu    vr9,    vr6,     vr20
+    vmulwev.h.bu    vr0,    vr3,     vr20
+    vmaddwod.h.bu   vr7,    vr4,     vr20
+    vmaddwod.h.bu   vr8,    vr5,     vr20
+    vmaddwod.h.bu   vr9,    vr6,     vr20
+    vmaddwod.h.bu   vr0,    vr3,     vr20
+    vssrarni.bu.h   vr8,    vr7,     6
+    vssrarni.bu.h   vr0,    vr9,     6
+
+    vst             vr8,    a0,      0
+    vst             vr0,    a0,      16
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      32
+
+    blt             t8,     a4,     .BLEND_H_W32_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W64_LSX:
+    vldrepl.h       vr20,   t8,      0
+
+    vld             vr0,    a0,      0
+    vld             vr1,    a0,      16
+    vld             vr2,    a0,      32
+    vld             vr3,    a0,      48
+    vld             vr4,    a2,      0
+    vld             vr5,    a2,      16
+    vld             vr6,    a2,      32
+    vld             vr7,    a2,      48
+
+    vilvl.b         vr8,    vr4,     vr0
+    vilvh.b         vr9,    vr4,     vr0
+    vilvl.b         vr10,   vr5,     vr1
+    vilvh.b         vr11,   vr5,     vr1
+    vilvl.b         vr12,   vr6,     vr2
+    vilvh.b         vr13,   vr6,     vr2
+    vilvl.b         vr14,   vr7,     vr3
+    vilvh.b         vr15,   vr7,     vr3
+    vmulwev.h.bu    vr0,    vr8,     vr20
+    vmulwev.h.bu    vr1,    vr9,     vr20
+    vmulwev.h.bu    vr2,    vr10,    vr20
+    vmulwev.h.bu    vr3,    vr11,    vr20
+    vmulwev.h.bu    vr4,    vr12,    vr20
+    vmulwev.h.bu    vr5,    vr13,    vr20
+    vmulwev.h.bu    vr6,    vr14,    vr20
+    vmulwev.h.bu    vr7,    vr15,    vr20
+
+    vmaddwod.h.bu   vr0,    vr8,     vr20
+    vmaddwod.h.bu   vr1,    vr9,     vr20
+    vmaddwod.h.bu   vr2,    vr10,    vr20
+    vmaddwod.h.bu   vr3,    vr11,    vr20
+    vmaddwod.h.bu   vr4,    vr12,    vr20
+    vmaddwod.h.bu   vr5,    vr13,    vr20
+    vmaddwod.h.bu   vr6,    vr14,    vr20
+    vmaddwod.h.bu   vr7,    vr15,    vr20
+
+    vssrarni.bu.h   vr1,    vr0,     6
+    vssrarni.bu.h   vr3,    vr2,     6
+    vssrarni.bu.h   vr5,    vr4,     6
+    vssrarni.bu.h   vr7,    vr6,     6
+
+    vst             vr1,    a0,      0
+    vst             vr3,    a0,      16
+    vst             vr5,    a0,      32
+    vst             vr7,    a0,      48
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      64
+
+    blt             t8,     a4,     .BLEND_H_W64_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W128_LSX:
+    vldrepl.h       vr20,   t8,      0
+
+    vld             vr0,    a0,      0
+    vld             vr1,    a0,      16
+    vld             vr2,    a0,      32
+    vld             vr3,    a0,      48
+    vld             vr4,    a2,      0
+    vld             vr5,    a2,      16
+    vld             vr6,    a2,      32
+    vld             vr7,    a2,      48
+
+    vilvl.b         vr8,    vr4,     vr0
+    vilvh.b         vr9,    vr4,     vr0
+    vilvl.b         vr10,   vr5,     vr1
+    vilvh.b         vr11,   vr5,     vr1
+    vilvl.b         vr12,   vr6,     vr2
+    vilvh.b         vr13,   vr6,     vr2
+    vilvl.b         vr14,   vr7,     vr3
+    vilvh.b         vr15,   vr7,     vr3
+    vmulwev.h.bu    vr0,    vr8,     vr20
+    vmulwev.h.bu    vr1,    vr9,     vr20
+    vmulwev.h.bu    vr2,    vr10,    vr20
+    vmulwev.h.bu    vr3,    vr11,    vr20
+    vmulwev.h.bu    vr4,    vr12,    vr20
+    vmulwev.h.bu    vr5,    vr13,    vr20
+    vmulwev.h.bu    vr6,    vr14,    vr20
+    vmulwev.h.bu    vr7,    vr15,    vr20
+
+    vmaddwod.h.bu   vr0,    vr8,     vr20
+    vmaddwod.h.bu   vr1,    vr9,     vr20
+    vmaddwod.h.bu   vr2,    vr10,    vr20
+    vmaddwod.h.bu   vr3,    vr11,    vr20
+    vmaddwod.h.bu   vr4,    vr12,    vr20
+    vmaddwod.h.bu   vr5,    vr13,    vr20
+    vmaddwod.h.bu   vr6,    vr14,    vr20
+    vmaddwod.h.bu   vr7,    vr15,    vr20
+
+    vssrarni.bu.h   vr1,    vr0,     6
+    vssrarni.bu.h   vr3,    vr2,     6
+    vssrarni.bu.h   vr5,    vr4,     6
+    vssrarni.bu.h   vr7,    vr6,     6
+
+    vst             vr1,    a0,      0
+    vst             vr3,    a0,      16
+    vst             vr5,    a0,      32
+    vst             vr7,    a0,      48
+
+    /* second */
+    vld             vr0,    a0,      64
+    vld             vr1,    a0,      80
+    vld             vr2,    a0,      96
+    vld             vr3,    a0,      112
+    vld             vr4,    a2,      64
+    vld             vr5,    a2,      80
+    vld             vr6,    a2,      96
+    vld             vr7,    a2,      112
+
+    vilvl.b         vr8,    vr4,     vr0
+    vilvh.b         vr9,    vr4,     vr0
+    vilvl.b         vr10,   vr5,     vr1
+    vilvh.b         vr11,   vr5,     vr1
+    vilvl.b         vr12,   vr6,     vr2
+    vilvh.b         vr13,   vr6,     vr2
+    vilvl.b         vr14,   vr7,     vr3
+    vilvh.b         vr15,   vr7,     vr3
+    vmulwev.h.bu    vr0,    vr8,     vr20
+    vmulwev.h.bu    vr1,    vr9,     vr20
+    vmulwev.h.bu    vr2,    vr10,    vr20
+    vmulwev.h.bu    vr3,    vr11,    vr20
+    vmulwev.h.bu    vr4,    vr12,    vr20
+    vmulwev.h.bu    vr5,    vr13,    vr20
+    vmulwev.h.bu    vr6,    vr14,    vr20
+    vmulwev.h.bu    vr7,    vr15,    vr20
+
+    vmaddwod.h.bu   vr0,    vr8,     vr20
+    vmaddwod.h.bu   vr1,    vr9,     vr20
+    vmaddwod.h.bu   vr2,    vr10,    vr20
+    vmaddwod.h.bu   vr3,    vr11,    vr20
+    vmaddwod.h.bu   vr4,    vr12,    vr20
+    vmaddwod.h.bu   vr5,    vr13,    vr20
+    vmaddwod.h.bu   vr6,    vr14,    vr20
+    vmaddwod.h.bu   vr7,    vr15,    vr20
+
+    vssrarni.bu.h   vr1,    vr0,     6
+    vssrarni.bu.h   vr3,    vr2,     6
+    vssrarni.bu.h   vr5,    vr4,     6
+    vssrarni.bu.h   vr7,    vr6,     6
+
+    vst             vr1,    a0,      64
+    vst             vr3,    a0,      80
+    vst             vr5,    a0,      96
+    vst             vr7,    a0,      112
+
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      128
+
+    blt             t8,     a4,     .BLEND_H_W128_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_END_LSX:
+
+endfunc
+
+/*
+ * static void blend_h_lsx(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                           const int w, int h)
+ */
+function blend_h_8bpc_lasx
+    la.local      t8,     obmc_masks_la
+    alsl.d        t8,     a4,      t8,    1
+    srli.d        t0,     a4,      1
+    srli.d        t1,     a4,      2
+    add.d         a4,     t0,      t1  // h = (h * 3) >> 2;
+    slli.d        a4,     a4,      1
+    add.d         a4,     a4,      t8
+
+    clz.w         t0,     a3
+    li.w          t1,     24
+    sub.w         t0,     t0,      t1
+    la.local      t1,     .BLEND_H_LASX_JRTABLE
+    alsl.d        t0,     t0,      t1,    1
+    ld.h          t2,     t0,      0  // The jump addresses are relative to JRTABLE
+    add.d         t1,     t1,      t2 // Get absolute address
+    jirl          $r0,    t1,      0
+
+    .align   3
+.BLEND_H_LASX_JRTABLE:
+    .hword .BLEND_H_W128_LASX - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W64_LASX  - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W32_LASX  - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W16_LASX  - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W8_LASX   - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W4_LASX   - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_W2_LASX   - .BLEND_H_LASX_JRTABLE
+    .hword .BLEND_H_END_LASX  - .BLEND_H_LASX_JRTABLE  //Instructions must be 4-byte aligned
+
+.BLEND_H_W2_LASX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.h        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      2
+
+    blt             t8,     a4,     .BLEND_H_W2_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_W4_LASX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.w        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      4
+
+    blt             t8,     a4,     .BLEND_H_W4_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_W8_LASX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr0,    vr1,     vr0
+    vdp2.h.bu       vr1,    vr0,     vr20
+    vssrarni.bu.h   vr1,    vr1,     6
+
+    vstelm.d        vr1,    a0,      0,   0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      8
+
+    blt             t8,     a4,     .BLEND_H_W8_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_W16_LASX:
+    vldrepl.h       vr20,   t8,      0
+    vld             vr0,    a0,      0
+    vld             vr1,    a2,      0
+
+    vilvl.b         vr2,    vr1,     vr0
+    vilvh.b         vr3,    vr1,     vr0
+    vmulwev.h.bu    vr4,    vr2,     vr20
+    vmulwev.h.bu    vr5,    vr3,     vr20
+    vmaddwod.h.bu   vr4,    vr2,     vr20
+    vmaddwod.h.bu   vr5,    vr3,     vr20
+    vssrarni.bu.h   vr5,    vr4,     6
+
+    vst             vr5,    a0,      0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      16
+
+    blt             t8,     a4,     .BLEND_H_W16_LSX
+    b               .BLEND_H_END_LSX
+
+.BLEND_H_W32_LASX:
+    xvldrepl.h      xr20,   t8,      0
+
+    xvld            xr0,    a0,      0
+    xvld            xr1,    a2,      0
+
+    xvilvl.b        xr2,    xr1,     xr0
+    xvilvh.b        xr3,    xr1,     xr0
+
+    xvmulwev.h.bu   xr4,    xr2,     xr20
+    xvmulwev.h.bu   xr5,    xr3,     xr20
+    xvmaddwod.h.bu  xr4,    xr2,     xr20
+    xvmaddwod.h.bu  xr5,    xr3,     xr20
+    xvssrarni.bu.h  xr5,    xr4,     6
+
+    xvst            xr5,    a0,      0
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      32
+
+    blt             t8,     a4,     .BLEND_H_W32_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_W64_LASX:
+    xvldrepl.h      xr20,   t8,      0
+
+    xvld            xr0,    a0,      0
+    xvld            xr1,    a0,      32
+    xvld            xr2,    a2,      0
+    xvld            xr3,    a2,      32
+
+    xvilvl.b        xr4,    xr2,     xr0
+    xvilvh.b        xr5,    xr2,     xr0
+    xvilvl.b        xr6,    xr3,     xr1
+    xvilvh.b        xr7,    xr3,     xr1
+
+    xvmulwev.h.bu   xr0,    xr4,     xr20
+    xvmulwev.h.bu   xr1,    xr5,     xr20
+    xvmulwev.h.bu   xr2,    xr6,     xr20
+    xvmulwev.h.bu   xr3,    xr7,     xr20
+    xvmaddwod.h.bu  xr0,    xr4,     xr20
+    xvmaddwod.h.bu  xr1,    xr5,     xr20
+    xvmaddwod.h.bu  xr2,    xr6,     xr20
+    xvmaddwod.h.bu  xr3,    xr7,     xr20
+    xvssrarni.bu.h  xr1,    xr0,     6
+    xvssrarni.bu.h  xr3,    xr2,     6
+
+    xvst            xr1,    a0,      0
+    xvst            xr3,    a0,      32
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      64
+
+    blt             t8,     a4,     .BLEND_H_W64_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_W128_LASX:
+    xvldrepl.h      xr20,   t8,      0
+
+    xvld            xr0,    a0,      0
+    xvld            xr1,    a0,      32
+    xvld            xr2,    a0,      64
+    xvld            xr3,    a0,      96
+    xvld            xr4,    a2,      0
+    xvld            xr5,    a2,      32
+    xvld            xr6,    a2,      64
+    xvld            xr7,    a2,      96
+
+    xvilvl.b        xr8,    xr4,     xr0
+    xvilvh.b        xr9,    xr4,     xr0
+    xvilvl.b        xr10,   xr5,     xr1
+    xvilvh.b        xr11,   xr5,     xr1
+    xvilvl.b        xr12,   xr6,     xr2
+    xvilvh.b        xr13,   xr6,     xr2
+    xvilvl.b        xr14,   xr7,     xr3
+    xvilvh.b        xr15,   xr7,     xr3
+
+    xvmulwev.h.bu   xr0,    xr8,     xr20
+    xvmulwev.h.bu   xr1,    xr9,     xr20
+    xvmulwev.h.bu   xr2,    xr10,    xr20
+    xvmulwev.h.bu   xr3,    xr11,    xr20
+    xvmulwev.h.bu   xr4,    xr12,    xr20
+    xvmulwev.h.bu   xr5,    xr13,    xr20
+    xvmulwev.h.bu   xr6,    xr14,    xr20
+    xvmulwev.h.bu   xr7,    xr15,    xr20
+    xvmaddwod.h.bu  xr0,    xr8,     xr20
+    xvmaddwod.h.bu  xr1,    xr9,     xr20
+    xvmaddwod.h.bu  xr2,    xr10,    xr20
+    xvmaddwod.h.bu  xr3,    xr11,    xr20
+    xvmaddwod.h.bu  xr4,    xr12,    xr20
+    xvmaddwod.h.bu  xr5,    xr13,    xr20
+    xvmaddwod.h.bu  xr6,    xr14,    xr20
+    xvmaddwod.h.bu  xr7,    xr15,    xr20
+    xvssrarni.bu.h  xr1,    xr0,     6
+    xvssrarni.bu.h  xr3,    xr2,     6
+    xvssrarni.bu.h  xr5,    xr4,     6
+    xvssrarni.bu.h  xr7,    xr6,     6
+
+    xvst            xr1,    a0,      0
+    xvst            xr3,    a0,      32
+    xvst            xr5,    a0,      64
+    xvst            xr7,    a0,      96
+    addi.d          t8,     t8,      2
+    add.d           a0,     a0,      a1
+    addi.d          a2,     a2,      128
+
+    blt             t8,     a4,     .BLEND_H_W128_LASX
+    b               .BLEND_H_END_LASX
+
+.BLEND_H_END_LASX:
+
+endfunc
