@@ -232,6 +232,60 @@ function ipred_cfl_left_16bpc_rvv, export=1, ext=v
     j cfl_pred_16bpc_rvv
 endfunc
 
+function ipred_paeth_16bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    li t0, 0
+    mv t3, a2
+    lhu t1, (a2)
+    addi a6, a2, -2
+    addi a2, a2, 2
+1:
+    lhu t2, (a6)
+    mv t3, a3
+2:
+    sub t5, a3, t3
+    sh1add t5, t5, a2
+    vsetvli t6, t3, e16, m2, ta, ma
+    vle16.v v2, (t5)
+    vwaddu.vx v4, v2, t2
+
+    vsetvli zero, zero, e32, m4, ta, mu
+    vsub.vx v8, v4, t1
+    vzext.vf2 v24, v2
+    vsub.vx v12, v8, t1
+    vmslt.vx v0, v12, zero
+    vneg.v v12, v12, v0.t
+    vsub.vx v16, v8, t2
+    vmslt.vx v0, v16, zero
+    vneg.v v16, v16, v0.t
+    vsub.vv v20, v8, v24
+    vmslt.vx v0, v20, zero
+    vneg.v v20, v20, v0.t
+
+    sub t5, a3, t3
+    vmsleu.vv v4, v16, v20
+    vmsleu.vv v5, v16, v12
+    vmsgtu.vv v0, v20, v12
+    vmand.mm v6, v4, v5
+
+    vsetvli zero, zero, e16, m2, ta, ma
+    vmerge.vxm v8, v2, t1, v0
+    vmmv.m v0, v6
+    sh1add t5, t5, a0
+    sub t3, t3, t6
+    vmerge.vxm v4, v8, t2, v0
+
+    vse16.v v4, (t5)
+
+    bnez t3, 2b
+
+    addi a4, a4, -1
+    addi a6, a6, -2
+    add a0, a0, a1
+    bnez a4, 1b
+    ret
+endfunc
+
 function ipred_smooth_16bpc_rvv, export=1, ext="v,zba"
     csrw vxrm, zero
     la t0, dav1d_sm_weights
