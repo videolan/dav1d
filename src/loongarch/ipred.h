@@ -42,6 +42,8 @@
 
 #define init_angular_ipred_fn(type, name, suffix) \
     init_fn(intra_pred, type, name, suffix)
+#define init_cfl_pred_fn(type, name, suffix) \
+    init_fn(cfl_pred, type, name, suffix)
 
 decl_angular_ipred_fn(BF(dav1d_ipred_dc, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_dc_128, lsx));
@@ -53,6 +55,12 @@ decl_angular_ipred_fn(BF(dav1d_ipred_paeth, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_v, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_h, lsx));
+
+decl_cfl_pred_fn(BF(dav1d_ipred_cfl, lsx));
+decl_cfl_pred_fn(BF(dav1d_ipred_cfl_128, lsx));
+decl_cfl_pred_fn(BF(dav1d_ipred_cfl_top, lsx));
+decl_cfl_pred_fn(BF(dav1d_ipred_cfl_left, lsx));
+
 decl_pal_pred_fn(BF(dav1d_pal_pred, lsx));
 
 static ALWAYS_INLINE void intra_pred_dsp_init_loongarch(Dav1dIntraPredDSPContext *const c) {
@@ -71,6 +79,11 @@ static ALWAYS_INLINE void intra_pred_dsp_init_loongarch(Dav1dIntraPredDSPContext
     init_angular_ipred_fn(SMOOTH_PRED,   ipred_smooth,   lsx);
     init_angular_ipred_fn(SMOOTH_V_PRED, ipred_smooth_v, lsx);
     init_angular_ipred_fn(SMOOTH_H_PRED, ipred_smooth_h, lsx);
+
+    init_cfl_pred_fn(DC_PRED,      ipred_cfl,      lsx);
+    init_cfl_pred_fn(DC_128_PRED,  ipred_cfl_128,  lsx);
+    init_cfl_pred_fn(TOP_DC_PRED,  ipred_cfl_top,  lsx);
+    init_cfl_pred_fn(LEFT_DC_PRED, ipred_cfl_left, lsx);
 
     c->pal_pred = BF(dav1d_pal_pred, lsx);
 #endif

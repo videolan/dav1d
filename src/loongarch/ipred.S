@@ -1241,3 +1241,89 @@ function pal_pred_8bpc_lsx
 
 .PAL_PRED_END:
 endfunc
+
+.macro apply_sign_vrh v, s, vrzero, vrt0 ,out
+    vslt.h         \vrt0,   \s,      \vrzero
+    vandn.v        \s,      \vrt0,   \v
+    vsigncov.h     \v,      \vrt0,   \v
+    vor.v          \out,    \s,      \v
+.endm
+
+.macro iclip_pixel_vrh in0, in1, in2, tmp0, tmp1, out
+    vmin.h         \tmp0,   \in2,    \in0
+    vslt.h         \in0,    \in0,    \in1
+    vand.v         \tmp1,   \in0,    \in1
+    vandn.v        \tmp0,   \in0,    \tmp0
+    vor.v          \out,    \tmp1,   \tmp0
+.endm
+
+.macro ipred_cfl_pred dst, stride, w, h, dc, ac, alpha
+    vreplgr2vr.h   vr2,     \alpha
+    vreplgr2vr.h   vr7,     \dc
+    li.w           t1,      32
+    vreplgr2vr.h   vr3,     t1
+    vxor.v         vr4,     vr4,     vr4
+    li.w           t1,      255
+    vreplgr2vr.h   vr6,     t1
+    add.d          t4,      \w,      \w
+
+1:
+    or             t1,      zero,    zero
+    or             t2,      zero,    zero
+    srai.d         t3,      \w,      3
+    beqz           t3,      3f
+
+2:
+    vldx           vr0,     \ac,     t1
+    vmul.h         vr1,     vr2,     vr0
+    vadda.h        vr0,     vr1,     vr3
+    vsrai.h        vr0,     vr0,     6
+    apply_sign_vrh vr0, vr1, vr4, vr5, vr0
+    vadd.h         vr1,     vr0,     vr7
+    iclip_pixel_vrh vr1, vr4, vr6, vr5, vr8, vr0
+    vsrlni.b.h     vr0,     vr0,     0
+    fstx.d         f0,      \dst,    t2
+
+    addi.d         t1,      t1,      16
+    addi.d         t2,      t2,      8
+    addi.d         t3,      t3,      -1
+    bnez           t3,      2b
+    b              4f
+
+3:
+    fld.d          f0,      \ac,     0
+    vmul.h         vr1,     vr2,     vr0
+    vadda.h        vr0,     vr1,     vr3
+    vsrai.h        vr0,     vr0,     6
+    apply_sign_vrh vr0, vr1, vr4, vr5, vr0
+    vadd.h         vr1,     vr0,     vr7
+    iclip_pixel_vrh vr1, vr4, vr6, vr5, vr8, vr0
+    vsrlni.b.h     vr0,     vr0,     0
+    fst.s          f0,      \dst,    0
+
+4:
+    add.d          \ac,     \ac,     t4
+    add.d          \dst,    \dst,    \stride
+    addi.d         \h,      \h,      -1
+    bnez           \h,      1b
+.endm
+
+function ipred_cfl_8bpc_lsx
+    ipred_dc_gen   a2, a3, a4
+    ipred_cfl_pred a0, a1, a3, a4, t0, a5, a6
+endfunc
+
+function ipred_cfl_top_8bpc_lsx
+    ipred_dc_gen_top   a2, a3
+    ipred_cfl_pred a0, a1, a3, a4, t0, a5, a6
+endfunc
+
+function ipred_cfl_left_8bpc_lsx
+    ipred_dc_gen_left   a2, a4
+    ipred_cfl_pred a0, a1, a3, a4, t0, a5, a6
+endfunc
+
+function ipred_cfl_128_8bpc_lsx
+    li.w           t0,      128
+    ipred_cfl_pred a0, a1, a3, a4, t0, a5, a6
+endfunc
