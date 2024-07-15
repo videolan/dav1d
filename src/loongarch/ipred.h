@@ -53,6 +53,7 @@ decl_angular_ipred_fn(BF(dav1d_ipred_paeth, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_v, lsx));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_h, lsx));
+decl_pal_pred_fn(BF(dav1d_pal_pred, lsx));
 
 static ALWAYS_INLINE void intra_pred_dsp_init_loongarch(Dav1dIntraPredDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
@@ -70,6 +71,8 @@ static ALWAYS_INLINE void intra_pred_dsp_init_loongarch(Dav1dIntraPredDSPContext
     init_angular_ipred_fn(SMOOTH_PRED,   ipred_smooth,   lsx);
     init_angular_ipred_fn(SMOOTH_V_PRED, ipred_smooth_v, lsx);
     init_angular_ipred_fn(SMOOTH_H_PRED, ipred_smooth_h, lsx);
+
+    c->pal_pred = BF(dav1d_pal_pred, lsx);
 #endif
 }
 

@@ -1067,3 +1067,177 @@ function ipred_smooth_h_8bpc_lsx
     bnez           a4,      .IPRED_SMOOTH_H_H_LOOP
 
 endfunc
+
+// void pal_pred_lsx(pixel *dst, const ptrdiff_t stride,
+//                   const pixel *const pal, const uint8_t *idx,
+//                   const int w, const int h)
+function pal_pred_8bpc_lsx
+    srai.d         a7,      a5,      2
+
+.PAL_PRED_WLOOP4:
+    andi           a6,      a4,      4
+    beqz           a6,      .PAL_PRED_WLOOP8
+    fld.d          f0,      a3,      0
+    vsrli.b        vr1,     vr0,     4
+    vandi.b        vr2,     vr0,     7
+    vilvl.b        vr0,     vr1,     vr2
+    fld.d          f1,      a2,      0
+    vshuf.b        vr2,     vr1,     vr1,    vr0
+
+    vstelm.w       vr2,     a0,      0,      0
+    add.d          a0,      a0,      a1
+    vstelm.w       vr2,     a0,      0,      1
+    add.d          a0,      a0,      a1
+    vstelm.w       vr2,     a0,      0,      2
+    add.d          a0,      a0,      a1
+    vstelm.w       vr2,     a0,      0,      3
+    add.d          a0,      a0,      a1
+
+    addi.d         a3,      a3,      8
+    addi.d         a7,      a7,      -1
+    bnez           a7,      .PAL_PRED_WLOOP4
+    b              .PAL_PRED_END
+
+.PAL_PRED_WLOOP8:
+    andi           a6,      a4,      8
+    beqz           a6,      .PAL_PRED_WLOOP16
+
+    vld            vr0,     a3,      0
+    vsrli.b        vr1,     vr0,     4
+    vandi.b        vr2,     vr0,     7
+    vilvl.b        vr0,     vr1,     vr2
+    vilvh.b        vr3,     vr1,     vr2
+    fld.d          f1,      a2,      0
+    vshuf.b        vr0,     vr1,     vr1,    vr0
+    vshuf.b        vr3,     vr1,     vr1,    vr3
+
+    vstelm.d       vr0,     a0,      0,      0
+    add.d          a0,      a0,      a1
+    vstelm.d       vr0,     a0,      0,      1
+    add.d          a0,      a0,      a1
+
+    vstelm.d       vr3,     a0,      0,      0
+    add.d          a0,      a0,      a1
+    vstelm.d       vr3,     a0,      0,      1
+    add.d          a0,      a0,      a1
+
+    addi.d         a3,      a3,      16
+    addi.d         a7,      a7,      -1
+    bnez           a7,      .PAL_PRED_WLOOP8
+    b              .PAL_PRED_END
+
+.PAL_PRED_WLOOP16:
+    andi           a6,      a4,      16
+    beqz           a6,      .PAL_PRED_WLOOP32
+
+    vld            vr0,     a3,      0
+    vld            vr1,     a3,      16
+    fld.d          f6,      a2,      0
+    vsrli.b        vr2,     vr0,     4
+    vandi.b        vr3,     vr0,     7
+    vsrli.b        vr4,     vr1,     4
+    vandi.b        vr5,     vr1,     7
+    vilvl.b        vr0,     vr2,     vr3
+    vilvh.b        vr1,     vr2,     vr3
+    vilvl.b        vr2,     vr4,     vr5
+    vilvh.b        vr3,     vr4,     vr5
+    vshuf.b        vr0,     vr6,     vr6,    vr0
+    vshuf.b        vr1,     vr6,     vr6,    vr1
+    vshuf.b        vr2,     vr6,     vr6,    vr2
+    vshuf.b        vr3,     vr6,     vr6,    vr3
+
+    vst            vr0,     a0,      0
+    add.d          a0,      a0,      a1
+    vst            vr1,     a0,      0
+    add.d          a0,      a0,      a1
+    vst            vr2,     a0,      0
+    add.d          a0,      a0,      a1
+    vst            vr3,     a0,      0
+    add.d          a0,      a0,      a1
+
+    addi.d         a3,      a3,      32
+    addi.d         a7,      a7,      -1
+    bnez           a7,      .PAL_PRED_WLOOP16
+    b              .PAL_PRED_END
+
+.PAL_PRED_WLOOP32:
+    andi           a6,      a4,      32
+    beqz           a6,      .PAL_PRED_WLOOP64
+
+    vld            vr0,     a3,      0
+    vld            vr1,     a3,      16
+    vld            vr2,     a3,      32
+    vld            vr3,     a3,      48
+    fld.d          f4,      a2,      0
+    vsrli.b        vr5,     vr0,     4
+    vandi.b        vr6,     vr0,     7
+    vsrli.b        vr7,     vr1,     4
+    vandi.b        vr8,     vr1,     7
+    vsrli.b        vr9,     vr2,     4
+    vandi.b        vr10,    vr2,     7
+    vsrli.b        vr11,    vr3,     4
+    vandi.b        vr12,    vr3,     7
+    vilvl.b        vr0,     vr5,     vr6
+    vilvh.b        vr1,     vr5,     vr6
+    vilvl.b        vr2,     vr7,     vr8
+    vilvh.b        vr3,     vr7,     vr8
+    vilvl.b        vr5,     vr9,     vr10
+    vilvh.b        vr6,     vr9,     vr10
+    vilvl.b        vr7,     vr11,    vr12
+    vilvh.b        vr8,     vr11,    vr12
+    vshuf.b        vr0,     vr4,     vr4,    vr0
+    vshuf.b        vr1,     vr4,     vr4,    vr1
+    vshuf.b        vr2,     vr4,     vr4,    vr2
+    vshuf.b        vr3,     vr4,     vr4,    vr3
+    vshuf.b        vr5,     vr4,     vr4,    vr5
+    vshuf.b        vr6,     vr4,     vr4,    vr6
+    vshuf.b        vr7,     vr4,     vr4,    vr7
+    vshuf.b        vr8,     vr4,     vr4,    vr8
+
+    vst            vr0,     a0,      0
+    vst            vr1,     a0,      16
+    add.d          a0,      a0,      a1
+    vst            vr2,     a0,      0
+    vst            vr3,     a0,      16
+    add.d          a0,      a0,      a1
+    vst            vr5,     a0,      0
+    vst            vr6,     a0,      16
+    add.d          a0,      a0,      a1
+    vst            vr7,     a0,      0
+    vst            vr8,     a0,      16
+    add.d          a0,      a0,      a1
+
+    addi.d         a3,      a3,      64
+    addi.d         a7,      a7,      -1
+    bnez           a7,      .PAL_PRED_WLOOP32
+    b              .PAL_PRED_END
+
+.PAL_PRED_WLOOP64:
+    vld            vr0,     a3,      0
+    vld            vr1,     a3,      16
+    fld.d          f2,      a2,      0
+    vsrli.b        vr3,     vr0,     4
+    vandi.b        vr4,     vr0,     7
+    vsrli.b        vr5,     vr1,     4
+    vandi.b        vr6,     vr1,     7
+    vilvl.b        vr0,     vr3,     vr4
+    vilvh.b        vr1,     vr3,     vr4
+    vilvl.b        vr3,     vr5,     vr6
+    vilvh.b        vr4,     vr5,     vr6
+    vshuf.b        vr0,     vr2,     vr2,    vr0
+    vshuf.b        vr1,     vr2,     vr2,    vr1
+    vshuf.b        vr3,     vr2,     vr2,    vr3
+    vshuf.b        vr4,     vr2,     vr2,    vr4
+
+    vst            vr0,     a0,      0
+    vst            vr1,     a0,      16
+    vst            vr3,     a0,      32
+    vst            vr4,     a0,      48
+
+    add.d          a0,      a0,      a1
+    addi.d         a3,      a3,      32
+    addi.d         a5,      a5,      -1
+    bnez           a5,      .PAL_PRED_WLOOP64
+
+.PAL_PRED_END:
+endfunc
