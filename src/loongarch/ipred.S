@@ -1327,3 +1327,388 @@ function ipred_cfl_128_8bpc_lsx
     li.w           t0,      128
     ipred_cfl_pred a0, a1, a3, a4, t0, a5, a6
 endfunc
+
+const dav1d_filter_intra_taps_lsx
+    //arr0  8*7
+.byte    -6, -5, -3, -3, -4, -3, -3, -3
+.byte    10,  2,  1,  1,  6,  2,  2,  1
+.byte    0, 10,  1,  1,  0,  6,  2,  2
+.byte    0,  0, 10,  2,  0,  0,  6,  2
+.byte    0,  0,  0, 10,  0,  0,  0,  6
+.byte    12,  9,  7,  5,  2,  2,  2,  3
+.byte    0,  0,  0,  0, 12,  9,  7,  5
+    //arr1
+.byte    -10,  -6,  -4,  -2, -10,  -6,  -4,  -2
+.byte    16,   0,   0,   0,  16,   0,   0,   0
+.byte    0,  16,   0,   0,   0,  16,   0,   0
+.byte    0,   0,  16,   0,   0,   0,  16,   0
+.byte    0,   0,   0,  16,   0,   0,   0,  16
+.byte    10,   6,   4,   2,   0,   0,   0,   0
+.byte    0,   0,   0,   0,  10,   6,   4,   2
+    //arr2
+.byte    -8,  -8,  -8,  -8,  -4,  -4,  -4,  -4
+.byte    8,   0,   0,   0,   4,   0,   0,   0
+.byte    0,   8,   0,   0,   0,   4,   0,   0
+.byte    0,   0,   8,   0,   0,   0,   4,   0
+.byte    0,   0,   0,   8,   0,   0,   0,   4
+.byte    16,  16,  16,  16,   0,   0,   0,   0
+.byte    0,   0,   0,   0,  16,  16,  16,  16
+    //arr3
+.byte    -2,  -1,  -1,   0,  -1,  -1,  -1,  -1
+.byte    8,   3,   2,   1,   4,   3,   2,   2
+.byte    0,   8,   3,   2,   0,   4,   3,   2
+.byte    0,   0,   8,   3,   0,   0,   4,   3
+.byte    0,   0,   0,   8,   0,   0,   0,   4
+.byte    10,   6,   4,   2,   3,   4,   4,   3
+.byte    0,   0,   0,   0,  10,   6,   4,   3
+    //arr4
+.byte    -12, -10,  -9,  -8, -10,  -9,  -8,  -7
+.byte    14,   0,   0,   0,  12,   1,   0,   0
+.byte    0,  14,   0,   0,   0,  12,   0,   0
+.byte    0,   0,  14,   0,   0,   0,  12,   1
+.byte    0,   0,   0,  14,   0,   0,   0,  12
+.byte    14,  12,  11,  10,   0,   0,   1,   1
+.byte    0,   0,   0,   0,  14,  12,  11,   9
+endconst
+
+.macro ipred_filter_load_p
+    vldrepl.b      vr0,     t0,      0
+    vldrepl.b      vr1,     a7,      0
+    vldrepl.b      vr2,     a7,      1
+    vldrepl.b      vr3,     a7,      2
+    vldrepl.b      vr4,     a7,      3
+    vldrepl.b      vr5,     t1,      0
+    vldrepl.b      vr6,     t1,      -1
+
+    vsllwil.hu.bu  vr0,     vr0,     0
+    vsllwil.hu.bu  vr1,     vr1,     0
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vsllwil.hu.bu  vr4,     vr4,     0
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+.endm
+
+.macro ipred_filter_loadx_p
+    vldrepl.b      vr0,     t0,      0
+    vldrepl.b      vr1,     a7,      0
+    vldrepl.b      vr2,     a7,      1
+    vldrepl.b      vr3,     a7,      2
+    vldrepl.b      vr4,     a7,      3
+    vldrepl.b      vr5,     t1,      0
+    ldx.bu         t3,      t1,      a1
+    vreplgr2vr.b   vr6,     t3
+
+    vsllwil.hu.bu  vr0,     vr0,     0
+    vsllwil.hu.bu  vr1,     vr1,     0
+    vsllwil.hu.bu  vr2,     vr2,     0
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vsllwil.hu.bu  vr4,     vr4,     0
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+.endm
+
+.macro ipred_filter_load_fltptr
+    fld.d          f7,      a6,      0
+    fld.d          f8,      a6,      8
+    fld.d          f9,      a6,      16
+    fld.d          f10,     a6,      24
+    fld.d          f11,     a6,      32
+    fld.d          f12,     a6,      40
+    fld.d          f13,     a6,      48
+
+    vsllwil.h.b    vr7,     vr7,     0
+    vsllwil.h.b    vr8,     vr8,     0
+    vsllwil.h.b    vr9,     vr9,     0
+    vsllwil.h.b    vr10,    vr10,    0
+    vsllwil.h.b    vr11,    vr11,    0
+    vsllwil.h.b    vr12,    vr12,    0
+    vsllwil.h.b    vr13,    vr13,    0
+.endm
+
+.macro ipred_filter_calc_acc
+    vmul.h         vr7,     vr7,     vr0
+    vmadd.h        vr7,     vr8,     vr1
+    vmadd.h        vr7,     vr9,     vr2
+    vmadd.h        vr7,     vr10,    vr3
+    vmadd.h        vr7,     vr11,    vr4
+    vmadd.h        vr7,     vr12,    vr5
+    vmadd.h        vr7,     vr13,    vr6
+    vaddi.hu       vr7,     vr7,     8
+    vsrai.h        vr7,     vr7,     4
+    iclip_pixel_vrh vr7, vr14, vr15, vr9, vr10, vr8
+    vsrlni.b.h     vr8,     vr8,     0
+.endm
+
+// void ipred_filter_lsx(pixel *dst, const ptrdiff_t stride,
+//                       const pixel *const topleft_in,
+//                       const int width, const int height, int filt_idx,
+//                       const int max_width, const int max_height
+//                       HIGHBD_DECL_SUFFIX)
+function ipred_filter_8bpc_lsx
+    andi           a5,      a5,      511
+    la.local       a6,      dav1d_filter_intra_taps_lsx
+    li.w           a7,      56
+    mul.w          a7,      a7,      a5
+    add.d          a6,      a6,      a7   //*filter
+    addi.d         a7,      a2,      1    //*top
+    or             a5,      zero,    zero //y
+    vxor.v         vr14,    vr14,    vr14
+    li.w           t0,      255
+    vreplgr2vr.h   vr15,    t0
+
+.FILTER_LOOP_H:
+    sub.d          t0,      a2,      a5   //*topleft
+    addi.d         t1,      t0,      -1   //left
+
+    ctz.w          t2,      a3
+    addi.d         t3,      t2,      -2
+    beqz           t3,      .FILTER_LOOP_W4
+    addi.d         t3,      t2,      -3
+    beqz           t3,      .FILTER_LOOP_W8
+    addi.d         t3,      t2,      -4
+    beqz           t3,      .FILTER_LOOP_W16
+    addi.d         t3,      t2,      -5
+    beqz           t3,      .FILTER_LOOP_W32
+
+.FILTER_LOOP_W4:
+    ipred_filter_load_p
+
+    or             t3,      a0,      a0  //*ptr
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    b              .FILTER_LOOP_W_END
+
+.FILTER_LOOP_W8:
+    ipred_filter_load_p
+
+    or             t3,      a0,      a0
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      3
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      4
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    b              .FILTER_LOOP_W_END
+
+.FILTER_LOOP_W16:
+    ipred_filter_load_p
+
+    or             t3,      a0,      a0
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      3
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      4
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      7
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      8
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      11
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      12
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    b              .FILTER_LOOP_W_END
+
+.FILTER_LOOP_W32:
+    ipred_filter_load_p
+
+    or             t3,      a0,      a0
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      3
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      4
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      7
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      8
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      11
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      12
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      15
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      16
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      19
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      20
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      23
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      24
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+    addi.d         t1,      a0,      27
+    addi.d         a7,      a7,      4
+    addi.d         t0,      a7,      -1
+
+    ipred_filter_loadx_p
+
+    addi.d         t3,      a0,      28
+
+    ipred_filter_load_fltptr
+    ipred_filter_calc_acc
+
+    fst.s          f8,      t3,      0
+    add.d          t3,      t3,      a1
+    vstelm.w       vr8,     t3,      0,      1
+    add.d          t3,      t3,      a1
+
+.FILTER_LOOP_W_END:
+    add.d          a7,      a0,      a1
+    add.d          t2,      a1,      a1
+    add.d          a0,      a0,      t2
+    addi.d         a5,      a5,      2
+    blt            a5,      a4,      .FILTER_LOOP_H
+endfunc
