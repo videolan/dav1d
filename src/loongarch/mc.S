@@ -6424,3 +6424,211 @@ function blend_h_8bpc_lasx
 .BLEND_H_END_LASX:
 
 endfunc
+
+/*
+ *  a1=16 | a2=8 | a3=4
+ *  temp reg: a4
+ */
+.macro PIXEL_COPY_LSX _dst, _src, _size
+    blt             \_size,  a1,     8f
+16:
+    vld             vr0,     \_src,  0
+    vst             vr0,     \_dst,  0
+    addi.d          \_size,  \_size, -16
+    addi.d          \_dst,   \_dst,  16
+    addi.d          \_src,   \_src,  16
+    blt             a1,      \_size, 16b
+8:
+    blt             \_size,  a2,     14f
+    ld.d            a4,      \_src,  0
+    st.d            a4,      \_dst,  0
+    addi.d          \_size,  \_size, -8
+    addi.d          \_dst,   \_dst,  8
+    addi.d          \_src,   \_src,  8
+14:
+    blt             \_size,  a3,     11f
+    ld.w            a4,      \_src,  0
+    st.w            a4,      \_dst,  0
+    addi.d          \_size,  \_size, -4
+    addi.d          \_dst,   \_dst,  4
+    addi.d          \_src,   \_src,  4
+11:
+    beqz            \_size,  110f
+111:
+    ld.b            a4,      \_src,  0
+    st.b            a4,      \_dst,  0
+    addi.d          \_size,  \_size, -1
+    addi.d          \_dst,   \_dst,  1
+    addi.d          \_src,   \_src,  1
+    bnez            \_size,  111b
+110:
+.endm
+
+/*
+ *  a1=16 | a2=8 | a3=4
+ */
+.macro PIXEL_SET_LSX _dst, _vsrc, _size
+    blt             \_size,  a1,     8f
+16:
+    vst             \_vsrc,  \_dst,  0
+    addi.d          \_size,  \_size, -16
+    addi.d          \_dst,   \_dst,  16
+    blt             a1,      \_size, 16b
+8:
+    blt             \_size,  a2,     14f
+    vstelm.d        \_vsrc,  \_dst,  0,   0
+    addi.d          \_size,  \_size, -8
+    addi.d          \_dst,   \_dst,  8
+14:
+    blt             \_size,  a3,     11f
+    vstelm.w        \_vsrc,  \_dst,  0,   0
+    addi.d          \_size,  \_size, -4
+    addi.d          \_dst,   \_dst,  4
+11:
+    beqz            \_size,  110f
+111:
+    vstelm.b        \_vsrc,  \_dst,  0,   0
+    addi.d          \_size,  \_size, -1
+    addi.d          \_dst,   \_dst,  1
+    bnez            \_size,  111b
+110:
+.endm
+
+/*
+ *  temp reg: a4 a5 t2 t3 vr0
+ */
+.macro DEGE_LOOP need_left, need_right
+0:
+    addi.d          t2,      t6,     0   // dst
+    addi.d          t3,      t7,     0   // src
+.if \need_left
+    vldrepl.b       vr0,     t3,     0
+    addi.d          a5,      t0,     0
+    PIXEL_SET_LSX t2, vr0, a5
+.endif
+
+    addi.d          a5,      t4,     0
+    PIXEL_COPY_LSX t2, t3, a5
+
+.if \need_right
+    vldrepl.b       vr0,     t3,     -1
+    addi.d          a5,      t1,     0
+    PIXEL_SET_LSX t2, vr0, a5
+.endif
+
+    addi.d          t5,      t5,     -1
+    add.d           t7,      t7,     t8
+    add.d           t6,      t6,     a7
+    bnez            t5,      0b
+.endm
+
+/*
+ * static void emu_edge_c(const intptr_t bw, const intptr_t bh,
+ *                        const intptr_t iw, const intptr_t ih,
+ *                        const intptr_t x, const intptr_t y,
+ *                        pixel *dst, const ptrdiff_t dst_stride,
+ *                        const pixel *ref, const ptrdiff_t ref_stride)
+ */
+function emu_edge_8bpc_lsx
+    vxor.v          vr23,   vr23,    vr23   // zero
+    addi.d          t0,     a3,      -1     // ih - 1
+    addi.d          t1,     a2,      -1     // iw - 1
+    vreplgr2vr.w    vr22,   t0
+    vinsgr2vr.w     vr22,   t1,        1
+    vreplgr2vr.w    vr0,    a5
+    vinsgr2vr.w     vr0,    a4,        1     // [0] - h | [1] - w
+
+    vclip.w         vr2,    vr0,      vr23,    vr22
+    vpickve2gr.w    t0,     vr2,      0
+    ld.d            t2,     sp,       0
+    ld.d            t8,     sp,       8     // ref_stride
+    mul.w           t0,     t0,       t8
+    vpickve2gr.w    t1,     vr2,      1
+    add.d           t2,     t2,       t1
+    add.d           t7,     t0,       t2    // ref
+
+    addi.d          t0,     a0,       -1     // bw - 1
+    addi.d          t1,     a1,       -1     // bh - 1
+    vreplgr2vr.w    vr21,   t0
+    vreplgr2vr.w    vr22,   t1
+    vilvl.d         vr21,   vr22,      vr21
+    sub.d           t2,     zero,      a4    // -x
+    add.d           t3,     a0,        a4
+    sub.d           t3,     t3,        a2    // x + bw - iw
+    sub.d           t4,     zero,      a5    // -y
+    add.d           t5,     a1,        a5
+    sub.d           t5,     t5,        a3    // y + bh - ih
+    vreplgr2vr.w    vr0,    t2
+    vinsgr2vr.w     vr0,    t3,        1
+    vinsgr2vr.w     vr0,    t4,        2
+    vinsgr2vr.w     vr0,    t5,        3
+    vclip.w         vr2,    vr0,       vr23,    vr21
+    vpickve2gr.w    t0,     vr2,       0     // left_ext
+    vpickve2gr.w    t1,     vr2,       1     // right_ext
+    vpickve2gr.w    t2,     vr2,       2     // top_ext
+    vpickve2gr.w    t3,     vr2,       3     // bottom_ext
+
+    mul.w           t6,     t2,        a7
+    add.d           t4,     t0,        t1
+    add.d           t5,     t2,        t3
+    sub.d           t4,     a0,        t4    // center_w
+    sub.d           t5,     a1,        t5    // center_h
+
+    addi.d          a1,     zero,      16
+    addi.d          a2,     zero,      8
+    addi.d          a3,     zero,      4
+    add.d           t6,     t6,        a6    // blk
+
+    beqz            t0,     2f
+    // need_left
+    beqz            t1,     3f
+    // need_left + need_right
+    DEGE_LOOP       1,   1
+    b               5f
+
+2:
+    // !need_left
+    beqz            t1,     4f
+    // !need_left + need_right
+    DEGE_LOOP       0,   1
+    b               5f
+
+3:
+    // need_left + !need_right
+    DEGE_LOOP       1,   0
+    b               5f
+
+4:
+    // !need_left + !need_right
+    DEGE_LOOP       0,   0
+
+5:
+    vpickve2gr.w    t2,     vr2,       2     // top_ext
+    vpickve2gr.w    t3,     vr2,       3     // bottom_ext
+    sub.d           t7,     a7,        a0    // dst_stride - bw
+    mul.w           t8,     t2,        a7
+
+    beqz            t3,     2f
+    // need_bottom
+    sub.d           t0,     t6,        a7    //  &dst[-PXSTRIDE(dst_stride)]
+1:
+    addi.d          t1,     t0,        0
+    addi.d          a5,     a0,        0
+    PIXEL_COPY_LSX t6, t1, a5
+    add.d           t6,     t6,        t7
+    addi.d          t3,     t3,   -1
+    bnez            t3,     1b
+2:
+    beqz            t2,     3f
+    // need_top
+    add.d           t8,     t8,        a6    // blk
+1:
+    addi.d          t1,     t8,        0
+    addi.d          a5,     a0,        0
+    PIXEL_COPY_LSX a6, t1, a5
+    add.d           a6,     a6,        t7
+    addi.d          t2,     t2,   -1
+    bnez            t2,     1b
+3:
+
+endfunc

@@ -46,6 +46,7 @@ decl_w_mask_fn(BF(dav1d_w_mask_420, lsx));
 decl_blend_fn(BF(dav1d_blend, lsx));
 decl_blend_dir_fn(BF(dav1d_blend_v, lsx));
 decl_blend_dir_fn(BF(dav1d_blend_h, lsx));
+decl_emu_edge_fn(BF(dav1d_emu_edge, lsx));
 
 decl_mc_fn(BF(dav1d_put_8tap_regular,          lsx));
 decl_mc_fn(BF(dav1d_put_8tap_regular_smooth,   lsx));
@@ -100,6 +101,7 @@ static ALWAYS_INLINE void mc_dsp_init_loongarch(Dav1dMCDSPContext *const c) {
     c->blend = BF(dav1d_blend, lsx);
     c->blend_v = BF(dav1d_blend_v, lsx);
     c->blend_h = BF(dav1d_blend_h, lsx);
+    c->emu_edge = BF(dav1d_emu_edge, lsx);
 
     init_mc_fn(FILTER_2D_8TAP_REGULAR,         8tap_regular,        lsx);
     init_mc_fn(FILTER_2D_8TAP_REGULAR_SMOOTH,  8tap_regular_smooth, lsx);
