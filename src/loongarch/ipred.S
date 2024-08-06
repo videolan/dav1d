@@ -1712,3 +1712,2549 @@ function ipred_filter_8bpc_lsx
     addi.d         a5,      a5,      2
     blt            a5,      a4,      .FILTER_LOOP_H
 endfunc
+
+const dav1d_dr_intra_derivative
+    // Values that are 0 will never be used
+    .short  0         // Angles:
+    .short  1023, 0   //  3,  93, 183
+    .short  547       //  6,  96, 186
+    .short  372, 0, 0 //  9,  99, 189
+    .short  273       // 14, 104, 194
+    .short  215, 0    // 17, 107, 197
+    .short  178       // 20, 110, 200
+    .short  151, 0    // 23, 113, 203 (113 & 203 are base angles)
+    .short  132       // 26, 116, 206
+    .short  116, 0    // 29, 119, 209
+    .short  102, 0    // 32, 122, 212
+    .short  90        // 36, 126, 216
+    .short  80, 0     // 39, 129, 219
+    .short  71        // 42, 132, 222
+    .short  64, 0     // 45, 135, 225 (45 & 135 are base angles)
+    .short  57        // 48, 138, 228
+    .short  51, 0     // 51, 141, 231
+    .short  45, 0     // 54, 144, 234
+    .short  40        // 58, 148, 238
+    .short  35, 0     // 61, 151, 241
+    .short  31        // 64, 154, 244
+    .short  27, 0     // 67, 157, 247 (67 & 157 are base angles)
+    .short  23        // 70, 160, 250
+    .short  19, 0     // 73, 163, 253
+    .short  15, 0     // 76, 166, 256
+    .short  11, 0     // 81, 171, 261
+    .short  7         // 84, 174, 264
+    .short  3         // 87, 177, 267
+endconst
+
+const z1_upsample_edge_kernel
+    .short  -1, 9, 9, -1, -1, 9, 9, -1
+endconst
+
+const ipred_filter_edge_kernel1
+    .short  0, 4, 8, 4, 0, 4, 8, 4
+    .short  0, 5, 6, 5, 0, 5, 6, 5
+    .short  2, 4, 4, 4, 2, 4, 4, 4
+endconst
+
+const ipred_filter_edge_kernel2
+    .short  0, 0, 0, 0, 0, 0, 0, 0
+    .short  0, 0, 0, 0, 0, 0, 0, 0
+    .short  2, 2, 2, 2, 2, 2, 2, 2
+endconst
+
+.macro z1_upsample_edge_calc_loop
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vsllwil.hu.bu  vr11,    vr11,    0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+
+    vmul.h         vr10,    vr10,    vr0
+    vmul.h         vr11,    vr11,    vr0
+    vmul.h         vr12,    vr12,    vr0
+    vmul.h         vr13,    vr13,    vr0
+
+    vhaddw.w.h     vr10,    vr10,    vr10
+    vhaddw.w.h     vr11,    vr11,    vr11
+    vhaddw.w.h     vr12,    vr12,    vr12
+    vhaddw.w.h     vr13,    vr13,    vr13
+    vhaddw.d.w     vr10,    vr10,    vr10
+    vhaddw.d.w     vr11,    vr11,    vr11
+    vhaddw.d.w     vr12,    vr12,    vr12
+    vhaddw.d.w     vr13,    vr13,    vr13
+
+    vpackev.h      vr10,    vr11,    vr10
+    vpackev.h      vr11,    vr13,    vr12
+    vpackev.w      vr12,    vr11,    vr10  //s:01234567
+    vsrari.h       vr12,    vr12,    4
+    iclip_pixel_vrh vr12, vr15, vr16, vr10, vr11, vr12
+    vsrlni.b.h     vr12,    vr12,    0  //out: 13579...
+    vbsrl.v        vr11,    vr7,     1  //out:02468...
+    vilvl.b        vr13,    vr12,    vr11
+.endm
+
+.macro z1_upsample_edge_data_init1
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+.endm
+
+.macro z1_upsample_edge_data_init2
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_upsample_edge_calc_loop
+.endm
+
+.macro z1_upsample_edge_calc_other
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vmul.h         vr10,    vr10,    vr0
+    vhaddw.w.h     vr10,    vr10,    vr10
+    vhaddw.d.w     vr10,    vr10,    vr10
+    vreplvei.h     vr12,    vr10,    0   //s0-s7
+    vsrari.h       vr12,    vr12,    4
+
+    iclip_pixel_vrh vr12, vr15, vr16, vr10, vr11, vr12
+    vsrlni.b.h     vr12,    vr12,    0
+    vilvl.b        vr13,    vr12,    vr7
+.endm
+
+.macro z1_filter_edge_calc_loop1
+    vmul.h         vr10,    vr10,    vr1
+    vmul.h         vr11,    vr11,    vr1
+    vmul.h         vr12,    vr12,    vr1
+    vmul.h         vr13,    vr13,    vr1
+
+    vhaddw.w.h     vr10,    vr10,    vr10
+    vhaddw.w.h     vr11,    vr11,    vr11
+    vhaddw.w.h     vr12,    vr12,    vr12
+    vhaddw.w.h     vr13,    vr13,    vr13
+    vhaddw.d.w     vr10,    vr10,    vr10
+    vhaddw.d.w     vr11,    vr11,    vr11
+    vhaddw.d.w     vr12,    vr12,    vr12
+    vhaddw.d.w     vr13,    vr13,    vr13
+
+    vpackev.h      vr10,    vr11,    vr10
+    vpackev.h      vr11,    vr13,    vr12
+    vpackev.w      vr10,    vr11,    vr10  //s:01234567
+.endm
+
+.macro z1_filter_edge_calc_loop2
+    vsllwil.hu.bu  vr13,    vr13,    0
+    vmadd.h        vr10,    vr13,    vr6
+    vsrari.h       vr12,    vr10,    4
+    vsrlni.b.h     vr12,    vr12,    0  //out: 0-7
+.endm
+
+.macro z1_filter_edge_calc_other
+    vsllwil.hu.bu  vr10,    vr10,    0
+    vmul.h         vr11,    vr10,    vr1
+    vhaddw.w.h     vr11,    vr11,    vr11
+    vhaddw.d.w     vr11,    vr11,    vr11
+    vreplvei.h     vr12,    vr11,    4
+    vextrins.h     vr12,    vr11,    0x00
+
+    vreplvei.h     vr13,    vr10,    1
+    vmadd.h        vr12,    vr13,    vr6
+    vsrari.h       vr12,    vr12,    4
+    vsrlni.b.h     vr12,    vr12,    0  //out: 0-7
+.endm
+
+.macro z1_filter_edge_data_init1
+    vbsll.v        vr10,    vr7,     1
+    vextrins.b     vr10,    vr10,    0x01
+    vbsrl.v        vr12,    vr7,     1
+    vbsrl.v        vr13,    vr7,     2
+    vsllwil.hu.bu  vr10,    vr10,    0
+    vsllwil.hu.bu  vr11,    vr7,     0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+.endm
+
+.macro z1_filter_edge_data_init2
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vbsrl.v        vr13,    vr7,     3
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vsllwil.hu.bu  vr11,    vr11,    0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+.endm
+
+.macro z1_filter_edge_data_init3
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x76
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vsllwil.hu.bu  vr11,    vr11,    0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+.endm
+
+.macro z1_filter_edge_data_init4
+    vbsll.v        vr10,    vr7,     1
+    vextrins.b     vr10,    vr10,    0x01
+    vbsrl.v        vr12,    vr7,     1
+    vbsrl.v        vr13,    vr7,     2
+    vextrins.b     vr13,    vr13,    0x76
+    vsllwil.hu.bu  vr10,    vr10,    0
+    vsllwil.hu.bu  vr11,    vr7,     0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+.endm
+
+.macro pixel_set_8bpc_allw dst_ptr, src_ptr, width, tmp0, tmp1
+    vldrepl.b      vr10,    \src_ptr, 0
+    or             \tmp1,   zero,     zero
+    srai.d         \tmp0,   \width,   4
+    beqz           \tmp0,   2f
+1:
+    vstx           vr10,    \dst_ptr, \tmp1
+    addi.d         \tmp1,   \tmp1,    16
+    addi.d         \tmp0,   \tmp0,    -1
+    bnez           \tmp0,   1b
+2:
+    andi           \tmp0,   \width,   8
+    beqz           \tmp0,   3f
+    fstx.d         f10,     \dst_ptr, \tmp1
+    addi.d         \tmp1,   \tmp1,    8
+3:
+    andi           \tmp0,   \width,   4
+    beqz           \tmp0,   4f
+    fstx.s         f10,     \dst_ptr, \tmp1
+    addi.d         \tmp1,   \tmp1,    4
+4:
+    andi           \tmp0,   \width,   2
+    beqz           \tmp0,   5f
+    ldx.bu         \tmp0,   \src_ptr, zero
+    stx.b          \tmp0,   \dst_ptr, \tmp1
+    addi.d         \tmp1,   \tmp1,    1
+    stx.b          \tmp0,   \dst_ptr, \tmp1
+    addi.d         \tmp1,   \tmp1,    1
+5:
+    andi           \tmp0,   \width,   1
+    beqz           \tmp0,   6f
+    ldx.bu         \tmp0,   \src_ptr, zero
+    stx.b          \tmp0,   \dst_ptr, \tmp1
+6:
+.endm
+
+// void ipred_z1_lsx(pixel *dst, const ptrdiff_t stride,
+//                   const pixel *const topleft_in,
+//                   const int width, const int height, int angle,
+//                   const int max_width, const int max_height
+//                   HIGHBD_DECL_SUFFIX)
+function ipred_z1_8bpc_lsx
+    addi.d         a2,      a2,      1   //&topleft_in[1]
+    addi.d         sp,      sp,      -128
+    or             t2,      sp,      sp  //top_out
+    srai.d         a6,      a5,      9
+    andi           a6,      a6,      1   //is_sum
+    srai.d         a7,      a5,      10  //enable_intra_edge_filter
+    andi           a5,      a5,      511
+
+    la.local       t0,      dav1d_dr_intra_derivative
+    andi           t1,      a5,      0xFFE
+    ldx.hu         t1,      t0,      t1  //dx
+
+    beqz           a7,      .IPRED_Z1_NOTUA
+    add.d          t3,      a3,      a4
+    li.w           t4,      90
+    sub.w          t4,      t4,      a5
+    // ipred_get_upsample t5:upsample_above
+    li.w           t6,      16
+    sra.d          t6,      t6,      a6
+    bge            t6,      t3,      .Z1_GETUS1
+    addi.d         t5,      zero,    0
+    b              .Z1_GETUS2
+.Z1_GETUS1:
+    addi.d         t5,      zero,    1
+.Z1_GETUS2:
+    li.w           t6,      40
+    blt            t4,      t6,      .Z1_GETUS3
+    addi.d         t6,      zero,    0
+    b              .Z1_GETUS4
+.Z1_GETUS3:
+    addi.d         t6,      zero,    1
+.Z1_GETUS4:
+    and            t5,      t5,      t6
+
+    beqz           t5,      .IPRED_Z1_NOTUA
+
+    la.local       t0,      z1_upsample_edge_kernel
+    vld            vr0,     t0,      0   //kernel
+    vxor.v         vr15,    vr15,    vr15
+    li.w           t0,      255
+    vreplgr2vr.h   vr16,    t0
+
+.Z1_UEDGE_W4:
+    andi           t6,      a3,     4
+    beqz           t6,      .Z1_UEDGE_W8
+.Z1_UEDGE_W4_H4:
+    andi           t6,      a4,     4
+    beqz           t6,      .Z1_UEDGE_W4_H8
+
+    //0-6
+    vld            vr7,     a2,      -1
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+
+    fst.d          f13,     t2,     0
+    vstelm.w       vr13,    t2,     8,    2
+    vstelm.h       vr13,    t2,     12,   6
+
+    ld.bu          t7,      a2,     7
+    st.b           t7,      t2,     14
+
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W4_H8:
+    andi           t6,      a4,     8
+    beqz           t6,      .Z1_UEDGE_W4_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     0
+
+    //8-10
+    vldrepl.b      vr7,     a2,     7
+    z1_upsample_edge_calc_other
+
+    vstelm.w       vr13,    t2,     16,   0
+    vstelm.h       vr13,    t2,     20,   2
+
+    ld.bu          t7,      a2,     7
+    st.b           t7,      t2,     22
+
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W4_H16:
+    andi           t6,      a4,     16
+    beqz           t6,      .Z1_UEDGE_W4_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     0
+
+    //8-15
+    vldrepl.b      vr7,     a2,     7
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,     16
+
+    //16-18
+    vstelm.w       vr13,    t2,     32,   0
+    vstelm.h       vr13,    t2,     36,   2
+
+    ld.bu          t7,      a2,     7
+    st.b           t7,      t2,     38
+
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W4_H32:
+    andi           t6,      a4,     32
+    beqz           t6,      .Z1_UEDGE_W4_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     0
+
+    //8-15
+    vldrepl.b      vr7,     a2,     7
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,     16
+
+    vst            vr13,    t2,     32 //16-23
+    vst            vr13,    t2,     48 //24-31
+
+    //32-34
+    vstelm.w       vr13,    t2,     64,   0
+    vstelm.h       vr13,    t2,     68,   2
+
+    ld.bu          t7,      a2,     7
+    st.b           t7,      t2,     70
+
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W4_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     0
+
+    //8-15
+    vldrepl.b      vr7,     a2,     7
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,     16
+
+    vst            vr13,    t2,     32 //16-23
+    vst            vr13,    t2,     48 //24-31
+    vst            vr13,    t2,     64 //32-39
+    vst            vr13,    t2,     80 //40-47
+    vst            vr13,    t2,     96 //48-55
+    vst            vr13,    t2,     112 //56-63
+
+    //64-66
+    vstelm.w       vr13,    t2,     128,   0
+    vstelm.h       vr13,    t2,     132,   2
+
+    ld.bu          t7,      a2,     7
+    st.b           t7,      t2,     134
+
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W8:
+    andi           t6,      a3,     8
+    beqz           t6,      .Z1_UEDGE_W16
+.Z1_UEDGE_W8_H4:
+    andi           t6,      a4,     4
+    beqz           t6,      .Z1_UEDGE_W8_H8
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x32
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x21
+    vextrins.b     vr13,    vr13,    0x31
+    z1_upsample_edge_calc_loop
+    vstelm.w       vr13,    t2,     16,    0
+    vstelm.h       vr13,    t2,     20,    2
+
+    ld.bu          t7,      a2,     11
+    st.b           t7,      t2,     22
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W8_H8:
+    andi           t6,      a4,     8
+    beqz           t6,      .Z1_UEDGE_W8_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-14
+    vld            vr7,     a2,      7
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,     16
+    vstelm.w       vr13,    t2,     24,    2
+    vstelm.h       vr13,    t2,     28,    6
+
+    ld.bu          t7,      a2,     15
+    st.b           t7,      t2,     30
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W8_H16:
+    andi           t6,      a4,     16
+    beqz           t6,      .Z1_UEDGE_W8_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     16
+
+    //16-22
+    vldrepl.b      vr7,     a2,     15
+    z1_upsample_edge_calc_other
+    fst.d          f13,     t2,     32
+    vstelm.w       vr13,    t2,     40,   2
+    vstelm.h       vr13,    t2,     44,   6
+
+    ld.bu          t7,      a2,     15
+    st.b           t7,      t2,     46
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W8_H32:
+    andi           t6,      a4,     32
+    beqz           t6,      .Z1_UEDGE_W8_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     16
+
+    //16-23
+    vldrepl.b      vr7,     a2,     15
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,     32
+
+    vst            vr13,    t2,     48 //24-31
+
+    //32-38
+    fst.d          f13,     t2,     64
+    vstelm.w       vr13,    t2,     72,   2
+    vstelm.h       vr13,    t2,     76,   6
+
+    ld.bu          t7,      a2,     15
+    st.b           t7,      t2,     78
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W8_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,     16
+
+    //16-23
+    vldrepl.b      vr7,     a2,     15
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,     32
+
+    vst            vr13,    t2,     48 //24-31
+    vst            vr13,    t2,     64 //32-39
+    vst            vr13,    t2,     80 //40-47
+    vst            vr13,    t2,     96 //48-55
+    vst            vr13,    t2,     112 //56-63
+
+    //64-70
+    fst.d          f13,     t2,     128
+    vstelm.w       vr13,    t2,     136,   2
+    vstelm.h       vr13,    t2,     140,   6
+
+    ld.bu          t7,      a2,     15
+    st.b           t7,      t2,     142
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W16:
+    andi           t6,      a3,     16
+    beqz           t6,      .Z1_UEDGE_W32
+.Z1_UEDGE_W16_H4:
+    andi           t6,      a4,     4
+    beqz           t6,      .Z1_UEDGE_W16_H8
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     16
+
+    //16-18
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vstelm.w       vr13,    t2,     32,    0
+    vstelm.h       vr13,    t2,     36,    2
+
+    ld.bu          t7,      a2,     19
+    st.b           t7,      t2,     38
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W16_H8:
+    andi           t6,      a4,     8
+    beqz           t6,      .Z1_UEDGE_W16_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-22
+    vld            vr7,     a2,      15
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,     32
+    vstelm.w       vr13,    t2,     40,    2
+    vstelm.h       vr13,    t2,     44,    6
+
+    ld.bu          t7,      a2,     23
+    st.b           t7,      t2,     46
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W16_H16:
+    andi           t6,      a4,     16
+    beqz           t6,      .Z1_UEDGE_W16_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-30
+    vld            vr7,     a2,      23
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,     48
+    vstelm.w       vr13,    t2,     56,    2
+    vstelm.h       vr13,    t2,     60,    6
+
+    ld.bu          t7,      a2,     31
+    st.b           t7,      t2,     62
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W16_H32:
+    andi           t6,      a4,     32
+    beqz           t6,      .Z1_UEDGE_W16_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,      48
+
+    //32-39
+    vldrepl.b      vr7,     a2,      31
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,      64
+
+    //40-46
+    fst.d          f13,     t2,     80
+    vstelm.w       vr13,    t2,     88,    2
+    vstelm.h       vr13,    t2,     92,    6
+
+    ld.bu          t7,      a2,     31
+    st.b           t7,      t2,     94
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W16_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,      48
+
+    //32-39
+    vldrepl.b      vr7,     a2,      31
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,      64
+
+    vst            vr13,    t2,      80  //40-47
+    vst            vr13,    t2,      96  //48-55
+    vst            vr13,    t2,      112 //56-63
+    vst            vr13,    t2,      128 //64-71
+
+    //72-78
+    fst.d          f13,     t2,     144
+    vstelm.w       vr13,    t2,     152,    2
+    vstelm.h       vr13,    t2,     156,    6
+
+    ld.bu          t7,      a2,     31
+    st.b           t7,      t2,     158
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W32:
+    andi           t6,      a3,     32
+    beqz           t6,      .Z1_UEDGE_W64
+.Z1_UEDGE_W32_H8:
+    andi           t6,      a4,     8
+    beqz           t6,      .Z1_UEDGE_W32_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-38
+    vld            vr7,     a2,      31
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,      64
+    vstelm.w       vr13,    t2,      72,    2
+    vstelm.h       vr13,    t2,      76,    6
+
+    ld.bu          t7,      a2,     39
+    st.b           t7,      t2,     78
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W32_H16:
+    andi           t6,      a4,     16
+    beqz           t6,      .Z1_UEDGE_W32_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-46
+    vld            vr7,     a2,      39
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,      80
+    vstelm.w       vr13,    t2,      88,    2
+    vstelm.h       vr13,    t2,      92,    6
+
+    ld.bu          t7,      a2,     47
+    st.b           t7,      t2,     94
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W32_H32:
+    andi           t6,      a4,     32
+    beqz           t6,      .Z1_UEDGE_W32_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-47
+    vld            vr7,     a2,      39
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      80
+
+    //48-55
+    vld            vr7,     a2,      47
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      96
+
+    //56-62
+    vld            vr7,     a2,      55
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vextrins.b     vr12,    vr12,    0x76
+    vbsrl.v        vr13,    vr7,     3
+    z1_upsample_edge_calc_loop
+    fst.d          f13,     t2,      112
+    vstelm.w       vr13,    t2,      120,   2
+    vstelm.h       vr13,    t2,      124,   6
+
+    ld.bu          t7,      a2,     63
+    st.b           t7,      t2,     126
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W32_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-47
+    vld            vr7,     a2,      39
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      80
+
+    //48-55
+    vld            vr7,     a2,      47
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      96
+
+    //56-63
+    vld            vr7,     a2,      55
+    z1_upsample_edge_data_init2
+    vst            vr13,    t2,      112
+
+    //64-71
+    vldrepl.b      vr7,     a2,      63
+    z1_upsample_edge_calc_other
+    vst            vr13,    t2,      128
+
+    vst            vr13,    t2,      144 //72-79
+    vst            vr13,    t2,      160 //80-87
+
+    //88-94
+    fst.d          f13,     t2,     176
+    vstelm.w       vr13,    t2,     184,    2
+    vstelm.h       vr13,    t2,     188,    6
+
+    ld.bu          t7,      a2,     63
+    st.b           t7,      t2,     190
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W64:
+.Z1_UEDGE_W64_H16:
+    andi           t6,      a4,     16
+    beqz           t6,      .Z1_UEDGE_W64_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-47
+    vld            vr7,     a2,      39
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      80
+
+    //48-55
+    vld            vr7,     a2,      47
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      96
+
+    //56-63
+    vld            vr7,     a2,      55
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      112
+
+    //64-71
+    vld            vr7,     a2,      63
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      128
+
+    //72-78
+    vld            vr7,     a2,      71
+    z1_upsample_edge_data_init2
+    fst.d          f13,     t2,     144
+    vstelm.w       vr13,    t2,     152,    2
+    vstelm.h       vr13,    t2,     156,    6
+
+    ld.bu          t7,      a2,     79
+    st.b           t7,      t2,     158
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W64_H32:
+    andi           t6,      a4,     32
+    beqz           t6,      .Z1_UEDGE_W64_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-47
+    vld            vr7,     a2,      39
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      80
+
+    //48-55
+    vld            vr7,     a2,      47
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      96
+
+    //56-63
+    vld            vr7,     a2,      55
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      112
+
+    //64-71
+    vld            vr7,     a2,      63
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      128
+
+    //72-79
+    vld            vr7,     a2,      71
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      144
+
+    //80-87
+    vld            vr7,     a2,      79
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      160
+
+    //88-94
+    vld            vr7,     a2,      87
+    z1_upsample_edge_data_init2
+    fst.d          f13,     t2,     176
+    vstelm.w       vr13,    t2,     184,    2
+    vstelm.h       vr13,    t2,     188,    6
+
+    ld.bu          t7,      a2,     95
+    st.b           t7,      t2,     190
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_W64_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,     0
+
+    //8-15
+    vld            vr7,     a2,      7
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      16
+
+    //16-23
+    vld            vr7,     a2,      15
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      32
+
+    //24-31
+    vld            vr7,     a2,      23
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      48
+
+    //32-39
+    vld            vr7,     a2,      31
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      64
+
+    //40-47
+    vld            vr7,     a2,      39
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      80
+
+    //48-55
+    vld            vr7,     a2,      47
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      96
+
+    //56-63
+    vld            vr7,     a2,      55
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      112
+
+    //64-71
+    vld            vr7,     a2,      63
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      128
+
+    //72-79
+    vld            vr7,     a2,      71
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      144
+
+    //80-87
+    vld            vr7,     a2,      79
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      160
+
+    //88-95
+    vld            vr7,     a2,      87
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      176
+
+    //96-103
+    vld            vr7,     a2,      95
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      192
+
+    //104-111
+    vld            vr7,     a2,      103
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      208
+
+    //112-119
+    vld            vr7,     a2,      111
+    z1_upsample_edge_data_init1
+    vst            vr13,    t2,      224
+
+    //120-126
+    vld            vr7,     a2,      119
+    z1_upsample_edge_data_init2
+    fst.d          f13,     t2,      240
+    vstelm.w       vr13,    t2,      248,    2
+    vstelm.h       vr13,    t2,      252,    6
+
+    ld.bu          t7,      a2,      127
+    st.b           t7,      t2,      254
+    b              .Z1_UEDGE_END
+
+.Z1_UEDGE_END:
+    //upsample_edge end
+
+    or             a7,      t2,      t2   //top
+    add.d          t0,      a3,      a4
+    slli.d         t0,      t0,      1
+    addi.d         t0,      t0,      -2   //max_base_x
+    slli.d         t1,      t1,      1
+    b              .IPRED_Z1_UA_END
+
+.IPRED_Z1_NOTUA:
+    or             t5,      zero,    zero  //upsample_above=0
+    beqz           a7,      .IPRED_Z1_NOTFS
+    add.d          a7,      a3,      a4  //w+h
+    li.w           t4,      90
+    sub.d          t4,      t4,      a5
+    // ipred_get_filter_strength a6:filter_strength
+    beqz           a6,      .Z1_GETFS20
+.Z1_GETFS10:  //wh<=8
+    addi.d         t6,      a7,      -8
+    blt            zero,    t6,      .Z1_GETFS11
+    addi.d         t6,      t4,      -64
+    blt            t6,      zero,    .Z1_GETFS101
+    ori            a6,      zero,    2
+    b              .Z1_GETFS40
+.Z1_GETFS101:
+    addi.d         t6,      t4,      -40
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS11:  //wh<=16
+    addi.d         t6,      a7,      -16
+    blt            zero,    t6,      .Z1_GETFS12
+    addi.d         t6,      t4,      -48
+    blt            t6,      zero,    .Z1_GETFS111
+    ori            a6,      zero,    2
+    b              .Z1_GETFS40
+.Z1_GETFS111:
+    addi.d         t6,      t4,      -20
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS12:  //wh<=24
+    addi.d         t6,      a7,      -24
+    blt            zero,    t6,      .Z1_GETFS13
+    addi.d         t6,      t4,      -4
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    3
+    b              .Z1_GETFS40
+.Z1_GETFS13:
+    ori            a6,      zero,    3
+    b              .Z1_GETFS40
+
+.Z1_GETFS20:  //wh<=8
+    addi.d         t6,      a7,      -8
+    blt            zero,    t6,      .Z1_GETFS21
+    addi.d         t6,      t4,      -56
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS21:  //wh<=16
+    addi.d         t6,      a7,      -16
+    blt            zero,    t6,      .Z1_GETFS22
+    addi.d         t6,      t4,      -40
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS22:  //wh<=24
+    addi.d         t6,      a7,      -24
+    blt            zero,    t6,      .Z1_GETFS23
+    addi.d         t6,      t4,      -32
+    blt            t6,      zero,    .Z1_GETFS221
+    ori            a6,      zero,    3
+    b              .Z1_GETFS40
+.Z1_GETFS221:
+    addi.d         t6,      t4,      -16
+    blt            t6,      zero,    .Z1_GETFS222
+    ori            a6,      zero,    2
+    b              .Z1_GETFS40
+.Z1_GETFS222:
+    addi.d         t6,      t4,      -8
+    blt            t6,      zero,    .Z1_GETFS30
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS23:  //wh<=32
+    addi.d         t6,      a7,      -32
+    blt            zero,    t6,      .Z1_GETFS24
+    addi.d         t6,      t4,      -32
+    blt            t6,      zero,    .Z1_GETFS231
+    ori            a6,      zero,    3
+    b              .Z1_GETFS40
+.Z1_GETFS231:
+    addi.d         t6,      t4,      -4
+    blt            t6,      zero,    .Z1_GETFS232
+    ori            a6,      zero,    2
+    b              .Z1_GETFS40
+.Z1_GETFS232:
+    ori            a6,      zero,    1
+    b              .Z1_GETFS40
+.Z1_GETFS24:
+    ori            a6,      zero,    3
+    b              .Z1_GETFS40
+.Z1_GETFS30:
+   or              a6,      zero,    zero
+.Z1_GETFS40:
+
+    beqz           a6,      .IPRED_Z1_NOTFS
+
+.IPRED_Z1_IFFS:
+    // filter_edge
+    addi.d         a6,      a6,      -1
+    slli.d         a6,      a6,      4
+    la.local       t0,      ipred_filter_edge_kernel1
+    vldx           vr1,     t0,      a6    //kernel[0-3]
+
+    la.local       t0,      ipred_filter_edge_kernel2
+    vldx           vr6,     t0,      a6    //kernel[4]
+
+.IPRED_Z1_FS_W4:
+    andi           t0,      a3,      4
+    beqz           t0,      .IPRED_Z1_FS_W8
+.IPRED_Z1_FS_W4_H4:
+    andi           t0,      a4,      4
+    beqz           t0,      .IPRED_Z1_FS_W4_H8
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init4
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W4_H8:
+    andi           t0,      a4,      8
+    beqz           t0,      .IPRED_Z1_FS_W4_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init4
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-11
+    vreplvei.b     vr10,    vr7,     8
+    vextrins.b     vr10,    vr7,     0x07
+    z1_filter_edge_calc_other
+    fst.s          f12,     t2,      8
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W4_H16:
+    andi           t0,      a4,      16
+    beqz           t0,      .IPRED_Z1_FS_W4_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init4
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vreplvei.b     vr10,    vr7,     8
+    vextrins.b     vr10,    vr7,     0x07
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      8
+
+    //16-19
+    vreplvei.b     vr12,    vr12,    1
+    fst.s          f12,     t2,      16
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W4_H32:
+    andi           t0,      a4,      32
+    beqz           t0,      .IPRED_Z1_FS_W4_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init4
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vreplvei.b     vr10,    vr7,     8
+    vextrins.b     vr10,    vr7,     0x07
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      16
+
+    fst.d          f12,     t2,      24 //24-31
+    fst.s          f12,     t2,      32 //32-35
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W4_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init4
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vreplvei.b     vr10,    vr7,     8
+    vextrins.b     vr10,    vr7,     0x07
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      16
+
+    fst.d          f12,     t2,      24 //24-31
+    fst.d          f12,     t2,      32 //32-39
+    fst.d          f12,     t2,      40 //40-47
+    fst.d          f12,     t2,      48 //48-55
+    fst.d          f12,     t2,      56 //56-63
+    fst.s          f12,     t2,      64 //64-67
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W8:
+    andi           t0,      a3,      8
+    beqz           t0,      .IPRED_Z1_FS_W16
+.IPRED_Z1_FS_W8_H4:
+    andi           t0,      a4,      4
+    beqz           t0,      .IPRED_Z1_FS_W8_H8
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-11
+    vld            vr7,     a2,      6
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x32
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vsllwil.hu.bu  vr11,    vr11,    0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x21
+    vextrins.b     vr13,    vr13,    0x31
+    z1_filter_edge_calc_loop2
+    fst.s          f12,     t2,      8
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W8_H8:
+    andi           t0,      a4,      8
+    beqz           t0,      .IPRED_Z1_FS_W8_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W8_H16:
+    andi           t0,      a4,      16
+    beqz           t0,      .IPRED_Z1_FS_W8_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      16
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W8_H32:
+    andi           t0,      a4,      32
+    beqz           t0,      .IPRED_Z1_FS_W8_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      24
+
+    //32-39
+    fst.d          f12,     t2,      32
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W8_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      24
+
+    fst.d          f12,     t2,      32  //32-39
+    fst.d          f12,     t2,      40  //40-47
+    fst.d          f12,     t2,      48  //48-55
+    fst.d          f12,     t2,      56  //56-63
+    fst.d          f12,     t2,      64  //64-71
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W16:
+    andi           t0,      a3,      16
+    beqz           t0,      .IPRED_Z1_FS_W32
+.IPRED_Z1_FS_W16_H4:
+    andi           t0,      a4,      4
+    beqz           t0,      .IPRED_Z1_FS_W16_H8
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-19
+    vld            vr7,     a2,      14
+    vbsrl.v        vr11,    vr7,     1
+    vbsrl.v        vr12,    vr7,     2
+    vbsrl.v        vr13,    vr7,     3
+    vextrins.b     vr13,    vr13,    0x32
+    vsllwil.hu.bu  vr10,    vr7,     0
+    vsllwil.hu.bu  vr11,    vr11,    0
+    vsllwil.hu.bu  vr12,    vr12,    0
+    vsllwil.hu.bu  vr13,    vr13,    0
+    z1_filter_edge_calc_loop1
+
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x21
+    vextrins.b     vr13,    vr13,    0x31
+    z1_filter_edge_calc_loop2
+    fst.s          f12,     t2,      16
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W16_H8:
+    andi           t0,      a4,      8
+    beqz           t0,      .IPRED_Z1_FS_W16_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W16_H16:
+    andi           t0,      a4,      16
+    beqz           t0,      .IPRED_Z1_FS_W16_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W16_H32:
+    andi           t0,      a4,      32
+    beqz           t0,      .IPRED_Z1_FS_W16_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      40
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W16_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      40
+
+    fst.d          f12,     t2,      48 //48-55
+    fst.d          f12,     t2,      56 //56-63
+    fst.d          f12,     t2,      64 //64-71
+    fst.d          f12,     t2,      72 //72-81
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W32:
+    andi           t0,      a3,      32
+    beqz           t0,      .IPRED_Z1_FS_W64
+.IPRED_Z1_FS_W32_H8:
+    andi           t0,      a4,      8
+    beqz           t0,      .IPRED_Z1_FS_W32_H16
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W32_H16:
+    andi           t0,      a4,      16
+    beqz           t0,      .IPRED_Z1_FS_W32_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W32_H32:
+    andi           t0,      a4,      32
+    beqz           t0,      .IPRED_Z1_FS_W32_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    //48-55
+    vld            vr7,     a2,      46
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      48
+
+    //56-63
+    vld            vr7,     a2,      54
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      56
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W32_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    //48-55
+    vld            vr7,     a2,      46
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      48
+
+    //56-63
+    vld            vr7,     a2,      54
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      56
+
+    //64-71
+    vreplvei.b     vr10,    vr7,     9
+    vextrins.b     vr10,    vr7,     0x08
+    z1_filter_edge_calc_other
+    fst.d          f12,     t2,      64
+
+    //72-89
+    vreplvei.b     vr12,    vr12,    1
+    fst.d          f12,     t2,      72
+
+    fst.d          f12,     t2,      80 //80-87
+    fst.d          f12,     t2,      88 //88-95
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W64:
+.IPRED_Z1_FS_W64_H16:
+    andi           t0,      a4,      16
+    beqz           t0,      .IPRED_Z1_FS_W64_H32
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    //48-55
+    vld            vr7,     a2,      46
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      48
+
+    //56-63
+    vld            vr7,     a2,      54
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      56
+
+    //64-71
+    vld            vr7,     a2,      62
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      64
+
+    //72-79
+    vld            vr7,     a2,      70
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      72
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W64_H32:
+    andi           t0,      a4,      32
+    beqz           t0,      .IPRED_Z1_FS_W64_H64
+
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    //48-55
+    vld            vr7,     a2,      46
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      48
+
+    //56-63
+    vld            vr7,     a2,      54
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      56
+
+    //64-71
+    vld            vr7,     a2,      62
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      64
+
+    //72-79
+    vld            vr7,     a2,      70
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      72
+
+    //80-87
+    vld            vr7,     a2,      78
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      80
+
+    //88-95
+    vld            vr7,     a2,      86
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      88
+
+    b              .IPRED_Z1_FS_END
+
+.IPRED_Z1_FS_W64_H64:
+    //0-7
+    vld            vr7,     a2,      -1
+    z1_filter_edge_data_init1
+    vbsrl.v        vr13,    vr7,     3
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      0
+
+    //8-15
+    vld            vr7,     a2,      6
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      8
+
+    //16-23
+    vld            vr7,     a2,      14
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      16
+
+    //24-31
+    vld            vr7,     a2,      22
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      24
+
+    //32-39
+    vld            vr7,     a2,      30
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      32
+
+    //40-47
+    vld            vr7,     a2,      38
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      40
+
+    //48-55
+    vld            vr7,     a2,      46
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      48
+
+    //56-63
+    vld            vr7,     a2,      54
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      56
+
+    //64-71
+    vld            vr7,     a2,      62
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      64
+
+    //72-79
+    vld            vr7,     a2,      70
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      72
+
+    //80-87
+    vld            vr7,     a2,      78
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      80
+
+    //88-95
+    vld            vr7,     a2,      86
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      88
+
+    //96-103
+    vld            vr7,     a2,      94
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      96
+
+    //104-111
+    vld            vr7,     a2,      102
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      104
+
+    //112-119
+    vld            vr7,     a2,      110
+    z1_filter_edge_data_init2
+    vbsrl.v        vr13,    vr7,     4
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      112
+
+    //120-127
+    vld            vr7,     a2,      118
+    z1_filter_edge_data_init3
+    vbsrl.v        vr13,    vr7,     4
+    vextrins.b     vr13,    vr13,    0x65
+    vextrins.b     vr13,    vr13,    0x75
+    z1_filter_edge_calc_loop2
+    fst.d          f12,     t2,      120
+
+.IPRED_Z1_FS_END:
+    addi.d         t0,      a7,      -1   //max_base_x
+    or             a7,      t2,      t2   //top
+    b              .IPRED_Z1_UA_END
+
+.IPRED_Z1_NOTFS:
+    or             a7,      a2,      a2   //top
+    // imin_gr
+    blt            a3,      a4,      .Z1_IMIN1
+    or             t0,      a4,      a4
+    b              .Z1_IMIN2
+.Z1_IMIN1:
+    or             t0,      a3,      a3
+.Z1_IMIN2:
+
+    add.d          t0,      a3,      t0
+    addi.d         t0,      t0,      -1   //max_base_x
+
+.IPRED_Z1_UA_END:
+    //st dst, t1:dx  a2 a6 t6 t7
+    beqz           t5,      .Z1_UA0
+
+    li.w           a5,      64
+    vreplgr2vr.h   vr0,     a5
+    vsrai.h        vr7,     vr0,     1
+    or             t2,      zero,    zero  //y
+    or             t3,      t1,      t1    //xpos
+.Z1_LOOPY:
+    andi           t4,      t3,      0x3e  //frac
+    vreplgr2vr.h   vr1,     t4
+    vsub.h         vr2,     vr0,     vr1
+    or             a6,      zero,    zero  //x
+    or             a2,      zero,    zero  //base_num
+    srai.d         t6,      t3,      6     //base
+
+    or             t7,      t6,      t6
+    bge            t7,      t0,      .Z1_LOOPX
+.Z1_BASENUM:
+    addi.d         a2,      a2,      1
+    addi.d         t7,      t7,      2
+    blt            t7,      t0,      .Z1_BASENUM
+
+.Z1_LOOPX:
+    blt            a2,      a3,      .Z1_LOOPX_BASEMAX
+
+    srai.d         t8,      a3,      3  //loop param
+    beqz           t8,      .Z1_LOOPX_W4
+.Z1_LOOPX_W8:
+    add.d          t5,      a7,      t6
+    vld            vr3,     t5,      0
+    vpickev.b      vr5,     vr3,     vr3  //0 2 4 6...
+    vpickod.b      vr6,     vr3,     vr3  //1 3 5 7...
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.d         f3,      a0,      a6
+
+    addi.d         a6,      a6,      8
+    addi.d         t6,      t6,      16
+    addi.d         t8,      t8,      -1
+    bnez           t8,      .Z1_LOOPX_W8
+    b              .Z1_LOOPY_END
+.Z1_LOOPX_W4:
+    vldx           vr3,     a7,      t6
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vpickev.h      vr5,     vr3,     vr3  //0 2 4 6...
+    vpickod.h      vr6,     vr3,     vr3  //1 3 5 7...
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.s         f3,      a0,      a6
+    b              .Z1_LOOPY_END
+.Z1_LOOPX_BASEMAX:
+    srai.d         t8,      a2,      3  //loop param
+    beqz           t8,      .Z1_LOOPX_BASEMAX4
+.Z1_LOOPX_BASEMAX8:
+    add.d          t5,      a7,      t6
+    vld            vr3,     t5,      0
+    vpickev.b      vr5,     vr3,     vr3  //0 2 4 6...
+    vpickod.b      vr6,     vr3,     vr3  //1 3 5 7...
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.d         f3,      a0,      a6
+
+    addi.d         a6,      a6,      8
+    addi.d         t6,      t6,      16
+    addi.d         t8,      t8,      -1
+    bnez           t8,      .Z1_LOOPX_BASEMAX8
+.Z1_LOOPX_BASEMAX4:
+    andi           t8,      a2,      4
+    beqz           t8,      .Z1_LOOPX_BASEMAX2
+
+    vldx           vr3,     a7,      t6
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vpickev.h      vr5,     vr3,     vr3  //0 2 4 6...
+    vpickod.h      vr6,     vr3,     vr3  //1 3 5 7...
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.s         f3,      a0,      a6
+
+    addi.d         a6,      a6,      4
+    addi.d         t6,      t6,      8
+.Z1_LOOPX_BASEMAX2:
+    andi           t8,      a2,     2
+    beqz           t8,      .Z1_LOOPX_BASEMAX1
+
+    vldx           vr3,     a7,      t6
+    vsllwil.hu.bu  vr3,     vr3,     0
+    vpickev.h      vr5,     vr3,     vr3  //0 2 4 6...
+    vpickod.h      vr6,     vr3,     vr3  //1 3 5 7...
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    vpickve2gr.bu  t7,      vr3,     0
+    vpickve2gr.bu  t8,      vr3,     1
+    stx.b          t7,      a0,      a6
+    addi.d         a6,      a6,      1
+    stx.b          t8,      a0,      a6
+    addi.d         a6,      a6,      1
+    addi.d         t6,      t6,      4
+.Z1_LOOPX_BASEMAX1:
+    andi           t8,      a2,     1
+    beqz           t8,      .Z1_LOOPX_BASEMAX_MSET
+
+    add.d          a2,      a7,      t6
+    sub.d          t7,      a5,      t4
+    ld.bu          t8,      a2,      0
+    mul.w          t7,      t7,      t8
+    ld.bu          t8,      a2,      1
+    mul.w          t8,      t8,      t4
+    add.d          t7,      t7,      t8
+    addi.d         t7,      t7,      32
+    srai.d         t7,      t7,      6
+    stx.b          t7,      a0,      a6
+
+    addi.d         a6,      a6,      1
+.Z1_LOOPX_BASEMAX_MSET:  //memset
+    add.d          t6,      a0,      a6  //dst
+    add.d          t7,      a7,      t0  //src
+    sub.d          a2,      a3,      a6  //size
+    pixel_set_8bpc_allw t6, t7, a2, t8, t4
+.Z1_LOOPY_END:
+    addi.d         t2,      t2,      1
+    add.d          a0,      a0,      a1
+    add.d          t3,      t3,      t1
+    blt            t2,      a4,      .Z1_LOOPY
+    b              .Z1_END
+
+.Z1_UA0:
+    li.w           a5,      64
+    vreplgr2vr.h   vr0,     a5
+    vsrai.h        vr7,     vr0,     1
+    or             t2,      zero,    zero  //y
+    or             t3,      t1,      t1    //xpos
+.Z1_UA0_LOOPY:
+    andi           t4,      t3,      0x3e  //frac
+    vreplgr2vr.h   vr1,     t4
+    vsub.h         vr2,     vr0,     vr1
+    or             a6,      zero,    zero  //x
+    srai.d         t6,      t3,      6     //base
+
+    sub.d          a2,      t0,      t6     //a2:base_num
+    blt            a2,      zero,    .Z1_UA0_BASENUM
+    b              .Z1_UA0_LOOPX
+.Z1_UA0_BASENUM:
+    or             a2,      zero,    zero
+
+.Z1_UA0_LOOPX:
+    blt            a2,      a3,      .Z1_UA0_LOOPX_BASEMAX
+
+    srai.d         t8,      a3,      3  //loop param
+    beqz           t8,      .Z1_UA0_LOOPX_W4
+.Z1_UA0_LOOPX_W8:
+    add.d          t5,      a7,      t6
+    vld            vr5,     t5,      0
+    vld            vr6,     t5,      1
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.d         f3,      a0,      a6
+
+    addi.d         a6,      a6,      8
+    addi.d         t6,      t6,      8
+    addi.d         t8,      t8,      -1
+    bnez           t8,      .Z1_UA0_LOOPX_W8
+    b              .Z1_UA0_LOOPY_END
+.Z1_UA0_LOOPX_W4:
+    vldx           vr5,     a7,      t6
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vbsrl.v        vr6,     vr5,     2
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.s         f3,      a0,      a6
+    b              .Z1_UA0_LOOPY_END
+.Z1_UA0_LOOPX_BASEMAX:
+    srai.d         t8,      a2,      3  //loop param
+    beqz           t8,      .Z1_UA0_LOOPX_BASEMAX4
+.Z1_UA0_LOOPX_BASEMAX8:
+    add.d          t5,      a7,      t6
+    vld            vr5,     t5,      0
+    vld            vr6,     t5,      1
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vsllwil.hu.bu  vr6,     vr6,     0
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.d         f3,      a0,      a6
+
+    addi.d         a6,      a6,      8
+    addi.d         t6,      t6,      8
+    addi.d         t8,      t8,      -1
+    bnez           t8,      .Z1_UA0_LOOPX_BASEMAX8
+.Z1_UA0_LOOPX_BASEMAX4:
+    andi           t8,      a2,      4
+    beqz           t8,      .Z1_UA0_LOOPX_BASEMAX2
+
+    vldx           vr5,     a7,      t6
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vbsrl.v        vr6,     vr5,     2
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    fstx.s         f3,      a0,      a6
+
+    addi.d         a6,      a6,      4
+    addi.d         t6,      t6,      4
+.Z1_UA0_LOOPX_BASEMAX2:
+    andi           t8,      a2,     2
+    beqz           t8,      .Z1_UA0_LOOPX_BASEMAX1
+
+    vldx           vr5,     a7,      t6
+    vsllwil.hu.bu  vr5,     vr5,     0
+    vbsrl.v        vr6,     vr5,     2
+
+    vmul.h         vr3,     vr5,     vr2
+    vmadd.h        vr3,     vr6,     vr1
+    vadd.h         vr3,     vr3,     vr7
+    vsrai.h        vr3,     vr3,     6
+    vsrlni.b.h     vr3,     vr3,     0
+    vpickve2gr.bu  t7,      vr3,     0
+    vpickve2gr.bu  t8,      vr3,     1
+    stx.b          t7,      a0,      a6
+    addi.d         a6,      a6,      1
+    stx.b          t8,      a0,      a6
+    addi.d         a6,      a6,      1
+    addi.d         t6,      t6,      2
+.Z1_UA0_LOOPX_BASEMAX1:
+    andi           t8,      a2,     1
+    beqz           t8,      .Z1_UA0_LOOPX_BASEMAX_MSET
+
+    add.d          a2,      a7,      t6
+    sub.d          t7,      a5,      t4
+    ld.bu          t8,      a2,      0
+    mul.w          t7,      t7,      t8
+    ld.bu          t8,      a2,      1
+    mul.w          t8,      t8,      t4
+    add.d          t7,      t7,      t8
+    addi.d         t7,      t7,      32
+    srai.d         t7,      t7,      6
+    stx.b          t7,      a0,      a6
+
+    addi.d         a6,      a6,      1
+.Z1_UA0_LOOPX_BASEMAX_MSET:  //memset
+    add.d          t6,      a0,      a6  //dst
+    add.d          t7,      a7,      t0  //src
+    sub.d          a2,      a3,      a6  //size
+    pixel_set_8bpc_allw t6, t7, a2, t8, t4
+.Z1_UA0_LOOPY_END:
+    addi.d         t2,      t2,      1
+    add.d          a0,      a0,      a1
+    add.d          t3,      t3,      t1
+    blt            t2,      a4,      .Z1_UA0_LOOPY
+
+.Z1_END:
+    addi.d         sp,      sp,      128
+endfunc
+
