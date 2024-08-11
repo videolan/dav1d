@@ -40,6 +40,9 @@ decl_avg_fn(BF(dav1d_avg, rvv));
 decl_w_avg_fn(BF(dav1d_w_avg, rvv));
 decl_mask_fn(BF(dav1d_mask, rvv));
 
+decl_warp8x8_fn(BF(dav1d_warp_8x8, rvv));
+decl_warp8x8t_fn(BF(dav1d_warp_8x8t, rvv));
+
 static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
   const unsigned flags = dav1d_get_cpu_flags();
 
@@ -59,5 +62,8 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
   c->avg     = BF(dav1d_avg, rvv);
   c->w_avg   = BF(dav1d_w_avg, rvv);
   c->mask    = BF(dav1d_mask, rvv);
+
+  c->warp8x8 = BF(dav1d_warp_8x8, rvv);
+  c->warp8x8t = BF(dav1d_warp_8x8t, rvv);
 #endif
 }
