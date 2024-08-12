@@ -119,6 +119,7 @@ if is_asm_enabled
                     'arm/64/loopfilter16.S',
                     'arm/64/looprestoration16.S',
                     'arm/64/mc16.S',
+                    'arm/64/mc16_sve.S',
                 )
             endif
         elif host_machine.cpu_family().startswith('arm')

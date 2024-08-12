@@ -1003,8 +1003,8 @@ endfunc
 
 // This has got the same signature as the put_8tap functions,
 // and assumes that x9 is set to (clz(w)-24).
-function put_neon
-        adr             x10, L(put_tbl)
+function put_16bpc_neon, export=1
+        adr             x10, L(put_16bpc_tbl)
         ldrh            w9, [x10, x9, lsl #1]
         sub             x10, x10, w9, uxtw
         br              x10
@@ -1106,22 +1106,22 @@ function put_neon
         b.gt            128b
         ret
 
-L(put_tbl):
-        .hword L(put_tbl) - 128b
-        .hword L(put_tbl) -  64b
-        .hword L(put_tbl) -  32b
-        .hword L(put_tbl) -  16b
-        .hword L(put_tbl) -  80b
-        .hword L(put_tbl) -   4b
-        .hword L(put_tbl) -   2b
+L(put_16bpc_tbl):
+        .hword L(put_16bpc_tbl) - 128b
+        .hword L(put_16bpc_tbl) -  64b
+        .hword L(put_16bpc_tbl) -  32b
+        .hword L(put_16bpc_tbl) -  16b
+        .hword L(put_16bpc_tbl) -  80b
+        .hword L(put_16bpc_tbl) -   4b
+        .hword L(put_16bpc_tbl) -   2b
 endfunc
 
 
 // This has got the same signature as the prep_8tap functions,
 // and assumes that x9 is set to (clz(w)-24), w7 to intermediate_bits and
 // x8 to w*2.
-function prep_neon
-        adr             x10, L(prep_tbl)
+function prep_16bpc_neon
+        adr             x10, L(prep_16bpc_tbl)
         ldrh            w9, [x10, x9, lsl #1]
         dup             v31.8h,  w7   // intermediate_bits
         movi            v30.8h,  #(PREP_BIAS >> 8), lsl #8
@@ -1278,13 +1278,13 @@ function prep_neon
         b.gt            128b
         ret
 
-L(prep_tbl):
-        .hword L(prep_tbl) - 128b
-        .hword L(prep_tbl) -  64b
-        .hword L(prep_tbl) -  32b
-        .hword L(prep_tbl) -  16b
-        .hword L(prep_tbl) -  80b
-        .hword L(prep_tbl) -  40b
+L(prep_16bpc_tbl):
+        .hword L(prep_16bpc_tbl) - 128b
+        .hword L(prep_16bpc_tbl) -  64b
+        .hword L(prep_16bpc_tbl) -  32b
+        .hword L(prep_16bpc_tbl) -  16b
+        .hword L(prep_16bpc_tbl) -  80b
+        .hword L(prep_16bpc_tbl) -  40b
 endfunc
 
 
@@ -1556,7 +1556,7 @@ function \type\()_\taps\()_neon
         b.ne            L(\type\()_\taps\()_h)
         tst             \my, #(0x7f << 14)
         b.ne            L(\type\()_\taps\()_v)
-        b               \type\()_neon
+        b               \type\()_16bpc_neon
 
 L(\type\()_\taps\()_h):
         cmp             \w,   #4
@@ -2787,7 +2787,7 @@ function \type\()_bilin_16bpc_neon, export=1
         add             w12, \bdmax, #4   // 4 + intermediate_bits
         cbnz            \mx, L(\type\()_bilin_h)
         cbnz            \my, L(\type\()_bilin_v)
-        b               \type\()_neon
+        b               \type\()_16bpc_neon
 
 L(\type\()_bilin_h):
         cbnz            \my, L(\type\()_bilin_hv)
