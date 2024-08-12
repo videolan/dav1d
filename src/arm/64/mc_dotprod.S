@@ -1040,8 +1040,8 @@ L(\type\()_6tap_hv_\isa):
 .endif
         .align LOOP_ALIGN
 8:
-        ldr             q23, [\xmy]
-        add             \xmy, \xmy, \s_strd
+        ldr             q23, [\lsrc]
+        add             \lsrc, \lsrc, \s_strd
 
         smull           v0.4s, v16.4h, v7.h[1]
         smull2          v1.4s, v16.8h, v7.h[1]
