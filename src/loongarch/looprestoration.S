@@ -92,13 +92,11 @@ function wiener_filter_h_8bpc_lsx
 
     vsllwil.hu.bu vr15,     vr8,      0    //  3  4  5  6  7  8  9 10
     vexth.hu.bu   vr16,     vr8            // 11 12 13 14 15 16 17 18
-    vsllwil.wu.hu vr17,     vr15,     0    //  3  4  5  6
+    vsllwil.wu.hu vr17,     vr15,     7    //  3  4  5  6
     vexth.wu.hu   vr18,     vr15           //  7  8  9 10
-    vsllwil.wu.hu vr19,     vr16,     0    // 11 12 13 14
+    vsllwil.wu.hu vr19,     vr16,     7    // 11 12 13 14
     vexth.wu.hu   vr20,     vr16           // 15 16 17 18
-    vslli.w       vr17,     vr17,     7
     vslli.w       vr18,     vr18,     7
-    vslli.w       vr19,     vr19,     7
     vslli.w       vr20,     vr20,     7
     vxor.v        vr15,     vr15,     vr15
     vxor.v        vr14,     vr14,     vr14
@@ -379,10 +377,10 @@ function boxsum3_v_8bpc_lsx
     vld            vr7,      t0,      20  //    4 5 6 7
     vld            vr8,      t0,      24  //    5 6 7 8
     vadd.h         vr9,      vr0,     vr1
-    vadd.h         vr9,      vr9,     vr2
     vadd.w         vr10,     vr3,     vr4
-    vadd.w         vr10,     vr10,    vr5
     vadd.w         vr11,     vr6,     vr7
+    vadd.h         vr9,      vr9,     vr2
+    vadd.w         vr10,     vr10,    vr5
     vadd.w         vr11,     vr11,    vr8
     vpickve2gr.h   t7,       vr2,     6
     vpickve2gr.w   t8,       vr8,     2
@@ -1404,4 +1402,242 @@ function sgr_mix_finish_8bpc_lsx
     bnez          a7,      .LSGRMIX_REM
 
 .LSGR_MIX_END:
+endfunc
+
+.macro MADD_HU_BU_LASX in0, in1, out0, out1
+    xvsllwil.hu.bu xr12,     \in0,     0
+    xvexth.hu.bu   xr13,     \in0
+    xvmadd.h       \out0,    xr12,     \in1
+    xvmadd.h       \out1,    xr13,     \in1
+.endm
+
+const wiener_shuf_lasx
+.byte 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+.byte 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+endconst
+
+function wiener_filter_h_8bpc_lasx
+    addi.d         sp,       sp,       -40
+    fst.d          f24,      sp,       0
+    fst.d          f25,      sp,       8
+    fst.d          f26,      sp,       16
+    fst.d          f27,      sp,       24
+    fst.d          f28,      sp,       32
+    li.w           t7,       1<<14          // clip_limit
+
+    la.local       t1,       wiener_shuf_lasx
+    xvld           xr4,      t1,       0
+    vld            vr27,     a2,       0    // filter[0][k]
+    xvpermi.q      xr14,     xr27,     0b00000000
+    xvrepl128vei.h xr21,     xr14,     0
+    xvrepl128vei.h xr22,     xr14,     1
+    xvrepl128vei.h xr23,     xr14,     2
+    xvrepl128vei.h xr24,     xr14,     3
+    xvrepl128vei.h xr25,     xr14,     4
+    xvrepl128vei.h xr26,     xr14,     5
+    xvrepl128vei.h xr27,     xr14,     6
+    xvreplgr2vr.w  xr0,      t7
+
+.WIENER_FILTER_H_H_LASX:
+    addi.w         a4,       a4,       -1    // h
+    addi.w         t0,       a3,       0     // w
+    addi.d         t1,       a1,       0     // tmp_ptr
+    addi.d         t2,       a0,       0     // hor_ptr
+
+.WIENER_FILTER_H_W_LASX:
+    addi.w         t0,       t0,       -32
+    xvld           xr5,      t1,       0
+    xvld           xr13,     t1,       16
+
+    xvsubi.bu      xr14,     xr4,      2
+    xvsubi.bu      xr15,     xr4,      1
+    xvshuf.b       xr6,      xr13,     xr5,     xr14  // 1 ... 8, 9 ... 16
+    xvshuf.b       xr7,      xr13,     xr5,     xr15  // 2 ... 9, 10 ... 17
+    xvshuf.b       xr8,      xr13,     xr5,     xr4   // 3 ... 10, 11 ... 18
+    xvaddi.bu      xr14,     xr4,      1
+    xvaddi.bu      xr15,     xr4,      2
+    xvshuf.b       xr9,      xr13,     xr5,     xr14  // 4 ... 11, 12 ... 19
+    xvshuf.b       xr10,     xr13,     xr5,     xr15  // 5 ... 12, 13 ... 20
+    xvaddi.bu      xr14,     xr4,      3
+    xvshuf.b       xr11,     xr13,     xr5,     xr14  // 6 ... 13, 14 ... 21
+
+    xvsllwil.hu.bu xr15,     xr8,      0    //  3  4  5  6  7  8  9 10
+    xvexth.hu.bu   xr16,     xr8            // 11 12 13 14 15 16 17 18
+    xvsllwil.wu.hu xr17,     xr15,     7    //  3  4  5  6
+    xvexth.wu.hu   xr18,     xr15           //  7  8  9 10
+    xvsllwil.wu.hu xr19,     xr16,     7    // 11 12 13 14
+    xvexth.wu.hu   xr20,     xr16           // 15 16 17 18
+    xvslli.w       xr18,     xr18,     7
+    xvslli.w       xr20,     xr20,     7
+    xvxor.v        xr15,     xr15,     xr15
+    xvxor.v        xr14,     xr14,     xr14
+
+    MADD_HU_BU_LASX xr5,  xr21, xr14, xr15
+    MADD_HU_BU_LASX xr6,  xr22, xr14, xr15
+    MADD_HU_BU_LASX xr7,  xr23, xr14, xr15
+    MADD_HU_BU_LASX xr8,  xr24, xr14, xr15
+    MADD_HU_BU_LASX xr9,  xr25, xr14, xr15
+    MADD_HU_BU_LASX xr10, xr26, xr14, xr15
+    MADD_HU_BU_LASX xr11, xr27, xr14, xr15
+
+    xvsllwil.w.h   xr5,      xr14,     0   //  0  1  2  3
+    xvexth.w.h     xr6,      xr14          //  4  5  6  7
+    xvsllwil.w.h   xr7,      xr15,     0   //  8  9 10 11
+    xvexth.w.h     xr8,      xr15          // 12 13 14 15
+    xvadd.w        xr17,     xr17,     xr5
+    xvadd.w        xr18,     xr18,     xr6
+    xvadd.w        xr19,     xr19,     xr7
+    xvadd.w        xr20,     xr20,     xr8
+    xvadd.w        xr17,     xr17,     xr0
+    xvadd.w        xr18,     xr18,     xr0
+    xvadd.w        xr19,     xr19,     xr0
+    xvadd.w        xr20,     xr20,     xr0
+
+    xvsrli.w       xr1,      xr0,      1
+    xvsubi.wu      xr1,      xr1,      1
+    xvxor.v        xr3,      xr3,      xr3
+    xvsrari.w      xr17,     xr17,     3
+    xvsrari.w      xr18,     xr18,     3
+    xvsrari.w      xr19,     xr19,     3
+    xvsrari.w      xr20,     xr20,     3
+    xvclip.w       xr17,     xr17,     xr3,     xr1
+    xvclip.w       xr18,     xr18,     xr3,     xr1
+    xvclip.w       xr19,     xr19,     xr3,     xr1
+    xvclip.w       xr20,     xr20,     xr3,     xr1
+
+    xvor.v         xr5,      xr17,     xr17
+    xvor.v         xr6,      xr19,     xr19
+    xvpermi.q      xr17,     xr18,     0b00000010
+    xvpermi.q      xr19,     xr20,     0b00000010
+
+    xvst           xr17,     t2,       0
+    xvst           xr19,     t2,       32
+    xvpermi.q      xr18,     xr5,      0b00110001
+    xvpermi.q      xr20,     xr6,      0b00110001
+    xvst           xr18,     t2,       64
+    xvst           xr20,     t2,       96
+    addi.d         t1,       t1,       32
+    addi.d         t2,       t2,       128
+    blt            zero,     t0,       .WIENER_FILTER_H_W_LASX
+
+    addi.d         a1,       a1,       REST_UNIT_STRIDE
+    addi.d         a0,       a0,       (REST_UNIT_STRIDE << 2)
+    bnez           a4,       .WIENER_FILTER_H_H_LASX
+
+    fld.d          f24,      sp,       0
+    fld.d          f25,      sp,       8
+    fld.d          f26,      sp,       16
+    fld.d          f27,      sp,       24
+    fld.d          f28,      sp,       32
+    addi.d         sp,       sp,       40
+endfunc
+
+.macro APPLY_FILTER_LASX in0, in1, in2
+    alsl.d         t7,       \in0,     \in1,    2
+    xvld           xr10,     t7,       0
+    xvld           xr12,     t7,       32
+    xvmadd.w       xr14,     xr10,     \in2
+    xvmadd.w       xr16,     xr12,     \in2
+.endm
+
+.macro wiener_filter_v_8bpc_core_lasx
+    xvreplgr2vr.w  xr14,     t6
+    xvreplgr2vr.w  xr16,     t6
+
+    addi.w         t7,       t2,       0      // j + index k
+    mul.w          t7,       t7,       t8     // (j + index) * REST_UNIT_STRIDE
+    add.w          t7,       t7,       t4     // (j + index) * REST_UNIT_STRIDE + i
+
+    APPLY_FILTER_LASX  t7, a2, xr2
+    APPLY_FILTER_LASX  t8, t7, xr3
+    APPLY_FILTER_LASX  t8, t7, xr4
+    APPLY_FILTER_LASX  t8, t7, xr5
+    APPLY_FILTER_LASX  t8, t7, xr6
+    APPLY_FILTER_LASX  t8, t7, xr7
+    APPLY_FILTER_LASX  t8, t7, xr8
+    xvssrarni.hu.w xr16,     xr14,      11
+    xvpermi.d      xr17,     xr16,      0b11011000
+    xvssrlni.bu.h  xr17,     xr17,      0
+    xvpermi.d      xr17,     xr17,      0b00001000
+.endm
+
+function wiener_filter_v_8bpc_lasx
+    li.w          t6,       -(1 << 18)
+
+    li.w          t8,       REST_UNIT_STRIDE
+    ld.h          t0,       a3,       0
+    ld.h          t1,       a3,       2
+    xvreplgr2vr.w xr2,      t0
+    xvreplgr2vr.w xr3,      t1
+    ld.h          t0,       a3,       4
+    ld.h          t1,       a3,       6
+    xvreplgr2vr.w xr4,      t0
+    xvreplgr2vr.w xr5,      t1
+    ld.h          t0,       a3,       8
+    ld.h          t1,       a3,       10
+    xvreplgr2vr.w xr6,      t0
+    xvreplgr2vr.w xr7,      t1
+    ld.h          t0,       a3,       12
+    xvreplgr2vr.w xr8,      t0
+
+    andi          t1,       a4,       0xf
+    sub.w         t0,       a4,       t1    // w-w%16
+    or            t2,       zero,     zero  // j
+    or            t4,       zero,     zero
+    beqz          t0,       .WIENER_FILTER_V_W_LT16_LASX
+
+.WIENER_FILTER_V_H_LASX:
+    andi          t1,       a4,       0xf
+    add.d         t3,       zero,     a0     // p
+    or            t4,       zero,     zero   // i
+
+.WIENER_FILTER_V_W_LASX:
+
+    wiener_filter_v_8bpc_core_lasx
+
+    mul.w         t5,       t2,       a1   // j * stride
+    add.w         t5,       t5,       t4   // j * stride + i
+    add.d         t3,       a0,       t5
+    addi.w        t4,       t4,       16
+    vst           vr17,     t3,       0
+    bne           t0,       t4,       .WIENER_FILTER_V_W_LASX
+
+    beqz          t1,       .WIENER_FILTER_V_W_EQ16_LASX
+
+    wiener_filter_v_8bpc_core_lsx
+
+    addi.d        t3,       t3,       16
+    andi          t1,       a4,       0xf
+
+.WIENER_FILTER_V_ST_REM_LASX:
+    vstelm.b      vr17,     t3,       0,    0
+    vbsrl.v       vr17,     vr17,     1
+    addi.d        t3,       t3,       1
+    addi.w        t1,       t1,       -1
+    bnez          t1,       .WIENER_FILTER_V_ST_REM_LASX
+.WIENER_FILTER_V_W_EQ16_LASX:
+    addi.w        t2,       t2,       1
+    blt           t2,       a5,       .WIENER_FILTER_V_H_LASX
+    b              .WIENER_FILTER_V_LASX_END
+
+.WIENER_FILTER_V_W_LT16_LASX:
+    andi          t1,       a4,       0xf
+    add.d         t3,       zero,     a0
+
+    wiener_filter_v_8bpc_core_lsx
+
+    mul.w         t5,       t2,       a1   // j * stride
+    add.d         t3,       a0,       t5
+
+.WIENER_FILTER_V_ST_REM_1_LASX:
+    vstelm.b      vr17,     t3,       0,    0
+    vbsrl.v       vr17,     vr17,     1
+    addi.d        t3,       t3,       1
+    addi.w        t1,       t1,       -1
+    bnez          t1,       .WIENER_FILTER_V_ST_REM_1_LASX
+
+    addi.w        t2,       t2,       1
+    blt           t2,       a5,       .WIENER_FILTER_V_W_LT16_LASX
+
+.WIENER_FILTER_V_LASX_END:
 endfunc

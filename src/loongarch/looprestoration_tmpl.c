@@ -36,11 +36,22 @@ void BF(dav1d_wiener_filter_h, lsx)(int32_t *hor_ptr,
                                     const int16_t filterh[8],
                                     const int w, const int h);
 
+void BF(dav1d_wiener_filter_h, lasx)(int32_t *hor_ptr,
+                                     uint8_t *tmp_ptr,
+                                     const int16_t filterh[8],
+                                     const int w, const int h);
+
 void BF(dav1d_wiener_filter_v, lsx)(uint8_t *p,
                                     const ptrdiff_t p_stride,
                                     const int32_t *hor,
                                     const int16_t filterv[8],
                                     const int w, const int h);
+
+void BF(dav1d_wiener_filter_v, lasx)(uint8_t *p,
+                                     const ptrdiff_t p_stride,
+                                     const int32_t *hor,
+                                     const int16_t filterv[8],
+                                     const int w, const int h);
 
 // This function refers to the function in the ppc/looprestoration_init_tmpl.c.
 static inline void padding(uint8_t *dst, const uint8_t *p,
@@ -154,6 +165,25 @@ void dav1d_wiener_filter_lsx(uint8_t *p, const ptrdiff_t p_stride,
 
     BF(dav1d_wiener_filter_h, lsx)(hor, tmp, filter[0], w, h + 6);
     BF(dav1d_wiener_filter_v, lsx)(p, p_stride, hor, filter[1], w, h);
+}
+
+void dav1d_wiener_filter_lasx(uint8_t *p, const ptrdiff_t p_stride,
+                              const uint8_t (*const left)[4],
+                              const uint8_t *lpf,
+                              const int w, const int h,
+                              const LooprestorationParams *const params,
+                              const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
+{
+    const int16_t (*const filter)[8] = params->filter;
+
+    // Wiener filtering is applied to a maximum stripe height of 64 + 3 pixels
+    // of padding above and below
+    ALIGN_STK_16(uint8_t, tmp, 70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE,);
+    padding(tmp, p, p_stride, left, lpf, w, h, edges);
+    ALIGN_STK_16(int32_t, hor, 70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE + 64,);
+
+    BF(dav1d_wiener_filter_h, lasx)(hor, tmp, filter[0], w, h + 6);
+    BF(dav1d_wiener_filter_v, lasx)(p, p_stride, hor, filter[1], w, h);
 }
 
 void BF(dav1d_boxsum3_h, lsx)(int32_t *sumsq, int16_t *sum, pixel *src,

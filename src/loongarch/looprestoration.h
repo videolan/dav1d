@@ -39,6 +39,13 @@ void dav1d_wiener_filter_lsx(uint8_t *p, const ptrdiff_t stride,
                              const LooprestorationParams *const params,
                              const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
+void dav1d_wiener_filter_lasx(uint8_t *p, const ptrdiff_t stride,
+                             const uint8_t (*const left)[4],
+                             const uint8_t *lpf,
+                             const int w, const int h,
+                             const LooprestorationParams *const params,
+                             const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
+
 void dav1d_sgr_filter_3x3_lsx(pixel *p, const ptrdiff_t p_stride,
                               const pixel (*const left)[4],
                               const pixel *lpf,
@@ -72,6 +79,12 @@ static ALWAYS_INLINE void loop_restoration_dsp_init_loongarch(Dav1dLoopRestorati
     c->sgr[0] = dav1d_sgr_filter_5x5_lsx;
     c->sgr[1] = dav1d_sgr_filter_3x3_lsx;
     c->sgr[2] = dav1d_sgr_filter_mix_lsx;
+#endif
+
+    if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LASX)) return;
+
+#if BITDEPTH == 8
+    c->wiener[0] = c->wiener[1] = dav1d_wiener_filter_lasx;
 #endif
 }
 
