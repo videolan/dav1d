@@ -1,6 +1,6 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2024, VideoLAN and dav1d authors
+ * Copyright © 2024, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,60 +25,41 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_COMMON_INTOPS_H
-#define DAV1D_COMMON_INTOPS_H
+#include "config.h"
 
-#include <stdint.h>
+#include <string.h>
 
-#include "common/attributes.h"
+#include "ctx.h"
 
-static inline int imax(const int a, const int b) {
-    return a > b ? a : b;
+static void memset_w1(void *const ptr, const int value) {
+    set_ctx1((uint8_t *) ptr, 0, value);
 }
 
-static inline int imin(const int a, const int b) {
-    return a < b ? a : b;
+static void memset_w2(void *const ptr, const int value) {
+    set_ctx2((uint8_t *) ptr, 0, value);
 }
 
-static inline unsigned umax(const unsigned a, const unsigned b) {
-    return a > b ? a : b;
+static void memset_w4(void *const ptr, const int value) {
+    set_ctx4((uint8_t *) ptr, 0, value);
 }
 
-static inline unsigned umin(const unsigned a, const unsigned b) {
-    return a < b ? a : b;
+static void memset_w8(void *const ptr, const int value) {
+    set_ctx8((uint8_t *) ptr, 0, value);
 }
 
-static inline int iclip(const int v, const int min, const int max) {
-    return v < min ? min : v > max ? max : v;
+static void memset_w16(void *const ptr, const int value) {
+    set_ctx16((uint8_t *) ptr, 0, value);
 }
 
-static inline int iclip_u8(const int v) {
-    return iclip(v, 0, 255);
+static void memset_w32(void *const ptr, const int value) {
+    set_ctx32((uint8_t *) ptr, 0, value);
 }
 
-static inline int apply_sign(const int v, const int s) {
-    return s < 0 ? -v : v;
-}
-
-static inline int apply_sign64(const int v, const int64_t s) {
-    return s < 0 ? -v : v;
-}
-
-static inline int ulog2(const unsigned v) {
-    return 31 ^ clz(v);
-}
-
-static inline int u64log2(const uint64_t v) {
-    return 63 ^ clzll(v);
-}
-
-static inline unsigned inv_recenter(const unsigned r, const unsigned v) {
-    if (v > (r << 1))
-        return v;
-    else if ((v & 1) == 0)
-        return (v >> 1) + r;
-    else
-        return r - ((v + 1) >> 1);
-}
-
-#endif /* DAV1D_COMMON_INTOPS_H */
+const dav1d_memset_pow2_fn dav1d_memset_pow2[6] = {
+    memset_w1,
+    memset_w2,
+    memset_w4,
+    memset_w8,
+    memset_w16,
+    memset_w32
+};

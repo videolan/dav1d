@@ -30,6 +30,7 @@
 libdav1d_sources = files(
     'cdf.c',
     'cpu.c',
+    'ctx.c',
     'data.c',
     'decode.c',
     'dequant_tables.c',
