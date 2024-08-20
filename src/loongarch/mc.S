@@ -2659,6 +2659,14 @@ endconst
 const subpel_h_shuf1
 .byte 0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6
 endconst
+const subpel_h_shuf2
+.byte 0, 1, 2, 3, 1, 2, 3, 4,  8,  9, 10, 11,  9, 10, 11, 12
+.byte 2, 3, 4, 5, 3, 4, 5, 6, 10, 11, 12, 13, 11, 12, 13, 14
+endconst
+const subpel_h_shuf3
+.byte 0, 4, 1, 5, 2, 6, 3, 7, 4, 8, 5, 9, 6, 10, 7, 11
+.byte 0, 4, 1, 5, 2, 6, 3, 7, 4, 8, 5, 9, 6, 10, 7, 11
+endconst
 
 .macro FILTER_8TAP_8W in0
     vshuf.b         vr13,    \in0,  \in0,  vr7
@@ -3726,51 +3734,8 @@ function put_8tap_sharp_8bpc_lsx
 endfunc
 
 const shufb1
-.byte 0,1,2,3,4,5,6,7,1,2,3,4,5,6,7,8,0,1,2,3,4,5,6,7,1,2,3,4,5,6,7,8
+.byte 0,1,2,3,4,5,6,7,1,2,3,4,5,6,7,8
 endconst
-
-.macro SHUFB in0, in1, tmp, out
-    xvbsrl.v  \tmp, \in0, 2
-    xvpermi.q \tmp, \in0, 0x20
-    xvshuf.b  \out, \tmp, \tmp, \in1
-.endm
-
-.macro HADDWDH in0
-    xvhaddw.w.h \in0, \in0, \in0
-    xvhaddw.d.w \in0, \in0, \in0
-.endm
-
-.macro HADDWQW in0
-    xvhaddw.d.w \in0, \in0, \in0
-    xvhaddw.q.d \in0, \in0, \in0
-.endm
-
-.macro PREP_W16_H in0
-    xvbsrl.v         xr4,    \in0,    4
-    xvbsrl.v         xr5,    \in0,    8
-    xvpermi.q        xr9,    \in0,    0x31
-    xvpackev.d       xr5,     xr9,    xr5
-    xvbsrl.v         xr6,     xr5,    4
-    SHUFB           \in0,     xr23,   xr9,   \in0
-    SHUFB            xr4,     xr23,   xr9,    xr4
-    SHUFB            xr5,     xr23,   xr9,    xr5
-    SHUFB            xr6,     xr23,   xr9,    xr6
-    xvdp2.h.bu.b     xr10,   \in0,    xr22
-    xvdp2.h.bu.b     xr11,    xr4,    xr22
-    xvdp2.h.bu.b     xr12,    xr5,    xr22
-    xvdp2.h.bu.b     xr13,    xr6,    xr22
-    HADDWDH          xr10
-    HADDWDH          xr11
-    HADDWDH          xr12
-    HADDWDH          xr13
-    xvpickev.w       xr10,    xr11,   xr10
-    xvpickev.w       xr11,    xr13,   xr12
-    xvpermi.d        xr10,    xr10,   0xd8
-    xvpermi.d        xr11,    xr11,   0xd8
-    xvpickev.h       xr10,    xr11,   xr10
-    xvpermi.d        xr10,    xr10,   0xd8
-    xvsrari.h       \in0,     xr10,   2
-.endm
 
 .macro PREP_H_8W in0
     vshuf.b          vr2,    \in0,  \in0,   vr6
@@ -3791,37 +3756,54 @@ endconst
     vssrarni.h.w     \in0,   vr12,  2
 .endm
 
+.macro PREP_HV_8W_LASX in0
+    xvshuf.b         xr4,   \in0,  \in0,   xr19
+    xvshuf.b         xr5,   \in0,  \in0,   xr20
+    xvshuf.b         xr6,   \in0,  \in0,   xr21
+    xvmulwev.h.bu.b  xr7,   xr4,   xr22
+    xvmulwev.h.bu.b  xr9,   xr5,   xr23
+    xvmulwev.h.bu.b  xr10,  xr5,   xr22
+    xvmulwev.h.bu.b  xr11,  xr6,   xr23
+    xvmaddwod.h.bu.b xr7,   xr4,   xr22
+    xvmaddwod.h.bu.b xr9,   xr5,   xr23
+    xvmaddwod.h.bu.b xr10,  xr5,   xr22
+    xvmaddwod.h.bu.b xr11,  xr6,   xr23
+    xvadd.h          xr7,   xr7,   xr9
+    xvadd.h          xr9,   xr10,  xr11
+    xvhaddw.w.h      xr7,   xr7,   xr7
+    xvhaddw.w.h      \in0,  xr9,   xr9
+    xvssrarni.h.w    \in0,  xr7,   2
+.endm
+
 .macro PREP_8TAP_8BPC_LASX lable
     li.w             t0,     4
     la.local         t6,     dav1d_mc_subpel_filters
-    la.local         t7,     shufb1
-    xvld             xr23,   t7,    0
     slli.d           t2,     a2,    1  //src_stride*2
     add.d            t3,     t2,    a2 //src_stride*3
     slli.d           t4,     t2,    1
 
-    bnez             a5,     .l_\lable\()h //mx
-    bnez             a6,     .l_\lable\()v
+    bnez             a5,     .l_\lable\()h_lasx //mx
+    bnez             a6,     .l_\lable\()v_lasx
 
     clz.w            t1,     a3
     li.w             t5,     24
     sub.w            t1,     t1,    t5
-    la.local         t5,     .l_\lable\()prep_hv0_jtable
+    la.local         t5,     .l_\lable\()prep_hv0_jtable_lasx
     alsl.d           t1,     t1,    t5,   1
     ld.h             t8,     t1,    0
     add.d            t5,     t5,    t8
     jirl             $r0,    t5,    0
 
     .align   3
-.l_\lable\()prep_hv0_jtable:
-    .hword .l_\lable\()hv0_128w - .l_\lable\()prep_hv0_jtable
-    .hword .l_\lable\()hv0_64w  - .l_\lable\()prep_hv0_jtable
-    .hword .l_\lable\()hv0_32w  - .l_\lable\()prep_hv0_jtable
-    .hword .l_\lable\()hv0_16w  - .l_\lable\()prep_hv0_jtable
-    .hword .l_\lable\()hv0_8w   - .l_\lable\()prep_hv0_jtable
-    .hword .l_\lable\()hv0_4w   - .l_\lable\()prep_hv0_jtable
+.l_\lable\()prep_hv0_jtable_lasx:
+    .hword .l_\lable\()hv0_128w_lasx - .l_\lable\()prep_hv0_jtable_lasx
+    .hword .l_\lable\()hv0_64w_lasx  - .l_\lable\()prep_hv0_jtable_lasx
+    .hword .l_\lable\()hv0_32w_lasx  - .l_\lable\()prep_hv0_jtable_lasx
+    .hword .l_\lable\()hv0_16w_lasx  - .l_\lable\()prep_hv0_jtable_lasx
+    .hword .l_\lable\()hv0_8w_lasx   - .l_\lable\()prep_hv0_jtable_lasx
+    .hword .l_\lable\()hv0_4w_lasx   - .l_\lable\()prep_hv0_jtable_lasx
 
-.l_\lable\()hv0_4w:
+.l_\lable\()hv0_4w_lasx:
     fld.s            f0,     a1,    0
     fldx.s           f1,     a1,    a2
     fldx.s           f2,     a1,    t2
@@ -3834,9 +3816,9 @@ endconst
     xvst             xr0,    a0,    0
     addi.d           a0,     a0,    32
     addi.d           a4,     a4,    -4
-    bnez             a4,     .l_\lable\()hv0_4w
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()hv0_8w:
+    bnez             a4,     .l_\lable\()hv0_4w_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
+.l_\lable\()hv0_8w_lasx:
     fld.d            f0,     a1,    0
     fldx.d           f1,     a1,    a2
     fldx.d           f2,     a1,    t2
@@ -3850,9 +3832,9 @@ endconst
     xvst             xr2,    a0,    32
     addi.d           a0,     a0,    64
     addi.d           a4,     a4,    -4
-    bnez             a4,     .l_\lable\()hv0_8w
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()hv0_16w:
+    bnez             a4,     .l_\lable\()hv0_8w_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
+.l_\lable\()hv0_16w_lasx:
     vld              vr0,    a1,    0
     vldx             vr1,    a1,    a2
     vldx             vr2,    a1,    t2
@@ -3872,9 +3854,9 @@ endconst
     xvst             xr3,    a0,    96
     addi.d           a0,     a0,    128
     addi.d           a4,     a4,    -4
-    bnez             a4,     .l_\lable\()hv0_16w
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()hv0_32w:
+    bnez             a4,     .l_\lable\()hv0_16w_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
+.l_\lable\()hv0_32w_lasx:
     xvld             xr0,    a1,    0
     xvldx            xr1,    a1,    a2
     xvldx            xr2,    a1,    t2
@@ -3906,16 +3888,16 @@ endconst
     xvst             xr7,    a0,    224
     addi.d           a0,     a0,    256
     addi.d           a4,     a4,    -4
-    bnez             a4,     .l_\lable\()hv0_32w
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()hv0_64w:
-.l_\lable\()hv0_128w:
+    bnez             a4,     .l_\lable\()hv0_32w_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
+.l_\lable\()hv0_64w_lasx:
+.l_\lable\()hv0_128w_lasx:
     addi.d           t0,     a1,    0
     addi.d           t5,     a4,    0
     srli.w           t7,     a3,    5
     slli.w           t7,     t7,    6
     addi.d           t8,     a0,    0
-.l_\lable\()hv0_32_loop:
+.l_\lable\()hv0_32_loop_lasx:
     xvld             xr0,    a1,    0
     xvldx            xr1,    a1,    a2
     xvldx            xr2,    a1,    t2
@@ -3949,25 +3931,25 @@ endconst
     xvst             xr3,    t1,    0
     xvst             xr7,    t1,    32
     add.d            a0,     t1,    t7
-    addi.d           a4,     a4,    -4
-    bnez             a4,     .l_\lable\()hv0_32_loop
+    addi.d           a4,     a4,   -4
+    bnez             a4,     .l_\lable\()hv0_32_loop_lasx
     addi.d           a1,     t0,    32
     addi.d           t0,     t0,    32
     addi.d           a0,     t8,    64
     addi.d           t8,     t8,    64
     addi.d           a4,     t5,    0
-    addi.d           a3,     a3,    -32
-    bnez             a3,     .l_\lable\()hv0_32_loop
-    b                .l_\lable\()end_pre_8tap
+    addi.d           a3,     a3,   -32
+    bnez             a3,     .l_\lable\()hv0_32_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-.l_\lable\()h:
-    bnez             a6,     .l_\lable\()hv //if(fh) && if (fv)
+.l_\lable\()h_lasx:
+    bnez             a6,     .l_\lable\()hv_lasx //if(fh) && if (fv)
 
     andi             t1,    a7,    3
-    blt              t0,    a3,    .l_\lable\()h_idx_fh
+    blt              t0,    a3,    .l_\lable\()h_idx_fh_lasx
     andi             t1,    a7,    1
     addi.w           t1,    t1,    3
-.l_\lable\()h_idx_fh:
+.l_\lable\()h_idx_fh_lasx:
     addi.w           t5,    zero,  120
     mul.w            t1,    t1,    t5
     addi.w           t5,    a5,    -1
@@ -3976,190 +3958,149 @@ endconst
     add.d            t1,    t6,    t1 //fh's offset
     xvldrepl.d       xr22,  t1,    0
 
-    addi.d           a1,     a1,    -3
-    clz.w            t1,     a3
-    li.w             t5,     24
-    sub.w            t1,     t1,    t5
-    la.local         t5,     .l_\lable\()prep_h_jtable
-    alsl.d           t1,     t1,    t5,   1
-    ld.h             t8,     t1,    0
-    add.d            t5,     t5,    t8
-    jirl             $r0,    t5,    0
+    addi.d           a1,    a1,    -3
+    clz.w            t1,    a3
+    li.w             t5,    24
+    sub.w            t1,    t1,    t5
+    la.local         t5,    .l_\lable\()prep_h_jtable_lasx
+    alsl.d           t1,    t1,    t5,   1
+    ld.h             t8,    t1,    0
+    add.d            t5,    t5,    t8
+    jirl             $r0,   t5,    0
 
     .align   3
-.l_\lable\()prep_h_jtable:
-    .hword .l_\lable\()h_128w - .l_\lable\()prep_h_jtable
-    .hword .l_\lable\()h_64w  - .l_\lable\()prep_h_jtable
-    .hword .l_\lable\()h_32w  - .l_\lable\()prep_h_jtable
-    .hword .l_\lable\()h_16w  - .l_\lable\()prep_h_jtable
-    .hword .l_\lable\()h_8w   - .l_\lable\()prep_h_jtable
-    .hword .l_\lable\()h_4w   - .l_\lable\()prep_h_jtable
+.l_\lable\()prep_h_jtable_lasx:
+    .hword .l_\lable\()h_128w_lasx - .l_\lable\()prep_h_jtable_lasx
+    .hword .l_\lable\()h_64w_lasx  - .l_\lable\()prep_h_jtable_lasx
+    .hword .l_\lable\()h_32w_lasx  - .l_\lable\()prep_h_jtable_lasx
+    .hword .l_\lable\()h_16w_lasx  - .l_\lable\()prep_h_jtable_lasx
+    .hword .l_\lable\()h_8w_lasx   - .l_\lable\()prep_h_jtable_lasx
+    .hword .l_\lable\()h_4w_lasx   - .l_\lable\()prep_h_jtable_lasx
 
-.l_\lable\()h_4w:
-    xvld             xr0,    a1,    0
-    xvldx            xr1,    a1,    a2
-    xvldx            xr2,    a1,    t2
-    xvldx            xr3,    a1,    t3
-    add.d            a1,     a1,    t4
+.l_\lable\()h_4w_lasx:
+    addi.d           a1,    a1,    2
+    la.local         t7,    subpel_h_shuf1
+    vld              vr7,   t7,    0
+    xvreplve0.q      xr7,   xr7
+    xvbsrl.v         xr22,  xr22,  2
+    xvreplve0.w      xr22,  xr22
+.l_\lable\()h_4w_loop_lasx:
+    vld              vr0,   a1,    0
+    vldx             vr1,   a1,    a2
+    vldx             vr2,   a1,    t2
+    vldx             vr3,   a1,    t3
+    add.d            a1,    a1,    t4
+    xvpermi.q        xr1,   xr0,   0x20
+    xvpermi.q        xr3,   xr2,   0x20
+    xvshuf.b         xr1,   xr1,   xr1,   xr7
+    xvshuf.b         xr3,   xr3,   xr3,   xr7
+    xvmulwev.h.bu.b  xr0,   xr1,   xr22
+    xvmulwev.h.bu.b  xr2,   xr3,   xr22
+    xvmaddwod.h.bu.b xr0,   xr1,   xr22
+    xvmaddwod.h.bu.b xr2,   xr3,   xr22
+    xvhaddw.w.h      xr0,   xr0,   xr0
+    xvhaddw.w.h      xr2,   xr2,   xr2
+    xvssrarni.h.w    xr2,   xr0,   2
+    xvpermi.d        xr2,   xr2,   0xd8
+    xvst             xr2,   a0,    0
+    addi.d           a0,    a0,    32
+    addi.w           a4,    a4,    -4
+    bnez             a4,    .l_\lable\()h_4w_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    SHUFB            xr0,    xr23,  xr9,   xr0
-    SHUFB            xr1,    xr23,  xr9,   xr1
-    SHUFB            xr2,    xr23,  xr9,   xr2
-    SHUFB            xr3,    xr23,  xr9,   xr3
+.l_\lable\()h_8w_lasx:
+    la.local         t7,    subpel_h_shuf1
+    vld              vr6,   t7,    0
+    vbsrl.v          vr23,  vr22,  4 //fh
+    xvreplve0.w      xr23,  xr23
+    xvreplve0.w      xr22,  xr22
+    xvreplve0.q      xr19,  xr6
+    xvaddi.bu        xr20,  xr19,  4
+    xvaddi.bu        xr21,  xr19,  8
+.l_\lable\()h_8w_loop_lasx:
+    xvld             xr0,   a1,    0
+    xvldx            xr1,   a1,    a2
+    add.d            a1,    a1,    t2
+    xvpermi.q        xr0,   xr1,   0x02
+    PREP_HV_8W_LASX  xr0
+    xvst             xr0,   a0,    0
+    addi.d           a0,    a0,    32
+    addi.d           a4,    a4,   -2
+    bnez             a4,    .l_\lable\()h_8w_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    xvdp2.h.bu.b     xr10,   xr0,   xr22
-    xvdp2.h.bu.b     xr12,   xr1,   xr22
-    xvdp2.h.bu.b     xr14,   xr2,   xr22
-    xvdp2.h.bu.b     xr16,   xr3,   xr22
+.l_\lable\()h_16w_lasx:
+    la.local         t7,    subpel_h_shuf1
+    vld              vr6,   t7,    0
+    vbsrl.v          vr23,  vr22,  4 //fh
+    xvreplve0.w      xr23,  xr23
+    xvreplve0.w      xr22,  xr22
+    xvreplve0.q      xr19,  xr6
+    xvaddi.bu        xr20,  xr19,  4
+    xvaddi.bu        xr21,  xr19,  8
+.l_\lable\()h_16w_loop_lasx:
+    xvld             xr0,   a1,    0
+    xvld             xr1,   a1,    8
+    add.d            a1,    a1,    a2
+    xvpermi.q        xr0,   xr1,   0x02
+    PREP_HV_8W_LASX  xr0
+    xvst             xr0,   a0,    0
+    xvld             xr0,   a1,    0
+    xvld             xr1,   a1,    8
+    add.d            a1,    a1,    a2
+    xvpermi.q        xr0,   xr1,   0x02
+    PREP_HV_8W_LASX  xr0
+    xvst             xr0,   a0,    32
+    addi.d           a0,    a0,    64
+    addi.w           a4,    a4,    -2
+    bnez             a4,     .l_\lable\()h_16w_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    HADDWDH          xr10    //h0 mid0 mid1 mid2 mid3
-    HADDWDH          xr12    //h1 mid4 mid5 mid6 mid7
-    HADDWDH          xr14    //h2
-    HADDWDH          xr16    //h3
+.l_\lable\()h_32w_lasx:
+.l_\lable\()h_64w_lasx:
+.l_\lable\()h_128w_lasx:
+    la.local         t7,    subpel_h_shuf1
+    vld              vr6,   t7,    0
+    vbsrl.v          vr23,  vr22,  4 //fh
+    xvreplve0.w      xr23,  xr23
+    xvreplve0.w      xr22,  xr22
+    xvreplve0.q      xr19,  xr6
+    xvaddi.bu        xr20,  xr19,  4
+    xvaddi.bu        xr21,  xr19,  8
+    addi.d           t5,    a1,    0 //src
+    addi.d           t6,    a3,    0 //w
+    slli.w           t7,    a3,    1 //store offset
+    addi.d           t8,    a0,    0 //dst
+.l_\lable\()h_16_loop_lasx:
+    xvld             xr0,   a1,    0
+    xvld             xr1,   a1,    8
+    xvpermi.q        xr0,   xr1,   0x02
+    PREP_HV_8W_LASX  xr0
+    xvst             xr0,   a0,    0
+    xvld             xr0,   a1,    16
+    xvld             xr1,   a1,    24
+    xvpermi.q        xr0,   xr1,   0x02
+    PREP_HV_8W_LASX  xr0
+    xvst             xr0,   a0,    32
+    addi.d           a0,    a0,    64
+    addi.d           a1,    a1,    32
+    addi.d           a3,    a3,   -32
+    bnez             a3,    .l_\lable\()h_16_loop_lasx
+    add.d            a1,    t5,    a2
+    add.d            t5,    t5,    a2
+    add.d            a0,    t8,    t7
+    add.d            t8,    t8,    t7
+    addi.d           a3,    t6,    0
+    addi.d           a4,    a4,    -1
+    bnez             a4,    .l_\lable\()h_16_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    xvpickev.w       xr10,   xr12,    xr10
-    xvpickev.w       xr14,   xr16,    xr14
-    xvpermi.d        xr10,   xr10,    0xd8
-    xvpermi.d        xr14,   xr14,    0xd8
-    xvpickev.h       xr10,   xr14,    xr10
-    xvpermi.d        xr10,   xr10,    0xd8
-    xvsrari.h        xr10,   xr10,    2
-
-    xvst             xr10,   a0,      0
-    addi.d           a0,     a0,      32
-    addi.w           a4,     a4,      -4
-    bnez             a4,     .l_\lable\()h_4w
-    b                .l_\lable\()end_pre_8tap
-
-.l_\lable\()h_8w:
-    xvld             xr0,    a1,      0
-    xvldx            xr2,    a1,      a2
-    xvldx            xr4,    a1,      t2
-    xvldx            xr6,    a1,      t3
-    add.d            a1,     a1,      t4
-
-    xvbsrl.v         xr1,    xr0,     4
-    xvbsrl.v         xr3,    xr2,     4
-    xvbsrl.v         xr5,    xr4,     4
-    xvbsrl.v         xr7,    xr6,     4
-
-    SHUFB            xr0,    xr23,    xr9,    xr10
-    SHUFB            xr1,    xr23,    xr9,    xr11
-    SHUFB            xr2,    xr23,    xr9,    xr12
-    SHUFB            xr3,    xr23,    xr9,    xr13
-    SHUFB            xr4,    xr23,    xr9,    xr14
-    SHUFB            xr5,    xr23,    xr9,    xr15
-    SHUFB            xr6,    xr23,    xr9,    xr16
-    SHUFB            xr7,    xr23,    xr9,    xr17
-
-    xvdp2.h.bu.b     xr0,    xr10,    xr22
-    xvdp2.h.bu.b     xr1,    xr11,    xr22
-    xvdp2.h.bu.b     xr2,    xr12,    xr22
-    xvdp2.h.bu.b     xr3,    xr13,    xr22
-    xvdp2.h.bu.b     xr4,    xr14,    xr22
-    xvdp2.h.bu.b     xr5,    xr15,    xr22
-    xvdp2.h.bu.b     xr6,    xr16,    xr22
-    xvdp2.h.bu.b     xr7,    xr17,    xr22
-
-    HADDWDH          xr0
-    HADDWDH          xr1
-    HADDWDH          xr2
-    HADDWDH          xr3
-    HADDWDH          xr4
-    HADDWDH          xr5
-    HADDWDH          xr6
-    HADDWDH          xr7
-
-    xvpickev.w       xr0,    xr1,    xr0
-    xvpickev.w       xr2,    xr3,    xr2
-    xvpermi.d        xr0,    xr0,    0xd8
-    xvpermi.d        xr2,    xr2,    0xd8
-    xvpickev.h       xr0,    xr2,    xr0
-    xvpermi.d        xr0,    xr0,    0xd8
-    xvsrari.h        xr0,    xr0,    2
-
-    xvpickev.w       xr4,    xr5,    xr4
-    xvpickev.w       xr6,    xr7,    xr6
-    xvpermi.d        xr4,    xr4,    0xd8
-    xvpermi.d        xr6,    xr6,    0xd8
-    xvpickev.h       xr4,    xr6,    xr4
-    xvpermi.d        xr4,    xr4,    0xd8
-    xvsrari.h        xr4,    xr4,    2
-
-    xvst             xr0,    a0,     0
-    xvst             xr4,    a0,     32
-    addi.d           a0,     a0,     64
-    addi.d           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()h_8w
-    b                .l_\lable\()end_pre_8tap
-
-.l_\lable\()h_16w:
-    xvld             xr0,    a1,     0
-    xvldx            xr1,    a1,     a2
-    xvldx            xr2,    a1,     t2
-    xvldx            xr3,    a1,     t3
-    add.d            a1,     a1,     t4
-
-    PREP_W16_H       xr0
-    PREP_W16_H       xr1
-    PREP_W16_H       xr2
-    PREP_W16_H       xr3
-
-    xvst             xr0,    a0,     0
-    xvst             xr1,    a0,     32
-    xvst             xr2,    a0,     64
-    xvst             xr3,    a0,     96
-
-    addi.d           a0,     a0,     128
-    addi.w           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()h_16w
-    b                .l_\lable\()end_pre_8tap
-
-.l_\lable\()h_32w:
-.l_\lable\()h_64w:
-.l_\lable\()h_128w:
-    addi.d           t0,     a1,     0 //src
-    addi.d           t5,     a4,     0 //h
-    srli.w           t7,     a3,     4 //w
-    slli.w           t7,     t7,     5 //store offset
-    addi.d           t8,     a0,     0 //dst
-.l_\lable\()h_16_loop:
-    xvld             xr0,    a1,     0
-    xvldx            xr1,    a1,     a2
-    xvldx            xr2,    a1,     t2
-    xvldx            xr3,    a1,     t3
-    add.d            a1,     a1,     t4
-
-    PREP_W16_H       xr0
-    PREP_W16_H       xr1
-    PREP_W16_H       xr2
-    PREP_W16_H       xr3
-
-    xvst             xr0,    a0,     0
-    xvstx            xr1,    a0,     t7
-    slli.w           t1,     t7,     1
-    xvstx            xr2,    a0,     t1
-    add.w            t1,     t1,     t7
-    xvstx            xr3,    a0,     t1
-    slli.w           t1,     t7,     2
-    add.d            a0,     a0,     t1
-    addi.d           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()h_16_loop
-
-    addi.d           a1,     t0,     16
-    addi.d           t0,     t0,     16
-    addi.d           a0,     t8,     32
-    addi.d           t8,     t8,     32
-    addi.d           a4,     t5,     0
-    addi.d           a3,     a3,     -16
-    bnez             a3,     .l_\lable\()h_16_loop
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()hv:
+.l_\lable\()hv_lasx:
     andi             t1,    a7,    3
-    blt              t0,    a3,    .l_\lable\()hv_idx_fh
+    blt              t0,    a3,    .l_\lable\()hv_idx_fh_lasx
     andi             t1,    a7,    1
     addi.w           t1,    t1,    3
-.l_\lable\()hv_idx_fh:
+.l_\lable\()hv_idx_fh_lasx:
     addi.w           t5,    zero,  120
     mul.w            t1,    t1,    t5
     addi.w           t5,    a5,    -1
@@ -4168,641 +4109,465 @@ endconst
     add.d            t1,    t6,    t1 //fh's offset
     xvldrepl.d       xr22,  t1,    0
     srli.w           a7,    a7,    2
-    blt              t0,    a4,    .l_\lable\()hv_idx_fv
+    blt              t0,    a4,    .l_\lable\()hv_idx_fv_lasx
     andi             a7,    a7,    1
     addi.w           a7,    a7,    3
-.l_\lable\()hv_idx_fv:
-    addi.w           t5,     zero,  120
-    mul.w            a7,     a7,    t5
-    addi.w           t5,     a6,    -1
-    slli.w           t5,     t5,    3
-    add.w            a7,     a7,    t5
-    add.d            a7,     t6,    a7 //fv's offset
-    xvldrepl.d       xr8,    a7,    0
-    xvsllwil.h.b     xr8,    xr8,   0
-
-    sub.d            a1,     a1,     t3
-    addi.d           a1,     a1,     -3
-    beq              a3,     t0,     .l_\lable\()hv_4w
-    b                .l_\lable\()hv_8w
-.l_\lable\()hv_4w:
-    xvld             xr0,    a1,     0
-    xvldx            xr1,    a1,     a2
-    xvldx            xr2,    a1,     t2
-    xvldx            xr3,    a1,     t3
-    add.d            a1,     a1,     t4
-    xvld             xr4,    a1,     0
-    xvldx            xr5,    a1,     a2
-    xvldx            xr6,    a1,     t2
-
-    SHUFB            xr0,    xr23,   xr9,   xr0
-    SHUFB            xr1,    xr23,   xr9,   xr1
-    SHUFB            xr2,    xr23,   xr9,   xr2
-    SHUFB            xr3,    xr23,   xr9,   xr3
-
-    SHUFB            xr4,    xr23,   xr9,   xr4
-    SHUFB            xr5,    xr23,   xr9,   xr5
-    SHUFB            xr6,    xr23,   xr9,   xr6
-
-    xvdp2.h.bu.b     xr10,   xr0,    xr22
-    xvdp2.h.bu.b     xr11,   xr1,    xr22
-    xvdp2.h.bu.b     xr12,   xr2,    xr22
-    xvdp2.h.bu.b     xr13,   xr3,    xr22
-
-    xvdp2.h.bu.b     xr14,   xr4,    xr22
-    xvdp2.h.bu.b     xr15,   xr5,    xr22
-    xvdp2.h.bu.b     xr16,   xr6,    xr22
-
-    HADDWDH          xr10    //h0 mid0 mid1 mid2 mid3
-    HADDWDH          xr11    //h1 mid4 mid5 mid6 mid7
-    HADDWDH          xr12    //h2
-    HADDWDH          xr13    //h3
-
-    xvpackev.w       xr10,   xr11,   xr10
-    xvpackev.w       xr12,   xr13,   xr12
-    xvpackev.d       xr11,   xr12,   xr10
-    xvpackod.d       xr10,   xr12,   xr10
-    xvpickev.h       xr11,   xr10,   xr11
-    xvsrari.h        xr11,   xr11,   2
-
-    HADDWDH          xr14    //h4
-    HADDWDH          xr15    //h5
-    HADDWDH          xr16    //h6
-
-    xvpackev.w       xr14,   xr15,   xr14
-    xvpackev.w       xr16,   xr17,   xr16
-    xvpackev.d       xr17,   xr16,   xr14
-    xvpackod.d       xr14,   xr16,   xr14
-    xvpickev.h       xr13,   xr14,   xr17
-    xvsrari.h        xr13,   xr13,   2
-
-    xvpackev.d       xr18,   xr13,   xr11 //0 4 8 12 16 20 24 *  2 6 10 14 18 22 26 *
-    xvpackod.d       xr19,   xr13,   xr11 //1 5 9 13 17 21 25 *  3 7 11 15 19 23 27 *
-.l_\lable\()hv_w4_loop:
-    xvldx            xr0,    a1,     t3
-    add.d            a1,     a1,     t4
-    xvld             xr1,    a1,     0
-    xvldx            xr2,    a1,     a2
-    xvldx            xr3,    a1,     t2
-
-    SHUFB            xr0,    xr23,   xr9,   xr0
-    SHUFB            xr1,    xr23,   xr9,   xr1
-    SHUFB            xr2,    xr23,   xr9,   xr2
-    SHUFB            xr3,    xr23,   xr9,   xr3
-
-    xvdp2.h.bu.b     xr10,   xr0,    xr22
-    xvdp2.h.bu.b     xr12,   xr1,    xr22
-    xvdp2.h.bu.b     xr14,   xr2,    xr22
-    xvdp2.h.bu.b     xr16,   xr3,    xr22
-
-    HADDWDH          xr10    //h0 mid0 mid1 mid2 mid3
-    HADDWDH          xr12    //h1 mid4 mid5 mid6 mid7
-    HADDWDH          xr14    //h2
-    HADDWDH          xr16    //h3
-
-    xvpackev.w       xr10,   xr12,    xr10
-    xvpackev.w       xr14,   xr16,    xr14
-    xvpackev.d       xr12,   xr14,    xr10
-    xvpackod.d       xr10,   xr14,    xr10
-    xvpickev.h       xr12,   xr10,    xr12
-    xvsrari.h        xr12,   xr12,    2
-
-    xvextrins.h      xr18,   xr12,    0x70 //0 4 8 12 16 20 24  0(x0)   2 6 10 14 18 22 26  2(x2)
-    xvextrins.h      xr19,   xr12,    0x74 //1 5 9 13 17 21 25  0(x1)   3 7 11 15 19 23 27  2(x3)
-
-    xvdp2.w.h        xr0,    xr18,    xr8
-    xvdp2.w.h        xr2,    xr19,    xr8
-    HADDWQW          xr0
-    HADDWQW          xr2
-    xvpackev.w       xr0,    xr2,     xr0
-
-    xvbsrl.v         xr18,   xr18,    2
-    xvbsrl.v         xr19,   xr19,    2
-    xvextrins.h      xr18,   xr12,    0x71
-    xvextrins.h      xr19,   xr12,    0x75
-    xvdp2.w.h        xr2,    xr18,    xr8
-    xvdp2.w.h        xr4,    xr19,    xr8
-    HADDWQW          xr2
-    HADDWQW          xr4
-    xvpackev.w       xr2,    xr4,     xr2
-
-    xvbsrl.v         xr18,   xr18,    2
-    xvbsrl.v         xr19,   xr19,    2
-    xvextrins.h      xr18,   xr12,    0x72
-    xvextrins.h      xr19,   xr12,    0x76
-    xvdp2.w.h        xr4,    xr18,    xr8
-    xvdp2.w.h        xr9,    xr19,    xr8
-    HADDWQW          xr4
-    HADDWQW          xr9
-    xvpackev.w       xr4,    xr9,     xr4
-
-    xvbsrl.v         xr18,   xr18,    2
-    xvbsrl.v         xr19,   xr19,    2
-    xvextrins.h      xr18,   xr12,    0x73
-    xvextrins.h      xr19,   xr12,    0x77
-    xvdp2.w.h        xr9,    xr18,    xr8
-    xvdp2.w.h        xr11,   xr19,    xr8
-    HADDWQW          xr9
-    HADDWQW          xr11
-    xvpackev.w       xr9,    xr11,    xr9
-
-    xvpackev.d       xr0,    xr2,     xr0
-    xvpackev.d       xr4,    xr9,     xr4
-    xvsrari.w        xr0,    xr0,     6
-    xvsrari.w        xr4,    xr4,     6
-    xvpermi.d        xr0,    xr0,     0xd8
-    xvpermi.d        xr4,    xr4,     0xd8
-    xvpickev.h       xr0,    xr4,     xr0
-    xvpermi.d        xr0,    xr0,     0xd8
-    xvst             xr0,    a0,      0
-    addi.d           a0,     a0,      32
-
-    xvbsrl.v         xr18,   xr18,    2
-    xvbsrl.v         xr19,   xr19,    2
-
-    addi.d           a4,     a4,      -4
-    bnez             a4,     .l_\lable\()hv_w4_loop
-    b                .l_\lable\()end_pre_8tap
-
-.l_\lable\()hv_8w:
-    addi.d           t0,     a1,      0
-    addi.d           t5,     a4,      0
-    srli.w           t7,     a3,      3
-    slli.w           t7,     t7,      4 // store offset
-    addi.d           t8,     a0,      0
-.l_\lable\()hv_8w_loop0:
-    xvld             xr0,    a1,      0
-    xvldx            xr2,    a1,      a2
-    xvldx            xr4,    a1,      t2
-    xvldx            xr6,    a1,      t3
-
-    add.d            a1,     a1,      t4
-    xvld             xr10,   a1,      0
-    xvldx            xr11,   a1,      a2
-    xvldx            xr12,   a1,      t2
-
-    xvbsrl.v         xr1,    xr0,     4
-    xvbsrl.v         xr3,    xr2,     4
-    xvbsrl.v         xr5,    xr4,     4
-    xvbsrl.v         xr7,    xr6,     4
-
-    SHUFB            xr0,    xr23,    xr9,    xr13
-    SHUFB            xr1,    xr23,    xr9,    xr14
-    SHUFB            xr2,    xr23,    xr9,    xr15
-    SHUFB            xr3,    xr23,    xr9,    xr16
-    SHUFB            xr4,    xr23,    xr9,    xr17
-    SHUFB            xr5,    xr23,    xr9,    xr18
-    SHUFB            xr6,    xr23,    xr9,    xr19
-    SHUFB            xr7,    xr23,    xr9,    xr20
-
-    xvdp2.h.bu.b     xr0,    xr13,    xr22
-    xvdp2.h.bu.b     xr1,    xr14,    xr22
-    xvdp2.h.bu.b     xr2,    xr15,    xr22
-    xvdp2.h.bu.b     xr3,    xr16,    xr22
-    xvdp2.h.bu.b     xr4,    xr17,    xr22
-    xvdp2.h.bu.b     xr5,    xr18,    xr22
-    xvdp2.h.bu.b     xr6,    xr19,    xr22
-    xvdp2.h.bu.b     xr7,    xr20,    xr22
-
-    HADDWDH          xr0
-    HADDWDH          xr1
-    HADDWDH          xr2
-    HADDWDH          xr3
-    HADDWDH          xr4
-    HADDWDH          xr5
-    HADDWDH          xr6
-    HADDWDH          xr7
-
-    xvpackev.w       xr0,    xr2,    xr0
-    xvpackev.w       xr2,    xr6,    xr4
-    xvpackev.d       xr16,   xr2,    xr0
-    xvpackod.d       xr0,    xr2,    xr0
-    xvpickev.h       xr0,    xr0,    xr16
-    xvsrari.h        xr0,    xr0,    2   // 0 8 16 24  1 9 17 25  2 10 18 26  3 11 19 27
-
-    xvpackev.w       xr1,    xr3,    xr1
-    xvpackev.w       xr3,    xr7,    xr5
-    xvpackev.d       xr16,   xr3,    xr1
-    xvpackod.d       xr1,    xr3,    xr1
-    xvpickev.h       xr1,    xr1,    xr16
-    xvsrari.h        xr1,    xr1,    2   // 4 12 20 28  5 13 21 29  6 14 22 30  7 15 23 31
-
-    xvbsrl.v         xr13,   xr10,    4
-    xvbsrl.v         xr14,   xr11,    4
-    xvbsrl.v         xr15,   xr12,    4
-
-    SHUFB            xr10,   xr23,   xr9,    xr10
-    SHUFB            xr13,   xr23,   xr9,    xr13
-    SHUFB            xr11,   xr23,   xr9,    xr11
-    SHUFB            xr14,   xr23,   xr9,    xr14
-    SHUFB            xr12,   xr23,   xr9,    xr12
-    SHUFB            xr15,   xr23,   xr9,    xr15
-
-    xvdp2.h.bu.b     xr4,    xr10,   xr22
-    xvdp2.h.bu.b     xr5,    xr13,   xr22
-    xvdp2.h.bu.b     xr6,    xr11,   xr22
-    xvdp2.h.bu.b     xr7,    xr14,   xr22
-    xvdp2.h.bu.b     xr9,    xr12,   xr22
-    xvdp2.h.bu.b     xr10,   xr15,   xr22
-
-    HADDWDH          xr4
-    HADDWDH          xr5
-    HADDWDH          xr6
-    HADDWDH          xr7
-    HADDWDH          xr9
-    HADDWDH          xr10
-
-    xvpackev.w       xr4,    xr6,    xr4
-    xvpackev.w       xr9,    xr12,   xr9
-    xvpackev.d       xr16,   xr9,    xr4
-    xvpackod.d       xr11,   xr9,    xr4
-    xvpickev.h       xr2,    xr11,   xr16
-    xvsrari.h        xr2,    xr2,    2   // 32 40 48 *  33 41 49 *  34 42 50 *  35 43 51 *
-
-    xvpackev.w       xr5,    xr7,    xr5
-    xvpackev.w       xr10,   xr12,   xr10
-    xvpackev.d       xr16,   xr10,   xr5
-    xvpackod.d       xr11,   xr10,   xr5
-    xvpickev.h       xr3,    xr11,   xr16
-    xvsrari.h        xr3,    xr3,    2   // 36 44 52 *  37 45 53 *  38 46 54 *  39 47 56 *
-
-    xvpackev.d       xr18,   xr2,    xr0 // 0 8 16 24 32 40 48 *  2 10 18 26 34 42 50 *
-    xvpackod.d       xr19,   xr2,    xr0 // 1 9 17 25 33 41 49 *  3 11 19 27 35 43 51 *
-    xvpackev.d       xr20,   xr3,    xr1 // 4 12 20 28 36 44 52 *  6 14 22 30 38 46 54 *
-    xvpackod.d       xr21,   xr3,    xr1 // 5 13 21 29 37 45 53 *  7 15 23 31 39 47 55 *
-
-.l_\lable\()hv_8w_loop:
-    xvldx            xr0,    a1,     t3
-    add.d            a1,     a1,     t4
-    xvld             xr2,    a1,     0
-    xvldx            xr4,    a1,     a2
-    xvldx            xr6,    a1,     t2
-
-    xvbsrl.v         xr1,    xr0,    4
-    xvbsrl.v         xr3,    xr2,    4
-    xvbsrl.v         xr5,    xr4,    4
-    xvbsrl.v         xr7,    xr6,    4
-
-    SHUFB            xr0,    xr23,   xr9,   xr0
-    SHUFB            xr1,    xr23,   xr9,   xr1
-    SHUFB            xr2,    xr23,   xr9,   xr2
-    SHUFB            xr3,    xr23,   xr9,   xr3
-    SHUFB            xr4,    xr23,   xr9,   xr4
-    SHUFB            xr5,    xr23,   xr9,   xr5
-    SHUFB            xr6,    xr23,   xr9,   xr6
-    SHUFB            xr7,    xr23,   xr9,   xr7
-
-    xvdp2.h.bu.b     xr10,   xr0,    xr22
-    xvdp2.h.bu.b     xr11,   xr1,    xr22
-    xvdp2.h.bu.b     xr12,   xr2,    xr22
-    xvdp2.h.bu.b     xr13,   xr3,    xr22
-    xvdp2.h.bu.b     xr14,   xr4,    xr22
-    xvdp2.h.bu.b     xr15,   xr5,    xr22
-    xvdp2.h.bu.b     xr16,   xr6,    xr22
-    xvdp2.h.bu.b     xr17,   xr7,    xr22
-
-    HADDWDH          xr10
-    HADDWDH          xr11
-    HADDWDH          xr12
-    HADDWDH          xr13
-    HADDWDH          xr14
-    HADDWDH          xr15
-    HADDWDH          xr16
-    HADDWDH          xr17
-
-    xvpackev.w       xr0,    xr12,   xr10
-    xvpackev.w       xr2,    xr16,   xr14
-    xvpackev.d       xr9,    xr2,    xr0
-    xvpackod.d       xr0,    xr2,    xr0
-    xvpickev.h       xr0,    xr0,    xr9
-    xvsrari.h        xr0,    xr0,    2   // 56 64 72 80  57 65 73 81  58 66 74 82  59 67 75 83
-
-    xvpackev.w       xr1,    xr13,   xr11
-    xvpackev.w       xr3,    xr17,   xr15
-    xvpackev.d       xr9,    xr3,    xr1
-    xvpackod.d       xr1,    xr3,    xr1
-    xvpickev.h       xr1,    xr1,    xr9
-    xvsrari.h        xr1,    xr1,    2   // 60 68 76 84  61 69 77 85  62 70 78 86  63 71 79 87
-
-    xvextrins.h      xr18,   xr0,    0x70 // 0 8 16 24 32 40 48 (56)  2 10 18 26 34 42 50 (58)
-    xvextrins.h      xr19,   xr0,    0x74 // 1 9 17 25 33 41 49 (57)  3 11 19 27 35 43 51 (59)
-    xvextrins.h      xr20,   xr1,    0x70
-    xvextrins.h      xr21,   xr1,    0x74
-
-    //h - 1
-    xvdp2.w.h        xr10,   xr18,   xr8
-    xvdp2.w.h        xr11,   xr19,   xr8
-    xvdp2.w.h        xr12,   xr20,   xr8
-    xvdp2.w.h        xr13,   xr21,   xr8
-
-    HADDWQW          xr10
-    HADDWQW          xr11
-    HADDWQW          xr12
-    HADDWQW          xr13
-
-    xvpackev.w       xr2,    xr11,   xr10 //0 1 * * 2 3 * *
-    xvpackev.w       xr3,    xr13,   xr12 //4 5 * * 6 7 * *
-    xvpackev.d       xr2,    xr3,    xr2  //0 1 4 5  2 3 6 7
-    //h - 2
-    xvbsrl.v         xr4,    xr18,   2
-    xvbsrl.v         xr5,    xr19,   2
-    xvbsrl.v         xr6,    xr20,   2
-    xvbsrl.v         xr7,    xr21,   2
-    xvextrins.h      xr4,    xr0,    0x71
-    xvextrins.h      xr5,    xr0,    0x75
-    xvextrins.h      xr6,    xr1,    0x71
-    xvextrins.h      xr7,    xr1,    0x75
-
-    xvdp2.w.h        xr10,   xr4,    xr8
-    xvdp2.w.h        xr11,   xr5,    xr8
-    xvdp2.w.h        xr12,   xr6,    xr8
-    xvdp2.w.h        xr13,   xr7,    xr8
-
-    HADDWQW          xr10
-    HADDWQW          xr11
-    HADDWQW          xr12
-    HADDWQW          xr13
-
-    xvpackev.w       xr14,   xr11,   xr10
-    xvpackev.w       xr15,   xr13,   xr12
-    xvpackev.d       xr14,   xr15,   xr14 //8 9 12 13  10 11 14 15
-    //h - 3
-    xvbsrl.v         xr4,    xr4,    2
-    xvbsrl.v         xr5,    xr5,    2
-    xvbsrl.v         xr6,    xr6,    2
-    xvbsrl.v         xr7,    xr7,    2
-    xvextrins.h      xr4,    xr0,    0x72
-    xvextrins.h      xr5,    xr0,    0x76
-    xvextrins.h      xr6,    xr1,    0x72
-    xvextrins.h      xr7,    xr1,    0x76
-
-    xvdp2.w.h        xr10,   xr4,    xr8
-    xvdp2.w.h        xr11,   xr5,    xr8
-    xvdp2.w.h        xr12,   xr6,    xr8
-    xvdp2.w.h        xr13,   xr7,    xr8
-
-    HADDWQW          xr10
-    HADDWQW          xr11
-    HADDWQW          xr12
-    HADDWQW          xr13
-
-    xvpackev.w       xr15,   xr11,   xr10
-    xvpackev.w       xr16,   xr13,   xr12
-    xvpackev.d       xr15,   xr16,   xr15 //16 17 20 21  18 19 22 23
-    //h - 4
-    xvbsrl.v         xr4,    xr4,    2
-    xvbsrl.v         xr5,    xr5,    2
-    xvbsrl.v         xr6,    xr6,    2
-    xvbsrl.v         xr7,    xr7,    2
-    xvextrins.h      xr4,    xr0,    0x73
-    xvextrins.h      xr5,    xr0,    0x77
-    xvextrins.h      xr6,    xr1,    0x73
-    xvextrins.h      xr7,    xr1,    0x77
-
-    xvdp2.w.h        xr10,   xr4,    xr8
-    xvdp2.w.h        xr11,   xr5,    xr8
-    xvdp2.w.h        xr12,   xr6,    xr8
-    xvdp2.w.h        xr13,   xr7,    xr8
-
-    HADDWQW          xr10
-    HADDWQW          xr11
-    HADDWQW          xr12
-    HADDWQW          xr13
-
-    xvpackev.w       xr16,   xr11,   xr10
-    xvpackev.w       xr17,   xr13,   xr12
-    xvpackev.d       xr16,   xr17,   xr16 //24 25 28 29  26 27 30 31
-
-    xvsrari.w        xr2,    xr2,    6
-    xvsrari.w        xr14,   xr14,   6
-    xvsrari.w        xr15,   xr15,   6
-    xvsrari.w        xr16,   xr16,   6
-
-    xvpermi.d        xr2,    xr2,    0xd8
-    xvpermi.d        xr14,   xr14,   0xd8
-    xvpermi.d        xr15,   xr15,   0xd8
-    xvpermi.d        xr16,   xr16,   0xd8
-    xvpickev.h       xr2,    xr14,   xr2
-    xvpickev.h       xr3,    xr16,   xr15
-    xvpermi.d        xr2,    xr2,    0xd8
-    xvpermi.d        xr3,    xr3,    0xd8
-
-    xvpermi.q        xr10,   xr2,    0x31
-    xvpermi.q        xr11,   xr3,    0x31
-
-    vst              vr2,    a0,     0
-    vstx             vr10,   a0,     t7 //32
-    slli.w           t1,     t7,     1  //64
-    vstx             vr3,    a0,     t1
-    add.w            t1,     t1,     t7 //96
-    vstx             vr11,   a0,     t1
-    slli.w           t1,     t7,     2  //128
-    add.d            a0,     a0,     t1
-
-    xvbsrl.v         xr18,   xr4,    2
-    xvbsrl.v         xr19,   xr5,    2
-    xvbsrl.v         xr20,   xr6,    2
-    xvbsrl.v         xr21,   xr7,    2
-
-    addi.d           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()hv_8w_loop
-
-    addi.d           a1,     t0,     8
-    addi.d           t0,     t0,     8
-    addi.d           a0,     t8,     16
-    addi.d           t8,     t8,     16
-    addi.d           a4,     t5,     0
-    addi.d           a3,     a3,    -8
-    bnez             a3,     .l_\lable\()hv_8w_loop0
-    b                .l_\lable\()end_pre_8tap
-.l_\lable\()v:
-
+.l_\lable\()hv_idx_fv_lasx:
+    addi.w           t5,    zero,  120
+    mul.w            a7,    a7,    t5
+    addi.w           t5,    a6,    -1
+    slli.w           t5,    t5,    3
+    add.w            a7,    a7,    t5
+    add.d            a7,    t6,    a7 //fv's offset
+    xvldrepl.d       xr8,   a7,    0
+    xvsllwil.h.b     xr8,   xr8,   0
+    sub.d            a1,    a1,    t3
+    addi.d           a1,    a1,    -1 //ignore leading 0s
+    beq              a3,    t0,    .l_\lable\()hv_4w_lasx
+    addi.d           a1,    a1,    -2
+    b                .l_\lable\()hv_8w_lasx
+.l_\lable\()hv_4w_lasx:
+    xvld             xr0,   a1,    0
+    xvldx            xr1,   a1,    a2
+    xvldx            xr2,   a1,    t2
+    xvldx            xr3,   a1,    t3
+    add.d            a1,    a1,    t4
+    xvld             xr4,   a1,    0
+    xvldx            xr5,   a1,    a2
+    xvldx            xr6,   a1,    t2
+    la.local         t1,    subpel_h_shuf2
+    xvld             xr7,   t1,    0
+    vbsrl.v          vr22,  vr22,  2
+    xvreplve0.w      xr22,  xr22
+    xvreplve0.q      xr8,   xr8
+    xvrepl128vei.w   xr12,  xr8,   0
+    xvrepl128vei.w   xr13,  xr8,   1
+    xvrepl128vei.w   xr14,  xr8,   2
+    xvrepl128vei.w   xr15,  xr8,   3
+    xvilvl.d         xr0,   xr1,   xr0
+    xvilvl.d         xr2,   xr3,   xr2
+    xvilvl.d         xr4,   xr5,   xr4
+    xvreplve0.q      xr0,   xr0
+    xvreplve0.q      xr2,   xr2
+    xvreplve0.q      xr4,   xr4
+    xvreplve0.q      xr6,   xr6
+    xvshuf.b         xr0,   xr0,   xr0,   xr7
+    xvshuf.b         xr2,   xr2,   xr2,   xr7
+    xvshuf.b         xr4,   xr4,   xr4,   xr7
+    xvshuf.b         xr6,   xr6,   xr6,   xr7
+    xvmulwev.h.bu.b  xr1,   xr0,   xr22
+    xvmulwev.h.bu.b  xr3,   xr2,   xr22
+    xvmulwev.h.bu.b  xr5,   xr4,   xr22
+    xvmulwev.h.bu.b  xr9,   xr6,   xr22
+    xvmaddwod.h.bu.b xr1,   xr0,   xr22
+    xvmaddwod.h.bu.b xr3,   xr2,   xr22
+    xvmaddwod.h.bu.b xr5,   xr4,   xr22
+    xvmaddwod.h.bu.b xr9,   xr6,   xr22
+    xvhaddw.w.h      xr1,   xr1,   xr1  // a0 b0 a1 b1  c0 d0 c1 d1
+    xvhaddw.w.h      xr3,   xr3,   xr3  // a2 b2 a3 b3  c2 d2 c3 d3
+    xvhaddw.w.h      xr5,   xr5,   xr5  // a4 b4 a5 b5  c4 d4 c5 d5
+    xvhaddw.w.h      xr9,   xr9,   xr9  // a6 b6 -  -   c6 d6 -  -
+    xvssrarni.h.w    xr3,   xr1,   2    // a0 b0 a1 b1  a2 b2 a3 b3  c0 d0 c1 d1  c2 d2 c3 d3
+    xvssrarni.h.w    xr9,   xr5,   2    // a4 b4 a5 b5  a6 b6 -  -   c4 d4 c5 d5  c6 d6 -  -
+    xvbsrl.v         xr4,   xr3,   4
+    xvextrins.w      xr4,   xr9,   0x30 // a1 b1 a2 b2  a3 b3 a4 b4  c1 d1 c2 d2  c3 d3 c4 d4
+    xvilvl.h         xr5,   xr4,   xr3  // a0 a1 b0 b1  a1 a2 b1 b2  c0 c1 d0 d1  c1 c2 d1 d2
+    xvilvh.h         xr6,   xr4,   xr3  // a2 a3 b2 b3  a3 a4 b3 b4  c2 c3 d2 d3  c3 c4 d3 d4
+    xvbsrl.v         xr10,  xr9,   4    // a5 b5 a6 b6  -  -  -  -   c5 d5 c6 d6  -  -  -  -
+    xvilvl.h         xr11,  xr10,  xr9  // a4 a5 b4 b5  a5 a6 b5 b6  c4 c5 d4 d5  c5 c6 d5 d6
+.l_\lable\()hv_w4_loop_lasx:
+    xvmulwev.w.h     xr16,  xr5,   xr12 //a0 a1 (h0)
+    xvmulwev.w.h     xr17,  xr6,   xr12 //a2 a3 (h1)
+    xvmulwev.w.h     xr18,  xr6,   xr13 //a2 a3 (h0)
+    xvmulwev.w.h     xr19,  xr11,  xr13 //a4 a5 (h1)
+    xvmulwev.w.h     xr20,  xr11,  xr14 //a4 a5 (h0)
+    xvmaddwod.w.h    xr16,  xr5,   xr12 //
+    xvmaddwod.w.h    xr17,  xr6,   xr12 //
+    xvmaddwod.w.h    xr18,  xr6,   xr13 //
+    xvmaddwod.w.h    xr19,  xr11,  xr13 //
+    xvmaddwod.w.h    xr20,  xr11,  xr14 //
+    xvaddi.wu        xr5,   xr11,   0
+    xvadd.w          xr16,  xr16,  xr18 //a0 a1 + a2 a3
+    xvldx            xr18,  a1,    t3   //a7 b7 c7 d7
+    add.d            a1,    a1,    t4
+    xvadd.w          xr17,  xr17,  xr19 //a2 a3 + a4 a5
+    xvld             xr19,  a1,    0    //a8 b8 c8 d8
+    xvadd.w          xr16,  xr16,  xr20 //a0 a1 + a2 a3 + a4 a5
+    xvldx            xr20,  a1,    a2   //a9 b9 c9 d9
+    xvilvl.d         xr18,  xr19,  xr18
+    xvreplve0.q      xr18,  xr18
+    xvldx            xr19,  a1,    t2   //aa ba ca da
+    xvilvl.d         xr20,  xr19,  xr20
+    xvreplve0.q      xr20,  xr20
+    xvshuf.b         xr18,  xr18,  xr18,  xr7
+    xvshuf.b         xr20,  xr20,  xr20,  xr7
+    xvmulwev.h.bu.b  xr21,  xr18,  xr22
+    xvmulwev.h.bu.b  xr23,  xr20,  xr22
+    xvmaddwod.h.bu.b xr21,  xr18,  xr22
+    xvmaddwod.h.bu.b xr23,  xr20,  xr22
+    xvhaddw.w.h      xr21,  xr21,  xr21 //a7 b7 a8 b8 c7 d7 c8 d8
+    xvhaddw.w.h      xr23,  xr23,  xr23 //a9 b9 aa ba c9 d9 ca da
+    xvssrarni.h.w    xr23,  xr21,  2    //a7 b7 a8 b8  a9 b9 aa ba  c7 d7 c8 d8  c9 d9 ca da
+    xvbsll.v         xr0,   xr23,  4
+    xvextrins.w      xr0,   xr9,   0x02 //a6 b6 a7 b7  a8 b8 a9 b9  c6 d6 c7 d7  c8 d8 c9 d9
+    xvilvl.h         xr6,   xr23,  xr0  //a6 a7 b6 b7  a7 a8 b7 b8  c6 c7 d6 d7  c7 c8 d7 d8
+    xvilvh.h         xr11,  xr23,  xr0  //a8 a9 b8 b9  a9 aa b9 ba  c8 c9 d8 d9  c9 ca d9 da
+    xvbsrl.v         xr9,   xr23,  4
+    xvmulwev.w.h     xr1 ,  xr6,   xr14 //a6 a7 (h0)
+    xvmulwev.w.h     xr2 ,  xr6,   xr15 //a6 a7 (h1)
+    xvmulwev.w.h     xr3 ,  xr11,  xr15 //a8 a9 (h1)
+    xvmaddwod.w.h    xr1 ,  xr6,   xr14
+    xvmaddwod.w.h    xr2 ,  xr6,   xr15
+    xvmaddwod.w.h    xr3 ,  xr11,  xr15
+    xvadd.w          xr17,  xr17,  xr1  //a2 a3 + a4 a5 + a6 a7
+    xvadd.w          xr16,  xr16,  xr2  //a0 a1 + a2 a3 + a4 a5 + a6 a7
+    xvadd.w          xr17,  xr17,  xr3  //a2 a3 + a4 a5 + a6 a7 + a8 a9
+    xvssrarni.h.w    xr17,  xr16,  6    //a01 b01 a12 b12  a23 b23 a34 b34  c01 d01 c12 d12  c23 d23 c34 d34
+    xvpermi.d        xr17,  xr17,  0xd8 //a01 b01 a12 b12  c01 d01 c12 d12  a23 b23 a34 b34  c23 d23 c34 d34
+    xvshuf4i.w       xr17,  xr17,  0xd8
+    xvst             xr17,  a0,    0
+    addi.d           a0,    a0,    32
+    addi.d           a4,    a4,    -4
+    bnez             a4,    .l_\lable\()hv_w4_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
+
+.l_\lable\()hv_8w_lasx:
+    addi.d           sp,    sp,   -4*8
+    fst.d            f24,   sp,    0
+    fst.d            f25,   sp,    8
+    fst.d            f26,   sp,    16
+    fst.d            f27,   sp,    24
+    la.local         t1,    subpel_h_shuf1
+    vld              vr19,  t1,    0
+    addi.d           t0,    a1,    0
+    addi.d           t5,    a4,    0
+    slli.w           t7,    a3,    1 // store offset
+    addi.d           t8,    a0,    0
+    xvreplve0.q      xr19,  xr19
+    xvaddi.bu        xr20,  xr19,  4
+    xvaddi.bu        xr21,  xr19,  8
+    vbsrl.v          vr23,  vr22,  4
+    xvreplve0.w      xr22,  xr22 //f0f1f2f3
+    xvreplve0.w      xr23,  xr23 //f4f5f6f7
+    xvreplve0.q      xr8,   xr8
+    xvrepl128vei.w   xr24,  xr8,   0
+    xvrepl128vei.w   xr25,  xr8,   1
+    xvrepl128vei.w   xr26,  xr8,   2
+    xvrepl128vei.w   xr27,  xr8,   3
+.l_\lable\()hv_8w_loop0_lasx:
+    xvld             xr0,   a1,    0
+    xvldx            xr1,   a1,    a2
+    xvldx            xr2,   a1,    t2
+    add.d            a1,    a1,    t3
+    xvld             xr3,   a1,    0
+    xvldx            xr4,   a1,    a2
+    xvldx            xr5,   a1,    t2
+    xvldx            xr6,   a1,    t3
+    add.d            a1,    a1,    t4
+    xvpermi.q        xr0,   xr3,   0x02 //0 3
+    xvpermi.q        xr1,   xr4,   0x02 //1 4
+    xvpermi.q        xr2,   xr5,   0x02 //2 5
+    xvpermi.q        xr3,   xr6,   0x02 //3 6
+    PREP_HV_8W_LASX  xr0 //a0b0c0d0 e0f0g0h0 a3b3c3d3 e3f3g3h3
+    PREP_HV_8W_LASX  xr1 //a1b1c1d1 e1f1g1h1 a4b4c4d4 e4f4g4h4
+    PREP_HV_8W_LASX  xr2 //a2b2c2d2 e2f2g2h2 a5b5c5d5 e5f5g5h5
+    PREP_HV_8W_LASX  xr3 //a3b3c3d3 e3f3g3h3 a6b6c6d6 e6f6g6h6
+    xvpermi.d        xr0,   xr0,   0xd8
+    xvpermi.d        xr1,   xr1,   0xd8
+    xvpermi.d        xr2,   xr2,   0xd8
+    xvpermi.d        xr18,  xr3,   0xd8
+    xvilvl.h         xr12,  xr1,   xr0 //a0a1b0b1c0c1d0d1 e0e1f0f1g0g1h0h1
+    xvilvh.h         xr13,  xr1,   xr0 //a3a4b3b4c3c4d3d4 e3e4f3f4g3g4h3h4
+    xvilvl.h         xr14,  xr2,   xr1 //a1a2b1b2c1c2d1d2 e1e2f1f2g1g2h1h2
+    xvilvh.h         xr15,  xr2,   xr1 //a4a5b4b5c4c5d4d5 e4e5f4f5g4g5h4h5
+    xvilvl.h         xr16,  xr18,  xr2 //a2a3b2b3c2c3d2d3 e2e3f2f3g2g3h2h3
+    xvilvh.h         xr17,  xr18,  xr2 //a5a6b5b6c5c6d5d6 e5e6f5f6g5g6h5h6
+.l_\lable\()hv_8w_loop_lasx:
+    xvld             xr0,   a1,    0
+    xvldx            xr1,   a1,    a2
+    add.d            a1,    a1,    t2
+    xvpermi.q        xr0,   xr1,   0x02 //7 8
+    PREP_HV_8W_LASX  xr0                //a7b7c7d7e7f7g7h7 a8b8c8d8e8f8g8h8
+    xvpermi.q        xr3,   xr0,   0x03 //a6b6c6d6e6f6g6h6 a7b7c7d7e7f7g7h7
+    xvpermi.d        xr3,   xr3,   0xd8 //a6b6c6d6a7b7c7d7 e6f6g6h6e7f7g7h7
+    xvpermi.d        xr1,   xr0,   0xd8 //a7b7c7d7a8b8c8d8 e7f7g7h7e8f8g8h8
+    xvilvl.h         xr18,  xr1,   xr3  //a6a7b6b7c6c7d6d7 e6e7f6f7g6g7h6h7
+    xvilvh.h         xr2,   xr1,   xr3  //a7a8b7b8c7c8d7d8 e7e8f7f8g7g8h7h8
+    xvaddi.hu        xr3,   xr0,   0
+    xvmulwev.w.h     xr4,   xr12,  xr24 //01
+    xvmulwev.w.h     xr5,   xr14,  xr24 //12
+    xvmulwev.w.h     xr6,   xr16,  xr25 //23
+    xvmulwev.w.h     xr7,   xr13,  xr25 //34
+    xvmulwev.w.h     xr8,   xr15,  xr26 //45
+    xvmulwev.w.h     xr9,   xr17,  xr26 //56
+    xvmulwev.w.h     xr10,  xr18,  xr27 //67
+    xvmulwev.w.h     xr11,  xr2,   xr27 //78
+    xvmaddwod.w.h    xr4,   xr12,  xr24 //01
+    xvmaddwod.w.h    xr5,   xr14,  xr24 //12
+    xvmaddwod.w.h    xr6,   xr16,  xr25 //23
+    xvmaddwod.w.h    xr7,   xr13,  xr25 //34
+    xvmaddwod.w.h    xr8,   xr15,  xr26 //45
+    xvmaddwod.w.h    xr9,   xr17,  xr26 //56
+    xvmaddwod.w.h    xr10,  xr18,  xr27 //67
+    xvmaddwod.w.h    xr11,  xr2,   xr27 //78
+    xvadd.w          xr4,   xr4,   xr6
+    xvadd.w          xr5,   xr5,   xr7
+    xvadd.w          xr4,   xr4,   xr8
+    xvadd.w          xr5,   xr5,   xr9
+    xvadd.w          xr4,   xr4,   xr10
+    xvadd.w          xr5,   xr5,   xr11
+    xvaddi.hu        xr12,  xr16,  0 //01 <-- 23
+    xvaddi.hu        xr14,  xr13,  0 //12 <-- 34
+    xvaddi.hu        xr16,  xr15,  0 //23 <-- 45
+    xvaddi.hu        xr13,  xr17,  0 //34 <-- 56
+    xvaddi.hu        xr15,  xr18,  0 //45 <-- 67
+    xvaddi.hu        xr17,  xr2,   0 //56 <-- 78
+    xvssrarni.h.w    xr5,   xr4,   6
+    xvpermi.d        xr5,   xr5,   0xd8
+    vst              vr5,   a0,    0
+    xvpermi.q        xr5,   xr5,   0x11
+    vstx             vr5,   a0,    t7
+    alsl.d           a0,    t7,    a0,  1
+    addi.d           a4,    a4,   -2
+    bnez             a4,    .l_\lable\()hv_8w_loop_lasx
+    addi.d           a1,    t0,    8
+    addi.d           t0,    t0,    8
+    addi.d           a0,    t8,    16
+    addi.d           t8,    t8,    16
+    addi.d           a4,    t5,    0
+    addi.d           a3,    a3,   -8
+    bnez             a3,    .l_\lable\()hv_8w_loop0_lasx
+    fld.d            f24,   sp,    0
+    fld.d            f25,   sp,    8
+    fld.d            f26,   sp,    16
+    fld.d            f27,   sp,    24
+    addi.d           sp,    sp,    4*8
+    b                .l_\lable\()end_pre_8tap_lasx
+
+.l_\lable\()v_lasx:
     srli.w           a7,    a7,    2
-    blt              t0,    a4,    .l_\lable\()v_idx_fv
+    blt              t0,    a4,    .l_\lable\()v_idx_fv_lasx
     andi             a7,    a7,    1
     addi.w           a7,    a7,    3
-.l_\lable\()v_idx_fv:
-    addi.w           t5,     zero,  120
-    mul.w            a7,     a7,    t5
-    addi.w           t5,     a6,    -1
-    slli.w           t5,     t5,    3
-    add.w            a7,     a7,    t5
-    add.d            a7,     t6,    a7 //fv's offset
-    xvldrepl.d       xr8,    a7,     0
+.l_\lable\()v_idx_fv_lasx:
+    addi.w           t5,    zero,  120
+    mul.w            a7,    a7,    t5
+    addi.w           t5,    a6,    -1
+    slli.w           t5,    t5,    3
+    add.w            a7,    a7,    t5
+    add.d            a7,    t6,    a7 //fv's offset
+    xvldrepl.d       xr8,   a7,    0
+    xvrepl128vei.h   xr12,  xr8,   0
+    xvrepl128vei.h   xr13,  xr8,   1
+    xvrepl128vei.h   xr14,  xr8,   2
+    xvrepl128vei.h   xr15,  xr8,   3
+    sub.d            a1,    a1,    t3
+    beq              a3,    t0,    .l_\lable\()v_4w_lasx
+    addi.w           t0,    t0,    4
+    beq              a3,    t0,    .l_\lable\()v_8w_lasx
+    blt              t0,    a3,    .l_\lable\()v_16w_lasx
+.l_\lable\()v_4w_lasx:
+    la.local         t6,    subpel_h_shuf3
+    xvld             xr11,  t6,    0
+    fld.s            f0,    a1,    0   //a0b0c0d0
+    fldx.s           f1,    a1,    a2  //a1b1c1d1
+    fldx.s           f2,    a1,    t2  //a2b2c2d2
+    add.d            a1,    a1,    t3
+    fld.s            f3,    a1,    0   //a3b3c3d3
+    fldx.s           f4,    a1,    a2  //a4b4c4d4
+    fldx.s           f5,    a1,    t2  //a5b5c5d5
+    fldx.s           f6,    a1,    t3  //a6b6c6d6
+    vilvl.w          vr0,   vr1,   vr0 //01
+    vilvl.w          vr1,   vr3,   vr2 //23
+    vilvl.d          vr0,   vr1,   vr0 //0123
+    vilvl.w          vr2,   vr5,   vr4 //45
+    vilvl.d          vr1,   vr2,   vr1 //2345
+    xvpermi.q        xr0,   xr1,   0x02 //0123 2345
+    xvbsrl.v         xr1,   xr0,   4    //123- 345-
+    xvpermi.q        xr4,   xr6,   0x02
+    xvextrins.w      xr1,   xr4,   0x30 //1234 3456
+    xvilvl.b         xr2,   xr1,   xr0  //0112 2334         //a0a1b0b1c0c1d0d1 a1a2b1b2c1c2d1d2 a2a3b2b3c2c3d2d3 a3a4b3b4c3c4d3d4
+    xvilvh.b         xr3,   xr1,   xr0  //2334 4556         //a2a3b2b3c2c3d2d3 a3a4b3b4c3c4d3d4 a4a5b4b5c4c5d4d5 a5a6b5b6c5c6d5d6
+.l_\lable\()v_4w_loop_lasx:
+    add.d            a1,    a1,    t4
+    fld.s            f0,    a1,    0  //a7b7c7d7
+    fldx.s           f1,    a1,    a2 //a8b8c8d8
+    fldx.s           f4,    a1,    t2 //a9b9c9d9
+    fldx.s           f5,    a1,    t3 //aabacada
+    vilvl.w          vr7,   vr0,   vr6 //67
+    vilvl.w          vr10,  vr4,   vr1 //89
+    vextrins.w       vr7,   vr1,   0x20//678-
+    vextrins.w       vr10,  vr5,   0x20//89a-
+    xvpermi.q        xr7,   xr10,  0x02//678- 89a-
+    xvshuf.b         xr4,   xr7,   xr7,  xr11 //67 78 89 9a //a6a7b6b7c6c7d6d7 a7a8b7b8c7c8d7d8 a8a9b8b9c8c9d8d9 a9aab9bac9cad9da
+    xvpermi.q        xr7,   xr3,   0x11 //4556
+    xvpermi.q        xr7,   xr4,   0x02 //45 56 67 78       //a4a5b4b5c4c5d4d5 a5a6b5b6c5c6d5d6 a6a7b6b7c6c7d6d7 a7a8b7b8c7c8d7d8
+    xvmulwev.h.bu.b  xr16,  xr2,   xr12
+    xvmulwev.h.bu.b  xr17,  xr3,   xr13
+    xvmulwev.h.bu.b  xr18,  xr7,   xr14
+    xvmulwev.h.bu.b  xr19,  xr4,   xr15
+    xvmaddwod.h.bu.b xr16,  xr2,   xr12
+    xvmaddwod.h.bu.b xr17,  xr3,   xr13
+    xvmaddwod.h.bu.b xr18,  xr7,   xr14
+    xvmaddwod.h.bu.b xr19,  xr4,   xr15
+    xvadd.h          xr16,  xr16,  xr17
+    xvadd.h          xr16,  xr16,  xr18
+    xvadd.h          xr16,  xr16,  xr19
+    xvsrari.h        xr16,  xr16,  2
+    xvaddi.bu        xr2,   xr7,   0
+    xvaddi.bu        xr3,   xr4,   0
+    xvaddi.bu        xr6,   xr5,   0
+    xvst             xr16,  a0,    0
+    addi.d           a0,    a0,    32
+    addi.w           a4,    a4,   -4
+    bnez             a4,    .l_\lable\()v_4w_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    sub.d            a1,     a1,     t3
-    beq              a3,     t0,     .l_\lable\()v_4w
-    blt              t0,     a3,     .l_\lable\()v_8w
-.l_\lable\()v_4w:
-    fld.s            f0,     a1,     0
-    fldx.s           f1,     a1,     a2
-    fldx.s           f2,     a1,     t2
-    add.d            a1,     a1,     t3
-    fld.s            f3,     a1,     0
-    fldx.s           f4,     a1,     a2
-    fldx.s           f5,     a1,     t2
-    fldx.s           f6,     a1,     t3
+.l_\lable\()v_8w_lasx:
+    fld.d            f0,    a1,    0
+    fldx.d           f1,    a1,    a2
+    fldx.d           f2,    a1,    t2
+    add.d            a1,    a1,    t3
+    fld.d            f3,    a1,    0
+    fldx.d           f4,    a1,    a2
+    fldx.d           f5,    a1,    t2
+    fldx.d           f6,    a1,    t3
+    xvpermi.q        xr0,   xr1,   0x02
+    xvpermi.q        xr1,   xr2,   0x02
+    xvilvl.b         xr0,   xr1,   xr0 //01 12
+    xvpermi.q        xr2,   xr3,   0x02
+    xvpermi.q        xr3,   xr4,   0x02
+    xvilvl.b         xr2,   xr3,   xr2 //23 34
+    xvpermi.q        xr4,   xr5,   0x02
+    xvpermi.q        xr5,   xr6,   0x02
+    xvilvl.b         xr4,   xr5,   xr4 //45 56
+.l_\lable\()v_8w_loop_lasx:
+    add.d            a1,    a1,    t4
+    fld.d            f7,    a1,    0   //7
+    fldx.d           f10,   a1,    a2  //8
+    fldx.d           f11,   a1,    t2  //9
+    fldx.d           f18,   a1,    t3  //a
+    xvpermi.q        xr6,   xr7,   0x02
+    xvpermi.q        xr7,   xr10,  0x02
+    xvilvl.b         xr6,   xr7,   xr6  //67 78
+    xvpermi.q        xr10,  xr11,  0x02
+    xvpermi.q        xr11,  xr18,  0x02
+    xvilvl.b         xr10,  xr11,  xr10 //89 9a
+    xvmulwev.h.bu.b  xr1,   xr0,   xr12
+    xvmulwev.h.bu.b  xr3,   xr2,   xr13
+    xvmulwev.h.bu.b  xr5,   xr4,   xr14
+    xvmulwev.h.bu.b  xr7,   xr6,   xr15
+    xvmulwev.h.bu.b  xr9,   xr2,   xr12
+    xvmulwev.h.bu.b  xr11,  xr4,   xr13
+    xvmulwev.h.bu.b  xr16,  xr6,   xr14
+    xvmulwev.h.bu.b  xr17,  xr10,  xr15
+    xvmaddwod.h.bu.b xr1,   xr0,   xr12
+    xvmaddwod.h.bu.b xr3,   xr2,   xr13
+    xvmaddwod.h.bu.b xr5,   xr4,   xr14
+    xvmaddwod.h.bu.b xr7,   xr6,   xr15
+    xvmaddwod.h.bu.b xr9,   xr2,   xr12
+    xvmaddwod.h.bu.b xr11,  xr4,   xr13
+    xvmaddwod.h.bu.b xr16,  xr6,   xr14
+    xvmaddwod.h.bu.b xr17,  xr10,  xr15
+    xvadd.h          xr1,   xr1,   xr3
+    xvadd.h          xr1,   xr1,   xr5
+    xvadd.h          xr1,   xr1,   xr7
+    xvadd.h          xr9,   xr9,   xr11
+    xvadd.h          xr9,   xr9,   xr16
+    xvadd.h          xr9,   xr9,   xr17
+    xvaddi.bu        xr0,   xr4,   0
+    xvaddi.bu        xr2,   xr6,   0
+    xvaddi.bu        xr4,   xr10,  0
+    xvaddi.bu        xr6,   xr18,  0
+    xvsrari.h        xr1,   xr1,   2
+    xvsrari.h        xr9,   xr9,   2
+    xvst             xr1,   a0,    0
+    xvst             xr9,   a0,    32
+    addi.d           a0,    a0,    64
+    addi.w           a4,    a4,   -4
+    bnez             a4,    .l_\lable\()v_8w_loop_lasx
+    b                .l_\lable\()end_pre_8tap_lasx
 
-    xvilvl.b         xr0,    xr1,    xr0 // 0 1  8 9  16 17 24 25
-    xvilvl.b         xr1,    xr3,    xr2 // 2 3 10 11 18 19 26 27
-    xvilvl.b         xr2,    xr5,    xr4 // 4 5 12 13 20 21 28 29
-    xvilvl.b         xr3,    xr7,    xr6 // 6 7 14 15 22 23 30 31
-    xvilvl.h         xr0,    xr1,    xr0 // 0 1 2 3  8  9  10 11  16 17 18 19  24 25 26 27
-    xvilvl.h         xr1,    xr3,    xr2 // 4 5 6 7  12 13 14 15  20 21 22 23  28 29 30 31
-    xvilvl.w         xr2,    xr1,    xr0
-    xvilvh.w         xr0,    xr1,    xr0
-    xvpermi.q        xr0,    xr2,    0x20
-
-.l_\lable\()v_4w_loop:
-    add.d            a1,     a1,     t4
-    fld.s            f7,     a1,     0  //h0
-    fldx.s           f10,    a1,     a2 //h1
-    fldx.s           f11,    a1,     t2 //h2
-    fldx.s           f12,    a1,     t3 //h3
-
-    xvbsrl.v         xr9,    xr7,    2
-    xvpermi.q        xr9,    xr7,    0x20
-    xvextrins.b      xr0,    xr9,    0x70
-    xvextrins.b      xr0,    xr9,    0xf1
-
-    xvbsrl.v         xr1,    xr0,    1
-    xvbsrl.v         xr7,    xr10,   2
-    xvpermi.q        xr7,    xr10,   0x20
-    xvextrins.b      xr1,    xr7,    0x70
-    xvextrins.b      xr1,    xr7,    0xf1
-
-    xvbsrl.v         xr2,    xr1,    1
-    xvbsrl.v         xr7,    xr11,   2
-    xvpermi.q        xr7,    xr11,   0x20
-    xvextrins.b      xr2,    xr7,    0x70
-    xvextrins.b      xr2,    xr7,    0xf1
-
-    xvbsrl.v         xr3,    xr2,    1
-    xvbsrl.v         xr7,    xr12,   2
-    xvpermi.q        xr7,    xr12,   0x20
-    xvextrins.b      xr3,    xr7,    0x70
-    xvextrins.b      xr3,    xr7,    0xf1
-    xvbsrl.v         xr4,    xr3,    1
-
-    xvdp2.h.bu.b     xr10,   xr0,    xr8
-    xvdp2.h.bu.b     xr11,   xr1,    xr8
-    xvdp2.h.bu.b     xr12,   xr2,    xr8
-    xvdp2.h.bu.b     xr13,   xr3,    xr8
-    HADDWDH          xr10
-    HADDWDH          xr11
-    HADDWDH          xr12
-    HADDWDH          xr13
-    xvpickev.w       xr10,   xr11,   xr10
-    xvpickev.w       xr11,   xr13,   xr12
-    xvpermi.d        xr10,   xr10,   0xd8
-    xvpermi.d        xr11,   xr11,   0xd8
-    xvpickev.h       xr10,   xr11,   xr10
-    xvpermi.d        xr10,   xr10,   0xd8
-    xvsrari.h        xr10,   xr10,   2
-
-    xvaddi.bu        xr0,    xr4,    0
-
-    xvst             xr10,   a0,     0
-    addi.d           a0,     a0,     32
-    addi.w           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()v_4w_loop
-    b                .l_\lable\()end_pre_8tap
-
-.l_\lable\()v_8w:
-    addi.d           t0,     a1,     0
-    addi.d           t5,     a4,     0
-    srli.w           t7,     a3,     2
-    slli.w           t7,     t7,     3
-    addi.d           t8,     a0,     0
-.l_\lable\()v_8w_loop0:
-    fld.s            f0,     a1,     0
-    fldx.s           f1,     a1,     a2
-    fldx.s           f2,     a1,     t2
-    add.d            a1,     a1,     t3
-    fld.s            f3,     a1,     0
-    fldx.s           f4,     a1,     a2
-    fldx.s           f5,     a1,     t2
-    fldx.s           f6,     a1,     t3
-
-    xvilvl.b         xr0,    xr1,    xr0 // 0 1  8 9  16 17 24 25
-    xvilvl.b         xr1,    xr3,    xr2 // 2 3 10 11 18 19 26 27
-    xvilvl.b         xr2,    xr5,    xr4 // 4 5 12 13 20 21 28 29
-    xvilvl.b         xr3,    xr7,    xr6 // 6 7 14 15 22 23 30 31
-    xvilvl.h         xr0,    xr1,    xr0 // 0 1 2 3  8  9  10 11  16 17 18 19  24 25 26 27
-    xvilvl.h         xr1,    xr3,    xr2 // 4 5 6 7  12 13 14 15  20 21 22 23  28 29 30 31
-    xvilvl.w         xr2,    xr1,    xr0
-    xvilvh.w         xr0,    xr1,    xr0
-    xvpermi.q        xr0,    xr2,    0x20
-
-.l_\lable\()v_8w_loop:
-    add.d            a1,     a1,     t4
-    fld.s            f7,     a1,     0  //h0
-    fldx.s           f10,    a1,     a2 //h1
-    fldx.s           f11,    a1,     t2 //h2
-    fldx.s           f12,    a1,     t3 //h3
-
-    xvbsrl.v         xr9,    xr7,    2
-    xvpermi.q        xr9,    xr7,    0x20
-    xvextrins.b      xr0,    xr9,    0x70
-    xvextrins.b      xr0,    xr9,    0xf1
-
-    xvbsrl.v         xr1,    xr0,    1
-    xvbsrl.v         xr7,    xr10,   2
-    xvpermi.q        xr7,    xr10,   0x20
-    xvextrins.b      xr1,    xr7,    0x70
-    xvextrins.b      xr1,    xr7,    0xf1
-
-    xvbsrl.v         xr2,    xr1,    1
-    xvbsrl.v         xr7,    xr11,   2
-    xvpermi.q        xr7,    xr11,   0x20
-    xvextrins.b      xr2,    xr7,    0x70
-    xvextrins.b      xr2,    xr7,    0xf1
-
-    xvbsrl.v         xr3,    xr2,    1
-    xvbsrl.v         xr7,    xr12,   2
-    xvpermi.q        xr7,    xr12,   0x20
-    xvextrins.b      xr3,    xr7,    0x70
-    xvextrins.b      xr3,    xr7,    0xf1
-    xvbsrl.v         xr4,    xr3,    1
-
-    xvdp2.h.bu.b     xr10,   xr0,    xr8
-    xvdp2.h.bu.b     xr11,   xr1,    xr8
-    xvdp2.h.bu.b     xr12,   xr2,    xr8
-    xvdp2.h.bu.b     xr13,   xr3,    xr8
-    HADDWDH          xr10
-    HADDWDH          xr11
-    HADDWDH          xr12
-    HADDWDH          xr13
-    xvpickev.w       xr10,   xr11,   xr10
-    xvpickev.w       xr11,   xr13,   xr12
-    xvpermi.d        xr10,   xr10,   0xd8
-    xvpermi.d        xr11,   xr11,   0xd8
-    xvpickev.h       xr10,   xr11,   xr10
-    xvpermi.d        xr10,   xr10,   0xd8
-    xvsrari.h        xr10,   xr10,   2
-
-    xvaddi.bu        xr0,    xr4,    0
-
-    xvstelm.d        xr10,   a0,     0,    0
-    add.d            a0,     a0,     t7
-    xvstelm.d        xr10,   a0,     0,    1
-    add.d            a0,     a0,     t7
-    xvstelm.d        xr10,   a0,     0,    2
-    add.d            a0,     a0,     t7
-    xvstelm.d        xr10,   a0,     0,    3
-    add.d            a0,     a0,     t7
-    addi.w           a4,     a4,     -4
-    bnez             a4,     .l_\lable\()v_8w_loop
-
-    addi.d           a1,     t0,     4
-    addi.d           t0,     t0,     4
-    addi.d           a0,     t8,     8
-    addi.d           t8,     t8,     8
-    addi.d           a4,     t5,     0
-    addi.d           a3,     a3,     -4
-    bnez             a3,     .l_\lable\()v_8w_loop0
-
-.l_\lable\()end_pre_8tap:
+.l_\lable\()v_16w_lasx:
+    addi.d           t0,    a0,    0 //dst
+    addi.d           t5,    a1,    0 //src
+    slli.w           t7,    a3,    1 //w
+    addi.d           t8,    a4,    0 //h
+.l_\lable\()v_16w_loop0_lasx:
+    vld              vr0,   a1,    0
+    vldx             vr1,   a1,    a2
+    vldx             vr2,   a1,    t2
+    add.d            a1,    a1,    t3
+    vld              vr3,   a1,    0
+    vldx             vr4,   a1,    a2
+    vldx             vr5,   a1,    t2
+    vldx             vr6,   a1,    t3
+    add.d            a1,    a1,    t4
+    xvpermi.d        xr0,   xr0,   0xd8
+    xvpermi.d        xr1,   xr1,   0xd8
+    xvpermi.d        xr2,   xr2,   0xd8
+    xvpermi.d        xr3,   xr3,   0xd8
+    xvpermi.d        xr4,   xr4,   0xd8
+    xvpermi.d        xr5,   xr5,   0xd8
+    xvpermi.d        xr6,   xr6,   0xd8
+    xvilvl.b         xr0,   xr1,   xr0 //01
+    xvilvl.b         xr1,   xr2,   xr1 //12
+    xvilvl.b         xr2,   xr3,   xr2 //23
+    xvilvl.b         xr3,   xr4,   xr3 //34
+    xvilvl.b         xr4,   xr5,   xr4 //45
+    xvilvl.b         xr5,   xr6,   xr5 //56
+.l_\lable\()v_16w_loop_lasx:
+    vld              vr7,   a1,    0   //7
+    vldx             vr10,  a1,    a2  //8
+    add.d            a1,    a1,    t2
+    xvpermi.d        xr7,   xr7,   0xd8
+    xvpermi.d        xr10,  xr10,  0xd8
+    xvilvl.b         xr6,   xr7,   xr6 //67
+    xvilvl.b         xr7,   xr10,  xr7 //78
+    xvmulwev.h.bu.b  xr9,   xr0,   xr12
+    xvmulwev.h.bu.b  xr11,  xr2,   xr13
+    xvmulwev.h.bu.b  xr16,  xr4,   xr14
+    xvmulwev.h.bu.b  xr17,  xr6,   xr15
+    xvmulwev.h.bu.b  xr18,  xr1,   xr12
+    xvmulwev.h.bu.b  xr19,  xr3,   xr13
+    xvmulwev.h.bu.b  xr20,  xr5,   xr14
+    xvmulwev.h.bu.b  xr21,  xr7,   xr15
+    xvmaddwod.h.bu.b xr9,   xr0,   xr12
+    xvmaddwod.h.bu.b xr11,  xr2,   xr13
+    xvmaddwod.h.bu.b xr16,  xr4,   xr14
+    xvmaddwod.h.bu.b xr17,  xr6,   xr15
+    xvmaddwod.h.bu.b xr18,  xr1,   xr12
+    xvmaddwod.h.bu.b xr19,  xr3,   xr13
+    xvmaddwod.h.bu.b xr20,  xr5,   xr14
+    xvmaddwod.h.bu.b xr21,  xr7,   xr15
+    xvadd.h          xr9,   xr9,   xr11
+    xvadd.h          xr9,   xr9,   xr16
+    xvadd.h          xr9,   xr9,   xr17
+    xvadd.h          xr11,  xr18,  xr19
+    xvadd.h          xr11,  xr11,  xr20
+    xvadd.h          xr11,  xr11,  xr21
+    xvsrari.h        xr9,   xr9,   2
+    xvsrari.h        xr11,  xr11,  2
+    xvaddi.bu        xr0,   xr2,   0
+    xvaddi.bu        xr1,   xr3,   0
+    xvaddi.bu        xr2,   xr4,   0
+    xvaddi.bu        xr3,   xr5,   0
+    xvaddi.bu        xr4,   xr6,   0
+    xvaddi.bu        xr5,   xr7,   0
+    xvaddi.bu        xr6,   xr10,  0
+    xvst             xr9,   a0,    0
+    xvstx            xr11,  a0,    t7
+    alsl.d           a0,    t7,    a0,  1
+    addi.d           a4,    a4,   -2
+    bnez             a4,    .l_\lable\()v_16w_loop_lasx
+    addi.d           a3,    a3,   -16
+    addi.d           a0,    t0,    32
+    addi.d           t0,    t0,    32
+    addi.d           a1,    t5,    16
+    addi.d           t5,    t5,    16
+    addi.d           a4,    t8,    0
+    bnez             a3,    .l_\lable\()v_16w_loop0_lasx
+.l_\lable\()end_pre_8tap_lasx:
 .endm
 
 function prep_8tap_regular_8bpc_lasx
