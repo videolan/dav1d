@@ -33,64 +33,99 @@ static void warp_affine_8x8_c(pixel *dst, const ptrdiff_t dst_stride,
                               const int16_t *const abcd, int mx, int my
                               HIGHBD_DECL_SUFFIX)
 */
-.macro FILTER_WARP_RND_P_LSX in0, in1, in2, in3, out0, out1, out2, out3
-    vbsrl.v         vr2,    \in0,     \in1
-    vbsrl.v         vr20,   \in0,     \in2
-    addi.w          t4,     \in3,     512
-    srai.w          t4,     t4,       10
-    addi.w          t4,     t4,       64
-    slli.w          t4,     t4,       3
-    vldx            vr1,    t5,       t4
-    add.w           t3,     t3,       t0   // tmx += abcd[0]
-
-    addi.w          t4,     t3,       512
-    srai.w          t4,     t4,       10
-    addi.w          t4,     t4,       64
-    slli.w          t4,     t4,       3
-    vldx            vr29,   t5,       t4
-    add.w           t3,     t3,       t0   // tmx += abcd[0]
-
-    vilvl.d         vr2,    vr20,     vr2
-    vilvl.d         vr1,    vr29,     vr1
-    vmulwev.h.bu.b  vr3,    vr2,      vr1
-    vmulwod.h.bu.b  vr20,   vr2,      vr1
-    vilvl.d         vr2,    vr20,     vr3
-    vhaddw.w.h      vr2,    vr2,      vr2
-    vhaddw.d.w      vr2,    vr2,      vr2
-    vhaddw.q.d      vr2,    vr2,      vr2
-    vilvh.d         vr3,    vr20,     vr3
-    vhaddw.w.h      vr3,    vr3,      vr3
-    vhaddw.d.w      vr3,    vr3,      vr3
-    vhaddw.q.d      vr3,    vr3,      vr3
-    vextrins.w      \out0,  vr2,      \out1
-    vextrins.w      \out2,  vr3,      \out3
+.macro vld_filter_row dst, src, inc
+    addi.w          t3,       \src,     512
+    srai.w          t3,       t3,       10
+    add.w           \src,     \src,     \inc
+    addi.w          t3,       t3,       64
+    slli.w          t3,       t3,       3
+    fldx.d          \dst,     t4,       t3
 .endm
 
-.macro FILTER_WARP_CLIP_LSX in0, in1, in2, out0, out1
-    add.w           \in0,     \in0,    \in1
-    addi.w          t6,       \in0,    512
-    srai.w          t6,       t6,      10
-    addi.w          t6,       t6,      64
-    slli.w          t6,       t6,      3
-    fldx.d          f1,       t5,      t6
-    vsllwil.h.b     vr1,      vr1,     0
-    vmulwev.w.h     vr3,      \in2,    vr1
-    vmaddwod.w.h    vr3,      \in2,    vr1
-    vhaddw.d.w      vr3,      vr3,     vr3
-    vhaddw.q.d      vr3,      vr3,     vr3
-    vextrins.w      \out0,    vr3,     \out1
+.macro warp_filter_horz_lsx
+    addi.w          t5,       a5,       0
+    vld             vr10,     a2,       0
+    add.d           a2,       a2,       a3
+
+    vld_filter_row f0, t5, t0
+    vld_filter_row f1, t5, t0
+    vld_filter_row f2, t5, t0
+    vld_filter_row f3, t5, t0
+    vld_filter_row f4, t5, t0
+    vld_filter_row f5, t5, t0
+    vld_filter_row f6, t5, t0
+    vld_filter_row f7, t5, t0
+
+    vxor.v          vr10,     vr10,     vr20
+
+    vbsrl.v         vr8,      vr10,     1
+    vbsrl.v         vr9,      vr10,     2
+    vilvl.d         vr8,      vr8,      vr10
+    vilvl.d         vr0,      vr1,      vr0
+    vmulwev.h.b     vr11,     vr8,      vr0
+    vmulwod.h.b     vr12,     vr8,      vr0
+    vbsrl.v         vr8,      vr10,     3
+    vbsrl.v         vr19,     vr10,     4
+    vilvl.d         vr8,      vr8,      vr9
+    vilvl.d         vr2,      vr3,      vr2
+    vmulwev.h.b     vr13,     vr8,      vr2
+    vmulwod.h.b     vr14,     vr8,      vr2
+    vbsrl.v         vr8,      vr10,     5
+    vbsrl.v         vr9,      vr10,     6
+    vilvl.d         vr8,      vr8,      vr19
+    vilvl.d         vr4,      vr5,      vr4
+    vmulwev.h.b     vr15,     vr8,      vr4
+    vmulwod.h.b     vr16,     vr8,      vr4
+    vbsrl.v         vr8,      vr10,     7
+    vilvl.d         vr8,      vr8,      vr9
+    vilvl.d         vr6,      vr7,      vr6
+    vmulwev.h.b     vr17,     vr8,      vr6
+    vmulwod.h.b     vr18,     vr8,      vr6
+
+    vadd.h          vr11,     vr11,     vr12
+    vadd.h          vr13,     vr13,     vr14
+    vadd.h          vr15,     vr15,     vr16
+    vadd.h          vr17,     vr17,     vr18
+    vpickev.h       vr12,     vr13,     vr11
+    vpickod.h       vr14,     vr13,     vr11
+    vpickev.h       vr16,     vr17,     vr15
+    vpickod.h       vr18,     vr17,     vr15
+    vadd.h          vr11,     vr12,     vr14
+    vadd.h          vr15,     vr16,     vr18
+    vpickev.h       vr12,     vr15,     vr11
+    vpickod.h       vr14,     vr15,     vr11
+    vadd.h          vr11,     vr12,     vr14
+
+    add.d           a5,       a5,       t1
 .endm
 
-const warp_sh
-.rept 2
-.byte 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
-.endr
-.rept 2
-.byte 18, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-.endr
-endconst
+.macro transpose_8x8b_extend_lsx in0, in1, in2, in3, in4, in5, in6, in7
+    vilvl.b         \in0,     \in1,     \in0
+    vilvl.b         \in2,     \in3,     \in2
+    vilvl.b         \in4,     \in5,     \in4
+    vilvl.b         \in6,     \in7,     \in6
 
-.macro warp_lsx t, shift
+    vpackev.h       \in1,     \in2,     \in0
+    vpackod.h       \in3,     \in2,     \in0
+    vpackev.h       \in5,     \in6,     \in4
+    vpackod.h       \in7,     \in6,     \in4
+
+    vpackev.w       \in0,     \in5,     \in1
+    vpackod.w       \in2,     \in5,     \in1
+    vpackev.w       \in1,     \in7,     \in3
+    vpackod.w       \in3,     \in7,     \in3
+
+    vexth.h.b       \in4,     \in0
+    vsllwil.h.b     \in0,     \in0,     0
+    vexth.h.b       \in5,     \in1
+    vsllwil.h.b     \in1,     \in1,     0
+    vexth.h.b       \in6,     \in2
+    vsllwil.h.b     \in2,     \in2,     0
+    vexth.h.b       \in7,     \in3
+    vsllwil.h.b     \in3,     \in3,     0
+.endm
+
+.macro warp t, shift
 function warp_affine_8x8\t\()_8bpc_lsx
     addi.d          sp,       sp,      -64
     fst.d           f24,      sp,      0
@@ -102,417 +137,119 @@ function warp_affine_8x8\t\()_8bpc_lsx
     fst.d           f30,      sp,      48
     fst.d           f31,      sp,      56
 
-    la.local        t4,       warp_sh
-    ld.h            t0,       a4,      0   // abcd[0]
-    ld.h            t1,       a4,      2   // abcd[1]
+    ld.h            t0,       a4,      0
+    ld.h            t1,       a4,      2
+    ld.h            t2,       a4,      4
+    ld.h            a4,       a4,      6
 
-    alsl.w          t2,       a3,      a3,     1
-    addi.w          t3,       a5,      0
-    la.local        t5,       dav1d_mc_warp_filter
-    sub.d           a2,       a2,      t2
+    li.d            t7,       8
+    alsl.w          t3,       a3,      a3,     1
+    sub.d           a2,       a2,      t3
     addi.d          a2,       a2,      -3
-    vld             vr0,      a2,      0
-    vld             vr30,     t4,      0
-    vld             vr31,     t4,      32
-
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x00, vr5, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x00, vr7, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x00, vr9, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x00, vr11, 0x00
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x10, vr5, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x10, vr7, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x10, vr9, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x10, vr11, 0x10
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x20, vr5, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x20, vr7, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x20, vr9, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x20, vr11, 0x20
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x30, vr5, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x30, vr7, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x30, vr9, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x30, vr11, 0x30
-
-    add.w           a5,       t1,      a5
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr12, 0x00, vr13, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr14, 0x00, vr15, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr16, 0x00, vr17, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr18, 0x00, vr19, 0x00
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr12, 0x10, vr13, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr14, 0x10, vr15, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr16, 0x10, vr17, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr18, 0x10, vr19, 0x10
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr12, 0x20, vr13, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr14, 0x20, vr15, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr16, 0x20, vr17, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr18, 0x20, vr19, 0x20
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr12, 0x30, vr13, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr14, 0x30, vr15, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr16, 0x30, vr17, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr18, 0x30, vr19, 0x30
-
-    vsrarni.h.w       vr12,     vr4,     3
-    vsrarni.h.w       vr13,     vr5,     3
-    vsrarni.h.w       vr14,     vr6,     3
-    vsrarni.h.w       vr15,     vr7,     3
-    vsrarni.h.w       vr16,     vr8,     3
-    vsrarni.h.w       vr17,     vr9,     3
-    vsrarni.h.w       vr18,     vr10,    3
-    vsrarni.h.w       vr19,     vr11,    3
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x00, vr5, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x00, vr7, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x00, vr9, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x00, vr11, 0x00
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x10, vr5, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x10, vr7, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x10, vr9, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x10, vr11, 0x10
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x20, vr5, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x20, vr7, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x20, vr9, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x20, vr11, 0x20
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr4, 0x30, vr5, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr6, 0x30, vr7, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr8, 0x30, vr9, 0x30
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr10, 0x30, vr11, 0x30
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr21, 0x00, vr22, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr23, 0x00, vr24, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr25, 0x00, vr26, 0x00
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr27, 0x00, vr28, 0x00
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr21, 0x10, vr22, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr23, 0x10, vr24, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr25, 0x10, vr26, 0x10
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr27, 0x10, vr28, 0x10
-
-    add.w           a5,       a5,      t1
-    or              t3,       a5,      a5
-    add.d           a2,       a2,      a3
-    vld             vr0,      a2,      0
-    FILTER_WARP_RND_P_LSX   vr0, 0, 1, a5, vr21, 0x20, vr22, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 2, 3, t3, vr23, 0x20, vr24, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 4, 5, t3, vr25, 0x20, vr26, 0x20
-    FILTER_WARP_RND_P_LSX   vr0, 6, 7, t3, vr27, 0x20, vr28, 0x20
-
-    vsrarni.h.w     vr21,     vr4,     3
-    vsrarni.h.w     vr22,     vr5,     3
-    vsrarni.h.w     vr23,     vr6,     3
-    vsrarni.h.w     vr24,     vr7,     3
-    vsrarni.h.w     vr25,     vr8,     3
-    vsrarni.h.w     vr26,     vr9,     3
-    vsrarni.h.w     vr27,     vr10,    3
-    vsrarni.h.w     vr28,     vr11,    3
-
-    addi.w          t2,       a6,      0   // my
-    ld.h            t7,       a4,      4   // abcd[2]
-    ld.h            t8,       a4,      6   // abcd[3]
+    la.local        t4,       dav1d_mc_warp_filter
 
 .ifnb \t
     slli.d          a1,       a1,      1
 .endif
 
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,     \shift
-    vst             vr5,      a0,      0
+    li.w            t3,       128
+    vreplgr2vr.b    vr20,     t3
+.ifb \t
+    vreplgr2vr.h    vr21,     t3
 .else
-    vssrarni.hu.w   vr5,      vr4,     \shift
-    vssrlni.bu.h    vr5,      vr5,     0
-    fst.d           f5,       a0,      0
+    li.w            t3,       2048
+    vreplgr2vr.h    vr21,     t3
+.endif
+    warp_filter_horz_lsx
+    vsrari.h        vr24,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr25,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr26,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr27,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr28,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr29,     vr11,    3
+    warp_filter_horz_lsx
+    vsrari.h        vr30,     vr11,    3
+
+1:
+    addi.d          t6,       a6,      0
+    warp_filter_horz_lsx
+    vsrari.h        vr31,     vr11,    3
+
+    vld_filter_row f0, t6, t2
+    vld_filter_row f1, t6, t2
+    vld_filter_row f2, t6, t2
+    vld_filter_row f3, t6, t2
+    vld_filter_row f4, t6, t2
+    vld_filter_row f5, t6, t2
+    vld_filter_row f6, t6, t2
+    vld_filter_row f7, t6, t2
+
+    transpose_8x8b_extend_lsx vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
+
+    vmulwev.w.h     vr16,     vr24,    vr0
+    vmulwod.w.h     vr17,     vr24,    vr0
+    vmaddwev.w.h    vr16,     vr25,    vr1
+    vmaddwod.w.h    vr17,     vr25,    vr1
+    vmaddwev.w.h    vr16,     vr26,    vr2
+    vmaddwod.w.h    vr17,     vr26,    vr2
+    vmaddwev.w.h    vr16,     vr27,    vr3
+    vmaddwod.w.h    vr17,     vr27,    vr3
+    vmaddwev.w.h    vr16,     vr28,    vr4
+    vmaddwod.w.h    vr17,     vr28,    vr4
+    vmaddwev.w.h    vr16,     vr29,    vr5
+    vmaddwod.w.h    vr17,     vr29,    vr5
+    vmaddwev.w.h    vr16,     vr30,    vr6
+    vmaddwod.w.h    vr17,     vr30,    vr6
+    vmaddwev.w.h    vr16,     vr31,    vr7
+    vmaddwod.w.h    vr17,     vr31,    vr7
+
+    vssrarni.h.w    vr16,     vr16,    \shift
+    vssrarni.h.w    vr17,     vr17,    \shift
+    vilvl.h         vr16,     vr17,    vr16
+    vadd.h          vr16,     vr16,    vr21
+
+    vor.v           vr24,     vr25,    vr25
+    vor.v           vr25,     vr26,    vr26
+    vor.v           vr26,     vr27,    vr27
+    vor.v           vr27,     vr28,    vr28
+    vor.v           vr28,     vr29,    vr29
+    vor.v           vr29,     vr30,    vr30
+    vor.v           vr30,     vr31,    vr31
+
+.ifb \t
+    vssrarni.bu.h   vr16,     vr16,    0
 .endif
 
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
-
-    add.w           a6,       a6,      t8
-    addi.w          t2,       a6,      0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
+    addi.d          t7,       t7,      -1
 .ifnb \t
-    vssrarni.h.w    vr5,      vr4,     \shift
-    vstx            vr5,      a0,      a1
+    vst             vr16,     a0,      0
 .else
-    vssrarni.hu.w   vr5,      vr4,     \shift
-    vssrlni.bu.h    vr5,      vr5,     0
-    fstx.d          f5,       a0,      a1
+    vstelm.d        vr16,     a0,      0,   0
 .endif
+    add.d           a0,       a1,      a0
 
-    vaddi.bu        vr31,     vr31,    2
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
+    add.d           a6,       a6,      a4
+    blt             zero,     t7,      1b
 
-    add.w           a6,       a6,      t8
-    addi.w          t2,       a6,      0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-    alsl.d          a0,       a1,      a0,   1
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,     \shift
-    vst             vr5,      a0,      0
-.else
-    vssrarni.hu.w   vr5,      vr4,     \shift
-    vssrlni.bu.h    vr5,      vr5,     0
-    fst.d           f5,       a0,      0
-.endif
-
-    vaddi.bu        vr31,     vr31,    2
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
-
-    add.w           a6,       a6,       t8
-    addi.w          t2,       a6,       0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,      \shift
-    vstx            vr5,      a0,       a1
-.else
-    vssrarni.hu.w   vr5,      vr4,      \shift
-    vssrlni.bu.h    vr5,      vr5,      0
-    fstx.d          f5,       a0,       a1
-.endif
-
-    vaddi.bu        vr31,     vr31,    2
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
-
-    add.w           a6,       a6,       t8
-    addi.w          t2,       a6,       0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-    alsl.d          a0,       a1,       a0,   1
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,      \shift
-    vst             vr5,      a0,       0
-.else
-    vssrarni.hu.w   vr5,      vr4,      \shift
-    vssrlni.bu.h    vr5,      vr5,      0
-    fst.d           f5,       a0,       0
-.endif
-
-    vaddi.bu        vr31,     vr31,    2
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
-
-    add.w           a6,       a6,       t8
-    addi.w          t2,       a6,       0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,      \shift
-    vstx            vr5,      a0,       a1
-.else
-    vssrarni.hu.w   vr5,      vr4,      \shift
-    vssrlni.bu.h    vr5,      vr5,      0
-    fstx.d          f5,       a0,       a1
-.endif
-
-    vaddi.bu        vr31,     vr31,    2
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-    vextrins.h      vr30,     vr31,    0x70
-
-    add.w           a6,       a6,       t8
-    addi.w          t2,       a6,       0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-    alsl.d          a0,       a1,       a0,   1
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,      \shift
-    vst             vr5,      a0,       0
-.else
-    vssrarni.hu.w   vr5,      vr4,      \shift
-    vssrlni.bu.h    vr5,      vr5,      0
-    fst.d           f5,       a0,       0
-.endif
-
-    vshuf.b         vr12,     vr21,    vr12,   vr30
-    vshuf.b         vr13,     vr22,    vr13,   vr30
-    vshuf.b         vr14,     vr23,    vr14,   vr30
-    vshuf.b         vr15,     vr24,    vr15,   vr30
-    vshuf.b         vr16,     vr25,    vr16,   vr30
-    vshuf.b         vr17,     vr26,    vr17,   vr30
-    vshuf.b         vr18,     vr27,    vr18,   vr30
-    vshuf.b         vr19,     vr28,    vr19,   vr30
-
-    add.w           a6,       a6,       t8
-    addi.w          t2,       a6,       0
-    FILTER_WARP_CLIP_LSX  t2, zero, vr12,  vr4, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr13,  vr4, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr14,  vr4, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr15,  vr4, 0x30
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr16,  vr5, 0x00
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr17,  vr5, 0x10
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr18,  vr5, 0x20
-    FILTER_WARP_CLIP_LSX  t2, t7,   vr19,  vr5, 0x30
-.ifnb \t
-    vssrarni.h.w    vr5,      vr4,      \shift
-    vstx            vr5,      a0,       a1
-.else
-    vssrarni.hu.w   vr5,      vr4,      \shift
-    vssrlni.bu.h    vr5,      vr5,      0
-    fstx.d          f5,       a0,       a1
-.endif
-
-    fld.d           f24,      sp,       0
-    fld.d           f25,      sp,       8
-    fld.d           f26,      sp,       16
-    fld.d           f27,      sp,       24
-    fld.d           f28,      sp,       32
-    fld.d           f29,      sp,       40
-    fld.d           f30,      sp,       48
-    fld.d           f31,      sp,       56
-    addi.d          sp,       sp,       64
+    fld.d           f24,      sp,      0
+    fld.d           f25,      sp,      8
+    fld.d           f26,      sp,      16
+    fld.d           f27,      sp,      24
+    fld.d           f28,      sp,      32
+    fld.d           f29,      sp,      40
+    fld.d           f30,      sp,      48
+    fld.d           f31,      sp,      56
+    addi.d          sp,       sp,      64
 endfunc
 .endm
 
-warp_lsx , 11
-warp_lsx t, 7
+warp  , 11
+warp t, 7
 
 .macro FILTER_WARP_RND_P_LASX in0, in1, in2, out0, out1, out2, out3
     xvshuf.b        xr2,    \in0,     \in0,     \in2
@@ -591,6 +328,15 @@ warp_lsx t, 7
 const shuf0
 .byte  0, 1, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 8, 9
 .byte  1, 2, 3, 4, 5, 6, 7, 8, 3, 4, 5, 6, 7, 8, 9, 10
+endconst
+
+const warp_sh
+.rept 2
+.byte 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+.endr
+.rept 2
+.byte 18, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+.endr
 endconst
 
 .macro warp_lasx t, shift
