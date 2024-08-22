@@ -27,7 +27,8 @@
 #include "src/arm/asm.S"
 #include "util.S"
 
-#define PREP_BIAS 8192
+#define PREP_BIAS 32, lsl #8        // 8192
+#define PREP_BIAS_NEG 224, lsl #8   // -8192
 
 #if HAVE_SVE2
 ENABLE_SVE
@@ -1478,7 +1479,7 @@ function prep_sve
         ldrh            w8, [x9, x8, lsl #1]
         sub             w6, w6, w7, lsr #8          // 19 - bdmax / 256
         sub             x9, x9, x8
-        movi            v30.8h, #(256-PREP_BIAS/256), lsl #8    // -8192
+        movi            v30.8h, #PREP_BIAS_NEG
         dup             v29.8h, w6                  // 10b: 1 << 4, 12b: 1 << 2
         br              x9
 
