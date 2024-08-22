@@ -53,6 +53,13 @@ void dav1d_sgr_filter_3x3_lsx(pixel *p, const ptrdiff_t p_stride,
                               const LooprestorationParams *const params,
                               const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
+void dav1d_sgr_filter_3x3_lasx(pixel *p, const ptrdiff_t p_stride,
+                              const pixel (*const left)[4],
+                              const pixel *lpf,
+                              const int w, const int h,
+                              const LooprestorationParams *const params,
+                              const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
+
 void dav1d_sgr_filter_5x5_lsx(pixel *p, const ptrdiff_t p_stride,
                               const pixel (*const left)[4],
                               const pixel *lpf,
@@ -66,6 +73,13 @@ void dav1d_sgr_filter_mix_lsx(pixel *p, const ptrdiff_t p_stride,
                               const int w, const int h,
                               const LooprestorationParams *const params,
                               const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
+
+void dav1d_sgr_filter_mix_lasx(pixel *p, const ptrdiff_t p_stride,
+                               const pixel (*const left)[4],
+                               const pixel *lpf,
+                               const int w, const int h,
+                               const LooprestorationParams *const params,
+                               const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
 
 static ALWAYS_INLINE void loop_restoration_dsp_init_loongarch(Dav1dLoopRestorationDSPContext *const c, int bpc)
 {
@@ -85,6 +99,8 @@ static ALWAYS_INLINE void loop_restoration_dsp_init_loongarch(Dav1dLoopRestorati
 
 #if BITDEPTH == 8
     c->wiener[0] = c->wiener[1] = dav1d_wiener_filter_lasx;
+
+    c->sgr[1] = dav1d_sgr_filter_3x3_lasx;
 #endif
 }
 
