@@ -3573,7 +3573,7 @@ function ipred_z3_fill_padding_neon, export=0
         st1             {v31.8b}, [x13], x1
         st1             {v31.8b}, [x0],  x1
         st1             {v31.8b}, [x13], x1
-        b.gt            4b
+        b.gt            8b
         subs            w3,  w3,  #8
         lsr             x1,  x1,  #1
         msub            x0,  x1,  x12, x0         // ptr -= h * stride
@@ -3594,7 +3594,7 @@ function ipred_z3_fill_padding_neon, export=0
         st1             {v31.16b}, [x13], x1
         st1             {v31.16b}, [x0],  x1
         st1             {v31.16b}, [x13], x1
-        b.gt            4b
+        b.gt            16b
         subs            w3,  w3,  #16
         lsr             x1,  x1,  #1
         msub            x0,  x1,  x12, x0         // ptr -= h * stride
