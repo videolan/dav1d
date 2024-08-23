@@ -45,8 +45,9 @@ function ipred_dc_128_16bpc_neon, export=1
         lsl             x1,  x1,  #1
         urshr           v0.8h,   v0.8h,  #1
         br              x5
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
         subs            w4,  w4,  #4
@@ -54,8 +55,9 @@ function ipred_dc_128_16bpc_neon, export=1
         st1             {v0.4h},  [x6], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
         subs            w4,  w4,  #4
@@ -110,8 +112,8 @@ L(ipred_dc_128_tbl):
         .hword L(ipred_dc_128_tbl) - 640b
         .hword L(ipred_dc_128_tbl) - 320b
         .hword L(ipred_dc_128_tbl) - 160b
-        .hword L(ipred_dc_128_tbl) -   8b
-        .hword L(ipred_dc_128_tbl) -   4b
+        .hword L(ipred_dc_128_tbl) -  80b
+        .hword L(ipred_dc_128_tbl) -  40b
 endfunc
 
 // void ipred_v_16bpc_neon(pixel *dst, const ptrdiff_t stride,
@@ -213,8 +215,9 @@ function ipred_h_16bpc_neon, export=1
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         st1             {v3.4h},  [x0], x1
         st1             {v2.4h},  [x6], x1
@@ -223,8 +226,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.4h},  [x6], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         st1             {v3.8h},  [x0], x1
         st1             {v2.8h},  [x6], x1
@@ -233,8 +237,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h},  [x6], x1
         b.gt            8b
         ret
-16:
+160:
         AARCH64_VALID_JUMP_TARGET
+16:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -247,8 +252,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h}, [x6], x1
         b.gt            16b
         ret
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
+32:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -265,8 +271,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h}, [x6], x1
         b.gt            32b
         ret
-64:
+640:
         AARCH64_VALID_JUMP_TARGET
+64:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -293,11 +300,11 @@ function ipred_h_16bpc_neon, export=1
         ret
 
 L(ipred_h_tbl):
-        .hword L(ipred_h_tbl) - 64b
-        .hword L(ipred_h_tbl) - 32b
-        .hword L(ipred_h_tbl) - 16b
-        .hword L(ipred_h_tbl) -  8b
-        .hword L(ipred_h_tbl) -  4b
+        .hword L(ipred_h_tbl) - 640b
+        .hword L(ipred_h_tbl) - 320b
+        .hword L(ipred_h_tbl) - 160b
+        .hword L(ipred_h_tbl) -  80b
+        .hword L(ipred_h_tbl) -  40b
 endfunc
 
 // void ipred_dc_top_16bpc_neon(pixel *dst, const ptrdiff_t stride,
@@ -445,12 +452,13 @@ L(ipred_dc_left_h4):
         br              x3
 L(ipred_dc_left_w4):
         AARCH64_VALID_JUMP_TARGET
+1:
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
         subs            w4,  w4,  #4
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
-        b.gt            L(ipred_dc_left_w4)
+        b.gt            1b
         ret
 
 L(ipred_dc_left_h8):
@@ -462,12 +470,13 @@ L(ipred_dc_left_h8):
         br              x3
 L(ipred_dc_left_w8):
         AARCH64_VALID_JUMP_TARGET
+1:
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
         subs            w4,  w4,  #4
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
-        b.gt            L(ipred_dc_left_w8)
+        b.gt            1b
         ret
 
 L(ipred_dc_left_h16):
@@ -3663,8 +3672,9 @@ function ipred_z3_fill_padding_neon, export=0
         sub             x9,  x8,  w9,  uxtw
         br              x9
 
-2:
+20:
         AARCH64_VALID_JUMP_TARGET
+2:
         st1             {v31.s}[0], [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.s}[0], [x13], x1
@@ -3682,8 +3692,9 @@ function ipred_z3_fill_padding_neon, export=0
         mov             w4,  w12
         b               1b
 
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         st1             {v31.4h}, [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.4h}, [x13], x1
@@ -3701,11 +3712,12 @@ function ipred_z3_fill_padding_neon, export=0
         mov             w4,  w12
         b               1b
 
-8:
-16:
-32:
-64:
+80:
+106:
+320:
+640:
         AARCH64_VALID_JUMP_TARGET
+8:
         st1             {v31.8h}, [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.8h}, [x13], x1
@@ -3727,12 +3739,12 @@ function ipred_z3_fill_padding_neon, export=0
         ret
 
 L(ipred_z3_fill_padding_tbl):
-        .hword L(ipred_z3_fill_padding_tbl) - 64b
-        .hword L(ipred_z3_fill_padding_tbl) - 32b
-        .hword L(ipred_z3_fill_padding_tbl) - 16b
-        .hword L(ipred_z3_fill_padding_tbl) -  8b
-        .hword L(ipred_z3_fill_padding_tbl) -  4b
-        .hword L(ipred_z3_fill_padding_tbl) -  2b
+        .hword L(ipred_z3_fill_padding_tbl) - 640b
+        .hword L(ipred_z3_fill_padding_tbl) - 320b
+        .hword L(ipred_z3_fill_padding_tbl) - 160b
+        .hword L(ipred_z3_fill_padding_tbl) -  80b
+        .hword L(ipred_z3_fill_padding_tbl) -  40b
+        .hword L(ipred_z3_fill_padding_tbl) -  20b
 
 L(ipred_z3_fill_padding_wide):
         // Fill a WxH rectangle with padding, with W > 8.
@@ -4420,6 +4432,7 @@ function ipred_cfl_128_16bpc_neon, export=1
         br              x7
 L(ipred_cfl_splat_w4):
         AARCH64_VALID_JUMP_TARGET
+1:
         ld1             {v4.8h, v5.8h}, [x5], #32
         subs            w4,  w4,  #4
         smull           v2.4s,   v4.4h,   v1.4h  // diff = ac * alpha
@@ -4448,10 +4461,11 @@ L(ipred_cfl_splat_w4):
         st1             {v2.d}[1],  [x6], x1
         st1             {v3.d}[0],  [x0], x1
         st1             {v3.d}[1],  [x6], x1
-        b.gt            L(ipred_cfl_splat_w4)
+        b.gt            1b
         ret
 L(ipred_cfl_splat_w8):
         AARCH64_VALID_JUMP_TARGET
+1:
         ld1             {v4.8h, v5.8h}, [x5], #32
         subs            w4,  w4,  #2
         smull           v2.4s,   v4.4h,   v1.4h  // diff = ac * alpha
@@ -4478,7 +4492,7 @@ L(ipred_cfl_splat_w8):
         smin            v3.8h,   v3.8h,   v31.8h
         st1             {v2.8h},  [x0], x1
         st1             {v3.8h},  [x6], x1
-        b.gt            L(ipred_cfl_splat_w8)
+        b.gt            1b
         ret
 L(ipred_cfl_splat_w16):
         AARCH64_VALID_JUMP_TARGET

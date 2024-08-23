@@ -175,8 +175,9 @@ function \type\()_16bpc_neon, export=1
         b.le            0f
         \type           v4,  v5,  v0,  v1,  v2,  v3
         b               8b
-16:
+160:
         AARCH64_VALID_JUMP_TARGET
+16:
         \type           v6,  v7,  v0,  v1,  v2,  v3
         st1             {v4.8h, v5.8h}, [x0], x1
         subs            w5,  w5,  #2
@@ -184,8 +185,9 @@ function \type\()_16bpc_neon, export=1
         b.le            0f
         \type           v4,  v5,  v0,  v1,  v2,  v3
         b               16b
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
+32:
         \type           v6,  v7,  v0,  v1,  v2,  v3
         subs            w5,  w5,  #1
         st1             {v4.8h, v5.8h, v6.8h, v7.8h},  [x0], x1
@@ -231,8 +233,8 @@ function \type\()_16bpc_neon, export=1
 L(\type\()_tbl):
         .hword L(\type\()_tbl) - 1280b
         .hword L(\type\()_tbl) -  640b
-        .hword L(\type\()_tbl) -   32b
-        .hword L(\type\()_tbl) -   16b
+        .hword L(\type\()_tbl) -  320b
+        .hword L(\type\()_tbl) -  160b
         .hword L(\type\()_tbl) -   80b
         .hword L(\type\()_tbl) -   40b
 endfunc
@@ -274,8 +276,9 @@ function w_mask_\type\()_16bpc_neon, export=1
         add             x12,  x0,  x1
         lsl             x1,   x1,  #1
         br              x10
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld1             {v4.8h, v5.8h}, [x2], #32 // tmp1 (four rows at once)
         ld1             {v6.8h, v7.8h}, [x3], #32 // tmp2 (four rows at once)
         subs            w5,  w5,  #4
@@ -339,8 +342,9 @@ function w_mask_\type\()_16bpc_neon, export=1
         st1             {v5.d}[1],  [x12], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld1             {v4.8h, v5.8h}, [x2], #32 // tmp1
         ld1             {v6.8h, v7.8h}, [x3], #32 // tmp2
         subs            w5,  w5,  #2
@@ -546,8 +550,8 @@ L(w_mask_\type\()_tbl):
         .hword L(w_mask_\type\()_tbl) -  640b
         .hword L(w_mask_\type\()_tbl) -  320b
         .hword L(w_mask_\type\()_tbl) -  160b
-        .hword L(w_mask_\type\()_tbl) -    8b
-        .hword L(w_mask_\type\()_tbl) -    4b
+        .hword L(w_mask_\type\()_tbl) -   80b
+        .hword L(w_mask_\type\()_tbl) -   40b
 endfunc
 .endm
 
@@ -642,8 +646,9 @@ function blend_16bpc_neon, export=1
         st1             {v2.8h, v3.8h}, [x8], x1
         b.gt            16b
         ret
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
+32:
         ld1             {v16.16b, v17.16b},           [x5], #32
         ld1             {v4.8h, v5.8h, v6.8h, v7.8h}, [x2], #64
         subs            w4,  w4,  #1
@@ -674,7 +679,7 @@ function blend_16bpc_neon, export=1
         b.gt            32b
         ret
 L(blend_tbl):
-        .hword L(blend_tbl) -  32b
+        .hword L(blend_tbl) - 320b
         .hword L(blend_tbl) - 160b
         .hword L(blend_tbl) -  80b
         .hword L(blend_tbl) -  40b
@@ -692,8 +697,9 @@ function blend_h_16bpc_neon, export=1
         ldrh            w7,  [x6,  x7,  lsl #1]
         sub             x6,  x6,  w7, uxtw
         br              x6
-2:
+20:
         AARCH64_VALID_JUMP_TARGET
+2:
         ld2r            {v2.8b, v3.8b}, [x5], #2
         ld1             {v1.4h},        [x2], #8
         ext             v2.8b,   v2.8b,   v3.8b,   #6
@@ -710,8 +716,9 @@ function blend_h_16bpc_neon, export=1
         st1             {v0.s}[1], [x8], x1
         b.gt            2b
         ret
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld2r            {v2.8b, v3.8b}, [x5], #2
         ld1             {v1.8h},        [x2], #16
         ext             v2.8b,   v2.8b,   v3.8b,   #4
@@ -728,8 +735,9 @@ function blend_h_16bpc_neon, export=1
         st1             {v0.d}[1], [x8], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld2r            {v4.8b, v5.8b}, [x5], #2
         ld1             {v2.8h, v3.8h}, [x2], #32
         neg             v4.8b,   v4.8b            // -m
@@ -751,8 +759,9 @@ function blend_h_16bpc_neon, export=1
         st1             {v1.8h}, [x8], x1
         b.gt            8b
         ret
-16:
+160:
         AARCH64_VALID_JUMP_TARGET
+16:
         ld2r            {v16.8b, v17.8b}, [x5], #2
         ld1             {v4.8h, v5.8h, v6.8h, v7.8h}, [x2], #64
         neg             v16.8b,  v16.8b           // -m
@@ -839,10 +848,10 @@ L(blend_h_tbl):
         .hword L(blend_h_tbl) - 1280b
         .hword L(blend_h_tbl) -  640b
         .hword L(blend_h_tbl) -  320b
-        .hword L(blend_h_tbl) -   16b
-        .hword L(blend_h_tbl) -    8b
-        .hword L(blend_h_tbl) -    4b
-        .hword L(blend_h_tbl) -    2b
+        .hword L(blend_h_tbl) -  160b
+        .hword L(blend_h_tbl) -   80b
+        .hword L(blend_h_tbl) -   40b
+        .hword L(blend_h_tbl) -   20b
 endfunc
 
 function blend_v_16bpc_neon, export=1
