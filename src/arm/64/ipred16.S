@@ -3713,7 +3713,7 @@ function ipred_z3_fill_padding_neon, export=0
         b               1b
 
 80:
-106:
+160:
 320:
 640:
         AARCH64_VALID_JUMP_TARGET
