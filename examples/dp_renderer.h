@@ -61,6 +61,7 @@ typedef struct {
     int untimed;
     int zerocopy;
     int gpugrain;
+    int fullscreen;
 } Dav1dPlaySettings;
 
 #define WINDOW_WIDTH  910
@@ -82,7 +83,7 @@ typedef struct rdr_info
     // Cookie passed to the renderer implementation callbacks
     void *cookie;
     // Callback to create the renderer
-    void* (*create_renderer)(void);
+    void* (*create_renderer)(const Dav1dPlaySettings *settings);
     // Callback to destroy the renderer
     void (*destroy_renderer)(void *cookie);
     // Callback to the render function that renders a prevously sent frame

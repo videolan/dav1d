@@ -79,8 +79,11 @@ typedef struct renderer_priv_ctx
 } Dav1dPlayRendererPrivateContext;
 
 static Dav1dPlayRendererPrivateContext*
-    placebo_renderer_create_common(int window_flags)
+    placebo_renderer_create_common(const Dav1dPlaySettings *settings, int window_flags)
 {
+    if (settings->fullscreen)
+        window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
     // Create Window
     SDL_Window *sdlwin = dp_create_sdl_window(window_flags | SDL_WINDOW_RESIZABLE);
     if (sdlwin == NULL)
@@ -121,14 +124,14 @@ static Dav1dPlayRendererPrivateContext*
 }
 
 #ifdef HAVE_PLACEBO_OPENGL
-static void *placebo_renderer_create_gl(void)
+static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
 {
     SDL_Window *sdlwin = NULL;
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
     // Common init
     Dav1dPlayRendererPrivateContext *rd_priv_ctx =
-        placebo_renderer_create_common(SDL_WINDOW_OPENGL);
+        placebo_renderer_create_common(settings, SDL_WINDOW_OPENGL);
 
     if (rd_priv_ctx == NULL)
         return NULL;
@@ -176,13 +179,13 @@ static void *placebo_renderer_create_gl(void)
 #endif
 
 #ifdef HAVE_PLACEBO_VULKAN
-static void *placebo_renderer_create_vk(void)
+static void *placebo_renderer_create_vk(const Dav1dPlaySettings *settings)
 {
     SDL_Window *sdlwin = NULL;
 
     // Common init
     Dav1dPlayRendererPrivateContext *rd_priv_ctx =
-        placebo_renderer_create_common(SDL_WINDOW_VULKAN);
+        placebo_renderer_create_common(settings, SDL_WINDOW_VULKAN);
 
     if (rd_priv_ctx == NULL)
         return NULL;

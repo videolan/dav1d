@@ -120,6 +120,7 @@ static void dp_settings_print_usage(const char *const app,
             " --highquality:        enable high quality rendering\n"
             " --zerocopy/-z:        enable zero copy upload path\n"
             " --gpugrain/-g:        enable GPU grain synthesis\n"
+            " --fullscreen/-f:      enable full screen mode\n"
             " --version/-v:         print version and exit\n"
             " --renderer/-r:        select renderer backend (default: auto)\n");
     exit(1);
@@ -144,7 +145,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
     Dav1dSettings *lib_settings = &rd_ctx->lib_settings;
 
     // Short options
-    static const char short_opts[] = "i:vuzgr:";
+    static const char short_opts[] = "i:vuzgfr:";
 
     enum {
         ARG_THREADS = 256,
@@ -162,6 +163,7 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
         { "highquality",    0, NULL, ARG_HIGH_QUALITY },
         { "zerocopy",       0, NULL, 'z' },
         { "gpugrain",       0, NULL, 'g' },
+        { "fullscreen",     0, NULL, 'f'},
         { "renderer",       0, NULL, 'r'},
         { NULL,             0, NULL, 0 },
     };
@@ -185,6 +187,9 @@ static void dp_rd_ctx_parse_args(Dav1dPlayRenderContext *rd_ctx,
                 break;
             case 'g':
                 settings->gpugrain = true;
+                break;
+            case 'f':
+                settings->fullscreen = true;
                 break;
             case 'r':
                 settings->renderer_name = optarg;
@@ -281,7 +286,7 @@ static Dav1dPlayRenderContext *dp_rd_ctx_create(int argc, char **argv)
         printf("Using %s renderer\n", renderer_info->name);
     }
 
-    rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer() : NULL;
+    rd_ctx->rd_priv = (renderer_info) ? renderer_info->create_renderer(&rd_ctx->settings) : NULL;
     if (rd_ctx->rd_priv == NULL) {
         goto fail;
     }
