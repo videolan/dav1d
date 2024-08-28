@@ -720,9 +720,7 @@ int main(int argc, char **argv)
             if (e->type == SDL_QUIT) {
                 dp_rd_ctx_request_shutdown(rd_ctx);
                 dp_fifo_flush(rd_ctx->fifo, destroy_pic);
-                SDL_FlushEvent(rd_ctx->event_types + DAV1D_EVENT_NEW_FRAME);
-                SDL_FlushEvent(rd_ctx->event_types + DAV1D_EVENT_SEEK_FRAME);
-                num_frame_events = 0;
+                goto out;
             } else if (e->type == SDL_WINDOWEVENT) {
                 if (e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     // TODO: Handle window resizes
@@ -733,6 +731,10 @@ int main(int argc, char **argv)
                 SDL_KeyboardEvent *kbde = (SDL_KeyboardEvent *)e;
                 if (kbde->keysym.sym == SDLK_SPACE) {
                     dp_rd_ctx_toggle_pause(rd_ctx);
+                } else if (kbde->keysym.sym == SDLK_ESCAPE) {
+                    dp_rd_ctx_request_shutdown(rd_ctx);
+                    dp_fifo_flush(rd_ctx->fifo, destroy_pic);
+                    goto out;
                 } else if (kbde->keysym.sym == SDLK_LEFT ||
                            kbde->keysym.sym == SDLK_RIGHT)
                 {
