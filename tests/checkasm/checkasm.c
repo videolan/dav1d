@@ -44,11 +44,15 @@
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x04
 #endif
 #else
-#include <unistd.h>
 #include <time.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
 #include <pthread.h>
 #ifdef HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
+#endif
 #endif
 #ifdef __APPLE__
 #include <mach/mach_time.h>
