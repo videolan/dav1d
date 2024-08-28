@@ -209,6 +209,10 @@ if host_machine.cpu_family().startswith('wasm')
     stdatomic_dependencies += thread_dependency.partial_dependency(compile_args: true)
 endif
 
+if cc.check_header('sys/types.h')
+    cdata.set('HAVE_SYS_TYPES_H', 1)
+endif
+
 if cc.check_header('unistd.h')
     cdata.set('HAVE_UNISTD_H', 1)
 endif
