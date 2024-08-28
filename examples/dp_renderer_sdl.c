@@ -53,6 +53,8 @@ static void *sdl_renderer_create(const Dav1dPlaySettings *settings)
     if (win == NULL)
         return NULL;
 
+    SDL_ShowCursor(0);
+
     // Alloc
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
     if (rd_priv_ctx == NULL) {

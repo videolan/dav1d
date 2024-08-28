@@ -89,6 +89,8 @@ static Dav1dPlayRendererPrivateContext*
     if (sdlwin == NULL)
         return NULL;
 
+    SDL_ShowCursor(0);
+
     // Alloc
     Dav1dPlayRendererPrivateContext *const rd_priv_ctx =
         calloc(1, sizeof(Dav1dPlayRendererPrivateContext));
