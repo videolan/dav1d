@@ -259,6 +259,12 @@ endif
 if cc.has_function('pthread_setaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
     cdata.set('HAVE_PTHREAD_SETAFFINITY_NP', 1)
 endif
+if cc.has_function('pthread_setname_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
+    cdata.set('HAVE_PTHREAD_SETNAME_NP', 1)
+endif
+if cc.has_function('pthread_set_name_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
+    cdata.set('HAVE_PTHREAD_SET_NAME_NP', 1)
+endif
 
 if cc.compiles('int x = _Generic(0, default: 0);', name: '_Generic', args: test_args)
     cdata.set('HAVE_C11_GENERIC', 1)
