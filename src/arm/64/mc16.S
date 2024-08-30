@@ -1601,18 +1601,18 @@ L(\type\()_\taps\()_h):
         b.ne            L(\type\()_\taps\()_hv)
 
         movrel          x10, \type\()_\taps\()_h_tbl
-        dup             v30.4s,  w12           // 6 - intermediate_bits
         ldrsw           x9,  [x10, x9, lsl #2]
-        neg             v30.4s,  v30.4s        // -(6-intermediate_bits)
 .ifc \type, put
-        dup             v29.8h,  \bdmax        // intermediate_bits
+        mov             w12,  #34              // rounding for 10-bit
+        mov             w13,  #40              // rounding for 12-bit
+        cmp             \bdmax, #2             // 10-bit: 4, 12-bit: 2
+        csel            w12,  w12,  w13,  ne   // select rounding based on \bdmax
 .else
+        neg             w12,  w12              // -(6 - intermediate_bits)
         movi            v28.8h,  #(PREP_BIAS >> 8), lsl #8
 .endif
         add             x10, x10, x9
-.ifc \type, put
-        neg             v29.8h,  v29.8h        // -intermediate_bits
-.endif
+        dup             v30.4s,  w12           // rounding or shift amount
         br              x10
 
 20:     // 2xN h
@@ -1629,6 +1629,7 @@ L(\type\()_\taps\()_h):
 2:
         ld1             {v4.8h},  [\src], \s_strd
         ld1             {v6.8h},  [\sr2], \s_strd
+        mov             v2.16b,  v30.16b
         ext             v5.16b,  v4.16b,  v4.16b,  #2
         ext             v7.16b,  v6.16b,  v6.16b,  #2
         subs            \h,  \h,  #2
@@ -1636,16 +1637,14 @@ L(\type\()_\taps\()_h):
         trn2            v6.2s,   v4.2s,   v6.2s
         trn1            v4.2s,   v5.2s,   v7.2s
         trn2            v7.2s,   v5.2s,   v7.2s
-        smull           v3.4s,   v3.4h,   v0.h[0]
-        smlal           v3.4s,   v4.4h,   v0.h[1]
-        smlal           v3.4s,   v6.4h,   v0.h[2]
-        smlal           v3.4s,   v7.4h,   v0.h[3]
-        srshl           v3.4s,   v3.4s,   v30.4s // -(6-intermediate_bits)
-        sqxtun          v3.4h,   v3.4s
-        srshl           v3.4h,   v3.4h,   v29.4h // -intermediate_bits
-        umin            v3.4h,   v3.4h,   v31.4h
-        st1             {v3.s}[0], [\dst], \d_strd
-        st1             {v3.s}[1], [\ds2], \d_strd
+        smlal           v2.4s,   v3.4h,   v0.h[0]
+        smlal           v2.4s,   v4.4h,   v0.h[1]
+        smlal           v2.4s,   v6.4h,   v0.h[2]
+        smlal           v2.4s,   v7.4h,   v0.h[3]
+        sqshrun         v2.4h,   v2.4s,   #6
+        umin            v2.4h,   v2.4h,   v31.4h
+        st1             {v2.s}[0], [\dst], \d_strd
+        st1             {v2.s}[1], [\ds2], \d_strd
         b.gt            2b
         ret
 .endif
@@ -1663,6 +1662,10 @@ L(\type\()_\taps\()_h):
 4:
         ld1             {v16.8h}, [\src], \s_strd
         ld1             {v20.8h}, [\sr2], \s_strd
+.ifc \type, put
+        mov             v2.16b,  v30.16b
+        mov             v3.16b,  v30.16b
+.endif
         ext             v17.16b, v16.16b, v16.16b, #2
         ext             v18.16b, v16.16b, v16.16b, #4
         ext             v19.16b, v16.16b, v16.16b, #6
@@ -1670,22 +1673,29 @@ L(\type\()_\taps\()_h):
         ext             v22.16b, v20.16b, v20.16b, #4
         ext             v23.16b, v20.16b, v20.16b, #6
         subs            \h,  \h,  #2
-        smull           v16.4s,  v16.4h,  v0.h[0]
-        smlal           v16.4s,  v17.4h,  v0.h[1]
-        smlal           v16.4s,  v18.4h,  v0.h[2]
-        smlal           v16.4s,  v19.4h,  v0.h[3]
-        smull           v20.4s,  v20.4h,  v0.h[0]
-        smlal           v20.4s,  v21.4h,  v0.h[1]
-        smlal           v20.4s,  v22.4h,  v0.h[2]
-        smlal           v20.4s,  v23.4h,  v0.h[3]
-        srshl           v16.4s,  v16.4s,  v30.4s // -(6-intermediate_bits)
-        srshl           v20.4s,  v20.4s,  v30.4s // -(6-intermediate_bits)
 .ifc \type, put
-        sqxtun          v16.4h,  v16.4s
-        sqxtun2         v16.8h,  v20.4s
-        srshl           v16.8h,  v16.8h,  v29.8h // -intermediate_bits
+        smlal           v2.4s,   v16.4h,  v0.h[0]
+.else
+        smull           v2.4s,   v16.4h,  v0.h[0]
+.endif
+        smlal           v2.4s,   v17.4h,  v0.h[1]
+        smlal           v2.4s,   v18.4h,  v0.h[2]
+        smlal           v2.4s,   v19.4h,  v0.h[3]
+.ifc \type, put
+        smlal           v3.4s,   v20.4h,  v0.h[0]
+.else
+        smull           v3.4s,   v20.4h,  v0.h[0]
+.endif
+        smlal           v3.4s,   v21.4h,  v0.h[1]
+        smlal           v3.4s,   v22.4h,  v0.h[2]
+        smlal           v3.4s,   v23.4h,  v0.h[3]
+.ifc \type, put
+        sqshrun         v16.4h,  v2.4s,   #6
+        sqshrun2        v16.8h,  v3.4s,   #6
         umin            v16.8h,  v16.8h,  v31.8h
 .else
+        srshl           v16.4s,  v2.4s,   v30.4s // -(6-intermediate_bits)
+        srshl           v20.4s,  v3.4s,   v30.4s // -(6-intermediate_bits)
         uzp1            v16.8h,  v16.8h,  v20.8h // Same as xtn, xtn2
         sub             v16.8h,  v16.8h,  v28.8h // PREP_BIAS
 .endif
@@ -1722,47 +1732,67 @@ L(\type\()_\taps\()_h):
 .ifc \taps, 6tap
         ext             v24.16b, v16.16b, v17.16b, #2
         ext             v25.16b, v20.16b, v21.16b, #2
+    .ifc \type, put
+        mov             v18.16b, v30.16b
+        mov             v19.16b, v30.16b
+        smlal           v18.4s,  v24.4h,  v0.h[1]
+        smlal2          v19.4s,  v24.8h,  v0.h[1]
+        mov             v22.16b, v30.16b
+        mov             v23.16b, v30.16b
+        smlal           v22.4s,  v25.4h,  v0.h[1]
+        smlal2          v23.4s,  v25.8h,  v0.h[1]
+    .else
         smull           v18.4s,  v24.4h,  v0.h[1]
         smull2          v19.4s,  v24.8h,  v0.h[1]
         smull           v22.4s,  v25.4h,  v0.h[1]
         smull2          v23.4s,  v25.8h,  v0.h[1]
-.irpc i, 23456
+    .endif
+    .irpc i, 23456
         ext             v24.16b, v16.16b, v17.16b, #(2*\i)
         ext             v25.16b, v20.16b, v21.16b, #(2*\i)
         smlal           v18.4s,  v24.4h,  v0.h[\i]
         smlal2          v19.4s,  v24.8h,  v0.h[\i]
         smlal           v22.4s,  v25.4h,  v0.h[\i]
         smlal2          v23.4s,  v25.8h,  v0.h[\i]
-.endr
+    .endr
 .else   // 8tap
+    .ifc \type, put
+        mov             v18.16b, v30.16b
+        mov             v19.16b, v30.16b
+        smlal           v18.4s,  v16.4h,  v0.h[0]
+        smlal2          v19.4s,  v16.8h,  v0.h[0]
+        mov             v22.16b, v30.16b
+        mov             v23.16b, v30.16b
+        smlal           v22.4s,  v20.4h,  v0.h[0]
+        smlal2          v23.4s,  v20.8h,  v0.h[0]
+    .else
         smull           v18.4s,  v16.4h,  v0.h[0]
         smull2          v19.4s,  v16.8h,  v0.h[0]
         smull           v22.4s,  v20.4h,  v0.h[0]
         smull2          v23.4s,  v20.8h,  v0.h[0]
-.irpc i, 1234567
+    .endif
+    .irpc i, 1234567
         ext             v24.16b, v16.16b, v17.16b, #(2*\i)
         ext             v25.16b, v20.16b, v21.16b, #(2*\i)
         smlal           v18.4s,  v24.4h,  v0.h[\i]
         smlal2          v19.4s,  v24.8h,  v0.h[\i]
         smlal           v22.4s,  v25.4h,  v0.h[\i]
         smlal2          v23.4s,  v25.8h,  v0.h[\i]
-.endr
+    .endr
 .endif
         subs            \mx, \mx, #8
+.ifc \type, put
+        sqshrun         v18.4h,  v18.4s,  #6
+        sqshrun2        v18.8h,  v19.4s,  #6
+        sqshrun         v22.4h,  v22.4s,  #6
+        sqshrun2        v22.8h,  v23.4s,  #6
+        umin            v18.8h,  v18.8h,  v31.8h
+        umin            v22.8h,  v22.8h,  v31.8h
+.else
         srshl           v18.4s,  v18.4s,  v30.4s // -(6-intermediate_bits)
         srshl           v19.4s,  v19.4s,  v30.4s // -(6-intermediate_bits)
         srshl           v22.4s,  v22.4s,  v30.4s // -(6-intermediate_bits)
         srshl           v23.4s,  v23.4s,  v30.4s // -(6-intermediate_bits)
-.ifc \type, put
-        sqxtun          v18.4h,  v18.4s
-        sqxtun2         v18.8h,  v19.4s
-        sqxtun          v22.4h,  v22.4s
-        sqxtun2         v22.8h,  v23.4s
-        srshl           v18.8h,  v18.8h,  v29.8h // -intermediate_bits
-        srshl           v22.8h,  v22.8h,  v29.8h // -intermediate_bits
-        umin            v18.8h,  v18.8h,  v31.8h
-        umin            v22.8h,  v22.8h,  v31.8h
-.else
         uzp1            v18.8h,  v18.8h,  v19.8h // Same as xtn, xtn2
         uzp1            v22.8h,  v22.8h,  v23.8h // Ditto
         sub             v18.8h,  v18.8h,  v28.8h // PREP_BIAS
