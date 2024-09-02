@@ -1549,7 +1549,11 @@ L(\type\()_\taps\()_h):
 80:     // 8xN h
         AARCH64_VALID_JUMP_TARGET
         ld1             {v0.8b}, [\xmx]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #2
+.else
         sub             \src,  \src,  #3
+.endif
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
         lsl             \d_strd,  \d_strd,  #1
@@ -1564,25 +1568,23 @@ L(\type\()_\taps\()_h):
         uxtl            v21.8h,  v21.8b
 
 .ifc \taps, 6tap
-        ext             v19.16b, v16.16b, v17.16b, #2
-        ext             v23.16b, v20.16b, v21.16b, #2
-        mul             v18.8h,  v19.8h,  v0.h[1]
-        mul             v22.8h,  v23.8h,  v0.h[1]
-.irpc i, 23456
-        ext             v19.16b, v16.16b, v17.16b, #(2*\i)
-        ext             v23.16b, v20.16b, v21.16b, #(2*\i)
+        mul             v18.8h,  v16.8h,  v0.h[1]
+        mul             v22.8h,  v20.8h,  v0.h[1]
+    .irpc i, 23456
+        ext             v19.16b, v16.16b, v17.16b, #(2*\i-2)
+        ext             v23.16b, v20.16b, v21.16b, #(2*\i-2)
         mla             v18.8h,  v19.8h,  v0.h[\i]
         mla             v22.8h,  v23.8h,  v0.h[\i]
-.endr
+    .endr
 .else   // 8tap
         mul             v18.8h,  v16.8h,  v0.h[0]
         mul             v22.8h,  v20.8h,  v0.h[0]
-.irpc i, 1234567
+    .irpc i, 1234567
         ext             v19.16b, v16.16b, v17.16b, #(2*\i)
         ext             v23.16b, v20.16b, v21.16b, #(2*\i)
         mla             v18.8h,  v19.8h,  v0.h[\i]
         mla             v22.8h,  v23.8h,  v0.h[\i]
-.endr
+    .endr
 .endif
         subs            \h,  \h,  #2
         srshr           v18.8h,  v18.8h, #2
@@ -1604,7 +1606,11 @@ L(\type\()_\taps\()_h):
 1280:   // 16xN, 32xN, ... h
         AARCH64_VALID_JUMP_TARGET
         ld1             {v0.8b}, [\xmx]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #2
+.else
         sub             \src,  \src,  #3
+.endif
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
         lsl             \s_strd,  \s_strd,  #1
@@ -1629,30 +1635,26 @@ L(\type\()_\taps\()_h):
 
 16:
 .ifc \taps, 6tap
-        ext             v28.16b, v16.16b, v17.16b, #2
-        ext             v29.16b, v17.16b, v18.16b, #2
-        ext             v30.16b, v20.16b, v21.16b, #2
-        ext             v31.16b, v21.16b, v22.16b, #2
-        mul             v24.8h,  v28.8h,  v0.h[1]
-        mul             v25.8h,  v29.8h,  v0.h[1]
-        mul             v26.8h,  v30.8h,  v0.h[1]
-        mul             v27.8h,  v31.8h,  v0.h[1]
-.irpc i, 23456
-        ext             v28.16b, v16.16b, v17.16b, #(2*\i)
-        ext             v29.16b, v17.16b, v18.16b, #(2*\i)
-        ext             v30.16b, v20.16b, v21.16b, #(2*\i)
-        ext             v31.16b, v21.16b, v22.16b, #(2*\i)
+        mul             v24.8h,  v16.8h,  v0.h[1]
+        mul             v25.8h,  v17.8h,  v0.h[1]
+        mul             v26.8h,  v20.8h,  v0.h[1]
+        mul             v27.8h,  v21.8h,  v0.h[1]
+    .irpc i, 23456
+        ext             v28.16b, v16.16b, v17.16b, #(2*\i-2)
+        ext             v29.16b, v17.16b, v18.16b, #(2*\i-2)
+        ext             v30.16b, v20.16b, v21.16b, #(2*\i-2)
+        ext             v31.16b, v21.16b, v22.16b, #(2*\i-2)
         mla             v24.8h,  v28.8h,  v0.h[\i]
         mla             v25.8h,  v29.8h,  v0.h[\i]
         mla             v26.8h,  v30.8h,  v0.h[\i]
         mla             v27.8h,  v31.8h,  v0.h[\i]
-.endr
+    .endr
 .else   // 8tap
         mul             v24.8h,  v16.8h,  v0.h[0]
         mul             v25.8h,  v17.8h,  v0.h[0]
         mul             v26.8h,  v20.8h,  v0.h[0]
         mul             v27.8h,  v21.8h,  v0.h[0]
-.irpc i, 1234567
+    .irpc i, 1234567
         ext             v28.16b, v16.16b, v17.16b, #(2*\i)
         ext             v29.16b, v17.16b, v18.16b, #(2*\i)
         ext             v30.16b, v20.16b, v21.16b, #(2*\i)
@@ -1661,7 +1663,7 @@ L(\type\()_\taps\()_h):
         mla             v25.8h,  v29.8h,  v0.h[\i]
         mla             v26.8h,  v30.8h,  v0.h[\i]
         mla             v27.8h,  v31.8h,  v0.h[\i]
-.endr
+    .endr
 .endif
         srshr           v24.8h,  v24.8h, #2
         srshr           v25.8h,  v25.8h, #2
@@ -2386,7 +2388,11 @@ L(\type\()_\taps\()_filter_4):
         add             \xmy,  \xmy,  #2
         ld1             {v0.8b},  [\xmx]
         ld1             {v1.s}[0],  [\xmy]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #2
+.else
         sub             \src,  \src,  #3
+.endif
         sub             \src,  \src,  \s_strd
         sxtl            v0.8h,  v0.8b
         sxtl            v1.8h,  v1.8b
@@ -2464,8 +2470,10 @@ L(\type\()_\taps\()_filter_4):
         AARCH64_VALID_JUMP_TARGET
         ld1             {v0.8b},  [\xmx]
         ld1             {v1.8b},  [\xmy]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #2
+.else
         sub             \src,  \src,  #3
-.ifc \taps, 8tap
         sub             \src,  \src,  \s_strd
 .endif
         sub             \src,  \src,  \s_strd, lsl #1
@@ -2609,17 +2617,15 @@ L(\type\()_\taps\()_filter_8_first):
         uxtl            v28.8h,  v28.8b
         uxtl            v29.8h,  v29.8b
 .ifc \taps, 6tap
-        ext             v24.16b, v28.16b, v29.16b, #(2*1)
-        ext             v25.16b, v28.16b, v29.16b, #(2*2)
-        ext             v26.16b, v28.16b, v29.16b, #(2*3)
-        ext             v27.16b, v28.16b, v29.16b, #(2*4)
-        mul             v16.8h,  v24.8h,  v0.h[1]
+        mul             v16.8h,  v28.8h,  v0.h[1]
+        ext             v25.16b, v28.16b, v29.16b, #(2*1)
+        ext             v26.16b, v28.16b, v29.16b, #(2*2)
+        ext             v27.16b, v28.16b, v29.16b, #(2*3)
         mla             v16.8h,  v25.8h,  v0.h[2]
         mla             v16.8h,  v26.8h,  v0.h[3]
         mla             v16.8h,  v27.8h,  v0.h[4]
-        ext             v24.16b, v28.16b, v29.16b, #(2*5)
-        ext             v25.16b, v28.16b, v29.16b, #(2*6)
-        ext             v26.16b, v28.16b, v29.16b, #(2*7)
+        ext             v24.16b, v28.16b, v29.16b, #(2*4)
+        ext             v25.16b, v28.16b, v29.16b, #(2*5)
         mla             v16.8h,  v24.8h,  v0.h[5]
         mla             v16.8h,  v25.8h,  v0.h[6]
 .else   // 8tap
@@ -2650,25 +2656,23 @@ L(\type\()_\taps\()_filter_8):
         uxtl            v30.8h,  v30.8b
         uxtl            v31.8h,  v31.8b
 .ifc \taps, 6tap
-        ext             v26.16b, v28.16b, v29.16b, #2
-        ext             v27.16b, v30.16b, v31.16b, #2
-        mul             v24.8h,  v26.8h,  v0.h[1]
-        mul             v25.8h,  v27.8h,  v0.h[1]
-.irpc i, 23456
-        ext             v26.16b, v28.16b, v29.16b, #(2*\i)
-        ext             v27.16b, v30.16b, v31.16b, #(2*\i)
+        mul             v24.8h,  v28.8h,  v0.h[1]
+        mul             v25.8h,  v30.8h,  v0.h[1]
+    .irpc i, 23456
+        ext             v26.16b, v28.16b, v29.16b, #(2*\i-2)
+        ext             v27.16b, v30.16b, v31.16b, #(2*\i-2)
         mla             v24.8h,  v26.8h,  v0.h[\i]
         mla             v25.8h,  v27.8h,  v0.h[\i]
-.endr
+    .endr
 .else   // 8tap
         mul             v24.8h,  v28.8h,  v0.h[0]
         mul             v25.8h,  v30.8h,  v0.h[0]
-.irpc i, 1234567
+    .irpc i, 1234567
         ext             v26.16b, v28.16b, v29.16b, #(2*\i)
         ext             v27.16b, v30.16b, v31.16b, #(2*\i)
         mla             v24.8h,  v26.8h,  v0.h[\i]
         mla             v25.8h,  v27.8h,  v0.h[\i]
-.endr
+    .endr
 .endif
         srshr           v24.8h,  v24.8h, #2
         srshr           v25.8h,  v25.8h, #2
