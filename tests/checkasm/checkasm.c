@@ -836,6 +836,14 @@ int main(int argc, char *argv[]) {
             state.simd_warmup = checkasm_warmup_avx2;
         checkasm_simd_warmup();
 #endif
+#if ARCH_ARM
+        void checkasm_checked_call_vfp(void *func, int dummy, ...);
+        void checkasm_checked_call_novfp(void *func, int dummy, ...);
+        if (cpu_flags & DAV1D_ARM_CPU_FLAG_NEON)
+            checkasm_checked_call_ptr = checkasm_checked_call_vfp;
+        else
+            checkasm_checked_call_ptr = checkasm_checked_call_novfp;
+#endif
 #if ARCH_X86
         unsigned checkasm_init_x86(char *name);
         char name[48];
@@ -1129,4 +1137,8 @@ void checkasm_simd_warmup(void)
     if (state.simd_warmup)
         state.simd_warmup();
 }
+#endif
+
+#if ARCH_ARM
+void (*checkasm_checked_call_ptr)(void *func, int dummy, ...);
 #endif
