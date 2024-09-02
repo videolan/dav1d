@@ -2504,7 +2504,11 @@ L(\type\()_\taps\()_filter_4):
         add             \xmy,  \xmy,  #2
         ld1             {v0.8b},  [\xmx]
         ld1             {v1.s}[0],  [\xmy]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #4
+.else
         sub             \src,  \src,  #6
+.endif
         sub             \src,  \src,  \s_strd
         sxtl            v0.8h,   v0.8b
         sxtl            v1.8h,   v1.8b
@@ -2518,13 +2522,23 @@ L(\type\()_\taps\()_filter_4):
         lsl             \s_strd, \s_strd, #1
 
         ld1             {v27.8h, v28.8h},  [\src], \s_strd
+.ifc \taps, 6tap
+        smull           v24.4s,  v27.4h,  v0.h[1]
+        smull2          v25.4s,  v27.8h,  v0.h[1]
+    .irpc i, 23456
+        ext             v26.16b, v27.16b, v28.16b, #(2*\i-2)
+        smlal           v24.4s,  v26.4h,  v0.h[\i]
+        smlal2          v25.4s,  v26.8h,  v0.h[\i]
+    .endr
+.else
         smull           v24.4s,  v27.4h,  v0.h[0]
         smull2          v25.4s,  v27.8h,  v0.h[0]
-.irpc i, 1234567
+    .irpc i, 1234567
         ext             v26.16b, v27.16b, v28.16b, #(2*\i)
         smlal           v24.4s,  v26.4h,  v0.h[\i]
         smlal2          v25.4s,  v26.8h,  v0.h[\i]
-.endr
+    .endr
+.endif
         srshl           v24.4s,  v24.4s,  v30.4s // -(6-intermediate_bits)
         srshl           v25.4s,  v25.4s,  v30.4s // -(6-intermediate_bits)
         // The intermediates from the horizontal pass fit in 16 bit without
@@ -2602,8 +2616,10 @@ L(\type\()_\taps\()_filter_4):
         AARCH64_VALID_JUMP_TARGET
         ld1             {v0.8b},  [\xmx]
         ld1             {v1.8b},  [\xmy]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #4
+.else
         sub             \src,  \src,  #6
-.ifc \taps, 8tap
         sub             \src,  \src,  \s_strd
 .endif
         sub             \src,  \src,  \s_strd, lsl #1
@@ -2620,22 +2636,21 @@ L(\type\()_\taps\()_filter_4):
 
         ld1             {v27.8h, v28.8h},  [\src], \s_strd
 .ifc \taps, 6tap
-        ext             v26.16b, v27.16b, v28.16b, #2
-        smull           v24.4s,  v26.4h,  v0.h[1]
-        smull2          v25.4s,  v26.8h,  v0.h[1]
-.irpc i, 23456
-        ext             v26.16b, v27.16b, v28.16b, #(2*\i)
+        smull           v24.4s,  v27.4h,  v0.h[1]
+        smull2          v25.4s,  v27.8h,  v0.h[1]
+    .irpc i, 23456
+        ext             v26.16b, v27.16b, v28.16b, #(2*\i-2)
         smlal           v24.4s,  v26.4h,  v0.h[\i]
         smlal2          v25.4s,  v26.8h,  v0.h[\i]
-.endr
+    .endr
 .else   // 8tap
         smull           v24.4s,  v27.4h,  v0.h[0]
         smull2          v25.4s,  v27.8h,  v0.h[0]
-.irpc i, 1234567
+    .irpc i, 1234567
         ext             v26.16b, v27.16b, v28.16b, #(2*\i)
         smlal           v24.4s,  v26.4h,  v0.h[\i]
         smlal2          v25.4s,  v26.8h,  v0.h[\i]
-.endr
+    .endr
 .endif
         srshl           v24.4s,  v24.4s,  v30.4s // -(6-intermediate_bits)
         srshl           v25.4s,  v25.4s,  v30.4s // -(6-intermediate_bits)
@@ -2777,15 +2792,13 @@ L(\type\()_\taps\()_filter_8):
         ld1             {v4.8h, v5.8h},  [\sr2], \s_strd
         ld1             {v6.8h, v7.8h},  [\src], \s_strd
 .ifc \taps, 6tap
-        ext             v23.16b, v4.16b,  v5.16b,  #2
-        ext             v24.16b, v6.16b,  v7.16b,  #2
-        smull           v25.4s,  v23.4h,  v0.h[1]
-        smull2          v26.4s,  v23.8h,  v0.h[1]
-        smull           v27.4s,  v24.4h,  v0.h[1]
-        smull2          v28.4s,  v24.8h,  v0.h[1]
+        smull           v25.4s,  v4.4h,   v0.h[1]
+        smull2          v26.4s,  v4.8h,   v0.h[1]
+        smull           v27.4s,  v6.4h,   v0.h[1]
+        smull2          v28.4s,  v6.8h,   v0.h[1]
 .irpc i, 23456
-        ext             v23.16b, v4.16b,  v5.16b,  #(2*\i)
-        ext             v24.16b, v6.16b,  v7.16b,  #(2*\i)
+        ext             v23.16b, v4.16b,  v5.16b,  #(2*\i-2)
+        ext             v24.16b, v6.16b,  v7.16b,  #(2*\i-2)
         smlal           v25.4s,  v23.4h,  v0.h[\i]
         smlal2          v26.4s,  v23.8h,  v0.h[\i]
         smlal           v27.4s,  v24.4h,  v0.h[\i]
