@@ -371,7 +371,7 @@ libdav1d = library('dav1d',
 )
 
 dav1d_dep = declare_dependency(link_with: libdav1d,
-    include_directories : include_directories('../include/dav1d')
+    include_directories : include_directories('../include')
 )
 
 #
