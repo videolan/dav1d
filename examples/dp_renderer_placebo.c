@@ -143,6 +143,7 @@ static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
     SDL_GL_MakeCurrent(sdlwin, rd_priv_ctx->gl_context);
 
     rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->log, pl_opengl_params(
+        .allow_software = true,
 #ifndef NDEBUG
         .debug = true,
 #endif
