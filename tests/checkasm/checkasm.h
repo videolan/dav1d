@@ -68,6 +68,10 @@ typedef sigjmp_buf checkasm_context;
 #include "include/common/bitdepth.h"
 #include "include/common/intops.h"
 
+#if ARCH_ARM
+#include "src/arm/arm-arch.h"
+#endif
+
 int xor128_rand(void);
 #define rnd xor128_rand
 

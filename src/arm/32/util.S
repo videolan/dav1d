@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include "src/arm/asm.S"
+#include "src/arm/arm-arch.h"
 
 .macro v4bx rd
 #if __ARM_ARCH >= 5 || defined(__ARM_ARCH_4T__)
