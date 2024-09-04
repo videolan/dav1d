@@ -157,9 +157,9 @@ function \type\()_16bpc_neon, export=1
         lsl             x1,  x1,  #1
 4:
         subs            w5,  w5,  #4
-        st1             {v4.d}[0],  [x0], x1
+        st1             {v4.8b},    [x0], x1
         st1             {v4.d}[1],  [x7], x1
-        st1             {v5.d}[0],  [x0], x1
+        st1             {v5.8b},    [x0], x1
         st1             {v5.d}[1],  [x7], x1
         b.le            0f
         \type           v4,  v5,  v0,  v1,  v2,  v3
@@ -336,11 +336,11 @@ function w_mask_\type\()_16bpc_neon, export=1
         addp            v20.8h,  v24.8h,  v24.8h  // (128 - m) + (128 - n) (column wise addition)
         sub             v20.4h,  v3.4h,   v20.4h  // (256 - sign) - ((128 - m) + (128 - n))
         rshrn           v20.8b,  v20.8h,  #2      // ((256 - sign) - ((128 - m) + (128 - n)) + 2) >> 2
-        st1             {v20.s}[0], [x6], #4
+        str             s20,        [x6],  #4
 .endif
-        st1             {v4.d}[0],  [x0],  x1
+        st1             {v4.8b},    [x0],  x1
         st1             {v4.d}[1],  [x12], x1
-        st1             {v5.d}[0],  [x0],  x1
+        st1             {v5.8b},    [x0],  x1
         st1             {v5.d}[1],  [x12], x1
         b.gt            4b
         ret
@@ -400,7 +400,7 @@ function w_mask_\type\()_16bpc_neon, export=1
         addp            v20.8h,  v20.8h,  v20.8h  // (128 - m) + (128 - n) (column wise addition)
         sub             v20.4h,  v3.4h,   v20.4h  // (256 - sign) - ((128 - m) + (128 - n))
         rshrn           v20.8b,  v20.8h,  #2      // ((256 - sign) - ((128 - m) + (128 - n)) + 2) >> 2
-        st1             {v20.s}[0], [x6], #4
+        str             s20,     [x6],  #4
 .endif
         st1             {v4.8h}, [x0],  x1
         st1             {v5.8h}, [x12], x1
@@ -578,7 +578,7 @@ function blend_16bpc_neon, export=1
 4:
         ld1             {v2.8b},   [x5], #8
         ld1             {v1.8h},   [x2], #16
-        ld1             {v0.d}[0], [x0]
+        ldr             d0,        [x0]
         neg             v2.8b,   v2.8b            // -m
         subs            w4,  w4,  #2
         ld1             {v0.d}[1], [x8]
@@ -587,7 +587,7 @@ function blend_16bpc_neon, export=1
         sub             v1.8h,   v0.8h,   v1.8h   // a - b
         sqrdmulh        v1.8h,   v1.8h,   v2.8h   // ((a-b)*-m + 32) >> 6
         add             v0.8h,   v0.8h,   v1.8h
-        st1             {v0.d}[0], [x0], x1
+        st1             {v0.8b},   [x0], x1
         st1             {v0.d}[1], [x8], x1
         b.gt            4b
         ret
@@ -711,7 +711,7 @@ function blend_h_16bpc_neon, export=1
         ext             v2.8b,   v2.8b,   v3.8b,   #6
         subs            w4,  w4,  #2
         neg             v2.8b,   v2.8b            // -m
-        ld1             {v0.s}[0], [x0]
+        ldr             s0,        [x0]
         ld1             {v0.s}[1], [x8]
         sxtl            v2.8h,   v2.8b
         shl             v2.4h,   v2.4h,   #9      // -m << 9
@@ -730,14 +730,14 @@ function blend_h_16bpc_neon, export=1
         ext             v2.8b,   v2.8b,   v3.8b,   #4
         subs            w4,  w4,  #2
         neg             v2.8b,   v2.8b            // -m
-        ld1             {v0.d}[0],   [x0]
+        ldr             d0,          [x0]
         ld1             {v0.d}[1],   [x8]
         sxtl            v2.8h,   v2.8b
         shl             v2.8h,   v2.8h,   #9      // -m << 9
         sub             v1.8h,   v0.8h,   v1.8h   // a - b
         sqrdmulh        v1.8h,   v1.8h,   v2.8h   // ((a-b)*-m + 32) >> 6
         add             v0.8h,   v0.8h,   v1.8h
-        st1             {v0.d}[0], [x0], x1
+        st1             {v0.8b},   [x0], x1
         st1             {v0.d}[1], [x8], x1
         b.gt            4b
         ret
@@ -880,8 +880,8 @@ function blend_v_16bpc_neon, export=1
         sxtl            v2.8h,   v2.8b
         shl             v2.4h,   v2.4h,   #9      // -m << 9
 2:
-        ld1             {v1.s}[0], [x2], #4
-        ld1             {v0.h}[0], [x0]
+        ldr             s1,  [x2],  #4
+        ldr             h0,  [x0]
         subs            w4,  w4,  #2
         ld1             {v1.h}[1], [x2]
         ld1             {v0.h}[1], [x8]
@@ -902,13 +902,13 @@ function blend_v_16bpc_neon, export=1
         shl             v2.8h,   v2.8h,   #9      // -m << 9
 4:
         ld1             {v1.8h},   [x2], #16
-        ld1             {v0.d}[0], [x0]
+        ldr             d0,        [x0]
         ld1             {v0.d}[1], [x8]
         subs            w4,  w4,  #2
         sub             v1.8h,   v0.8h,   v1.8h   // a - b
         sqrdmulh        v1.8h,   v1.8h,   v2.8h   // ((a-b)*-m + 32) >> 6
         add             v0.8h,   v0.8h,   v1.8h
-        st1             {v0.s}[0], [x0], #4
+        str             s0,        [x0], #4
         st1             {v0.s}[2], [x8], #4
         st1             {v0.h}[2], [x0], x1
         st1             {v0.h}[6], [x8], x1
@@ -932,8 +932,8 @@ function blend_v_16bpc_neon, export=1
         sqrdmulh        v3.8h,   v3.8h,   v4.8h
         add             v0.8h,   v0.8h,   v2.8h
         add             v1.8h,   v1.8h,   v3.8h
-        st1             {v0.d}[0], [x0], #8
-        st1             {v1.d}[0], [x8], #8
+        str             d0,        [x0], #8
+        str             d1,        [x8], #8
         st1             {v0.s}[2], [x0], x1
         st1             {v1.s}[2], [x8], x1
         b.gt            8b
@@ -1031,8 +1031,8 @@ function put_16bpc_neon, export=1
 20:
         AARCH64_VALID_JUMP_TARGET
 2:
-        ld1             {v0.s}[0], [x2], x3
-        ld1             {v1.s}[0], [x2], x3
+        ld1r            {v0.4s},   [x2], x3
+        ld1r            {v1.4s},   [x2], x3
         subs            w5,  w5,  #2
         st1             {v0.s}[0], [x0], x1
         st1             {v1.s}[0], [x0], x1
@@ -1159,7 +1159,7 @@ function prep_16bpc_neon
         add             x9,  x1,  x2
         lsl             x2,  x2,  #1
 4:
-        ld1             {v0.d}[0], [x1], x2
+        ld1             {v0.8b},   [x1], x2
         ld1             {v0.d}[1], [x9], x2
         subs            w4,  w4,  #2
         sshl            v0.8h,   v0.8h,   v31.8h
@@ -1486,10 +1486,10 @@ endjumptable
 .endif
 .endm
 .macro st_d strd, r0, r1
-        st1             {\r0\().d}[0], [x0], \strd
+        st1             {\r0\().8b},   [x0], \strd
         st1             {\r0\().d}[1], [x9], \strd
 .ifnb \r1
-        st1             {\r1\().d}[0], [x0], \strd
+        st1             {\r1\().8b},   [x0], \strd
         st1             {\r1\().d}[1], [x9], \strd
 .endif
 .endm
@@ -1619,7 +1619,7 @@ L(\type\()_\taps\()_h):
         AARCH64_VALID_JUMP_TARGET
 .ifc \type, put
         add             \xmx,  \xmx,  #2
-        ld1             {v0.s}[0], [\xmx]
+        ldr             s0,  [\xmx]
         sub             \src,  \src,  #2
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1652,7 +1652,7 @@ L(\type\()_\taps\()_h):
 40:     // 4xN h
         AARCH64_VALID_JUMP_TARGET
         add             \xmx,  \xmx,  #2
-        ld1             {v0.s}[0], [\xmx]
+        ldr             s0,  [\xmx]
         sub             \src,  \src,  #2
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1699,7 +1699,7 @@ L(\type\()_\taps\()_h):
         uzp1            v16.8h,  v16.8h,  v20.8h // Same as xtn, xtn2
         sub             v16.8h,  v16.8h,  v28.8h // PREP_BIAS
 .endif
-        st1             {v16.d}[0], [\dst], \d_strd
+        st1             {v16.8b},   [\dst], \d_strd
         st1             {v16.d}[1], [\ds2], \d_strd
         b.gt            4b
         ret
@@ -1860,7 +1860,7 @@ function L(\type\()_\taps\()_v)
 
         cmp             \h,  #2
         add             \xmy, \xmy, #2
-        ld1             {v0.s}[0], [\xmy]
+        ldr             s0,  [\xmy]
         sub             \src,  \src,  \s_strd
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1938,7 +1938,7 @@ function L(\type\()_\taps\()_v)
         // 4x2, 4x4 v
         cmp             \h,  #2
         add             \xmy, \xmy, #2
-        ld1             {v0.s}[0], [\xmy]
+        ldr             s0,  [\xmy]
         sub             \src, \src, \s_strd
         add             \ds2, \dst, \d_strd
         add             \sr2, \src, \s_strd
@@ -2003,7 +2003,7 @@ function L(\type\()_\taps\()_v)
         // 8x2, 8x4 v
         cmp             \h,  #2
         add             \xmy, \xmy, #2
-        ld1             {v0.s}[0], [\xmy]
+        ldr             s0,  [\xmy]
         sub             \src, \src, \s_strd
         add             \ds2, \dst, \d_strd
         add             \sr2, \src, \s_strd
@@ -2092,7 +2092,7 @@ function L(\type\()_\taps\()_v)
 
         // 16x2, 16x4 v
         add             \xmy, \xmy, #2
-        ld1             {v0.s}[0], [\xmy]
+        ldr             s0,  [\xmy]
         sub             \src, \src, \s_strd
         sxtl            v0.8h,   v0.8b
 
@@ -2155,10 +2155,10 @@ function L(\type\()_\taps\()_hv)
         AARCH64_VALID_JUMP_TARGET
 .ifc \type, put
         add             \xmx,  \xmx,  #2
-        ld1             {v0.s}[0],  [\xmx]
+        ldr             s0,  [\xmx]
         b.gt            280f
         add             \xmy,  \xmy,  #2
-        ld1             {v1.s}[0],  [\xmy]
+        ldr             s1,  [\xmy]
 
         // 2x2, 2x4 hv
         sub             \sr2, \src, #2
@@ -2302,10 +2302,10 @@ L(\type\()_\taps\()_filter_2):
 40:
         AARCH64_VALID_JUMP_TARGET
         add             \xmx, \xmx, #2
-        ld1             {v0.s}[0],  [\xmx]
+        ldr             s0,  [\xmx]
         b.gt            480f
         add             \xmy, \xmy,  #2
-        ld1             {v1.s}[0],  [\xmy]
+        ldr             s1,  [\xmy]
         sub             \sr2, \src, #2
         sub             \src, \sr2, \s_strd
         add             \ds2, \dst, \d_strd
@@ -2358,7 +2358,7 @@ L(\type\()_\taps\()_filter_2):
 .endif
         subs            \h,  \h,  #2
 
-        st1             {v2.d}[0], [\dst], \d_strd
+        st1             {v2.8b},   [\dst], \d_strd
         st1             {v2.d}[1], [\ds2], \d_strd
         b.le            0f
         mov             v16.8b,  v18.8b
@@ -2457,7 +2457,7 @@ L(\type\()_\taps\()_filter_2):
         sub             v3.8h,   v3.8h,   v29.8h // PREP_BIAS
 .endif
         subs            \h,  \h,  #2
-        st1             {v3.d}[0], [\dst], \d_strd
+        st1             {v3.8b},   [\dst], \d_strd
         st1             {v3.d}[1], [\ds2], \d_strd
         b.le            0f
 .ifc \taps, 8tap
@@ -2503,7 +2503,7 @@ L(\type\()_\taps\()_filter_4):
         b.gt            880f
         add             \xmy,  \xmy,  #2
         ld1             {v0.8b},  [\xmx]
-        ld1             {v1.s}[0],  [\xmy]
+        ldr             s1,  [\xmy]
 .ifc \taps, 6tap
         sub             \src,  \src,  #4
 .else
@@ -2932,7 +2932,7 @@ L(\type\()_bilin_h):
 .else
         sub             v4.8h,   v4.8h,   v29.8h
 .endif
-        st1             {v4.d}[0], [\dst], \d_strd
+        st1             {v4.8b},   [\dst], \d_strd
         st1             {v4.d}[1], [\ds2], \d_strd
         b.gt            4b
         ret
@@ -3073,24 +3073,24 @@ function L(\type\()_bilin_v)
         lsl             \d_strd,  \d_strd,  #1
 
         // 2x2 v
-        ld1             {v16.s}[0], [\src], \s_strd
+        ld1r            {v16.4s}, [\src], \s_strd
         b.gt            24f
 22:
-        ld1             {v17.s}[0], [\sr2], \s_strd
-        ld1             {v18.s}[0], [\src], \s_strd
+        ld1r            {v17.4s}, [\sr2], \s_strd
+        ld1r            {v18.4s}, [\src], \s_strd
         trn1            v16.2s,  v16.2s,  v17.2s
         trn1            v17.2s,  v17.2s,  v18.2s
         mul             v4.4h,   v16.4h,  v2.4h
         mla             v4.4h,   v17.4h,  v3.4h
         urshr           v4.8h,   v4.8h,   #4
-        st1             {v4.s}[0], [\dst]
+        str             s4,        [\dst]
         st1             {v4.s}[1], [\ds2]
         ret
 24:     // 2x4, 2x6, 2x8, ... v
-        ld1             {v17.s}[0], [\sr2], \s_strd
-        ld1             {v18.s}[0], [\src], \s_strd
-        ld1             {v19.s}[0], [\sr2], \s_strd
-        ld1             {v20.s}[0], [\src], \s_strd
+        ld1r            {v17.4s}, [\sr2], \s_strd
+        ld1r            {v18.4s}, [\src], \s_strd
+        ld1r            {v19.4s}, [\sr2], \s_strd
+        ld1r            {v20.4s}, [\src], \s_strd
         sub             \h,  \h,  #4
         trn1            v16.2s,  v16.2s,  v17.2s
         trn1            v17.2s,  v17.2s,  v18.2s
@@ -3135,7 +3135,7 @@ function L(\type\()_bilin_v)
         urshl           v4.8h,   v4.8h,   v31.8h
         sub             v4.8h,   v4.8h,   v29.8h
 .endif
-        st1             {v4.d}[0], [\dst], \d_strd
+        st1             {v4.8b},   [\dst], \d_strd
         st1             {v4.d}[1], [\ds2], \d_strd
         b.le            0f
         mov             v16.8b,  v18.8b
@@ -3344,7 +3344,7 @@ function L(\type\()_bilin_hv)
         sub             v4.8h,   v4.8h,   v29.8h
 .endif
         subs            \h,  \h,  #2
-        st1             {v4.d}[0], [\dst], \d_strd
+        st1             {v4.8b},   [\dst], \d_strd
         st1             {v4.d}[1], [\ds2], \d_strd
         b.le            0f
         trn2            v16.2d,  v17.2d,  v17.2d
