@@ -1711,7 +1711,11 @@ L(\type\()_\taps\()_h):
 1280:   // 8xN, 16xN, 32xN, ... h
         AARCH64_VALID_JUMP_TARGET
         ld1             {v0.8b}, [\xmx]
+.ifc \taps, 6tap
+        sub             \src,  \src,  #4
+.else
         sub             \src,  \src,  #6
+.endif
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
         lsl             \s_strd,  \s_strd,  #1
@@ -1730,26 +1734,24 @@ L(\type\()_\taps\()_h):
 
 8:
 .ifc \taps, 6tap
-        ext             v24.16b, v16.16b, v17.16b, #2
-        ext             v25.16b, v20.16b, v21.16b, #2
     .ifc \type, put
         mov             v18.16b, v30.16b
         mov             v19.16b, v30.16b
-        smlal           v18.4s,  v24.4h,  v0.h[1]
-        smlal2          v19.4s,  v24.8h,  v0.h[1]
+        smlal           v18.4s,  v16.4h,  v0.h[1]
+        smlal2          v19.4s,  v16.8h,  v0.h[1]
         mov             v22.16b, v30.16b
         mov             v23.16b, v30.16b
-        smlal           v22.4s,  v25.4h,  v0.h[1]
-        smlal2          v23.4s,  v25.8h,  v0.h[1]
+        smlal           v22.4s,  v20.4h,  v0.h[1]
+        smlal2          v23.4s,  v20.8h,  v0.h[1]
     .else
-        smull           v18.4s,  v24.4h,  v0.h[1]
-        smull2          v19.4s,  v24.8h,  v0.h[1]
-        smull           v22.4s,  v25.4h,  v0.h[1]
-        smull2          v23.4s,  v25.8h,  v0.h[1]
+        smull           v18.4s,  v16.4h,  v0.h[1]
+        smull2          v19.4s,  v16.8h,  v0.h[1]
+        smull           v22.4s,  v20.4h,  v0.h[1]
+        smull2          v23.4s,  v20.8h,  v0.h[1]
     .endif
     .irpc i, 23456
-        ext             v24.16b, v16.16b, v17.16b, #(2*\i)
-        ext             v25.16b, v20.16b, v21.16b, #(2*\i)
+        ext             v24.16b, v16.16b, v17.16b, #(2*\i-2)
+        ext             v25.16b, v20.16b, v21.16b, #(2*\i-2)
         smlal           v18.4s,  v24.4h,  v0.h[\i]
         smlal2          v19.4s,  v24.8h,  v0.h[\i]
         smlal           v22.4s,  v25.4h,  v0.h[\i]
