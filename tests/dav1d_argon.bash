@@ -6,6 +6,7 @@ FILMGRAIN=1
 CPUMASK=-1
 THREADS=1
 JOBS=0
+WRAP=""
 
 usage() {
     NAME=$(basename "$0")
@@ -20,7 +21,8 @@ usage() {
         printf " -g \$num   enable filmgrain (default: 1)\n"
         printf " -c \$mask  use restricted cpumask (default: -1)\n"
         printf " -t \$num   number of threads per dav1d (default: 1)\n"
-        printf " -j \$num   number of parallel dav1d processes (default: 0)\n\n"
+        printf " -j \$num   number of parallel dav1d processes (default: 0)\n"
+        printf " -w tool   execute dav1d with a wrapper tool\n\n"
     } >&2
     exit 1
 }
@@ -79,7 +81,7 @@ if [ -d "$tests_dir/argon" ]; then
     ARGON_DIR="$tests_dir/argon"
 fi
 
-while getopts ":d:a:g:c:t:j:" opt; do
+while getopts ":d:a:g:c:t:j:w:" opt; do
     case "$opt" in
         d)
             DAV1D="$OPTARG"
@@ -98,6 +100,9 @@ while getopts ":d:a:g:c:t:j:" opt; do
             ;;
         j)
             JOBS="$OPTARG"
+            ;;
+        w)
+            WRAP="$OPTARG"
             ;;
         \?)
             printf "Error! Invalid option: -%s\n" "$OPTARG" >&2
@@ -158,7 +163,7 @@ for i in "${!files[@]}"; do
     md5=${md5/ */}
 
     printf '\033[1K\r[%3d%% %*d/%d] Verifying %s' "$(((i+1)*100/num_files))" "${#num_files}" "$((i+1))" "$num_files" "${f#"$ARGON_DIR"/}"
-    cmd=("$DAV1D" -i "$f" --filmgrain "$FILMGRAIN" --verify "$md5" --cpumask "$CPUMASK" --threads "$THREADS" -q)
+    cmd=($WRAP "$DAV1D" -i "$f" --filmgrain "$FILMGRAIN" --verify "$md5" --cpumask "$CPUMASK" --threads "$THREADS" -q)
     if [ "$JOBS" -gt 1 ]; then
         "${cmd[@]}" 2>/dev/null &
         p=$!
