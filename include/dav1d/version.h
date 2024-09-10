@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019, VideoLAN and dav1d authors
+ * Copyright © 2019-2024, VideoLAN and dav1d authors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,9 @@
 extern "C" {
 #endif
 
-#define DAV1D_API_VERSION_MAJOR @DAV1D_API_VERSION_MAJOR@
-#define DAV1D_API_VERSION_MINOR @DAV1D_API_VERSION_MINOR@
-#define DAV1D_API_VERSION_PATCH @DAV1D_API_VERSION_PATCH@
+#define DAV1D_API_VERSION_MAJOR 7
+#define DAV1D_API_VERSION_MINOR 0
+#define DAV1D_API_VERSION_PATCH 0
 
 /**
  * Extract version components from the value returned by

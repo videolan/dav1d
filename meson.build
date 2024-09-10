@@ -30,12 +30,6 @@ project('dav1d', ['c'],
                       'b_ndebug=if-release'],
     meson_version: '>= 0.49.0')
 
-dav1d_soname_version       = '7.0.0'
-dav1d_api_version_array    = dav1d_soname_version.split('.')
-dav1d_api_version_major    = dav1d_api_version_array[0]
-dav1d_api_version_minor    = dav1d_api_version_array[1]
-dav1d_api_version_revision = dav1d_api_version_array[2]
-
 dav1d_src_root = meson.current_source_dir()
 cc = meson.get_compiler('c')
 
@@ -48,7 +42,18 @@ cdata_asm = configuration_data()
 # Include directories
 dav1d_inc_dirs = include_directories(['.', 'include/dav1d', 'include'])
 
-
+dav1d_api_version_major    = cc.get_define('DAV1D_API_VERSION_MAJOR',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_api_version_minor    = cc.get_define('DAV1D_API_VERSION_MINOR',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_api_version_revision = cc.get_define('DAV1D_API_VERSION_PATCH',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_soname_version       = '@0@.@1@.@2@'.format(dav1d_api_version_major,
+                                                  dav1d_api_version_minor,
+                                                  dav1d_api_version_revision)
 
 #
 # Option handling
