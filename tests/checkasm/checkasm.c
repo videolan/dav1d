@@ -45,12 +45,12 @@
 #endif
 #else
 #include <time.h>
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+#if HAVE_PTHREAD_SETAFFINITY_NP
 #include <pthread.h>
-#ifdef HAVE_PTHREAD_NP_H
+#if HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 #endif
@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(stderr, "checkasm: running on cpu %lu\n", affinity);
             }
-#elif defined(HAVE_PTHREAD_SETAFFINITY_NP) && defined(CPU_SET)
+#elif HAVE_PTHREAD_SETAFFINITY_NP && defined(CPU_SET)
             cpu_set_t set;
             CPU_ZERO(&set);
             CPU_SET(affinity, &set);

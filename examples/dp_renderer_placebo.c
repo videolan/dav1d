@@ -26,17 +26,17 @@
 
 #include "dp_renderer.h"
 
-#ifdef HAVE_RENDERER_PLACEBO
+#if HAVE_RENDERER_PLACEBO
 #include <assert.h>
 
 #include <libplacebo/renderer.h>
 #include <libplacebo/utils/dav1d.h>
 
-#ifdef HAVE_PLACEBO_VULKAN
+#if HAVE_PLACEBO_VULKAN
 # include <libplacebo/vulkan.h>
 # include <SDL_vulkan.h>
 #endif
-#ifdef HAVE_PLACEBO_OPENGL
+#if HAVE_PLACEBO_OPENGL
 # include <libplacebo/opengl.h>
 # include <SDL_opengl.h>
 #endif
@@ -53,7 +53,7 @@ typedef struct renderer_priv_ctx
     pl_log log;
     // Placebo renderer
     pl_renderer renderer;
-#ifdef HAVE_PLACEBO_VULKAN
+#if HAVE_PLACEBO_VULKAN
     // Placebo Vulkan handle
     pl_vulkan vk;
     // Placebo Vulkan instance
@@ -61,7 +61,7 @@ typedef struct renderer_priv_ctx
     // Vulkan surface
     VkSurfaceKHR surf;
 #endif
-#ifdef HAVE_PLACEBO_OPENGL
+#if HAVE_PLACEBO_OPENGL
     // Placebo OpenGL handle
     pl_opengl gl;
     // SDL OpenGL context
@@ -125,7 +125,7 @@ static Dav1dPlayRendererPrivateContext*
     return rd_priv_ctx;
 }
 
-#ifdef HAVE_PLACEBO_OPENGL
+#if HAVE_PLACEBO_OPENGL
 static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
 {
     SDL_Window *sdlwin = NULL;
@@ -181,7 +181,7 @@ static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
 }
 #endif
 
-#ifdef HAVE_PLACEBO_VULKAN
+#if HAVE_PLACEBO_VULKAN
 static void *placebo_renderer_create_vk(const Dav1dPlaySettings *settings)
 {
     SDL_Window *sdlwin = NULL;
@@ -278,14 +278,14 @@ static void placebo_renderer_destroy(void *cookie)
     for (int i = 0; i < 3; i++)
         pl_tex_destroy(rd_priv_ctx->gpu, &(rd_priv_ctx->plane_tex[i]));
 
-#ifdef HAVE_PLACEBO_VULKAN
+#if HAVE_PLACEBO_VULKAN
     if (rd_priv_ctx->vk) {
         pl_vulkan_destroy(&(rd_priv_ctx->vk));
         vkDestroySurfaceKHR(rd_priv_ctx->vk_inst->instance, rd_priv_ctx->surf, NULL);
         pl_vk_inst_destroy(&(rd_priv_ctx->vk_inst));
     }
 #endif
-#ifdef HAVE_PLACEBO_OPENGL
+#if HAVE_PLACEBO_OPENGL
     if (rd_priv_ctx->gl)
         pl_opengl_destroy(&(rd_priv_ctx->gl));
     if (rd_priv_ctx->gl_context)
@@ -392,7 +392,7 @@ static void placebo_release_pic(Dav1dPicture *pic, void *cookie)
     SDL_UnlockMutex(rd_priv_ctx->lock);
 }
 
-#ifdef HAVE_PLACEBO_VULKAN
+#if HAVE_PLACEBO_VULKAN
 const Dav1dPlayRenderInfo rdr_placebo_vk = {
     .name = "placebo-vk",
     .create_renderer = placebo_renderer_create_vk,
@@ -407,7 +407,7 @@ const Dav1dPlayRenderInfo rdr_placebo_vk = {
 const Dav1dPlayRenderInfo rdr_placebo_vk = { NULL };
 #endif
 
-#ifdef HAVE_PLACEBO_OPENGL
+#if HAVE_PLACEBO_OPENGL
 const Dav1dPlayRenderInfo rdr_placebo_gl = {
     .name = "placebo-gl",
     .create_renderer = placebo_renderer_create_gl,

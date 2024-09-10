@@ -38,10 +38,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#ifdef HAVE_IO_H
+#if HAVE_IO_H
 # include <io.h>
 #endif
 #ifdef _WIN32
@@ -68,7 +68,7 @@ static uint64_t get_time_nanos(void) {
     uint64_t seconds = t.QuadPart / frequency.QuadPart;
     uint64_t fractions = t.QuadPart % frequency.QuadPart;
     return 1000000000 * seconds + 1000000000 * fractions / frequency.QuadPart;
-#elif defined(HAVE_CLOCK_GETTIME)
+#elif HAVE_CLOCK_GETTIME
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return 1000000000ULL * ts.tv_sec + ts.tv_nsec;

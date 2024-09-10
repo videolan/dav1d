@@ -254,7 +254,7 @@ void checkasm_simd_warmup(void);
  * handled orthogonally from integer parameters passed in GPR registers. */
 #define IGNORED_FP_ARGS 8
 #endif
-#ifdef HAVE_C11_GENERIC
+#if HAVE_C11_GENERIC
 #define clobber_type(arg) _Generic((void (*)(void*, arg))NULL,\
      void (*)(void*, int32_t ): clobber_mask |= 1 << mpos++,\
      void (*)(void*, uint32_t): clobber_mask |= 1 << mpos++,\
