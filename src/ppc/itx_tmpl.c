@@ -123,6 +123,18 @@
 #define STORE_8(dst, stride, ab, cd, ef, gh) \
     STORE_LEN(8, dst, stride, ab, cd, ef, gh)
 
+#define STORE_16(dst, stride, l0, l1, l2, l3) \
+{ \
+    uint8_t *dst##2 = dst; \
+    vec_xst(l0, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l1, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l2, 0, dst##2); \
+    dst##2 += stride; \
+    vec_xst(l3, 0, dst##2); \
+}
+
 #define APPLY_COEFF_4(a, b, c, d, c01, c23) \
 { \
     u8x16 ab = (u8x16)vec_mergeh((u32x4)a, (u32x4)b); \
@@ -348,19 +360,19 @@
     c23 = vec_packs(c2, c3); \
 }
 
-void dav1d_inv_txfm_add_dct_dct_4x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride,
-                                              int16_t *const coeff, const int eob)
+static void dc_only_4xN(uint8_t *dst, const ptrdiff_t stride, int16_t *const coeff, int n, int is_rect2, int shift)
 {
-    assert(eob >= 0);
+    int dc = coeff[0];
+    const int rnd = (1 << shift) >> 1;
+    if (is_rect2)
+        dc = (dc * 181 + 128) >> 8;
+    dc = (dc * 181 + 128) >> 8;
+    dc = (dc + rnd) >> shift;
+    dc = (dc * 181 + 128 + 2048) >> 12;
 
-    if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        i16x8 v = vec_splats((int16_t)(2896*8));
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(0));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
+    i16x8 vdc = vec_splats((int16_t)dc);
+    coeff[0] = 0;
+    for (int i = 0; i < n; i++, dst += 4 * stride) {
         LOAD_DECLARE_4(dst, stride, a, b, c, d)
 
         i16x8 as = u8h_to_i16(a);
@@ -379,8 +391,94 @@ void dav1d_inv_txfm_add_dct_dct_4x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stri
         d = vec_packsu(ds, ds);
 
         STORE_4(dst, stride, a, b, c, d)
+    }
+}
 
-        return;
+static void dc_only_8xN(uint8_t *dst, const ptrdiff_t stride, int16_t *const coeff, int n, int is_rect2, int shift)
+{
+    int dc = coeff[0];
+    const int rnd = (1 << shift) >> 1;
+    if (is_rect2)
+        dc = (dc * 181 + 128) >> 8;
+    dc = (dc * 181 + 128) >> 8;
+    dc = (dc + rnd) >> shift;
+    dc = (dc * 181 + 128 + 2048) >> 12;
+
+    i16x8 vdc = vec_splats((int16_t)dc);
+    coeff[0] = 0;
+
+    for (int i = 0; i < n; i++, dst += 4 * stride) {
+        LOAD_DECLARE_4(dst, stride, a, b, c, d)
+
+        i16x8 as = u8h_to_i16(a);
+        i16x8 bs = u8h_to_i16(b);
+        i16x8 cs = u8h_to_i16(c);
+        i16x8 ds = u8h_to_i16(d);
+
+        as = vec_adds(as, vdc);
+        bs = vec_adds(bs, vdc);
+        cs = vec_adds(cs, vdc);
+        ds = vec_adds(ds, vdc);
+
+        a = vec_packsu(as, as);
+        b = vec_packsu(bs, bs);
+        c = vec_packsu(cs, cs);
+        d = vec_packsu(ds, ds);
+
+        STORE_8(dst, stride, a, b, c, d)
+    }
+}
+
+static void dc_only_16xN(uint8_t *dst, const ptrdiff_t stride, int16_t *const coeff, int n, int is_rect2, int shift)
+{
+    int dc = coeff[0];
+    const int rnd = (1 << shift) >> 1;
+    if (is_rect2)
+        dc = (dc * 181 + 128) >> 8;
+    dc = (dc * 181 + 128) >> 8;
+    dc = (dc + rnd) >> shift;
+    dc = (dc * 181 + 128 + 2048) >> 12;
+
+    i16x8 vdc = vec_splats((int16_t)dc);
+    coeff[0] = 0;
+
+    for (int i = 0; i < n; i++, dst += 4 * stride) {
+        LOAD_DECLARE_4(dst, stride, a, b, c, d)
+
+        i16x8 ah = u8h_to_i16(a);
+        i16x8 bh = u8h_to_i16(b);
+        i16x8 ch = u8h_to_i16(c);
+        i16x8 dh = u8h_to_i16(d);
+        i16x8 al = u8l_to_i16(a);
+        i16x8 bl = u8l_to_i16(b);
+        i16x8 cl = u8l_to_i16(c);
+        i16x8 dl = u8l_to_i16(d);
+
+        ah = vec_adds(ah, vdc);
+        bh = vec_adds(bh, vdc);
+        ch = vec_adds(ch, vdc);
+        dh = vec_adds(dh, vdc);
+        al = vec_adds(al, vdc);
+        bl = vec_adds(bl, vdc);
+        cl = vec_adds(cl, vdc);
+        dl = vec_adds(dl, vdc);
+
+        a = vec_packsu(ah, al);
+        b = vec_packsu(bh, bl);
+        c = vec_packsu(ch, cl);
+        d = vec_packsu(dh, dl);
+
+        STORE_16(dst, stride, a, b, c, d)
+    }
+}
+
+void dav1d_inv_txfm_add_dct_dct_4x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride,
+                                              int16_t *const coeff, const int eob)
+{
+    assert(eob >= 0);
+
+    if (eob < 1) {
+        return dc_only_4xN(dst, stride, coeff, 1, 0, 0);
     }
 
     LOAD_COEFF_4(coeff)
@@ -917,36 +1015,7 @@ void dav1d_inv_txfm_add_dct_dct_4x8_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stri
     i16x8 v = vec_splats((int16_t)(2896*8));
 
     if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(0));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(0));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
-
-        for (int i = 0; i < 2; i++, dst += 4 * stride) {
-            LOAD_DECLARE_4(dst, stride, a, b, c, d)
-
-            i16x8 as = u8h_to_i16(a);
-            i16x8 bs = u8h_to_i16(b);
-            i16x8 cs = u8h_to_i16(c);
-            i16x8 ds = u8h_to_i16(d);
-
-            as = vec_adds(as, vdc);
-            bs = vec_adds(bs, vdc);
-            cs = vec_adds(cs, vdc);
-            ds = vec_adds(ds, vdc);
-
-            a = vec_packsu(as, as);
-            b = vec_packsu(bs, bs);
-            c = vec_packsu(cs, cs);
-            d = vec_packsu(ds, ds);
-
-            STORE_4(dst, stride, a, b, c, d)
-        }
-
-        return;
+        return dc_only_4xN(dst, stride, coeff, 2, 1, 0);
     }
 
     LOAD_SCALE_COEFF_4x8(coeff, v)
@@ -1016,36 +1085,7 @@ void dav1d_inv_txfm_add_dct_dct_8x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stri
     i16x8 v = vec_splats((int16_t)(2896*8));
 
     if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(0));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(0));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
-
-        dc = vdc[0];
-
-        LOAD_DECLARE_4(dst, stride, a, b, c, d)
-
-        i16x8 as = u8h_to_i16(a);
-        i16x8 bs = u8h_to_i16(b);
-        i16x8 cs = u8h_to_i16(c);
-        i16x8 ds = u8h_to_i16(d);
-
-        as = vec_adds(as, vdc);
-        bs = vec_adds(bs, vdc);
-        cs = vec_adds(cs, vdc);
-        ds = vec_adds(ds, vdc);
-
-        a = vec_packsu(as, as);
-        b = vec_packsu(bs, bs);
-        c = vec_packsu(cs, cs);
-        d = vec_packsu(ds, ds);
-
-        STORE_8(dst, stride, a, b, c, d)
-
-        return;
+        return dc_only_8xN(dst, stride, coeff, 1, 1, 0);
     }
 
     LOAD_SCALE_COEFF_8x4(coeff, v)
@@ -1114,38 +1154,8 @@ inv_txfm_fn8x4(flipadst, flipadst)
 void dav1d_inv_txfm_add_dct_dct_8x8_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride,
                                               int16_t *const coeff, const int eob)
 {
-    i16x8 v = vec_splats((int16_t)(2896*8));
-
     if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(1));
-        vdc = vec_sra(vdc, vec_splat_u16(1));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
-
-        for (int i = 0; i < 2; i++, dst += 4 * stride) {
-            LOAD_DECLARE_4(dst, stride, a, b, c, d)
-
-            i16x8 as = u8h_to_i16(a);
-            i16x8 bs = u8h_to_i16(b);
-            i16x8 cs = u8h_to_i16(c);
-            i16x8 ds = u8h_to_i16(d);
-
-            as = vec_adds(as, vdc);
-            bs = vec_adds(bs, vdc);
-            cs = vec_adds(cs, vdc);
-            ds = vec_adds(ds, vdc);
-
-            a = vec_packsu(as, as);
-            b = vec_packsu(bs, bs);
-            c = vec_packsu(cs, cs);
-            d = vec_packsu(ds, ds);
-
-            STORE_8(dst, stride, a, b, c, d)
-        }
-        return;
+        return dc_only_8xN(dst, stride, coeff, 2, 0, 1);
     }
 
     LOAD_COEFF_8x8(coeff)
@@ -1767,39 +1777,8 @@ void dav1d_inv_txfm_add_dct_dct_4x16_8bpc_pwr9(uint8_t *dst, const ptrdiff_t str
                                                int16_t *const coeff, const int eob
                                                HIGHBD_DECL_SUFFIX)
 {
-    i16x8 v = vec_splats((int16_t)(2896*8));
-
     if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(1));
-        vdc = vec_sra(vdc, vec_splat_u16(1));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
-
-        for (int i = 0; i < 4; i++, dst += 4 * stride) {
-            LOAD_DECLARE_4(dst, stride, a, b, c, d)
-
-            i16x8 as = u8h_to_i16(a);
-            i16x8 bs = u8h_to_i16(b);
-            i16x8 cs = u8h_to_i16(c);
-            i16x8 ds = u8h_to_i16(d);
-
-            as = vec_adds(as, vdc);
-            bs = vec_adds(bs, vdc);
-            cs = vec_adds(cs, vdc);
-            ds = vec_adds(ds, vdc);
-
-            a = vec_packsu(as, as);
-            b = vec_packsu(bs, bs);
-            c = vec_packsu(cs, cs);
-            d = vec_packsu(ds, ds);
-
-            STORE_4(dst, stride, a, b, c, d)
-        }
-
-        return;
+        return dc_only_4xN(dst, stride, coeff, 4, 0, 1);
     }
 
     LOAD_COEFF_4x16(coeff)
@@ -1884,60 +1863,12 @@ inv_txfm_fn4x16(identity, identity)
 inv_txfm_fn4x16(adst,     adst    )
 inv_txfm_fn4x16(flipadst, flipadst)
 
-#define STORE_16(dst, stride, l0, l1, l2, l3) \
-{ \
-    uint8_t *dst##2 = dst; \
-    vec_xst(l0, 0, dst##2); \
-    dst##2 += stride; \
-    vec_xst(l1, 0, dst##2); \
-    dst##2 += stride; \
-    vec_xst(l2, 0, dst##2); \
-    dst##2 += stride; \
-    vec_xst(l3, 0, dst##2); \
-}
-
 void dav1d_inv_txfm_add_dct_dct_16x4_8bpc_pwr9(uint8_t *dst, const ptrdiff_t stride,
                                                int16_t *const coeff, const int eob)
 {
-    i16x8 v = vec_splats((int16_t)(2896*8));
 
     if (eob < 1) {
-        int dc = coeff[0];
-        i16x8 vdc = vec_splats((int16_t)dc);
-        coeff[0] = 0;
-        vdc = vec_mradds(vdc, v, vec_splat_s16(1));
-        vdc = vec_sra(vdc, vec_splat_u16(1));
-        vdc = vec_mradds(vdc, v, vec_splat_s16(8));
-        vdc = vec_sra(vdc, vec_splat_u16(4));
-
-        LOAD_DECLARE_4(dst, stride, a, b, c, d)
-
-        i16x8 ah = u8h_to_i16(a);
-        i16x8 bh = u8h_to_i16(b);
-        i16x8 ch = u8h_to_i16(c);
-        i16x8 dh = u8h_to_i16(d);
-        i16x8 al = u8l_to_i16(a);
-        i16x8 bl = u8l_to_i16(b);
-        i16x8 cl = u8l_to_i16(c);
-        i16x8 dl = u8l_to_i16(d);
-
-        ah = vec_adds(ah, vdc);
-        bh = vec_adds(bh, vdc);
-        ch = vec_adds(ch, vdc);
-        dh = vec_adds(dh, vdc);
-        al = vec_adds(al, vdc);
-        bl = vec_adds(bl, vdc);
-        cl = vec_adds(cl, vdc);
-        dl = vec_adds(dl, vdc);
-
-        a = vec_packsu(ah, al);
-        b = vec_packsu(bh, bl);
-        c = vec_packsu(ch, cl);
-        d = vec_packsu(dh, dl);
-
-        STORE_16(dst, stride, a, b, c, d)
-
-        return;
+        return dc_only_16xN(dst, stride, coeff, 1, 0, 1);
     }
 
     LOAD_DECLARE_2_I16(coeff, c00c01, c02c03) \
