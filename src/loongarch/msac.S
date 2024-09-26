@@ -39,26 +39,21 @@ endconst
 
 .macro decode_symbol_adapt w
     addi.d          sp,      sp,     -48
-    addi.d          a4,      a0,      24
-    vldrepl.h       vr0,     a4,      0    //rng
+    vldrepl.h       vr0,     a0,      24   //rng
     fst.s           f0,      sp,      0    //val==0
     vld             vr1,     a1,      0    //cdf
 .if \w == 16
-    li.w            t4,      16
-    vldx            vr11,    a1,      t4
+    vld             vr11,    a1,      16
 .endif
-    addi.d          a6,      a0,      16
-    vldrepl.d       vr2,     a6,      0    //dif
-    addi.d          t0,      a0,      32
-    ld.w            t1,      t0,      0    //allow_update_cdf
+    vldrepl.d       vr2,     a0,      16   //dif
+    ld.w            t1,      a0,      32   //allow_update_cdf
     la.local        t2,      min_prob
-    addi.d          t2,      t2,      32
-    addi.w          t3,      a2,      1
-    slli.w          t3,      t3,      1
+    addi.d          t2,      t2,      30
+    slli.w          t3,      a2,      1
     sub.d           t2,      t2,      t3
     vld             vr3,     t2,      0    //min_prob
 .if \w == 16
-    vldx            vr13,    t2,      t4
+    vld             vr13,    t2,      16
 .endif
     vsrli.h         vr4,     vr0,     8    //r = s->rng >> 8
     vslli.h         vr4,     vr4,     8    //r << 8
@@ -74,17 +69,15 @@ endconst
     vmuh.hu         vr15,    vr4,     vr15
     vadd.h          vr15,    vr15,    vr13
 .endif
-    addi.d          t8,      sp,      4
+    addi.d          t8,      sp,      2
     vst             vr5,     t8,      0    //store v
 .if \w == 16
-    vstx            vr15,    t8,      t4
+    vst             vr15,    t8,      16
 .endif
     vreplvei.h      vr20,    vr2,     3    //c
-    vssub.hu        vr6,     vr5,     vr20 //c >=v
-    vseqi.h         vr6,     vr6,     0
+    vsle.hu         vr6,     vr5,     vr20
 .if \w == 16
-    vssub.hu        vr16,    vr15,    vr20 //c >=v
-    vseqi.h         vr16,    vr16,    0
+    vsle.hu         vr16,    vr15,    vr20
     vpickev.b       vr21,    vr16,    vr6
 .endif
 .if \w <= 8
@@ -98,10 +91,14 @@ endconst
     alsl.d          t1,      a2,      a1,   1
     ld.h            t2,      t1,      0    //count
     srli.w          t3,      t2,      4    //count >> 4
+.if \w == 16
+    addi.w          t3,      t3,      5    //rate
+.else
     addi.w          t3,      t3,      4
     li.w            t5,      2
     sltu            t5,      t5,      a2
     add.w           t3,      t3,      t5   //rate
+.endif
     sltui           t5,      t2,      32
     add.w           t2,      t2,      t5   //count + (count < 32)
     vreplgr2vr.h    vr9,     t3
@@ -124,7 +121,7 @@ endconst
 .if \w == 16
     vsra.h          vr15,    vr15,    vr9
     vadd.h          vr18,    vr18,    vr15
-    vstx            vr18,    a1,      t4
+    vst             vr18,    a1,      16
 .endif
     st.h            t2,      t1,      0
 
@@ -133,8 +130,7 @@ endconst
     ctz.w           a7,      t3            // ret
     alsl.d          t3,      a7,      t8,      1
     ld.hu           t4,      t3,      0    // v
-    addi.d          t3,      t3,      -2
-    ld.hu           t5,      t3,      0    // u
+    ld.hu           t5,      t3,      -2   // u
     sub.w           t5,      t5,      t4   // rng
     slli.d          t4,      t4,      48
     vpickve2gr.d    t6,      vr2,     0
@@ -142,11 +138,10 @@ endconst
     clz.w           t4,      t5            // d
     xori            t4,      t4,      16   // d
     sll.d           t6,      t6,      t4
-    addi.d          a5,      a0,      28   // cnt
-    ld.w            t0,      a5,      0
+    ld.w            t0,      a0,      28   //cnt
     sll.w           t5,      t5,      t4
     sub.w           t7,      t0,      t4   // cnt-d
-    st.w            t5,      a4,      0    // store rng
+    st.w            t5,      a0,      24   // store rng
     bgeu            t0,      t4,      9f
 
     // refill
@@ -192,8 +187,8 @@ endconst
 4:
     or              t6,      t6,      t3   // dif |= next_bits
 9:
-    st.w            t7,      a5,      0    // store cnt
-    st.d            t6,      a6,      0    // store dif
+    st.w            t7,      a0,      28   // store cnt
+    st.d            t6,      a0,      16   // store dif
     move            a0,      a7
     addi.d          sp,      sp,      48
 .endm
