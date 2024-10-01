@@ -7,6 +7,8 @@ CPUMASK=-1
 THREADS=1
 JOBS=0
 WRAP=""
+FAIL_FAST=0
+
 
 usage() {
     NAME=$(basename "$0")
@@ -16,6 +18,7 @@ usage() {
         printf "Used to verify that dav1d can decode the Argon AV1 test vectors correctly.\n\n"
         printf " DIRECTORY one or more dirs in the argon folder to check against\n"
         printf "             (default: everything except large scale tiles and stress files)\n"
+        printf " -f        fail fast\n"
         printf " -d dav1d  path to dav1d executable (default: tools/dav1d)\n"
         printf " -a dir    path to argon dir (default: 'tests/argon' if found; '.' otherwise)\n"
         printf " -g \$num   enable filmgrain (default: 1)\n"
@@ -34,6 +37,7 @@ error() {
 
 fail() {
     printf "\033[1K\rMismatch in %s\n" "$1"
+    [[ $FAIL_FAST = 1 ]] && exit 1
     (( failed++ ))
 }
 
@@ -81,8 +85,11 @@ if [ -d "$tests_dir/argon" ]; then
     ARGON_DIR="$tests_dir/argon"
 fi
 
-while getopts ":d:a:g:c:t:j:w:" opt; do
+while getopts ":d:a:g:c:t:j:w:f" opt; do
     case "$opt" in
+        f)
+            FAIL_FAST=1
+            ;;
         d)
             DAV1D="$OPTARG"
             ;;
