@@ -176,7 +176,6 @@ if is_asm_enabled
             'x86/itx_avx512.asm',
             'x86/cdef_avx2.asm',
             'x86/itx_avx2.asm',
-            'x86/looprestoration_avx2.asm',
             'x86/cdef_sse.asm',
             'x86/itx_sse.asm',
         )
@@ -192,6 +191,7 @@ if is_asm_enabled
                 'x86/filmgrain_avx2.asm',
                 'x86/ipred_avx2.asm',
                 'x86/loopfilter_avx2.asm',
+                'x86/looprestoration_avx2.asm',
                 'x86/mc_avx2.asm',
                 'x86/filmgrain_sse.asm',
                 'x86/ipred_sse.asm',
