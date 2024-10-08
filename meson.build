@@ -346,6 +346,34 @@ if host_machine.cpu_family().startswith('x86')
     cdata_asm.set('STACK_ALIGNMENT', stack_alignment)
 endif
 
+#
+# ASM specific stuff
+#
+
+use_gaspp = false
+if (is_asm_enabled and
+    (host_machine.cpu_family() == 'aarch64' or
+     host_machine.cpu_family().startswith('arm')) and
+    cc.get_argument_syntax() == 'msvc' and
+    (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
+    gaspp = find_program('gas-preprocessor.pl')
+    use_gaspp = true
+    gaspp_gen = generator(gaspp,
+        output: '@BASENAME@.obj',
+        arguments: [
+            '-as-type', 'armasm',
+            '-arch', host_machine.cpu_family(),
+            '--',
+            host_machine.cpu_family() == 'aarch64' ? 'armasm64' : 'armasm',
+            '-nologo',
+            '-I@0@'.format(dav1d_src_root),
+            '-I@0@/'.format(meson.current_build_dir()),
+            '@INPUT@',
+            '-c',
+            '-o', '@OUTPUT@'
+        ])
+endif
+
 cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64')
 cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm') and host_machine.cpu() != 'arm64')
 
@@ -482,9 +510,6 @@ if (host_machine.system() in ['darwin', 'ios', 'tvos'] or
     cdata_asm.set10('PREFIX', true)
 endif
 
-#
-# ASM specific stuff
-#
 if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     # NASM compiler support
@@ -531,30 +556,6 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
             '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
             '@EXTRA_ARGS@',
             '@INPUT@',
-            '-o', '@OUTPUT@'
-        ])
-endif
-
-use_gaspp = false
-if (is_asm_enabled and
-    (host_machine.cpu_family() == 'aarch64' or
-     host_machine.cpu_family().startswith('arm')) and
-    cc.get_argument_syntax() == 'msvc' and
-    (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
-    gaspp = find_program('gas-preprocessor.pl')
-    use_gaspp = true
-    gaspp_gen = generator(gaspp,
-        output: '@BASENAME@.obj',
-        arguments: [
-            '-as-type', 'armasm',
-            '-arch', host_machine.cpu_family(),
-            '--',
-            host_machine.cpu_family() == 'aarch64' ? 'armasm64' : 'armasm',
-            '-nologo',
-            '-I@0@'.format(dav1d_src_root),
-            '-I@0@/'.format(meson.current_build_dir()),
-            '@INPUT@',
-            '-c',
             '-o', '@OUTPUT@'
         ])
 endif
