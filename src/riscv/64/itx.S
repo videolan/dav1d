@@ -192,19 +192,12 @@ endfunc
   vadd.vv v18, v18, v22
   vsub.vv v22, v24, v22
 
-  li t1, 2048
-
-  vadd.vx v16, v16, t1
-  vadd.vx v18, v18, t1
-  vadd.vx v20, v20, t1
-  vadd.vx v22, v22, t1
-
   vsetvli zero, zero, e16, \lm, ta, ma
 
-  vnsra.wi \o0, v16, 12
-  vnsra.wi \o1, v18, 12
-  vnsra.wi \o2, v20, 12
-  vnsra.wi \o3, v22, 12
+  vnclip.wi \o0, v16, 12
+  vnclip.wi \o1, v18, 12
+  vnclip.wi \o2, v20, 12
+  vnclip.wi \o3, v22, 12
 .endm
 
 function inv_dct_e16_x4_rvv, export=1, ext=v
