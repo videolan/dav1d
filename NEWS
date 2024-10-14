@@ -12,6 +12,8 @@ Changes for 1.5.0 'Road Runner':
  - AArch64: Add USMMLA implempentation for 6-tap H/HV
  - AArch64: Optimize Armv8.0 NEON for HBD horizontal filters and 6-tap filters
  - Power9: Optimized ITX till 16x4.
+ - Loongarch: numerous optimizations
+ - RISC-V optimizations for pal, cdef_filter, ipred, mc_blend, mc_bdir
  - Allow playing videos in full-screen mode in dav1dplay
 
 
