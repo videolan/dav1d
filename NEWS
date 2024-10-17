@@ -1,5 +1,5 @@
-Changes for 1.5.0 'Road Runner':
---------------------------------
+Changes for 1.5.0 'Sonic':
+--------------------------
 
 1.5.0 is a major release of dav1d, that:
  - WARNING: we removed some of the SSE2 optimizations, so if you care about
