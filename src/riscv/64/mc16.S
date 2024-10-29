@@ -1,5 +1,5 @@
-/*
- * Copyright © 2024, VideoLAN and dav1d authors
+/******************************************************************************
+ * Copyright © 2018, VideoLAN and dav1d authors
  * Copyright © 2024, Nathan Egge
  * All rights reserved.
  *
@@ -23,47 +23,46 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *****************************************************************************/
 
-#include "src/cpu.h"
-#include "src/mc.h"
+#include "src/riscv/asm.S"
 
-decl_blend_fn(BF(dav1d_blend, rvv));
-decl_blend_dir_fn(BF(dav1d_blend_h, rvv));
-decl_blend_dir_fn(BF(dav1d_blend_v, rvv));
-
-decl_blend_fn(BF(dav1d_blend_vl256, rvv));
-decl_blend_dir_fn(BF(dav1d_blend_h_vl256, rvv));
-decl_blend_dir_fn(BF(dav1d_blend_v_vl256, rvv));
-
-decl_avg_fn(BF(dav1d_avg, rvv));
-decl_w_avg_fn(BF(dav1d_w_avg, rvv));
-decl_mask_fn(BF(dav1d_mask, rvv));
-
-decl_warp8x8_fn(BF(dav1d_warp_8x8, rvv));
-decl_warp8x8t_fn(BF(dav1d_warp_8x8t, rvv));
-
-static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
-  const unsigned flags = dav1d_get_cpu_flags();
-
-  if (!(flags & DAV1D_RISCV_CPU_FLAG_V)) return;
-
-  c->blend = BF(dav1d_blend, rvv);
-#if BITDEPTH == 8
-  c->blend_h = BF(dav1d_blend_h, rvv);
-  c->blend_v = BF(dav1d_blend_v, rvv);
-
-  if (dav1d_get_vlen() >= 256) {
-    c->blend = BF(dav1d_blend_vl256, rvv);
-    c->blend_h = BF(dav1d_blend_h_vl256, rvv);
-    c->blend_v = BF(dav1d_blend_v_vl256, rvv);
-  }
-
-  c->avg     = BF(dav1d_avg, rvv);
-  c->w_avg   = BF(dav1d_w_avg, rvv);
-  c->mask    = BF(dav1d_mask, rvv);
-
-  c->warp8x8 = BF(dav1d_warp_8x8, rvv);
-  c->warp8x8t = BF(dav1d_warp_8x8t, rvv);
-#endif
-}
+function blend_16bpc_rvv, export=1, ext="v,zbb"
+  li t0, 4
+  beq a3, t0, 4f
+  li t0, 8
+  beq a3, t0, 8f
+  li t0, 16
+  beq a3, t0, 16f
+32:
+  vsetvli zero, a3, e16, m4, ta, ma
+  j 0f
+16:
+  vsetvli zero, a3, e16, m2, ta, ma
+  j 0f
+8:
+  vsetvli zero, a3, e16, m1, ta, ma
+  j 0f
+4:
+  vsetvli zero, a3, e16, mf2, ta, ma
+0:
+  csrw vxrm, zero
+  li t1, 64
+  add a6, a3, a3
+1:
+  addi a4, a4, -1
+  vle8.v v8, (a5)
+  add a5, a5, a3
+  vle16.v v4, (a2)
+  add a2, a2, a6
+  vzext.vf2 v12, v8
+  vle16.v v0, (a0)
+  vwmulu.vv v16, v4, v12
+  vrsub.vx v12, v12, t1
+  vwmaccu.vv v16, v0, v12
+  vnclipu.wi v0, v16, 6
+  vse16.v v0, (a0)
+  add a0, a0, a1
+  bnez a4, 1b
+  ret
+endfunc

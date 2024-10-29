@@ -287,6 +287,7 @@ if is_asm_enabled
                 libdav1d_sources += files(
                     'riscv/64/cdef16.S',
                     'riscv/64/ipred16.S',
+                    'riscv/64/mc16.S',
                 )
             endif
         endif
