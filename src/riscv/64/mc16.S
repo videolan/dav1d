@@ -44,19 +44,31 @@ L(blend_epilog):
   add a6, a3, a3
   vsetvl zero, a3, t0
 1:
-  addi a4, a4, -1
-  vle8.v v8, (a5)
+  addi a4, a4, -2
+  vle8.v v24, (a5)
   add a5, a5, a3
-  vle16.v v4, (a2)
+  vle8.v v28, (a5)
+  add a5, a5, a3
+  vle16.v v8, (a2)
   add a2, a2, a6
-  vzext.vf2 v12, v8
+  vle16.v v12, (a2)
+  add a2, a2, a6
+  vzext.vf2 v16, v24
+  vzext.vf2 v20, v28
   vle16.v v0, (a0)
-  vwmulu.vv v16, v4, v12
-  vrsub.vx v12, v12, t1
-  vwmaccu.vv v16, v0, v12
-  vnclipu.wi v0, v16, 6
+  add t0, a0, a1
+  vle16.v v4, (t0)
+  vwmulu.vv v24, v8, v16
+  vwmulu.vv v8, v12, v20
+  vrsub.vx v16, v16, t1
+  vrsub.vx v20, v20, t1
+  vwmaccu.vv v24, v0, v16
+  vwmaccu.vv v8, v4, v20
+  vnclipu.wi v0, v24, 6
+  vnclipu.wi v4, v8, 6
   vse16.v v0, (a0)
-  add a0, a0, a1
+  vse16.v v4, (t0)
+  add a0, t0, a1
   bnez a4, 1b
   ret
 endfunc
