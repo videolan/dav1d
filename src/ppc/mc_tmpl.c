@@ -31,9 +31,11 @@
 
 #if BITDEPTH == 8
 
+#define blend_px(a, b, m) (((a * (64 - m) + b * m) + 32) >> 6)
+
 typedef void (*blend_line)(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride);
 
-#define BLEND_LINES(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3) \
+#define BLEND_LINES4(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3) \
 { \
     u16x8 anm0 = vec_mule(ab0, nm_m0); \
     u16x8 anm1 = vec_mule(ab1, nm_m1); \
@@ -59,6 +61,24 @@ typedef void (*blend_line)(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask
     d1_u16 = vec_sr(d1_u16, vec_splat_u16(6)); \
     d2_u16 = vec_sr(d2_u16, vec_splat_u16(6)); \
     d3_u16 = vec_sr(d3_u16, vec_splat_u16(6)); \
+}
+
+#define BLEND_LINES2(d0_u16, d1_u16, ab0, ab1, nm_m0, nm_m1) \
+{ \
+    u16x8 anm0 = vec_mule(ab0, nm_m0); \
+    u16x8 anm1 = vec_mule(ab1, nm_m1); \
+\
+    u16x8 bm0 = vec_mulo(ab0, nm_m0); \
+    u16x8 bm1 = vec_mulo(ab1, nm_m1); \
+\
+    d0_u16 = vec_add(anm0, bm0); \
+    d1_u16 = vec_add(anm1, bm1); \
+\
+    d0_u16 = vec_add(d0_u16, vec_splats((uint16_t)32)); \
+    d1_u16 = vec_add(d1_u16, vec_splats((uint16_t)32)); \
+\
+    d0_u16 = vec_sr(d0_u16, vec_splat_u16(6)); \
+    d1_u16 = vec_sr(d1_u16, vec_splat_u16(6)); \
 }
 
 static void blend4(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
@@ -93,7 +113,7 @@ static void blend4(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int st
 
     u16x8 d0_u16, d1_u16, d2_u16, d3_u16;
 
-    BLEND_LINES(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3);
+    BLEND_LINES4(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3);
 
     u8x16 d0 = (u8x16)vec_pack(d0_u16, d0_u16);
     u8x16 d1 = (u8x16)vec_pack(d1_u16, d1_u16);
@@ -138,7 +158,7 @@ static void blend8(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int st
 
     u16x8 d0_u16, d1_u16, d2_u16, d3_u16;
 
-    BLEND_LINES(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3);
+    BLEND_LINES4(d0_u16, d1_u16, d2_u16, d3_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3);
 
     u8x16 d0 = (u8x16)vec_pack(d0_u16, d0_u16);
     u8x16 d1 = (u8x16)vec_pack(d1_u16, d1_u16);
@@ -185,7 +205,7 @@ static inline void blend16_lines(uint8_t *dst, const uint8_t *tmp, const uint8_t
     u16x8 d0h_u16, d1h_u16, d2h_u16, d3h_u16;
     u16x8 d0l_u16, d1l_u16, d2l_u16, d3l_u16;
 
-    BLEND_LINES(d0h_u16, d1h_u16, d2h_u16, d3h_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3)
+    BLEND_LINES4(d0h_u16, d1h_u16, d2h_u16, d3h_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3)
 
     ab0 = vec_mergel(a0, b0);
     ab1 = vec_mergel(a1, b1);
@@ -197,7 +217,7 @@ static inline void blend16_lines(uint8_t *dst, const uint8_t *tmp, const uint8_t
     nm_m2 = vec_mergel(nm2, m2);
     nm_m3 = vec_mergel(nm3, m3);
 
-    BLEND_LINES(d0l_u16, d1l_u16, d2l_u16, d3l_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3)
+    BLEND_LINES4(d0l_u16, d1l_u16, d2l_u16, d3l_u16, ab0, ab1, ab2, ab3, nm_m0, nm_m1, nm_m2, nm_m3)
 
     u8x16 d0 = (u8x16)vec_pack(d0h_u16, d0l_u16);
     u8x16 d1 = (u8x16)vec_pack(d1h_u16, d1l_u16);
@@ -249,6 +269,129 @@ void dav1d_blend_8bpc_pwr9(pixel *dst, const ptrdiff_t dst_stride, const pixel *
         dst += 4 * PXSTRIDE(dst_stride);
         tmp += 4 * w;
         mask += 4 * w;
+    }
+}
+
+static inline void blend_v_h(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride, int mstride, int l)
+{
+    u8x16 v64u8 = vec_splats((uint8_t)64);
+    u8x16 a0 = vec_xl(0, dst);
+    u8x16 a1 = vec_xl(0, dst + stride);
+    u8x16 m0 = vec_xl(0, mask);
+    u8x16 b0 = vec_xl(0, tmp);
+    u8x16 b1 = vec_xl(0, tmp + mstride);
+
+    u8x16 nm0 = vec_sub(v64u8, m0);
+
+    u8x16 ab0 = vec_mergeh(a0, b0); // a even, b odd
+    u8x16 ab1 = vec_mergeh(a1, b1); // a even, b odd
+    u8x16 nm_m0 = vec_mergeh(nm0, m0);
+
+    u16x8 d0_u16, d1_u16;
+
+    BLEND_LINES2(d0_u16, d1_u16, ab0, ab1, nm_m0, nm_m0);
+
+    u8x16 d0 = (u8x16)vec_pack(d0_u16, d0_u16);
+    u8x16 d1 = (u8x16)vec_pack(d1_u16, d1_u16);
+
+    vec_xst_len(d0, dst, l);
+    vec_xst_len(d1, dst + stride, l);
+}
+
+static inline void blend_v_hl(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride, int mstride, int l)
+{
+    u8x16 v64u8 = vec_splats((uint8_t)64);
+    u8x16 a0 = vec_xl(0, dst);
+    u8x16 a1 = vec_xl(0, dst + stride);
+    u8x16 m0 = vec_xl(0, mask);
+    u8x16 b0 = vec_xl(0, tmp);
+    u8x16 b1 = vec_xl(0, tmp + mstride);
+
+    u8x16 nm0 = vec_sub(v64u8, m0);
+
+    u8x16 ab0 = vec_mergeh(a0, b0);
+    u8x16 ab1 = vec_mergeh(a1, b1);
+
+    u8x16 nm_m0 = vec_mergeh(nm0, m0);
+
+    u16x8 d0h_u16, d1h_u16;
+    u16x8 d0l_u16, d1l_u16;
+
+    BLEND_LINES2(d0h_u16, d1h_u16, ab0, ab1, nm_m0, nm_m0)
+
+    ab0 = vec_mergel(a0, b0);
+    ab1 = vec_mergel(a1, b1);
+
+    nm_m0 = vec_mergel(nm0, m0);
+
+    BLEND_LINES2(d0l_u16, d1l_u16, ab0, ab1,nm_m0, nm_m0)
+
+    u8x16 d0 = (u8x16)vec_pack(d0h_u16, d0l_u16);
+    u8x16 d1 = (u8x16)vec_pack(d1h_u16, d1l_u16);
+
+    vec_xst_len(d0, dst, l);
+    vec_xst_len(d1, dst + stride, l);
+}
+
+static void blend_v3(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
+{
+    blend_v_h(dst, tmp, mask, stride, 4, 3);
+}
+
+static void blend_v6(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
+{
+    blend_v_h(dst, tmp, mask, stride, 8, 6);
+}
+
+static void blend_v12(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
+{
+    blend_v_hl(dst, tmp, mask, stride, 16, 12);
+}
+
+static void blend_v24(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
+{
+    blend_v_hl(dst, tmp, mask, stride, 32, 16);
+    blend_v_h(dst + 16, tmp + 16, mask + 16, stride, 32, 8);
+}
+
+static void blend_v1(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int stride)
+{
+    dst[0] = blend_px(dst[0], tmp[0], mask[0]);
+    dst[stride] = blend_px(dst[stride], tmp[2], mask[0]);
+}
+
+void dav1d_blend_v_8bpc_pwr9(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
+                             const int w, int h)
+{
+    const uint8_t *const mask = &dav1d_obmc_masks[w];
+
+    blend_line blend;
+
+    switch((w * 3) >> 2) {
+        case 1:
+            blend = blend_v1;
+            break;
+        case 3:
+            blend = blend_v3;
+            break;
+        case 6:
+            blend = blend_v6;
+            break;
+        case 12:
+            blend = blend_v12;
+            break;
+        case 24:
+            blend = blend_v24;
+            break;
+        default:
+            assert(0);
+    }
+
+    for (int y = 0; y < h; y+=2) {
+        blend(dst, tmp, mask, PXSTRIDE(dst_stride));
+
+        dst += 2 * PXSTRIDE(dst_stride);
+        tmp += 2 * w;
     }
 }
 
