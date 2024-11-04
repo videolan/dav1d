@@ -72,3 +72,49 @@ L(blend_epilog):
   bnez a4, 1b
   ret
 endfunc
+
+function blend_v_16bpc_rvv, export=1, ext="v"
+  li t0, 2
+  beq a3, t0, 2f
+  li t0, 4
+  beq a3, t0, 4f
+  li t0, 8
+  beq a3, t0, 8f
+  li t0, 16
+  beq a3, t0, 16f
+32:
+  vsetvli zero, a3, e16, m4, ta, ma
+  j 0f
+16:
+  vsetvli zero, a3, e16, m2, ta, ma
+  j 0f
+8:
+  vsetvli zero, a3, e16, m1, ta, ma
+  j 0f
+4:
+  vsetvli zero, a3, e16, mf2, ta, ma
+  j 0f
+2:
+  vsetvli zero, a3, e16, mf4, ta, ma
+0:
+  csrw vxrm, zero
+  la t1, dav1d_obmc_masks
+  add t1, t1, a3
+  vle8.v v20, (t1)
+  li t0, 64
+  vzext.vf2 v16, v20
+  add a3, a3, a3
+  vrsub.vx v20, v16, t0
+1:
+  addi a4, a4, -1
+  vle16.v v8, (a2)
+  add a2, a2, a3
+  vle16.v v0, (a0)
+  vwmulu.vv v24, v8, v16
+  vwmaccu.vv v24, v0, v20
+  vnclipu.wi v0, v24, 6
+  vse16.v v0, (a0)
+  add a0, a0, a1
+  bnez a4, 1b
+  ret
+endfunc

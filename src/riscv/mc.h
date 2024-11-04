@@ -49,6 +49,7 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
   if (!(flags & DAV1D_RISCV_CPU_FLAG_V)) return;
 
   c->blend = BF(dav1d_blend, rvv);
+  c->blend_v = BF(dav1d_blend_v, rvv);
 
   if (dav1d_get_vlen() >= 256) {
     c->blend = BF(dav1d_blend_vl256, rvv);
@@ -56,7 +57,6 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
 
 #if BITDEPTH == 8
   c->blend_h = BF(dav1d_blend_h, rvv);
-  c->blend_v = BF(dav1d_blend_v, rvv);
 
   if (dav1d_get_vlen() >= 256) {
     c->blend_h = BF(dav1d_blend_h_vl256, rvv);
