@@ -73,51 +73,20 @@ L(blend_epilog):
   ret
 endfunc
 
-function blend_v_vl256_16bpc_rvv, export=1, ext="v"
-  li t0, 4
-  ble a3, t0, 24f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-32:
-  vsetvli zero, a3, e16, m2, ta, ma
-  j L(blend_v_epilog)
-16:
-  vsetvli zero, a3, e16, m1, ta, ma
-  j L(blend_v_epilog)
-8:
-  vsetvli zero, a3, e16, mf2, ta, ma
-  j L(blend_v_epilog)
-24:
-  vsetvli zero, a3, e16, mf4, ta, ma
+function blend_v_vl256_16bpc_rvv, export=1, ext=zbb
+  srai t0, a3, 2
+  ctz t0, t0
+  addi t0, t0, 0xc6
   j L(blend_v_epilog)
 endfunc
 
-function blend_v_16bpc_rvv, export=1, ext="v"
-  li t0, 2
-  beq a3, t0, 2f
-  li t0, 4
-  beq a3, t0, 4f
-  li t0, 8
-  beq a3, t0, 8f
-  li t0, 16
-  beq a3, t0, 16f
-32:
-  vsetvli zero, a3, e16, m4, ta, ma
-  j L(blend_v_epilog)
-16:
-  vsetvli zero, a3, e16, m2, ta, ma
-  j L(blend_v_epilog)
-8:
-  vsetvli zero, a3, e16, m1, ta, ma
-  j L(blend_v_epilog)
-4:
-  vsetvli zero, a3, e16, mf2, ta, ma
-  j L(blend_v_epilog)
-2:
-  vsetvli zero, a3, e16, mf4, ta, ma
+function blend_v_16bpc_rvv, export=1, ext="v,zbb"
+  ctz t0, a3
+  addi t0, t0, 0xc5
 L(blend_v_epilog):
+  andi t0, t0, 0xc7
+  ori t0, t0, 8
+  vsetvl zero, a3, t0
   csrw vxrm, zero
   la t1, dav1d_obmc_masks
   add t1, t1, a3
