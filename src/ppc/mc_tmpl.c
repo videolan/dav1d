@@ -25,6 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "common/attributes.h"
 #include "src/ppc/mc.h"
 #include "src/tables.h"
 #include "src/ppc/dav1d_types.h"
@@ -265,27 +266,15 @@ static void blend32(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int s
     }
 }
 
+static blend_line blend_funcs[4] = {
+    blend4, blend8, blend16, blend32
+};
+
 void dav1d_blend_8bpc_pwr9(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
                            const int w, int h, const uint8_t *mask)
 {
-    blend_line blend;
-
-    switch(w) {
-        case 4:
-            blend = blend4;
-            break;
-        case 8:
-            blend = blend8;
-            break;
-        case 16:
-            blend = blend16;
-            break;
-        case 32:
-            blend = blend32;
-            break;
-        default:
-            assert(0);
-    }
+    assert(w <= 32);
+    blend_line blend = blend_funcs[ctz(w) - 2];
 
     for (int y = 0; y < h; y+=4) {
         blend(dst, tmp, mask, PXSTRIDE(dst_stride));
@@ -383,32 +372,17 @@ static void blend_v1(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, int 
     dst[stride] = blend_px(dst[stride], tmp[2], mask[0]);
 }
 
+static blend_line blend_v_funcs[5] = {
+    blend_v1, blend_v3, blend_v6, blend_v12, blend_v24
+};
+
 void dav1d_blend_v_8bpc_pwr9(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
                              const int w, int h)
 {
     const uint8_t *const mask = &dav1d_obmc_masks[w];
 
-    blend_line blend;
-
-    switch((w * 3) >> 2) {
-        case 1:
-            blend = blend_v1;
-            break;
-        case 3:
-            blend = blend_v3;
-            break;
-        case 6:
-            blend = blend_v6;
-            break;
-        case 12:
-            blend = blend_v12;
-            break;
-        case 24:
-            blend = blend_v24;
-            break;
-        default:
-            assert(0);
-    }
+    assert(w <= 32);
+    blend_line blend = blend_v_funcs[ctz(w) - 1];
 
     for (int y = 0; y < h; y+=2) {
         blend(dst, tmp, mask, PXSTRIDE(dst_stride));
@@ -550,39 +524,18 @@ static void blend_h128(uint8_t *dst, const uint8_t *tmp, const uint8_t *mask, in
     }
 }
 
+static blend_line blend_h_funcs[7] = {
+    blend_h2, blend_h4, blend_h8, blend_h16, blend_h32, blend_h64, blend_h128
+};
+
 void dav1d_blend_h_8bpc_pwr9(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
                              const int w, int h)
 {
     const uint8_t *mask = &dav1d_obmc_masks[h];
     h = (h * 3) >> 2;
 
-    blend_line blend;
-
-    switch(w) {
-        case 2:
-            blend = blend_h2;
-            break;
-        case 4:
-            blend = blend_h4;
-            break;
-        case 8:
-            blend = blend_h8;
-            break;
-        case 16:
-            blend = blend_h16;
-            break;
-        case 32:
-            blend = blend_h32;
-            break;
-        case 64:
-            blend = blend_h64;
-            break;
-        case 128:
-            blend = blend_h128;
-            break;
-        default:
-            assert(0);
-    }
+    assert(w <= 128);
+    blend_line blend = blend_h_funcs[ctz(w) - 1];
 
     if (h == 1) {
         const int m = *mask++;
