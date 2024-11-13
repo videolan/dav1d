@@ -453,7 +453,8 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
         if (--h <= 0)
             goto vert_1;
 
-        sgr_box3_hv_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2], left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
+        sgr_box3_hv_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
+                         left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
         rotate_ab_3(A_ptrs, B_ptrs);
