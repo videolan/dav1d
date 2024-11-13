@@ -329,7 +329,6 @@ void BF(dav1d_sgr_finish_filter2_2rows, neon)(int16_t *tmp, const pixel *src,
                                               int32_t **A_ptrs, int16_t **B_ptrs,
                                               const int w, const int h);
 void BF(dav1d_sgr_weighted2, neon)(pixel *dst, const ptrdiff_t dst_stride,
-                                   const pixel *src, const ptrdiff_t src_stride,
                                    const int16_t *t1, const int16_t *t2,
                                    const int w, const int h,
                                    const int16_t wt[2] HIGHBD_DECL_SUFFIX);
@@ -395,7 +394,7 @@ static void sgr_finish_mix_neon(pixel **dst, const ptrdiff_t stride,
     BF(dav1d_sgr_finish_filter1_2rows, neon)(tmp3, *dst, stride,
                                              A3_ptrs, B3_ptrs, w, h);
     const int16_t wt[2] = { w0, w1 };
-    BF(dav1d_sgr_weighted2, neon)(*dst, stride, *dst, stride,
+    BF(dav1d_sgr_weighted2, neon)(*dst, stride,
                                   tmp5, tmp3, w, h, wt HIGHBD_TAIL_SUFFIX);
     *dst += h*PXSTRIDE(stride);
     rotate_ab_2(A5_ptrs, B5_ptrs);

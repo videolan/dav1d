@@ -590,53 +590,43 @@ function sgr_finish_weighted2_\bpc\()bpc_neon, export=1
 endfunc
 
 // void dav1d_sgr_weighted2_Xbpc_neon(pixel *dst, const ptrdiff_t stride,
-//                                    const pixel *src, const ptrdiff_t src_stride,
 //                                    const int16_t *t1, const int16_t *t2,
 //                                    const int w, const int h,
 //                                    const int16_t wt[2], const int bitdepth_max);
 function sgr_weighted2_\bpc\()bpc_neon, export=1
-.if \bpc == 8
-        ldr             x8,  [sp]
-.else
-        ldp             x8,  x9,  [sp]
-.endif
         cmp             w7,  #2
         add             x10, x0,  x1
-        add             x11, x2,  x3
-        add             x12, x4,  #2*FILTER_OUT_STRIDE
-        add             x13, x5,  #2*FILTER_OUT_STRIDE
-        ld2r            {v30.8h, v31.8h}, [x8] // wt[0], wt[1]
+        add             x12, x2,  #2*FILTER_OUT_STRIDE
+        add             x13, x3,  #2*FILTER_OUT_STRIDE
+        ld2r            {v30.8h, v31.8h}, [x6] // wt[0], wt[1]
 .if \bpc == 16
-        dup             v29.8h,  w9
+        dup             v29.8h,  w7
 .endif
         mov             x8,  #4*FILTER_OUT_STRIDE
         lsl             x1,  x1,  #1
-        lsl             x3,  x3,  #1
-        add             x9,  x6,  #7
+        add             w9,  w4,  #7
         bic             x9,  x9,  #7 // Aligned width
 .if \bpc == 8
         sub             x1,  x1,  x9
-        sub             x3,  x3,  x9
 .else
         sub             x1,  x1,  x9, lsl #1
-        sub             x3,  x3,  x9, lsl #1
 .endif
         sub             x8,  x8,  x9, lsl #1
-        mov             w9,  w6
+        mov             w9,  w4
         b.lt            2f
 1:
 .if \bpc == 8
-        ld1             {v0.8b},  [x2],  #8
-        ld1             {v16.8b}, [x11], #8
+        ld1             {v0.8b},  [x0]
+        ld1             {v16.8b}, [x10]
 .else
-        ld1             {v0.8h},  [x2],  #16
-        ld1             {v16.8h}, [x11], #16
+        ld1             {v0.8h},  [x0]
+        ld1             {v16.8h}, [x10]
 .endif
-        ld1             {v1.8h},  [x4],  #16
+        ld1             {v1.8h},  [x2],  #16
         ld1             {v17.8h}, [x12], #16
-        ld1             {v2.8h},  [x5],  #16
+        ld1             {v2.8h},  [x3],  #16
         ld1             {v18.8h}, [x13], #16
-        subs            w6,  w6,  #8
+        subs            w4,  w4,  #8
 .if \bpc == 8
         uxtl            v0.8h,  v0.8b
         uxtl            v16.8h, v16.8b
@@ -668,30 +658,28 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
 .endif
         b.gt            1b
 
-        subs            w7,  w7,  #2
-        cmp             w7,  #1
+        subs            w5,  w5,  #2
+        cmp             w5,  #1
         b.lt            0f
-        mov             w6,  w9
+        mov             w4,  w9
         add             x0,  x0,  x1
         add             x10, x10, x1
-        add             x2,  x2,  x3
-        add             x11, x11, x3
-        add             x4,  x4,  x8
+        add             x2,  x2,  x8
         add             x12, x12, x8
-        add             x5,  x5,  x8
+        add             x3,  x3,  x8
         add             x13, x13, x8
         b.eq            2f
         b               1b
 
 2:
 .if \bpc == 8
-        ld1             {v0.8b}, [x2], #8
+        ld1             {v0.8b}, [x0]
 .else
-        ld1             {v0.8h}, [x2], #16
+        ld1             {v0.8h}, [x0]
 .endif
-        ld1             {v1.8h}, [x4], #16
-        ld1             {v2.8h}, [x5], #16
-        subs            w6,  w6,  #8
+        ld1             {v1.8h}, [x2], #16
+        ld1             {v2.8h}, [x3], #16
+        subs            w4,  w4,  #8
 .if \bpc == 8
         uxtl            v0.8h,  v0.8b
 .endif
