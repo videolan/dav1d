@@ -158,7 +158,7 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     return flags;
 }
 
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__linux__)
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
