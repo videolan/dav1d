@@ -335,7 +335,7 @@ void BF(dav1d_sgr_weighted2, neon)(pixel *dst, const ptrdiff_t dst_stride,
 
 static void sgr_box3_vert_neon(int32_t **sumsq, int16_t **sum,
                                int32_t *sumsq_out, int16_t *sum_out,
-                               const int w, int s, int bitdepth_max) {
+                               const int w, const int s, const int bitdepth_max) {
     // box3_v + calc_ab1
     dav1d_sgr_box3_vert_neon(sumsq, sum, sumsq_out, sum_out, w, s, bitdepth_max);
     rotate(sumsq, sum, 3);
@@ -343,7 +343,7 @@ static void sgr_box3_vert_neon(int32_t **sumsq, int16_t **sum,
 
 static void sgr_box5_vert_neon(int32_t **sumsq, int16_t **sum,
                                int32_t *sumsq_out, int16_t *sum_out,
-                               const int w, int s, int bitdepth_max) {
+                               const int w, const int s, const int bitdepth_max) {
     // box5_v + calc_ab2
     dav1d_sgr_box5_vert_neon(sumsq, sum, sumsq_out, sum_out, w, s, bitdepth_max);
     rotate5_x2(sumsq, sum);
