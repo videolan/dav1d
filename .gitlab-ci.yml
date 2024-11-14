@@ -740,7 +740,7 @@ test-debian-riscv64:
                             -Dtrim_dsp=false
                             --cross-file package/crossfiles/riscv64-linux.meson
         - ninja -C build
-        - cd build && time meson test -v --timeout-multiplier 4
+        - cd build && time meson test -v --timeout-multiplier 10
     variables:
         QEMU_LD_PREFIX: /usr/riscv64-linux-gnu/
     parallel:
@@ -762,7 +762,7 @@ test-debian-aarch64-qemu:
                             -Dtrim_dsp=false
                             --cross-file package/crossfiles/aarch64-linux.meson
         - ninja -C build
-        - cd build && time meson test -v --timeout-multiplier 4
+        - cd build && time meson test -v --timeout-multiplier 10
     variables:
         QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
     parallel:
@@ -808,7 +808,7 @@ test-debian-loongarch64:
                             -Dtrim_dsp=false
                             --cross-file package/crossfiles/loongarch64-linux.meson
         - ninja -C build
-        - cd build && time meson test -v --timeout-multiplier 4
+        - cd build && time meson test -v --timeout-multiplier 10
 
 .test-argon-script: &test-argon-script
         - meson setup build --buildtype release
