@@ -389,10 +389,10 @@ function sgr_calc_ab_neon
         vsub.i8         q8,  q8,  q11
         vsub.i8         q9,  q9,  q11
         vsub.i8         q10, q10, q11
+        vdup.32         q13, r7        // -2*bitdepth_min_8
 1:
         vld1.32         {q0, q1}, [r0, :128] // a
         vld1.16         {q2},     [r1, :128] // b
-        vdup.32         q13, r7        // -2*bitdepth_min_8
         vdup.16         q14, r6        // -bitdepth_min_8
         subs            r2,  r2,  #8
         vrshl.s32       q0,  q0,  q13
@@ -426,7 +426,6 @@ function sgr_calc_ab_neon
         vadd.i8         d1,  d1,  d2
         vmovl.u8        q0,  d1        // x
 
-        vmov.i16        q13, #256
         vdup.32         q14, r5        // one_by_x
 
         vmull.u16       q1,  d0,  d4   // x * BB[i]
@@ -435,7 +434,6 @@ function sgr_calc_ab_neon
         vmul.i32        q2,  q2,  q14  // x * BB[i] * sgr_one_by_x
         vrshr.s32       q1,  q1,  #12  // AA[i]
         vrshr.s32       q2,  q2,  #12  // AA[i]
-        vsub.i16        q0,  q13, q0   // 256 - x
 
         vst1.32         {q1, q2}, [r0, :128]!
         vst1.16         {q0},     [r1, :128]!

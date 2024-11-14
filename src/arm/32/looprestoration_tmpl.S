@@ -108,7 +108,7 @@ function sgr_finish_filter1_\bpc\()bpc_neon, export=1
         vmovl.u8        q12, d24           // src
 .endif
         vmov            d0,  d1
-        vmlal.u16       q3,  d2,  d24      // b + a * src
+        vmlsl.u16       q3,  d2,  d24      // b - a * src
         vmov            d2,  d3
         vrshrn.i32      d6,  q3,  #9
         vmov            d4,  d5
@@ -229,8 +229,8 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
 .if \bpc == 8
         vmovl.u8        q2,  d4
 .endif
-        vmlal.u16       q4,  d0,  d4       // b + a * src
-        vmlal.u16       q5,  d1,  d5       // b + a * src
+        vmlsl.u16       q4,  d0,  d4       // b - a * src
+        vmlsl.u16       q5,  d1,  d5       // b - a * src
         vmov            q0,  q1
         vrshrn.i32      d8,  q4,  #9
         vrshrn.i32      d9,  q5,  #9
@@ -291,8 +291,8 @@ function sgr_finish_filter2_\bpc\()bpc_neon, export=1
         vmul.i32        q5,  q5,  q15      // * 6
         vmla.i32        q5,  q9,  q14      // * 5 -> b
 
-        vmlal.u16       q4,  d4,  d22      // b + a * src
-        vmlal.u16       q5,  d5,  d23
+        vmlsl.u16       q4,  d4,  d22      // b - a * src
+        vmlsl.u16       q5,  d5,  d23
         vmov            q0,  q1
         vrshrn.i32      d8,  q4,  #8
         vrshrn.i32      d9,  q5,  #8
@@ -334,6 +334,7 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
         vdup.16         d31, r7
         cmp             r6,  #2
 .if \bpc == 16
+        vmov.i16        q13, #0
         vdup.16         q14, r8
 .endif
         add             r9,  r0,  r1
@@ -365,37 +366,26 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
         vld1.16         {q1},  [r4,  :128]!
         vld1.16         {q9},  [lr,  :128]!
         subs            r5,  r5,  #8
-.if \bpc == 8
-        vshll.u8        q0,  d0,  #4     // u
-        vshll.u8        q8,  d16, #4     // u
-.else
-        vshl.i16        q0,  q0,  #4     // u
-        vshl.i16        q8,  q8,  #4     // u
-.endif
-        vsub.i16        q1,  q1,  q0     // t1 - u
-        vsub.i16        q9,  q9,  q8     // t1 - u
-        vshll.u16       q2,  d0,  #7     // u << 7
-        vshll.u16       q3,  d1,  #7     // u << 7
-        vshll.u16       q10, d16, #7     // u << 7
-        vshll.u16       q11, d17, #7     // u << 7
-        vmlal.s16       q2,  d2,  d31    // v
-        vmlal.s16       q3,  d3,  d31    // v
-        vmlal.s16       q10, d18, d31    // v
-        vmlal.s16       q11, d19, d31    // v
-.if \bpc == 8
+        vmull.s16       q2,  d2,  d31    // v
+        vmull.s16       q3,  d3,  d31    // v
+        vmull.s16       q10, d18, d31    // v
+        vmull.s16       q11, d19, d31    // v
         vrshrn.i32      d4,  q2,  #11
         vrshrn.i32      d5,  q3,  #11
         vrshrn.i32      d20, q10, #11
         vrshrn.i32      d21, q11, #11
+.if \bpc == 8
+        vaddw.u8        q2,  q2,  d0
+        vaddw.u8        q10, q10, d16
         vqmovun.s16     d4,  q2
         vqmovun.s16     d20, q10
         vst1.8          {d4},  [r0, :64]!
         vst1.8          {d20}, [r9, :64]!
 .else
-        vqrshrun.s32    d4,  q2,  #11
-        vqrshrun.s32    d5,  q3,  #11
-        vqrshrun.s32    d20, q10, #11
-        vqrshrun.s32    d21, q11, #11
+        vadd.i16        q2,  q2,  q0
+        vadd.i16        q10, q10, q8
+        vmax.s16        q2,  q2,  q13
+        vmax.s16        q10, q10, q13
         vmin.u16        q2,  q2,  q14
         vmin.u16        q10, q10, q14
         vst1.16         {q2},  [r0, :128]!
@@ -424,24 +414,17 @@ function sgr_weighted1_\bpc\()bpc_neon, export=1
 .endif
         vld1.16         {q1}, [r4, :128]!
         subs            r5,  r5,  #8
-.if \bpc == 8
-        vshll.u8        q0,  d0,  #4     // u
-.else
-        vshl.i16        q0,  q0,  #4     // u
-.endif
-        vsub.i16        q1,  q1,  q0     // t1 - u
-        vshll.u16       q2,  d0,  #7     // u << 7
-        vshll.u16       q3,  d1,  #7     // u << 7
-        vmlal.s16       q2,  d2,  d31    // v
-        vmlal.s16       q3,  d3,  d31    // v
-.if \bpc == 8
+        vmull.s16       q2,  d2,  d31    // v
+        vmull.s16       q3,  d3,  d31    // v
         vrshrn.i32      d4,  q2,  #11
         vrshrn.i32      d5,  q3,  #11
+.if \bpc == 8
+        vaddw.u8        q2,  q2,  d0
         vqmovun.s16     d2,  q2
         vst1.8          {d2}, [r0, :64]!
 .else
-        vqrshrun.s32    d4,  q2,  #11
-        vqrshrun.s32    d5,  q3,  #11
+        vadd.i16        q2,  q2,  q0
+        vmax.s16        q2,  q2,  q13
         vmin.u16        q2,  q2,  q14
         vst1.16         {q2}, [r0, :128]!
 .endif
@@ -501,43 +484,31 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         vld1.16         {q2},  [r5,  :128]!
         vld1.16         {q10}, [lr,  :128]!
         subs            r6,  r6,  #8
-.if \bpc == 8
-        vshll.u8        q0,  d0,  #4     // u
-        vshll.u8        q8,  d16, #4     // u
-.else
-        vshl.i16        q0,  q0,  #4     // u
-        vshl.i16        q8,  q8,  #4     // u
-.endif
-        vsub.i16        q1,  q1,  q0     // t1 - u
-        vsub.i16        q2,  q2,  q0     // t2 - u
-        vsub.i16        q9,  q9,  q8     // t1 - u
-        vsub.i16        q10, q10, q8     // t2 - u
-        vshll.u16       q3,  d0,  #7     // u << 7
-        vshll.u16       q0,  d1,  #7     // u << 7
-        vshll.u16       q11, d16, #7     // u << 7
-        vshll.u16       q8,  d17, #7     // u << 7
-        vmlal.s16       q3,  d2,  d30    // wt[0] * (t1 - u)
-        vmlal.s16       q3,  d4,  d31    // wt[1] * (t2 - u)
-        vmlal.s16       q0,  d3,  d30    // wt[0] * (t1 - u)
-        vmlal.s16       q0,  d5,  d31    // wt[1] * (t2 - u)
-        vmlal.s16       q11, d18, d30    // wt[0] * (t1 - u)
-        vmlal.s16       q11, d20, d31    // wt[1] * (t2 - u)
-        vmlal.s16       q8,  d19, d30    // wt[0] * (t1 - u)
-        vmlal.s16       q8,  d21, d31    // wt[1] * (t2 - u)
-.if \bpc == 8
+        vmull.s16       q3,  d2,  d30    // wt[0] * t1
+        vmlal.s16       q3,  d4,  d31    // wt[1] * t2
+        vmull.s16       q12, d3,  d30    // wt[0] * t1
+        vmlal.s16       q12, d5,  d31    // wt[1] * t2
+        vmull.s16       q11, d18, d30    // wt[0] * t1
+        vmlal.s16       q11, d20, d31    // wt[1] * t2
+        vmull.s16       q13, d19, d30    // wt[0] * t1
+        vmlal.s16       q13, d21, d31    // wt[1] * t2
         vrshrn.i32      d6,  q3,  #11
-        vrshrn.i32      d7,  q0,  #11
+        vrshrn.i32      d7,  q12, #11
         vrshrn.i32      d22, q11, #11
-        vrshrn.i32      d23, q8,  #11
+        vrshrn.i32      d23, q13, #11
+.if \bpc == 8
+        vaddw.u8        q3,  q3,  d0
+        vaddw.u8        q11, q11, d16
         vqmovun.s16     d6,  q3
         vqmovun.s16     d22, q11
         vst1.8          {d6},  [r0,  :64]!
         vst1.8          {d22}, [r10, :64]!
 .else
-        vqrshrun.s32    d6,  q3,  #11
-        vqrshrun.s32    d7,  q0,  #11
-        vqrshrun.s32    d22, q11, #11
-        vqrshrun.s32    d23, q8,  #11
+        vmov.i16        q13, #0
+        vadd.i16        q3,  q3,  q0
+        vadd.i16        q11, q11, q8
+        vmax.s16        q3,  q3,  q13
+        vmax.s16        q11, q11, q13
         vmin.u16        q3,  q3,  q14
         vmin.u16        q11, q11, q14
         vst1.16         {q3},  [r0,  :128]!
@@ -569,27 +540,20 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         vld1.16         {q1}, [r4, :128]!
         vld1.16         {q2}, [r5, :128]!
         subs            r6,  r6,  #8
-.if \bpc == 8
-        vshll.u8        q0,  d0,  #4     // u
-.else
-        vshl.i16        q0,  q0,  #4     // u
-.endif
-        vsub.i16        q1,  q1,  q0     // t1 - u
-        vsub.i16        q2,  q2,  q0     // t2 - u
-        vshll.u16       q3,  d0,  #7     // u << 7
-        vshll.u16       q0,  d1,  #7     // u << 7
-        vmlal.s16       q3,  d2,  d30    // wt[0] * (t1 - u)
-        vmlal.s16       q3,  d4,  d31    // wt[1] * (t2 - u)
-        vmlal.s16       q0,  d3,  d30    // wt[0] * (t1 - u)
-        vmlal.s16       q0,  d5,  d31    // wt[1] * (t2 - u)
-.if \bpc == 8
+        vmull.s16       q3,  d2,  d30    // wt[0] * t1
+        vmlal.s16       q3,  d4,  d31    // wt[1] * t2
+        vmull.s16       q11, d3,  d30    // wt[0] * t1
+        vmlal.s16       q11, d5,  d31    // wt[1] * t2
         vrshrn.i32      d6,  q3,  #11
-        vrshrn.i32      d7,  q0,  #11
+        vrshrn.i32      d7,  q11, #11
+.if \bpc == 8
+        vaddw.u8        q3,  q3,  d0
         vqmovun.s16     d6,  q3
         vst1.8          {d6}, [r0, :64]!
 .else
-        vqrshrun.s32    d6,  q3,  #11
-        vqrshrun.s32    d7,  q0,  #11
+        vmov.i16        q13, #0
+        vadd.i16        q3,  q3,  q0
+        vmax.s16        q3,  q3,  q13
         vmin.u16        q3,  q3,  q14
         vst1.16         {q3}, [r0, :128]!
 .endif
