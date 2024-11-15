@@ -594,7 +594,7 @@ endfunc
 //                                    const int w, const int h,
 //                                    const int16_t wt[2], const int bitdepth_max);
 function sgr_weighted2_\bpc\()bpc_neon, export=1
-        cmp             w7,  #2
+        cmp             w5,  #2
         add             x10, x0,  x1
         add             x12, x2,  #2*FILTER_OUT_STRIDE
         add             x13, x3,  #2*FILTER_OUT_STRIDE
