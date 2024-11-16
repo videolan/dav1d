@@ -275,18 +275,6 @@ static void rotate5_x2(int32_t **sumsq_ptrs, int16_t **sum_ptrs) {
     }
 }
 
-static void rotate_ab_3(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 3);
-}
-
-static void rotate_ab_2(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 2);
-}
-
-static void rotate_ab_4(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 4);
-}
-
 void BF(dav1d_sgr_box3_row_h, neon)(int32_t *sumsq, int16_t *sum,
                                     const pixel (*left)[4],
                                     const pixel *src, const int w,
@@ -367,7 +355,7 @@ static void sgr_finish1_neon(pixel **dst, const ptrdiff_t stride,
     BF(dav1d_sgr_finish_weighted1, neon)(*dst, A_ptrs, B_ptrs,
                                          w, w1 HIGHBD_TAIL_SUFFIX);
     *dst += PXSTRIDE(stride);
-    rotate_ab_3(A_ptrs, B_ptrs);
+    rotate(A_ptrs, B_ptrs, 3);
 }
 
 static void sgr_finish2_neon(pixel **dst, const ptrdiff_t stride,
@@ -377,7 +365,7 @@ static void sgr_finish2_neon(pixel **dst, const ptrdiff_t stride,
     BF(dav1d_sgr_finish_weighted2, neon)(*dst, stride, A_ptrs, B_ptrs,
                                          w, h, w1 HIGHBD_TAIL_SUFFIX);
     *dst += 2*PXSTRIDE(stride);
-    rotate_ab_2(A_ptrs, B_ptrs);
+    rotate(A_ptrs, B_ptrs, 2);
 }
 
 static void sgr_finish_mix_neon(pixel **dst, const ptrdiff_t stride,
@@ -397,8 +385,8 @@ static void sgr_finish_mix_neon(pixel **dst, const ptrdiff_t stride,
     BF(dav1d_sgr_weighted2, neon)(*dst, stride,
                                   tmp5, tmp3, w, h, wt HIGHBD_TAIL_SUFFIX);
     *dst += h*PXSTRIDE(stride);
-    rotate_ab_2(A5_ptrs, B5_ptrs);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate(A5_ptrs, B5_ptrs, 2);
+    rotate(A3_ptrs, B3_ptrs, 4);
 }
 
 
@@ -447,7 +435,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                          left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_1;
@@ -456,7 +444,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                          left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_2;
@@ -475,7 +463,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_1;
@@ -487,7 +475,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                          left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_2;
@@ -547,7 +535,7 @@ vert_1:
     sum_ptrs[2] = sum_ptrs[1];
     sgr_box3_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_3(A_ptrs, B_ptrs);
+    rotate(A_ptrs, B_ptrs, 3);
     goto output_1;
 }
 
@@ -609,7 +597,7 @@ static void sgr_filter_5x5_neon(pixel *dst, const ptrdiff_t stride,
         src += PXSTRIDE(stride);
         sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 2);
 
         if (--h <= 0)
             goto vert_2;
@@ -648,7 +636,7 @@ static void sgr_filter_5x5_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A_ptrs, B_ptrs);
+        rotate(A_ptrs, B_ptrs, 2);
 
         if (--h <= 0)
             goto vert_2;
@@ -760,7 +748,7 @@ vert_1:
 
     sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                        w, params->sgr.s0, BITDEPTH_MAX);
-    rotate_ab_2(A_ptrs, B_ptrs);
+    rotate(A_ptrs, B_ptrs, 2);
 
     goto output_1;
 }
@@ -842,7 +830,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_1;
@@ -854,10 +842,10 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
         src += PXSTRIDE(stride);
         sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A5_ptrs, B5_ptrs);
+        rotate(A5_ptrs, B5_ptrs, 2);
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_2;
@@ -893,7 +881,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_1;
@@ -912,10 +900,10 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A5_ptrs, B5_ptrs);
+        rotate(A5_ptrs, B5_ptrs, 2);
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_2;
@@ -936,7 +924,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto odd;
@@ -973,7 +961,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto odd;
@@ -1002,7 +990,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
     lpf_bottom += PXSTRIDE(stride);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate(A3_ptrs, B3_ptrs, 4);
 
     BF(dav1d_sgr_box35_row_h, neon)(sumsq3_ptrs[2], sum3_ptrs[2],
                                     sumsq5_ptrs[4], sum5_ptrs[4],
@@ -1029,7 +1017,7 @@ vert_2:
     sum3_ptrs[2] = sum3_ptrs[1];
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate(A3_ptrs, B3_ptrs, 4);
 
     sumsq3_ptrs[2] = sumsq3_ptrs[1];
     sum3_ptrs[2] = sum3_ptrs[1];
@@ -1066,7 +1054,7 @@ output_1:
                        w, params->sgr.s0, BITDEPTH_MAX);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate(A3_ptrs, B3_ptrs, 4);
     // Output only one row
     sgr_finish_mix_neon(&dst, stride, A5_ptrs, B5_ptrs, A3_ptrs, B3_ptrs,
                         w, 1, params->sgr.w0, params->sgr.w1
@@ -1083,10 +1071,10 @@ vert_1:
 
     sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                        w, params->sgr.s0, BITDEPTH_MAX);
-    rotate_ab_2(A5_ptrs, B5_ptrs);
+    rotate(A5_ptrs, B5_ptrs, 2);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate(A3_ptrs, B3_ptrs, 4);
 
     goto output_1;
 }
