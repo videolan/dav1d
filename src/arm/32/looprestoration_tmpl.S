@@ -593,7 +593,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         vmin.u16        q3,  q3,  q14
         vst1.16         {q3}, [r0, :128]!
 .endif
-        bgt             1b
+        bgt             2b
 0:
         pop             {r4-r11,pc}
 endfunc

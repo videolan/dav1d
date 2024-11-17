@@ -697,7 +697,7 @@ function sgr_weighted2_\bpc\()bpc_neon, export=1
         umin            v3.8h,  v0.8h,  v29.8h
         st1             {v3.8h}, [x0], #16
 .endif
-        b.gt            1b
+        b.gt            2b
 0:
         ret
 endfunc
