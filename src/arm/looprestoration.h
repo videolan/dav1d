@@ -252,8 +252,8 @@ static void rotate(int32_t **sumsq_ptrs, int16_t **sum_ptrs, int n) {
     int32_t *tmp32 = sumsq_ptrs[0];
     int16_t *tmp16 = sum_ptrs[0];
     for (int i = 0; i < n - 1; i++) {
-        sumsq_ptrs[i] = sumsq_ptrs[i+1];
-        sum_ptrs[i] = sum_ptrs[i+1];
+        sumsq_ptrs[i] = sumsq_ptrs[i + 1];
+        sum_ptrs[i] = sum_ptrs[i + 1];
     }
     sumsq_ptrs[n - 1] = tmp32;
     sum_ptrs[n - 1] = tmp16;
@@ -266,8 +266,8 @@ static void rotate5_x2(int32_t **sumsq_ptrs, int16_t **sum_ptrs) {
         tmp16[i] = sum_ptrs[i];
     }
     for (int i = 0; i < 3; i++) {
-        sumsq_ptrs[i] = sumsq_ptrs[i+2];
-        sum_ptrs[i] = sum_ptrs[i+2];
+        sumsq_ptrs[i] = sumsq_ptrs[i + 2];
+        sum_ptrs[i] = sum_ptrs[i + 2];
     }
     for (int i = 0; i < 2; i++) {
         sumsq_ptrs[3 + i] = tmp32[i];
