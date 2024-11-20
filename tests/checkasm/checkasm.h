@@ -417,6 +417,8 @@ void checkasm_stack_clobber(uint64_t clobber, ...);
     ALIGN_STK_64(pixel, name##_buf, ((h)+32)*(ROUND_UP(w,64)+64) + 64,); \
     ptrdiff_t name##_stride = sizeof(pixel)*(ROUND_UP(w,64)+64); \
     (void)name##_stride; \
+    int name##_buf_h = (h)+32; \
+    (void)name##_buf_h;\
     pixel *name = name##_buf + (ROUND_UP(w,64)+64)*16 + 64
 
 #define CLEAR_PIXEL_RECT(name) \
