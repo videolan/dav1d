@@ -27,8 +27,11 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
+#include "common/attributes.h"
+#include "common/bitdepth.h"
 #include "common/intops.h"
 
 #include "src/looprestoration.h"
