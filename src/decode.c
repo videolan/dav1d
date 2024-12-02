@@ -420,7 +420,7 @@ static void read_pal_indices(Dav1dTaskContext *const t,
     Dav1dTileState *const ts = t->ts;
     const ptrdiff_t stride = bw4 * 4;
     assert(pal_idx);
-    pixel *const pal_tmp = t->scratch.pal_idx_uv;
+    uint8_t *const pal_tmp = t->scratch.pal_idx_uv;
     pal_tmp[0] = dav1d_msac_decode_uniform(&ts->msac, b->pal_sz[pl]);
     uint16_t (*const color_map_cdf)[8] =
         ts->cdf.m.color_map[pl][b->pal_sz[pl] - 2];
