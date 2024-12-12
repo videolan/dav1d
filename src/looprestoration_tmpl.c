@@ -171,17 +171,77 @@ static void wiener_filter_v(pixel *p, uint16_t **ptrs, const int16_t fv[8],
     for (int i = 0; i < w; i++) {
         int sum = -round_offset;
 
-        for (int k = 0; k < 7; k++)
+        // Only filter using 6 input rows. The 7th row is assumed to be
+        // identical to the last one.
+        //
+        // This function is assumed to only be called at the end, when doing
+        // padding at the bottom.
+        for (int k = 0; k < 6; k++)
             sum += ptrs[k][i] * fv[k];
+        sum += ptrs[5][i] * fv[6];
 
         p[i] = iclip_pixel((sum + rounding_off_v) >> round_bits_v);
     }
 
-    // Rotate the window of pointers
-    uint16_t *tmp = ptrs[0];
+    // Shift the pointers, but only update the first 5; the 6th pointer is kept
+    // as it was before (and the 7th is implicitly identical to the 6th).
+    for (int i = 0; i < 5; i++)
+        ptrs[i] = ptrs[i + 1];
+}
+
+static void wiener_filter_hv(pixel *p, uint16_t **ptrs, const pixel (*left)[4],
+                             const pixel *src, const int16_t filter[2][8],
+                             const int w, const enum LrEdgeFlags edges
+                             HIGHBD_DECL_SUFFIX)
+{
+    const int bitdepth = bitdepth_from_max(bitdepth_max);
+
+    const int round_bits_v = 11 - (bitdepth == 12) * 2;
+    const int rounding_off_v = 1 << (round_bits_v - 1);
+    const int round_offset = 1 << (bitdepth + (round_bits_v - 1));
+
+    const int16_t *fh = filter[0];
+    const int16_t *fv = filter[1];
+
+    // Do combined horziontal and vertical filtering; doing horizontal
+    // filtering of one row, combined with vertical filtering of 6
+    // preexisting rows and the newly filtered row.
+
+    // For simplicity in the C implementation, just do a separate call
+    // of the horizontal filter, into a temporary buffer.
+    uint16_t tmp[REST_UNIT_STRIDE];
+    wiener_filter_h(tmp, left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+
+    for (int i = 0; i < w; i++) {
+        int sum = -round_offset;
+
+        // Filter using the 6 stored preexisting rows, and the newly
+        // filtered one in tmp[].
+        for (int k = 0; k < 6; k++)
+            sum += ptrs[k][i] * fv[k];
+        sum += tmp[i] * fv[6];
+        // At this point, after having read all inputs at point [i], we
+        // could overwrite [i] with the newly filtered data.
+
+        p[i] = iclip_pixel((sum + rounding_off_v) >> round_bits_v);
+    }
+
+    // For simplicity in the C implementation, just memcpy the newly
+    // filtered row into ptrs[6]. Normally, in steady state filtering,
+    // this output row, ptrs[6], is equal to ptrs[0]. However at startup,
+    // at the top of the filtered area, we may have ptrs[0] equal to ptrs[1],
+    // so we can't assume we can write into ptrs[0] but we need to keep
+    // a separate pointer for the next row to write into.
+    memcpy(ptrs[6], tmp, sizeof(uint16_t) * REST_UNIT_STRIDE);
+
+    // Rotate the window of pointers. Shift the 6 pointers downwards one step.
     for (int i = 0; i < 6; i++)
         ptrs[i] = ptrs[i + 1];
-    ptrs[6] = tmp;
+    // The topmost pointer, ptrs[6], which isn't used as input, is set to
+    // ptrs[0], which will be used as output for the next _hv call.
+    // At the start of the filtering, the caller may set ptrs[6] to the
+    // right next buffer to fill in, instead.
+    ptrs[6] = ptrs[0];
 }
 
 // FIXME Could split into luma and chroma specific functions,
@@ -194,10 +254,11 @@ static void wiener_c(pixel *p, const ptrdiff_t stride,
 {
     // Values stored between horizontal and vertical filtering don't
     // fit in a uint8_t.
-    uint16_t hor[7 * REST_UNIT_STRIDE];
-    uint16_t *ptrs[7], *rows[7];
-    for (int i = 0; i < 7; i++)
+    uint16_t hor[6 * REST_UNIT_STRIDE];
+    uint16_t *ptrs[7], *rows[6];
+    for (int i = 0; i < 6; i++)
         rows[i] = &hor[i * REST_UNIT_STRIDE];
+    const int16_t (*const filter)[8] = params->filter;
     const int16_t *fh = params->filter[0];
     const int16_t *fv = params->filter[1];
     const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
@@ -269,8 +330,8 @@ static void wiener_c(pixel *p, const ptrdiff_t stride,
             goto v3;
 
         ptrs[6] = rows[3];
-        wiener_filter_h(rows[3], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
-        wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
         left++;
         src += PXSTRIDE(stride);
         p += PXSTRIDE(stride);
@@ -279,8 +340,8 @@ static void wiener_c(pixel *p, const ptrdiff_t stride,
             goto v3;
 
         ptrs[6] = rows[4];
-        wiener_filter_h(rows[4], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
-        wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
         left++;
         src += PXSTRIDE(stride);
         p += PXSTRIDE(stride);
@@ -289,29 +350,10 @@ static void wiener_c(pixel *p, const ptrdiff_t stride,
             goto v3;
     }
 
-    ptrs[6] = rows[5];
-    wiener_filter_h(rows[5], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
-    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
-    left++;
-    src += PXSTRIDE(stride);
-    p += PXSTRIDE(stride);
-
-    if (--h <= 0)
-        goto v3;
-
-    ptrs[6] = rows[6];
-    wiener_filter_h(rows[6], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
-    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
-    left++;
-    src += PXSTRIDE(stride);
-    p += PXSTRIDE(stride);
-
-    if (--h <= 0)
-        goto v3;
-
+    ptrs[6] = ptrs[5] + REST_UNIT_STRIDE;
     do {
-        wiener_filter_h(ptrs[6], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
-        wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
         left++;
         src += PXSTRIDE(stride);
         p += PXSTRIDE(stride);
@@ -320,26 +362,23 @@ static void wiener_c(pixel *p, const ptrdiff_t stride,
     if (!(edges & LR_HAVE_BOTTOM))
         goto v3;
 
-    wiener_filter_h(ptrs[6], NULL, lpf_bottom, fh, w, edges HIGHBD_TAIL_SUFFIX);
-    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    wiener_filter_hv(p, ptrs, NULL, lpf_bottom, filter, w, edges
+                     HIGHBD_TAIL_SUFFIX);
     lpf_bottom += PXSTRIDE(stride);
     p += PXSTRIDE(stride);
 
-    wiener_filter_h(ptrs[6], NULL, lpf_bottom, fh, w, edges HIGHBD_TAIL_SUFFIX);
-    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    wiener_filter_hv(p, ptrs, NULL, lpf_bottom, filter, w, edges
+                     HIGHBD_TAIL_SUFFIX);
     p += PXSTRIDE(stride);
 v1:
-    ptrs[6] = ptrs[5];
     wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
 
     return;
 
 v3:
-    ptrs[6] = ptrs[5];
     wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
     p += PXSTRIDE(stride);
 v2:
-    ptrs[6] = ptrs[5];
     wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
     p += PXSTRIDE(stride);
     goto v1;
