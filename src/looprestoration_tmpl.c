@@ -50,23 +50,108 @@ static void wiener_filter_h(uint16_t *dst, const pixel (*left)[4],
     const int rounding_off_h = 1 << (round_bits_h - 1);
     const int clip_limit = 1 << (bitdepth + 1 + 7 - round_bits_h);
 
-    for (int x = 0; x < w; x++) {
+    if (w < 6) {
+        // For small widths, do the fully conditional loop with
+        // conditions on each access.
+        for (int x = 0; x < w; x++) {
+            int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+            sum += src[x] * 128;
+#endif
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0) {
+                    if (!(edges & LR_HAVE_LEFT))
+                        sum += src[0] * fh[i];
+                    else if (left)
+                        sum += left[0][4 + idx] * fh[i];
+                    else
+                        sum += src[idx] * fh[i];
+                } else if (idx >= w && !(edges & LR_HAVE_RIGHT)) {
+                    sum += src[w - 1] * fh[i];
+                } else
+                    sum += src[idx] * fh[i];
+            }
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
+        }
+
+        return;
+    }
+
+    // For larger widths, do separate loops with less conditions; first
+    // handle the start of the row.
+    int start = 3;
+    if (!(edges & LR_HAVE_LEFT)) {
+        // If there's no left edge, pad using the leftmost pixel.
+        for (int x = 0; x < 3; x++) {
+            int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+            sum += src[x] * 128;
+#endif
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0)
+                    sum += src[0] * fh[i];
+                else
+                    sum += src[idx] * fh[i];
+            }
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
+        }
+    } else if (left) {
+        // If we have the left edge and a separate left buffer, pad using that.
+        for (int x = 0; x < 3; x++) {
+            int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+            sum += src[x] * 128;
+#endif
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0)
+                    sum += left[0][4 + idx] * fh[i];
+                else
+                    sum += src[idx] * fh[i];
+            }
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
+        }
+    } else {
+        // If we have the left edge, but no separate left buffer, we're in the
+        // top/bottom area (lpf) with the left edge existing in the same
+        // buffer; just do the regular loop from the start.
+        start = 0;
+    }
+    int end = w - 3;
+    if (edges & LR_HAVE_RIGHT)
+        end = w;
+
+    // Do a condititon free loop for the bulk of the row.
+    for (int x = start; x < end; x++) {
         int sum = (1 << (bitdepth + 6));
 #if BITDEPTH == 8
         sum += src[x] * 128;
 #endif
         for (int i = 0; i < 7; i++) {
             int idx = x + i - 3;
-            if (idx < 0) {
-                if (!(edges & LR_HAVE_LEFT))
-                    sum += src[0] * fh[i];
-                else if (left)
-                    sum += left[0][4 + idx] * fh[i];
-                else
-                    sum += src[idx] * fh[i];
-            } else if (idx >= w && !(edges & LR_HAVE_RIGHT)) {
+            sum += src[idx] * fh[i];
+        }
+        sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+        dst[x] = sum;
+    }
+
+    // If we need to, calculate the end of the row with a condition for
+    // right edge padding.
+    for (int x = end; x < w; x++) {
+        int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+        sum += src[x] * 128;
+#endif
+        for (int i = 0; i < 7; i++) {
+            int idx = x + i - 3;
+            if (idx >= w)
                 sum += src[w - 1] * fh[i];
-            } else
+            else
                 sum += src[idx] * fh[i];
         }
         sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
