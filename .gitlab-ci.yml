@@ -39,7 +39,7 @@ stages:
         - armv7
 
 .debian-ppc64le-common:
-    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20240401050321
+    image: registry.videolan.org/dav1d-debian-unstable-ppc64le:20250215003029
     stage: build
     tags:
         - docker
@@ -410,6 +410,8 @@ build-debian-armv7-clang-5:
 
 build-debian-ppc64le:
     extends: .debian-ppc64le-common
+    variables:
+        CC: gcc-13
     script:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
@@ -719,6 +721,8 @@ test-debian-ppc64le:
     extends:
         - .debian-ppc64le-common
         - .test-common
+    variables:
+        CC: gcc-13
     needs: ["build-debian-ppc64le"]
     script:
         - meson setup build --buildtype release
