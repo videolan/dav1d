@@ -192,7 +192,7 @@ build-debian-avx:
     variables:
         CFLAGS: '-mavx'
     script:
-        - meson setup build --buildtype debug
+        - meson setup build --buildtype debugoptimized
                             --werror
         - ninja -C build
         - cd build
@@ -215,7 +215,7 @@ build-debian-avx512:
     variables:
         CFLAGS: '-mavx'
     script:
-        - meson setup build --buildtype debug
+        - meson setup build --buildtype debugoptimized
                             --werror
         - ninja -C build
         - cd build
