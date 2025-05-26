@@ -799,9 +799,9 @@ static void save_tmvs_c(refmvs_temporal_block *rp, const ptrdiff_t stride,
 int dav1d_refmvs_init_frame(refmvs_frame *const rf,
                             const Dav1dSequenceHeader *const seq_hdr,
                             const Dav1dFrameHeader *const frm_hdr,
-                            const unsigned ref_poc[7],
+                            const uint8_t ref_poc[7],
                             refmvs_temporal_block *const rp,
-                            const unsigned ref_ref_poc[7][7],
+                            const uint8_t ref_ref_poc[7][7],
                             /*const*/ refmvs_temporal_block *const rp_ref[7],
                             const int n_tile_threads, const int n_frame_threads)
 {
