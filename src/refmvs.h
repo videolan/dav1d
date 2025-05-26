@@ -38,10 +38,11 @@
 #include "src/tables.h"
 
 #define INVALID_MV 0x80008000
+#define INVALID_REF2CUR (-32)
 
 PACKED(typedef struct refmvs_temporal_block {
     mv mv;
-    int8_t ref;
+    uint8_t ref;
 }) refmvs_temporal_block;
 CHECK_SIZE(refmvs_temporal_block, 5);
 
@@ -72,8 +73,8 @@ typedef struct refmvs_frame {
     uint8_t sign_bias[7], mfmv_sign[7];
     int8_t pocdiff[7];
     uint8_t mfmv_ref[3];
-    int mfmv_ref2cur[3];
-    int mfmv_ref2ref[3][7];
+    int8_t mfmv_ref2cur[3];
+    uint8_t mfmv_ref2ref[3][7];
     int n_mfmvs;
 
     int n_blocks;

@@ -49,7 +49,7 @@ static inline int get_min_mv_val(const int idx) {
     else                return (idx - 36) * 10000;
 }
 
-static inline void gen_tmv(refmvs_temporal_block *const rb, const int *ref2ref) {
+static inline void gen_tmv(refmvs_temporal_block *const rb, const uint8_t *const ref2ref) {
     rb->ref = rnd() % 7;
     if (!rb->ref) return;
     static const int x_prob[] = {
