@@ -198,7 +198,7 @@ int main(const int argc, char *const *const argv) {
     Dav1dContext *c;
     Dav1dData data;
     unsigned n_out = 0, total, fps[2], timebase[2];
-    uint64_t nspf, tfirst, elapsed;
+    uint64_t nspf, tfirst, elapsed = 0;
     double i_fps;
     FILE *frametimes = NULL;
     const unsigned version = dav1d_version_api();
