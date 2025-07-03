@@ -1,6 +1,7 @@
 /******************************************************************************
  * Copyright © 2018, VideoLAN and dav1d authors
  * Copyright © 2024, Nathan Egge, Niklas Haas, Bogdan Gligorijevic
+ * Copyright © 2025, Sungjoon Moon
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -713,3 +714,240 @@ L(emu_edge_top): # copy top
 L(emu_edge_end):
   ret
 endfunc
+
+.macro w_mask_fn type vlen
+function w_mask_\type\()_\vlen\()8bpc_rvv, export=1, ext="v,zba,zbb"
+  csrw vxrm, zero
+  li t1, 38*256+8
+.ifc \vlen, vl256_
+  addi t0, zero, 64
+  bgt a4, t0, 2f
+  li t2, 0xCAC9C8CFCE0000
+  li t3, 0xC1C0C7C6C50000
+.else
+  addi t0, zero, 32
+  bgt a4, t0, 2f
+  li t2, 0xCAC9C8CF0000
+  li t3, 0xC1C0C7C60000
+.endif
+  ctz t4, a4
+  slli t4, t4, 3
+  srl t2, t2, t4
+  andi t2, t2, 0xFF
+  srl t3, t3, t4
+  andi t3, t3, 0xFF
+
+1:
+.if \type == 444
+w_mask_body 444 narrow
+
+  sh1add a0, a1, a0 # dst += dst_stride
+  add a6, a6, a4 # mask += w
+.elseif \type == 422
+w_mask_body 422 narrow
+
+  sh1add a0, a1, a0 # dst += dst_stride
+  srli t4, a4, 1
+  add a6, a6, t4 # mask += w >> 1
+.elseif \type == 420
+w_mask_body 420 narrow
+
+  sh1add a0, a1, a0 # dst += dst_stride
+.endif
+
+  sh1add a2, a4, a2
+  sh1add a3, a4, a3
+
+  addi a5, a5, -2
+  bnez a5, 1b
+
+  ret
+
+2:
+  li t2, 0xca
+  li t3, 0xc1
+
+3:
+  mv t5, zero
+
+.if \type == 444
+w_mask_body 444 wide # VLEN>=256
+.elseif \type == 422
+w_mask_body 422 wide # VLEN>=256
+.elseif \type == 420
+w_mask_body 420 wide # VLEN>=256
+.endif
+
+  add t5, t5, t6
+  bne t5, a4, 4b
+
+  sh1add a0, a1, a0 # dst += dst_stride
+.if \type == 444
+  add a6, a6, a4 # mask += w
+.elseif \type == 422
+  srli t4, a4, 1
+  add a6, a6, t4 # mask += w >> 1
+.elseif \type == 420
+.endif
+
+  sh1add a2, a4, a2
+  sh1add a3, a4, a3
+
+  addi a5, a5, -2
+  bnez a5, 3b
+
+  ret
+
+endfunc
+.endm
+
+.macro w_mask_body type size
+  mv t0, a0 # dst
+
+4:
+  vsetvl t6, a4, t2
+
+  # load tmp1 and tmp2
+  vle16.v v0, (a2) # tmp1[x]
+
+  sh1add t4, a4, a2 # tmp1
+  vle16.v v16, (t4) # tmp1[x]
+  sh1add a2, t6, a2 # tmp1 += w / k
+
+  vle16.v v4, (a3) # tmp2[x]
+
+  sh1add t4, a4, a3 # tmp2
+  vle16.v v20, (t4) # tmp2[x]
+  sh1add a3, t6, a3 # tmp2 += w / k
+
+  # v12 = abs(tmp1[x] - tmp2[x])
+  vsub.vv v12, v0, v4 # tmp1[x] - tmp2[x]
+  vsub.vv v8, v4, v0 # tmp2[x] - tmp1[x]
+  vmax.vv v8, v12, v8
+
+  vsub.vv v28, v16, v20 # tmp1[x] - tmp2[x]
+  vsub.vv v24, v20, v16 # tmp2[x] - tmp1[x]
+  vmax.vv v24, v28, v24
+
+  li t4, 64
+
+  # min(38 + (v12 + 8) >> 8, 64) -> min((v12 + 38*256 + 8) >> 8, 64)
+  vadd.vx v8, v8, t1
+  vsra.vi v8, v8, 8
+  vmin.vx v8, v8, t4
+
+  vadd.vx v24, v24, t1
+  vsra.vi v24, v24, 8
+  vmin.vx v24, v24, t4
+
+  # dst[x] = (tmp1[x] - tmp2[x]) * m + 64 * tmp2[x];
+  # v12, v28 = tmp1[x] - tmp2[x]
+  # v8, v24 = {m,n}
+  vwmul.vx v0, v4, t4
+  vwmacc.vv v0, v8, v12
+  vnclipu.wi v0, v0, 10
+  vmax.vx v0, v0, zero
+
+  vwmul.vx v16, v20, t4
+  vwmacc.vv v16, v24, v28
+  vnclipu.wi v16, v16, 10
+  vmax.vx v16, v16, zero
+
+.if \type == 444
+  vsetvl zero, zero, t3
+
+  vnclipu.wi v0, v0, 0
+  vnclipu.wi v16, v16, 0
+
+  vse8.v v0, (t0) # dst[x] =
+  add t4, t0, a1
+  vse8.v v16, (t4) # dst[x] =
+  add t0, t0, t6
+
+  vnsrl.wi v8, v8, 0
+  vnsrl.wi v24, v24, 0
+
+  vse8.v v8, (a6) # mask[x] = m
+  add t4, a6, a4
+  vse8.v v24, (t4) # mask[x] = m
+  add a6, a6, t6
+
+.elseif \type == 422
+  # v4, v20 = m
+  # v12, v28 = n
+  vnsrl.wi v4, v8, 0
+  vnsrl.wi v8, v8, 16
+
+  vnsrl.wi v20, v24, 0
+  vnsrl.wi v24, v24, 16
+
+  # v8, v24 = m + n - sign
+  vadd.vv v8, v4, v8
+  vsub.vx v8, v8, a7
+
+  vadd.vv v24, v20, v24
+  vsub.vx v24, v24, a7
+
+  vsetvl zero, zero, t3
+
+  vnclipu.wi v0, v0, 0
+  vnclipu.wi v16, v16, 0
+
+  vse8.v v0, (t0) # dst[x] =
+  add t4, t0, a1
+  vse8.v v16, (t4) # dst[x] =
+  add t0, t0, t6
+
+  vnclipu.wi v8, v8, 1
+  vnclipu.wi v24, v24, 1
+
+.ifc \size, wide
+  srli t4, t6, 1
+  vsetvl zero, t4, t3
+.endif
+
+  vse8.v v8, (a6) # mask[x] = m + n + 1 - sign
+  srli t4, a4, 1
+  add t4, a6, t4
+  vse8.v v24, (t4) # mask[x] = m + n + 1 - sign
+  srli t4, t6, 1
+  add a6, a6, t4
+.elseif \type == 420
+  # v4, v20 = m
+  # v12, v28 = n
+  vnsrl.wi v4, v8, 0
+  vnsrl.wi v8, v8, 16
+
+  vnsrl.wi v20, v24, 0
+  vnsrl.wi v24, v24, 16
+
+  # v8 = m + n + mask[x >> 1]
+  vadd.vv v8, v4, v8
+  vadd.vv v24, v20, v24
+  vadd.vv v8, v8, v24
+  vsub.vx v8, v8, a7
+
+  vsetvl zero, zero, t3
+
+  vnclipu.wi v0, v0, 0
+  vnclipu.wi v16, v16, 0
+
+  vse8.v v0, (t0) # dst[x] =
+  add t4, t0, a1
+  vse8.v v16, (t4) # dst[x] =
+  add t0, t0, t6
+
+  vnclipu.wi v8, v8, 2
+
+  vse8.v v8, (a6) # mask[x] = (m + n + mask[x >> 1] + 2 - sign) >> 2;
+  srli t4, t6, 1
+  add a6, a6, t4
+.endif
+.endm
+
+w_mask_fn 444
+w_mask_fn 444 vl256_
+w_mask_fn 422
+w_mask_fn 422 vl256_
+w_mask_fn 420
+w_mask_fn 420 vl256_
