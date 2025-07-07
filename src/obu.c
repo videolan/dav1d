@@ -516,94 +516,72 @@ static int parse_frame_hdr(Dav1dContext *const c, GetBits *const gb) {
                 dav1d_get_bits(gb, seqhdr->order_hint_n_bits);
         if (seqhdr->order_hint) {
             hdr->frame_ref_short_signaling = dav1d_get_bit(gb);
-            if (hdr->frame_ref_short_signaling) { // FIXME: Nearly verbatim copy from section 7.8
+            if (hdr->frame_ref_short_signaling) {
                 hdr->refidx[0] = dav1d_get_bits(gb, 3);
                 hdr->refidx[1] = hdr->refidx[2] = -1;
                 hdr->refidx[3] = dav1d_get_bits(gb, 3);
-                hdr->refidx[4] = hdr->refidx[5] = hdr->refidx[6] = -1;
 
-                int shifted_frame_offset[8];
-                const int current_frame_offset = 1 << (seqhdr->order_hint_n_bits - 1);
-                for (int i = 0; i < 8; i++) {
-                    if (!c->refs[i].p.p.frame_hdr) goto error;
-                    shifted_frame_offset[i] = current_frame_offset +
-                        get_poc_diff(seqhdr->order_hint_n_bits,
-                                     c->refs[i].p.p.frame_hdr->frame_offset,
-                                     hdr->frame_offset);
-                }
-
-                int used_frame[8] = { 0 };
-                used_frame[hdr->refidx[0]] = 1;
-                used_frame[hdr->refidx[3]] = 1;
-
-                int latest_frame_offset = -1;
-                for (int i = 0; i < 8; i++) {
-                    const int hint = shifted_frame_offset[i];
-                    if (!used_frame[i] && hint >= current_frame_offset &&
-                        hint >= latest_frame_offset)
-                    {
-                        hdr->refidx[6] = i;
-                        latest_frame_offset = hint;
+                /* +1 allows for unconditional stores, as unused
+                 * values can be dumped into frame_offset[-1]. */
+                int frame_offset_mem[8+1];
+                int *const frame_offset = &frame_offset_mem[1];
+                int earliest_ref = -1;
+                for (int i = 0, earliest_offset = INT_MAX; i < 8; i++) {
+                    const Dav1dFrameHeader *const refhdr = c->refs[i].p.p.frame_hdr;
+                    if (!refhdr) goto error;
+                    const int diff = get_poc_diff(seqhdr->order_hint_n_bits,
+                                                  refhdr->frame_offset,
+                                                  hdr->frame_offset);
+                    frame_offset[i] = diff;
+                    if (diff < earliest_offset) {
+                        earliest_offset = diff;
+                        earliest_ref = i;
                     }
                 }
-                if (latest_frame_offset != -1)
-                    used_frame[hdr->refidx[6]] = 1;
+                frame_offset[hdr->refidx[0]] = INT_MIN; // = reference frame is used
+                frame_offset[hdr->refidx[3]] = INT_MIN;
+                assert(earliest_ref >= 0);
 
-                int earliest_frame_offset = INT_MAX;
-                for (int i = 0; i < 8; i++) {
-                    const int hint = shifted_frame_offset[i];
-                    if (!used_frame[i] && hint >= current_frame_offset &&
-                        hint < earliest_frame_offset)
-                    {
-                        hdr->refidx[4] = i;
-                        earliest_frame_offset = hint;
+                int refidx = -1;
+                for (int i = 0, latest_offset = 0; i < 8; i++) {
+                    const int hint = frame_offset[i];
+                    if (hint >= latest_offset) {
+                        latest_offset = hint;
+                        refidx = i;
                     }
                 }
-                if (earliest_frame_offset != INT_MAX)
-                    used_frame[hdr->refidx[4]] = 1;
+                frame_offset[refidx] = INT_MIN;
+                hdr->refidx[6] = refidx;
 
-                earliest_frame_offset = INT_MAX;
-                for (int i = 0; i < 8; i++) {
-                    const int hint = shifted_frame_offset[i];
-                    if (!used_frame[i] && hint >= current_frame_offset &&
-                        (hint < earliest_frame_offset))
-                    {
-                        hdr->refidx[5] = i;
-                        earliest_frame_offset = hint;
+                for (int i = 4; i < 6; i++) {
+                    /* Unsigned compares to handle negative values. */
+                    unsigned earliest_offset = UINT8_MAX;
+                    refidx = -1;
+                    for (int j = 0; j < 8; j++) {
+                        const unsigned hint = frame_offset[j];
+                        if (hint < earliest_offset) {
+                            earliest_offset = hint;
+                            refidx = j;
+                        }
                     }
+                    frame_offset[refidx] = INT_MIN;
+                    hdr->refidx[i] = refidx;
                 }
-                if (earliest_frame_offset != INT_MAX)
-                    used_frame[hdr->refidx[5]] = 1;
 
                 for (int i = 1; i < 7; i++) {
-                    if (hdr->refidx[i] < 0) {
-                        latest_frame_offset = -1;
+                    refidx = hdr->refidx[i];
+                    if (refidx < 0) {
+                        unsigned latest_offset = ~UINT8_MAX;
                         for (int j = 0; j < 8; j++) {
-                            const int hint = shifted_frame_offset[j];
-                            if (!used_frame[j] && hint < current_frame_offset &&
-                                hint >= latest_frame_offset)
-                            {
-                                hdr->refidx[i] = j;
-                                latest_frame_offset = hint;
+                            const unsigned hint = frame_offset[j];
+                            if (hint >= latest_offset) {
+                                latest_offset = hint;
+                                refidx = j;
                             }
                         }
-                        if (latest_frame_offset != -1)
-                            used_frame[hdr->refidx[i]] = 1;
+                        frame_offset[refidx] = INT_MIN;
+                        hdr->refidx[i] = refidx >= 0 ? refidx : earliest_ref;
                     }
-                }
-
-                earliest_frame_offset = INT_MAX;
-                int ref = -1;
-                for (int i = 0; i < 8; i++) {
-                    const int hint = shifted_frame_offset[i];
-                    if (hint < earliest_frame_offset) {
-                        ref = i;
-                        earliest_frame_offset = hint;
-                    }
-                }
-                for (int i = 0; i < 7; i++) {
-                    if (hdr->refidx[i] < 0)
-                        hdr->refidx[i] = ref;
                 }
             }
         }
