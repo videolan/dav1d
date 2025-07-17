@@ -79,24 +79,27 @@ VideoLAN will only have the collective work rights.
 The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this project.
 
 # Compile
+## General compilation steps
 
 1. Install [Meson](https://mesonbuild.com/) (0.49 or higher), [Ninja](https://ninja-build.org/), and, for x86\* targets, [nasm](https://nasm.us/) (2.14 or higher)
 2. Run `mkdir build && cd build` to create a build directory and enter it
 3. Run `meson setup ..` to configure meson, add `--default-library=static` if static linking is desired
 4. Run `ninja` to compile
 
+Following are modification of step 3 and 4, for specific purpose.
+
 ## Cross-Compilation for 32- or 64-bit Windows, 32-bit Linux
 
-If you're on a linux build machine trying to compile .exe for a Windows target/host machine, run
+If you're on a linux build machine trying to compile .exe for a Windows target/host machine, configure meson like this
 
 ```
-meson setup build --cross-file=package/crossfiles/x86_64-w64-mingw32.meson
+meson setup .. --cross-file=../package/crossfiles/x86_64-w64-mingw32.meson
 ```
 
 or, for 32-bit:
 
 ```
-meson setup build --cross-file=package/crossfiles/i686-w64-mingw32.meson
+meson setup .. --cross-file=../package/crossfiles/i686-w64-mingw32.meson
 ```
 
 `mingw-w64` is a pre-requisite and should be installed on your linux machine via your preferred method or package manager. Note the binary name formats may differ between distributions. Verify the names, and use `alias` if certain binaries cannot be found.
@@ -104,14 +107,14 @@ meson setup build --cross-file=package/crossfiles/i686-w64-mingw32.meson
 For 32-bit linux, run
 
 ```
-meson setup build --cross-file=package/crossfiles/i686-linux32.meson
+meson setup .. --cross-file=../package/crossfiles/i686-linux32.meson
 ```
 
 ## Build documentation
 
-1. Install [doxygen](https://www.doxygen.nl/) and [graphviz](https://www.graphviz.org/)
-2. Run `meson setup build -Denable_docs=true` to create the build directory
-3. Run `ninja -C build doc/html` to build the docs
+1. Make sure [doxygen](https://www.doxygen.nl/) and [graphviz](https://www.graphviz.org/) are installed.
+2. Run `meson setup .. -Denable_docs=true` to configure meson to generate docs from the build directory.
+3. Run `ninja doc/html` to build the docs
 
 The result can be found in `build/doc/html/`. An online version built from master can be found [here](https://videolan.videolan.me/dav1d/).
 
