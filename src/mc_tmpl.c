@@ -737,15 +737,13 @@ static void w_mask_c(pixel *dst, const ptrdiff_t dst_stride,
     do {
         for (int x = 0; x < w; x++) {
             const int m = imin(38 + ((abs(tmp1[x] - tmp2[x]) + mask_rnd) >> mask_sh), 64);
-            dst[x] = iclip_pixel((tmp1[x] * m +
-                                  tmp2[x] * (64 - m) + rnd) >> sh);
+            dst[x] = iclip_pixel(((tmp1[x] - tmp2[x]) * m + tmp2[x] * 64 + rnd) >> sh);
 
             if (ss_hor) {
                 x++;
 
                 const int n = imin(38 + ((abs(tmp1[x] - tmp2[x]) + mask_rnd) >> mask_sh), 64);
-                dst[x] = iclip_pixel((tmp1[x] * n +
-                                      tmp2[x] * (64 - n) + rnd) >> sh);
+                dst[x] = iclip_pixel(((tmp1[x] - tmp2[x]) * n + tmp2[x] * 64 + rnd) >> sh);
 
                 if (h & ss_ver) {
                     mask[x >> 1] = (m + n + mask[x >> 1] + 2 - sign) >> 2;
