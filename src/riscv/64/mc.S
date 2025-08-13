@@ -532,3 +532,182 @@ function warp_8x8t_8bpc_rvv, export=1, ext="v,zba"
 
     ret
 endfunc
+
+function emu_edge_8bpc_rvv, export=1, ext="v,zbb"
+  ld t0, 0(sp)
+  ld t1, 8(sp)
+
+  // int cx = iclip((int) x, 0, (int) iw - 1);
+  max t2, a4, zero
+  addi t4, a2, -1
+  min t2, t2, t4
+
+  // int cy = iclip((int) y, 0, (int) ih - 1);
+  max t3, a5, zero
+  addi t5, a3, -1
+  min t3, t3, t5
+
+  // ref += cy*PXSTRIDE(ref_stride) + cx
+  mul t3, t3, t1
+  add t3, t3, t2
+
+  add t0, t0, t3
+
+  addi t4, a0, -1
+
+  neg t2, a4
+  add t3, a4, a0
+  sub t3, t3, a2
+
+  // int left_ext = iclip((int) -x, 0, (int) bw - 1);
+  max t2, t2, zero
+  min a2, t2, t4 # a2 = left_ext
+
+  // int right_ext = iclip((int) (x + bw - iw), 0, (int) bw - 1);
+  max t3, t3, zero
+  min a4, t3, t4 # a4 = right_ext
+
+  addi t6, a1, -1
+
+  neg t4, a5
+  add t5, a5, a1
+  sub t5, t5, a3
+
+  // int top_ext = iclip((int) -y, 0, (int) bh - 1);
+  max t4, t4, zero
+  min a3, t4, t6 # a3 = top_ext
+
+  // int bottom_ext = iclip((int) (x + bh - ih), 0, (int) bh - 1);
+  max t5, t5, zero
+  min a5, t5, t6 # a5 = bottom_ext
+
+  sub t4, a1, a3
+  sub t4, t4, a5 # t4 = center_h
+
+  mul t5, a3, a7
+  add a1, a6, t5 # blk = dst + top_ext * dst_stride
+
+  sub t3, a0, a2
+  sub t3, t3, a4 # t3 = center_w = bw - left_ext - right_ext
+
+.macro v_loop need_left, need_right
+9:
+  # pixel_copy()
+  add t5, a1, a2 # t5 = blk + left_ext
+  mv t2, t0 # ref
+0:
+  vsetvli t6, t3, e8, m1, ta, ma
+  vle8.v v8, (t2)
+  add t2, t2, t6
+
+  vse8.v v8, (t5)
+  sub t3, t3, t6
+  add t5, t5, t6
+  bnez t3, 0b
+
+  sub t3, a0, a2
+  sub t3, t3, a4 # t3 = center_w = bw - left_ext - right_ext
+
+.if \need_left
+  lb t2, (t0) # ref[0]
+  # pixel_set()
+  vsetvli t6, a2, e8, m1, ta, ma
+  vmv.v.x v8, t2
+  mv t2, a2 # left_ext
+  mv t5, a1 # blk
+0:
+  vse8.v v8, (t5)
+  sub t2, t2, t6 # left_ext -= t6
+  add t5, t5, t6 # blk += t6
+  vsetvli t6, t2, e8, m1, ta, ma
+  bnez t2, 0b
+.endif
+
+.if \need_right
+  add t5, a1, a2 # t5 = blk + left_ext
+  add t5, t5, t3 # t5 = blk + left_ext + center_w
+  lb t2, -1(t5) # blk[left_ext + center_w - 1]
+  # pixel_set()
+  vsetvli t6, a4, e8, m1, ta, ma
+  vmv.v.x v8, t2
+  mv t2, a4 # right_ext
+0:
+  vse8.v v8, (t5)
+  sub t2, t2, t6
+  add t5, t5, t6
+  vsetvli t6, t2, e8, m1, ta, ma
+  bnez t2, 0b
+.endif
+
+  add t0, t0, t1 # ref += ref_stride
+  add a1, a1, a7 # blk += dst_stride
+  addi t4, t4, -1 # center_h--
+  bnez t4, 9b
+.endm
+
+L(emu_edge_center):
+  blez t4, L(emu_edge_bottom)
+
+  beqz a2, 1f # if (left_ext)
+  beqz a4, 2f # if (right_ext)
+  v_loop 1, 1
+  j L(emu_edge_bottom)
+
+1:
+  beqz a4, 3f
+  v_loop 0, 1
+  j L(emu_edge_bottom)
+
+2:
+  v_loop 1, 0
+  j L(emu_edge_bottom)
+
+3:
+  v_loop 0, 0
+
+L(emu_edge_bottom): # copy bottom
+  blez a5, L(emu_edge_top)
+  mv t2, a0 # bw
+2:
+  mv t5, a5 # bottom_ext
+  mv t1, a1 # dst
+
+  vsetvli t6, t2, e8, m1, ta, ma
+  sub t0, t1, a7 # dst - dst_stride
+  vle8.v v8, (t0)
+0:
+  vse8.v v8, (t1)
+  add t1, t1, a7
+  addi t5, t5, -1
+  bnez t5, 0b
+
+  sub t2, t2, t6
+  add a1, a1, t6
+  bnez t2, 2b
+
+L(emu_edge_top): # copy top
+  blez a3, L(emu_edge_end)
+  mul t5, a3, a7
+  add t1, a6, t5 # blk = dst + top_ext * PXSTRIDE(dst_stride)
+  # a6 = dst
+1:
+  mv t0, a3 # top_ext
+  mv t4, a6 # dst
+
+  vsetvli t6, a0, e8, m1, ta, ma
+  vle8.v v8, (t1)
+0:
+  vse8.v v8, (t4)
+  add t4, t4, a7
+  addi t0, t0, -1
+  bnez t0, 0b
+
+  sub a0, a0, t6
+  add t1, t1, t6
+  add a6, a6, t6
+
+  bnez a0, 1b
+
+L(emu_edge_end):
+  ret
+endfunc

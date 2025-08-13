@@ -42,6 +42,7 @@ decl_mask_fn(BF(dav1d_mask, rvv));
 
 decl_warp8x8_fn(BF(dav1d_warp_8x8, rvv));
 decl_warp8x8t_fn(BF(dav1d_warp_8x8t, rvv));
+decl_emu_edge_fn(BF(dav1d_emu_edge, rvv));
 
 static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
   const unsigned flags = dav1d_get_cpu_flags();
@@ -58,6 +59,7 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
 
 #if BITDEPTH == 8
   c->blend_h = BF(dav1d_blend_h, rvv);
+  c->emu_edge = BF(dav1d_emu_edge, rvv);
 
   if (dav1d_get_vlen() >= 256) {
     c->blend_h = BF(dav1d_blend_h_vl256, rvv);
