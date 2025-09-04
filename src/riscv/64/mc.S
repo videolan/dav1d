@@ -699,8 +699,10 @@ L(emu_edge_top): # copy top
 0:
   vse8.v v8, (t4)
   add t4, t4, a7
-  addi t0, t0, -1
-  bnez t0, 0b
+  vse8.v v8, (t4)
+  add t4, t4, a7
+  addi t0, t0, -2
+  bgtz t0, 0b
 
   sub a0, a0, t6
   add t1, t1, t6
