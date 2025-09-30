@@ -27,6 +27,53 @@
 
 #include "src/riscv/asm.S"
 
+// void ipred_v_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
+//                       const pixel *const topleft,
+//                       const int width, const int height, const int a,
+//                       const int max_width, const int max_height)
+function ipred_v_8bpc_rvv, export=1, ext="v,zba"
+    csrw vxrm, zero
+    addi a2, a2, 1
+    vsetvli t0, a3, e8, m1, ta, ma
+    bne t0, a3, 3f  // Go to slow path - whole row doesn't fit in regsiter
+1:
+    // Fast path - row fits in register
+    add t1, a0, a1
+    vle8.v v4, (a2)
+2:
+    vse8.v v4, (a0)
+    sh1add a0, a1, a0
+    vse8.v v4, (t1)
+    sh1add t1, a1, t1
+    addi a4, a4, -2
+    bnez a4, 2b
+    ret
+
+    // Row doesn't fit in register.
+3:
+    vsetvli t0, a3, e8, m2, ta, ma  // Try using 2 registers at once (LMUL=2)
+    beq t0, a3, 1b  // Back to fast path - now it fits
+
+4:
+    // No need for more vsetli, since both width and VLEN are power of 2, so there is no tail.
+    vle8.v v4, (a2)
+    mv t2, a0
+    mv t1, a4
+5:
+    vse8.v v4, (t2)
+    add t2, t2, a1
+    addi t1, t1, -1
+    bnez t1, 5b  // Loop over rows.
+
+    sub a3, a3, t0
+    add a2, a2, t0
+    add a0, a0, t0
+    bnez a3, 4b  // Loop over columns
+
+    ret
+endfunc
+
+
 function dc_gen_8bpc_rvv, export=1, ext="v,zbb"
     .variant_cc dav1d_dc_gen_8bpc_rvv
     add t1, a1, a2

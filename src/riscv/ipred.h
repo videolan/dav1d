@@ -33,6 +33,7 @@ decl_cfl_pred_fn(BF(dav1d_ipred_cfl_128, rvv));
 decl_cfl_pred_fn(BF(dav1d_ipred_cfl_top, rvv));
 decl_cfl_pred_fn(BF(dav1d_ipred_cfl_left, rvv));
 
+decl_angular_ipred_fn(BF(dav1d_ipred_v, rvv));
 decl_angular_ipred_fn(BF(dav1d_ipred_paeth, rvv));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth, rvv));
 decl_angular_ipred_fn(BF(dav1d_ipred_smooth_v, rvv));
@@ -52,6 +53,7 @@ static ALWAYS_INLINE void intra_pred_dsp_init_riscv(Dav1dIntraPredDSPContext *co
     c->cfl_pred[TOP_DC_PRED ] = dav1d_ipred_cfl_top_8bpc_rvv;
     c->cfl_pred[LEFT_DC_PRED] = dav1d_ipred_cfl_left_8bpc_rvv;
 
+    c->intra_pred[VERT_PRED    ] = dav1d_ipred_v_8bpc_rvv;
     c->intra_pred[PAETH_PRED   ] = dav1d_ipred_paeth_8bpc_rvv;
     c->intra_pred[SMOOTH_PRED  ] = dav1d_ipred_smooth_8bpc_rvv;
     c->intra_pred[SMOOTH_V_PRED] = dav1d_ipred_smooth_v_8bpc_rvv;
