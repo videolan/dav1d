@@ -81,7 +81,7 @@ cglobal fgy_32x32xn_16bpc, 6, 15, 21, dst, src, stride, fg_data, w, scaling, \
     setnz           r7b
     vpbroadcastd    m12, [base+pw_27_17_17_27+r6*8+0]
     vpbroadcastd    m13, [base+pw_27_17_17_27+r6*8+4]
-    test            r7b, [fg_dataq+FGData.overlap_flag]
+    test            [fg_dataq+FGData.overlap_flag], r7b
     jnz .v_overlap
 
     imul           seed, sbyd, (173 << 24) | 37
@@ -417,7 +417,7 @@ cglobal fguv_32x32xn_i%1_16bpc, 6, 15, 22, dst, src, stride, fg_data, w, scaling
     pmaddwd         m14, m0
     pshufb          m15, m1 ; { uv_luma_mult, uv_mult }
 %endif
-    test            r7b, [fg_dataq+FGData.overlap_flag]
+    test            [fg_dataq+FGData.overlap_flag], r7b
     jnz %%v_overlap
 
     imul           seed, sbyd, (173 << 24) | 37
