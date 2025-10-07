@@ -188,7 +188,7 @@ static void check_lpf_sb(loopfilter_sb_fn fn, const char *const name,
                       b4_stride, &lut, n_blks HIGHBD_TAIL_SUFFIX);
         }
     }
-    report(name);
+    report("%s", name);
 }
 
 void bitfn(checkasm_check_loopfilter)(void) {
