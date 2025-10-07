@@ -31,7 +31,13 @@ if not get_option('enable_tests')
     subdir_done()
 endif
 
-if is_asm_enabled
+checkasm_dependency = dependency('checkasm',
+    fallback: ['checkasm', 'checkasm_dep'],
+    required: false
+)
+
+if is_asm_enabled and checkasm_dependency.found()
+
     checkasm_sources = files(
         'checkasm/checkasm.c',
         'checkasm/msac.c',
@@ -55,7 +61,7 @@ if is_asm_enabled
             'checkasm_bitdepth_@0@'.format(bitdepth),
             checkasm_tmpl_sources,
             include_directories: dav1d_inc_dirs,
-            dependencies : [stdatomic_dependencies],
+            dependencies : [stdatomic_dependencies, checkasm_dependency],
             c_args: ['-DBITDEPTH=@0@'.format(bitdepth)],
             install: false,
             build_by_default: false,
@@ -63,29 +69,8 @@ if is_asm_enabled
         checkasm_bitdepth_objs += checkasm_bitdepth_lib.extract_all_objects(recursive: true)
     endforeach
 
-    checkasm_asm_objs = []
-    checkasm_asm_sources = []
-    if host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64'
-        checkasm_asm_sources += files('checkasm/arm/checkasm_64.S')
-    elif host_machine.cpu_family().startswith('arm')
-        checkasm_asm_sources += files('checkasm/arm/checkasm_32.S')
-    elif host_machine.cpu_family() == 'riscv64'
-        checkasm_asm_sources += files('checkasm/riscv/checkasm_64.S')
-    elif host_machine.cpu_family().startswith('x86')
-        checkasm_asm_objs += nasm_gen.process(files('checkasm/x86/checkasm.asm'))
-    elif host_machine.cpu_family().startswith('loongarch')
-        checkasm_asm_sources += files('checkasm/loongarch/checkasm.S')
-    endif
-
-    if use_gaspp
-        checkasm_asm_objs += gaspp_gen.process(checkasm_asm_sources)
-    else
-        checkasm_sources += checkasm_asm_sources
-    endif
-
     checkasm = executable('checkasm',
         checkasm_sources,
-        checkasm_asm_objs,
 
         objects: [
             checkasm_bitdepth_objs,
@@ -94,11 +79,9 @@ if is_asm_enabled
 
         include_directories: dav1d_inc_dirs,
         build_by_default: false,
-        dependencies : [
-            thread_dependency,
-            rt_dependency,
-            libdl_dependency,
+        dependencies: [
             libm_dependency,
+            checkasm_dependency,
             ],
         )
 
