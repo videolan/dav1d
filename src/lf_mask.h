@@ -34,9 +34,9 @@
 #include "src/levels.h"
 
 typedef struct Av1FilterLUT {
-    uint8_t e[64];
-    uint8_t i[64];
-    uint64_t sharp[2];
+    ALIGN(uint8_t e[64], 16);
+    ALIGN(uint8_t i[64], 16);
+    ALIGN(uint64_t sharp[2], 16);
 } Av1FilterLUT;
 
 typedef struct Av1RestorationUnit {
