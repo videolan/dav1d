@@ -7,6 +7,7 @@ Changes for 1.5.2 'Sonic':
  - mark C globals with small code model
  - reduce the code size of the frame header parsing (OBU)
  - minor fixes on tools and CI
+ - fix compilation with nasm 3.00
 
 
 Changes for 1.5.1 'Sonic':
