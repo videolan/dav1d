@@ -84,6 +84,7 @@ int input_open(DemuxerContext **const c_out,
         }
         FILE *f = fopen(filename, "rb");
         if (!f) {
+            free(probe_data);
             fprintf(stderr, "Failed to open input file %s: %s\n", filename, strerror(errno));
             return errno ? DAV1D_ERR(errno) : DAV1D_ERR(EIO);
         }
