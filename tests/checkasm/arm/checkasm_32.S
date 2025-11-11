@@ -185,11 +185,7 @@ function checked_call_\variant, export=1
 2:
         movrel          r0, error_message_gpr
 1:
-#ifdef PREFIX
-        bl              _checkasm_fail_func
-#else
-        bl              checkasm_fail_func
-#endif
+        bl              X(fail_func)
 0:
         pop             {r0, r1}
 .ifc \variant, vfp
