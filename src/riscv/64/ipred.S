@@ -27,6 +27,102 @@
 
 #include "src/riscv/asm.S"
 
+// void ipred_dc_128_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
+//                            const pixel *const topleft,
+//                            const int width, const int height, const int a,
+//                            const int max_width, const int max_height)
+function ipred_dc_128_8bpc_rvv, export=1, ext="v,zba"
+    li a5, 128  // a5 - value to fill
+    j dc_common_rvv
+endfunc
+
+
+// void ipred_dc_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
+//                        const pixel *const topleft,
+//                        const int width, const int height, const int a,
+//                        const int max_width, const int max_height)
+function ipred_dc_8bpc_rvv, export=1, ext=v
+    mv t6, a0 // dst
+    mv a0, a2 // topleft
+    mv t4, a1 // stride
+    mv a1, a3 // width
+    mv a2, a4 // height
+    jal t0, dc_gen_8bpc_rvv
+    mv a5, a0 // fill value
+    mv a0, t6 // dst
+    mv a1, t4 // stride
+    j dc_common_rvv
+endfunc
+
+
+// void ipred_dc_left_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
+//                             const pixel *const topleft,
+//                             const int width, const int height, const int a,
+//                             const int max_width, const int max_height)
+function ipred_dc_left_8bpc_rvv, export=1, ext=v
+    mv t6, a0 // dst
+    mv a0, a2 // topleft
+    mv t4, a1 // stride
+    mv a1, a4 // height
+    jal t0, dc_gen_left_8bpc_rvv
+    mv a5, a0 // fill value
+    mv a0, t6 // dst
+    mv a1, t4 // stride
+    j dc_common_rvv
+endfunc
+
+
+// void ipred_dc_top_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
+//                            const pixel *const topleft,
+//                            const int width, const int height, const int a,
+//                            const int max_width, const int max_height)
+function ipred_dc_top_8bpc_rvv, export=1, ext=v
+    mv t6, a0 // dst
+    mv a0, a2 // topleft
+    mv t4, a1 // stride
+    mv a1, a3 // width
+    jal t0, dc_gen_top_8bpc_rvv
+    mv a5, a0 // fill value
+    mv a0, t6 // dst
+    mv a1, t4 // stride
+    j dc_common_rvv
+endfunc
+
+
+// void dc_common_rvv(pixel *dst, const ptrdiff_t stride,
+//                    const pixel *const unused,
+//                    const int width, const int height, const int value)
+function dc_common_rvv, export=1, ext="v,zba"
+    sh1add t2, a1, a0  // t2 - pointed to N+2 row
+    vsetvli t0, a3, e8, m1, ta, ma
+    add t1, a1, a0  // t1 - pointer to N+1 row
+    vmv.v.x v0, a5
+    add t3, a1, t2  // t3 - pointer to N+3 row
+    beq t0, a3, 1f  // Whole row fits in register.
+    vsetvli t0, a3, e8, m2, ta, ma  // Try LMUL=2
+    beq t0, a3, 2f  // Whole row fits in register.
+    // RVV requires VLEN>=128, so LMUL=4 should work.
+    vsetvli t0, a3, e8, m4, ta, ma
+2:
+    vmv.v.x v0, a5
+
+1:
+    vse8.v v0, (a0)
+    sh2add a0, a1, a0
+    vse8.v v0, (t1)
+    sh2add t1, a1, t1
+    vse8.v v0, (t2)
+    sh2add t2, a1, t2
+    vse8.v v0, (t3)
+    sh2add t3, a1, t3
+
+    addi a4, a4, -4
+    bnez a4, 1b
+
+    ret
+
+endfunc
+
 // void ipred_v_8bpc_rvv(pixel *dst, const ptrdiff_t stride,
 //                       const pixel *const topleft,
 //                       const int width, const int height, const int a,
