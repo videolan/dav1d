@@ -644,7 +644,7 @@ static unsigned get_seed(void) {
     return (unsigned) mach_absolute_time();
 #else
     struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    clock_gettime(CLOCK_REALTIME, &ts);
     return (unsigned) (1000000000ULL * ts.tv_sec + ts.tv_nsec);
 #endif
 }
