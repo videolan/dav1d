@@ -130,6 +130,9 @@ static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
 {
     SDL_Window *sdlwin = NULL;
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     // Common init
     Dav1dPlayRendererPrivateContext *rd_priv_ctx =
