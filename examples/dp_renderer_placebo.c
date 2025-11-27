@@ -86,17 +86,20 @@ static Dav1dPlayRendererPrivateContext*
 
     // Create Window
     SDL_Window *sdlwin = dp_create_sdl_window(window_flags | SDL_WINDOW_RESIZABLE);
-    if (sdlwin == NULL)
+    if (sdlwin == NULL) {
+        fprintf(stderr, "Creating SDL window failed: %s\n", SDL_GetError());
         return NULL;
+    }
 
     SDL_ShowCursor(0);
 
     // Alloc
     Dav1dPlayRendererPrivateContext *const rd_priv_ctx =
         calloc(1, sizeof(Dav1dPlayRendererPrivateContext));
-    if (rd_priv_ctx == NULL)
+    if (rd_priv_ctx == NULL) {
+        fprintf(stderr, "Out of memory!\n");
         return NULL;
-
+    }
     rd_priv_ctx->win = sdlwin;
 
     // Init libplacebo
@@ -109,6 +112,7 @@ static Dav1dPlayRendererPrivateContext*
 #endif
     ));
     if (rd_priv_ctx->log == NULL) {
+        fprintf(stderr, "pl_log_create failed!\n");
         free(rd_priv_ctx);
         return NULL;
     }
@@ -143,6 +147,10 @@ static void *placebo_renderer_create_gl(const Dav1dPlaySettings *settings)
     sdlwin = rd_priv_ctx->win;
 
     rd_priv_ctx->gl_context = SDL_GL_CreateContext(sdlwin);
+    if (!rd_priv_ctx->gl_context) {
+        fprintf(stderr, "Failed creating opengl context: %s\n", SDL_GetError());
+        exit(2);
+    }
     SDL_GL_MakeCurrent(sdlwin, rd_priv_ctx->gl_context);
 
     rd_priv_ctx->gl = pl_opengl_create(rd_priv_ctx->log, pl_opengl_params(

@@ -50,14 +50,16 @@ static void *sdl_renderer_create(const Dav1dPlaySettings *settings)
         window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
     SDL_Window *win = dp_create_sdl_window(window_flags);
-    if (win == NULL)
+    if (win == NULL) {
+        fprintf(stderr, "Creating SDL window failed: %s\n", SDL_GetError());
         return NULL;
-
+    }
     SDL_ShowCursor(0);
 
     // Alloc
     Dav1dPlayRendererPrivateContext *rd_priv_ctx = malloc(sizeof(Dav1dPlayRendererPrivateContext));
     if (rd_priv_ctx == NULL) {
+        fprintf(stderr, "Out of memory!\n");
         return NULL;
     }
     rd_priv_ctx->win = win;

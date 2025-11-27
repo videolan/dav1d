@@ -140,6 +140,9 @@ static inline SDL_Window *dp_create_sdl_window(int window_flags)
 
     win = SDL_CreateWindow("Dav1dPlay", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
+    if (!win)
+        return NULL;
+
     SDL_SetWindowResizable(win, SDL_TRUE);
 
     return win;
