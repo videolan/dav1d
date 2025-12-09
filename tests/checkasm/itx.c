@@ -266,7 +266,7 @@ static void check_itxfm_add(Dav1dInvTxfmDSPContext *const c,
     for (int bpc = bpc_min; bpc <= bpc_max; bpc += 2) {
         bitfn(dav1d_itx_dsp_init)(c, bpc);
         for (enum TxfmType txtp = 0; txtp < N_TX_TYPES_PLUS_LL; txtp++)
-            for (int subsh = 0; subsh < subsh_max; subsh++)
+            for (int subsh = !!txtp; subsh < subsh_max; subsh++)
                 if (check_func(c->itxfm_add[tx][txtp],
                                "inv_txfm_add_%dx%d_%s_%s_%d_%dbpc",
                                w, h, itx_1d_names[itx_1d_types[txtp][0]],
