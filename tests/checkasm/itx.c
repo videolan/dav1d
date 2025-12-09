@@ -302,21 +302,27 @@ static void check_itxfm_add(Dav1dInvTxfmDSPContext *const c,
                               alternate(coeff[0], coeff[1]), max_eob HIGHBD_TAIL_SUFFIX);
                 }
     }
-    report("add_%dx%d", w, h);
 }
 
 void bitfn(checkasm_check_itx)(void) {
     static const uint8_t txfm_size_order[N_RECT_TX_SIZES] = {
-        TX_4X4,   RTX_4X8,  RTX_4X16,
-        RTX_8X4,  TX_8X8,   RTX_8X16,  RTX_8X32,
-        RTX_16X4, RTX_16X8, TX_16X16,  RTX_16X32, RTX_16X64,
-                  RTX_32X8, RTX_32X16, TX_32X32,  RTX_32X64,
-                            RTX_64X16, RTX_64X32, TX_64X64
+        TX_4X4,                                               // tx4
+        RTX_4X8,   RTX_8X4,   TX_8X8,                         // tx8
+        RTX_4X16,  RTX_16X4,  RTX_8X16,  RTX_16X8,  TX_16X16, // tx16
+        RTX_8X32,  RTX_32X8,  RTX_16X32, RTX_32X16, TX_32X32, // tx32
+        RTX_16X64, RTX_64X16, RTX_32X64, RTX_64X32, TX_64X64, // tx64
     };
 
     /* Zero unused function pointer elements. */
     Dav1dInvTxfmDSPContext c = { { { 0 } } };
 
-    for (int i = 0; i < N_RECT_TX_SIZES; i++)
-        check_itxfm_add(&c, txfm_size_order[i]);
+    int idx = 0, tx;
+    do {
+        do {
+            tx = txfm_size_order[idx++];
+            check_itxfm_add(&c, tx);
+        } while (tx >= N_TX_SIZES);
+        report("add_tx%d", 4 << tx);
+    } while (tx < N_TX_SIZES - 1);
+    assert(idx == N_RECT_TX_SIZES);
 }
