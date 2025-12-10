@@ -60,7 +60,7 @@ if not get_option('xxhash_muxer').disabled()
         xxh3_found = true
     elif get_option('xxhash_muxer').enabled()
         # manual error since 'required' kw arg in has_header_symbol() was only added in meson 0.50
-        error( 'C symbol XXH3_createState not found in header xxhash.h')
+        error( 'Requested xxhash_muxer to be built, but no usable xxhash.h was found.')
     endif
 endif
 
