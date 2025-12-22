@@ -36,6 +36,10 @@ decl_blend_fn(BF(dav1d_blend_vl256, rvv));
 decl_blend_dir_fn(BF(dav1d_blend_h_vl256, rvv));
 decl_blend_dir_fn(BF(dav1d_blend_v_vl256, rvv));
 
+decl_blend_fn(BF(dav1d_blend_vl512, rvv));
+decl_blend_dir_fn(BF(dav1d_blend_h_vl512, rvv));
+decl_blend_dir_fn(BF(dav1d_blend_v_vl512, rvv));
+
 decl_avg_fn(BF(dav1d_avg, rvv));
 decl_w_avg_fn(BF(dav1d_w_avg, rvv));
 decl_mask_fn(BF(dav1d_mask, rvv));
@@ -86,6 +90,11 @@ static ALWAYS_INLINE void mc_dsp_init_riscv(Dav1dMCDSPContext *const c) {
     c->w_mask[0] = BF(dav1d_w_mask_444_vl256, rvv);
     c->w_mask[1] = BF(dav1d_w_mask_422_vl256, rvv);
     c->w_mask[2] = BF(dav1d_w_mask_420_vl256, rvv);
+  }
+  if (dav1d_get_vlen() >= 512) {
+    c->blend = BF(dav1d_blend_vl512, rvv);
+    c->blend_h = BF(dav1d_blend_h_vl512, rvv);
+    c->blend_v = BF(dav1d_blend_v_vl512, rvv);
   }
 #endif
 }
