@@ -27,6 +27,13 @@
 
 #include "src/riscv/asm.S"
 
+function blend_vl512_16bpc_rvv, export=1, ext=zbb
+  srai t0, a3, 3
+  ctz t0, t0
+  addi t0, t0, 0xc6
+  j L(blend_epilog)
+endfunc
+
 function blend_vl256_16bpc_rvv, export=1, ext=zbb
   ctz t0, a3
   addi t0, t0, 0xc4
@@ -71,6 +78,13 @@ L(blend_epilog):
   add a0, t0, a1
   bnez a4, 1b
   ret
+endfunc
+
+function blend_v_vl512_16bpc_rvv, export=1, ext=zbb
+  srai t0, a3, 3
+  ctz t0, t0
+  addi t0, t0, 0xc6
+  j L(blend_v_epilog)
 endfunc
 
 function blend_v_vl256_16bpc_rvv, export=1, ext=zbb
