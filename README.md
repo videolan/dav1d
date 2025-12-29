@@ -124,6 +124,13 @@ The result can be found in `build/doc/html/`. An online version built from maste
 2. During meson configuration, specify `-Dtestdata_tests=true`
 3. Run `meson test -v` after compiling
 
+## Decoder conformance tests (optional but encouraged)
+
+1. Download the argon conformance bitstreams from https://streams.videolan.org/argon/
+2. Extract into dav1d directory by running `tar -xvf argon.tar.zst`
+3. Execute tests with `tests/dav1d_argon.bash -d build/tools/dav1d -a argon`
+4. Expected outcome is `2763 files successfully verified in XXmYYs (dav1d 1.x.y-zz-gHHHHHHH filmgrain=1 cpumask=-1)`
+
 # Support
 
 This project is partially funded by the *Alliance for Open Media*/**AOM** and is supported by TwoOrioles and VideoLabs.
