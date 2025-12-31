@@ -1,3 +1,13 @@
+Changes for 1.5.3 'Sonic':
+--------------------------
+
+1.5.3 is a minor release of dav1d, focused on RISC-V and maintenance:
+ - Misc small optimizations
+ - RISC-V assembly optimizations for ipred, emu_edge and w_mask,
+   and VLEN 512 for blend functions
+ - Fix issue with ivf files with 0 frames in tools
+
+
 Changes for 1.5.2 'Sonic':
 --------------------------
 
@@ -41,7 +51,7 @@ Changes for 1.5.0 'Sonic':
  - picture: copy HDR10+ and T35 metadata only to visible frames
  - SSSE3 new optimizations for 6-tap (8bit and hbd)
  - AArch64/SVE: Add HBD subpel filters using 128-bit SVE2
- - AArch64: Add USMMLA implempentation for 6-tap H/HV
+ - AArch64: Add USMMLA Implementation for 6-tap H/HV
  - AArch64: Optimize Armv8.0 NEON for HBD horizontal filters and 6-tap filters
  - Power9: Optimized ITX till 16x4.
  - Loongarch: numerous optimizations
