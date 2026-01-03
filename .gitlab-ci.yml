@@ -4,7 +4,7 @@ stages:
     - test
 
 .debian-amd64-common:
-    image: registry.videolan.org/dav1d-debian-unstable:20250207200301
+    image: registry.videolan.org/dav1d-debian-unstable:20260103195850
     stage: build
     tags:
         - docker
@@ -453,7 +453,7 @@ build-debian-loongarch64:
     extends: .debian-amd64-common
     variables:
         QEMU_CPU: max-loongarch-cpu
-        QEMU_LD_PREFIX: /opt/cross-tools/target/
+        QEMU_LD_PREFIX: /usr/loongarch64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
@@ -808,7 +808,7 @@ test-debian-loongarch64:
     needs: ["build-debian-loongarch64"]
     variables:
         QEMU_CPU: max-loongarch-cpu
-        QEMU_LD_PREFIX: /opt/cross-tools/target/
+        QEMU_LD_PREFIX: /usr/loongarch64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtestdata_tests=true
