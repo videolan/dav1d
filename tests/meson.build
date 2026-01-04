@@ -38,6 +38,10 @@ checkasm_dependency = dependency('checkasm',
 
 if is_asm_enabled and checkasm_dependency.found()
 
+    checkasm_args = [
+        '-DCHECKASM_HAVE_GENERIC=@0@'.format(cdata.get('HAVE_C11_GENERIC'))
+    ]
+
     checkasm_sources = files(
         'checkasm/checkasm.c',
         'checkasm/msac.c',
@@ -62,7 +66,7 @@ if is_asm_enabled and checkasm_dependency.found()
             checkasm_tmpl_sources,
             include_directories: dav1d_inc_dirs,
             dependencies : [stdatomic_dependencies, checkasm_dependency],
-            c_args: ['-DBITDEPTH=@0@'.format(bitdepth)],
+            c_args: ['-DBITDEPTH=@0@'.format(bitdepth)] + checkasm_args,
             install: false,
             build_by_default: false,
         )
@@ -83,6 +87,7 @@ if is_asm_enabled and checkasm_dependency.found()
             libm_dependency,
             checkasm_dependency,
             ],
+        c_args: checkasm_args,
         )
 
     test('checkasm', checkasm, suite: 'checkasm', timeout: 180)
