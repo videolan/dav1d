@@ -1671,7 +1671,7 @@ L(\type\()_8tap_v_tbl):
 .endif
 
 40:
-        bgt            480f
+        bgt             480f
 
         // 4x2, 4x4 v
         cmp             \h,  #2
