@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#include <stdio.h>
+
 #include <checkasm/checkasm.h>
 
 #include "src/cpu.h"
@@ -93,6 +95,11 @@ static void set_cpu_flags(CheckasmCpu flags)
 
 int main(int argc, const char *argv[])
 {
+#if TRIM_DSP_FUNCTIONS
+    fprintf(stderr, "checkasm: reference functions unavailable, reconfigure using '-Dtrim_dsp=false'\n");
+    return 0;
+#endif
+
     CheckasmConfig cfg = {
         .cpu_flags      = flags,
         .tests          = tests,
