@@ -299,7 +299,8 @@ else
     optional_arguments += [
       '-wd4028', # parameter different from declaration
       '-wd4090', # broken with arrays of pointers
-      '-wd4996'  # use of POSIX functions
+      '-wd4996', # use of POSIX functions
+      '-wd5287', # operands are different enum types
     ]
 endif
 
