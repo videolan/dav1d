@@ -18,7 +18,7 @@ stages:
         - amd64
 
 .debian-llvm-mingw-common:
-    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20250305204125
+    image: registry.videolan.org/vlc-debian-llvm-ucrt:20250305204125
     stage: build
     tags:
         - docker
