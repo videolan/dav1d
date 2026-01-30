@@ -102,6 +102,7 @@ if host_machine.system() in ['linux', 'gnu', 'emscripten']
 endif
 
 have_clock_gettime = false
+have_sigaction = false
 have_posix_memalign = false
 have_memalign = false
 have_aligned_alloc = false
@@ -161,12 +162,14 @@ else
         have_clock_gettime = true
     endif
 
+    have_sigaction = cc.has_function('sigaction', prefix : '#include <signal.h>', args : test_args)
     have_posix_memalign = cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
     have_memalign = cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_args)
     have_aligned_alloc = cc.has_function('aligned_alloc', prefix : '#include <stdlib.h>', args : test_args)
 endif
 
 cdata.set10('HAVE_CLOCK_GETTIME', have_clock_gettime)
+cdata.set10('HAVE_SIGACTION', have_sigaction)
 cdata.set10('HAVE_POSIX_MEMALIGN', have_posix_memalign)
 cdata.set10('HAVE_MEMALIGN', have_memalign)
 cdata.set10('HAVE_ALIGNED_ALLOC', have_aligned_alloc)
