@@ -450,7 +450,6 @@ build-debian-loongarch64:
     extends: .debian-amd64-common
     variables:
         QEMU_CPU: max-loongarch-cpu
-        QEMU_LD_PREFIX: /usr/loongarch64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
@@ -801,7 +800,6 @@ test-debian-loongarch64:
     needs: ["build-debian-loongarch64"]
     variables:
         QEMU_CPU: max-loongarch-cpu
-        QEMU_LD_PREFIX: /usr/loongarch64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtestdata_tests=true
