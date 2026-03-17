@@ -358,8 +358,6 @@ build-debian-aarch64-clang-5:
 
 build-debian-aarch64-clang:
     extends: .debian-amd64-common
-    variables:
-        QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
     script:
         - meson setup build --buildtype release
                             -Dtrim_dsp=false
@@ -771,8 +769,6 @@ test-debian-aarch64-qemu:
                             --cross-file package/crossfiles/aarch64-linux.meson
         - ninja -C build
         - cd build && time meson test -v --timeout-multiplier 10
-    variables:
-        QEMU_LD_PREFIX: /usr/aarch64-linux-gnu/
     parallel:
       matrix:
         # sve-default-vector-length sets the max vector length in bytes;
