@@ -195,78 +195,83 @@ function ipred_h_8bpc_neon, export=1
         clz             w3,  w3
         movrel          x5,  ipred_h_tbl
         sub             w3,  w3,  #25
-        ldrsw           x3,  [x5, w3, uxtw #2]
         sub             x2,  x2,  #4
-        add             x5,  x5,  x3
+        ldrsw           x3,  [x5, x3, lsl #2]
         mov             x7,  #-4
-        add             x6,  x0,  x1
-        lsl             x1,  x1,  #1
+        add             x6,  x1,  x1            // 2 * stride, 4..16 blocks only
+        add             x5,  x5,  x3
+        add             x8,  x1,  x1,  lsl #1   // 3 * stride, 4..16 blocks only
         br              x5
 40:
         AARCH64_VALID_JUMP_TARGET
 4:
         ld4r            {v0.8b, v1.8b, v2.8b, v3.8b},  [x2], x7
-        st1             {v3.s}[0],  [x0], x1
-        st1             {v2.s}[0],  [x6], x1
         subs            w4,  w4,  #4
-        st1             {v1.s}[0],  [x0], x1
-        st1             {v0.s}[0],  [x6], x1
+        str             s3,  [x0]
+        str             s2,  [x0, x1]
+        str             s1,  [x0, x6]
+        str             s0,  [x0, x8]
+        add             x0,  x0,  x1,  lsl #2
         b.gt            4b
         ret
 80:
         AARCH64_VALID_JUMP_TARGET
 8:
         ld4r            {v0.8b, v1.8b, v2.8b, v3.8b},  [x2], x7
-        st1             {v3.8b},  [x0], x1
-        st1             {v2.8b},  [x6], x1
         subs            w4,  w4,  #4
-        st1             {v1.8b},  [x0], x1
-        st1             {v0.8b},  [x6], x1
+        str             d3,  [x0]
+        str             d2,  [x0, x1]
+        str             d1,  [x0, x6]
+        str             d0,  [x0, x8]
+        add             x0,  x0,  x1,  lsl #2
         b.gt            8b
         ret
 160:
         AARCH64_VALID_JUMP_TARGET
 16:
         ld4r            {v0.16b, v1.16b, v2.16b, v3.16b},  [x2], x7
-        st1             {v3.16b}, [x0], x1
-        st1             {v2.16b}, [x6], x1
         subs            w4,  w4,  #4
-        st1             {v1.16b}, [x0], x1
-        st1             {v0.16b}, [x6], x1
+        str             q3,  [x0]
+        str             q2,  [x0, x1]
+        str             q1,  [x0, x6]
+        str             q0,  [x0, x8]
+        add             x0,  x0,  x1,  lsl #2
         b.gt            16b
         ret
 320:
         AARCH64_VALID_JUMP_TARGET
+        add             x6,  x0,  x1
 32:
         ld4r            {v0.16b, v1.16b, v2.16b, v3.16b},  [x2], x7
-        str             q3,  [x0, #16]
-        str             q2,  [x6, #16]
-        st1             {v3.16b}, [x0], x1
-        st1             {v2.16b}, [x6], x1
+        stp             q3,  q3,  [x0]
+        add             x0,  x0,  x1,  lsl #1
+        stp             q2,  q2,  [x6]
+        add             x6,  x6,  x1,  lsl #1
         subs            w4,  w4,  #4
-        str             q1,  [x0, #16]
-        str             q0,  [x6, #16]
-        st1             {v1.16b}, [x0], x1
-        st1             {v0.16b}, [x6], x1
+        stp             q1,  q1,  [x0]
+        add             x0,  x0,  x1,  lsl #1
+        stp             q0,  q0,  [x6]
+        add             x6,  x6,  x1,  lsl #1
         b.gt            32b
         ret
 640:
         AARCH64_VALID_JUMP_TARGET
+        add             x6,  x0,  x1
 64:
         ld4r            {v0.16b, v1.16b, v2.16b, v3.16b},  [x2], x7
-        str             q3,  [x0, #16]
-        str             q2,  [x6, #16]
+        stp             q3,  q3,  [x0]
         stp             q3,  q3,  [x0, #32]
+        add             x0,  x0,  x1,  lsl #1
+        stp             q2,  q2,  [x6]
         stp             q2,  q2,  [x6, #32]
-        st1             {v3.16b}, [x0], x1
-        st1             {v2.16b}, [x6], x1
+        add             x6,  x6,  x1,  lsl #1
         subs            w4,  w4,  #4
-        str             q1,  [x0, #16]
-        str             q0,  [x6, #16]
+        stp             q1,  q1,  [x0]
         stp             q1,  q1,  [x0, #32]
+        add             x0,  x0,  x1,  lsl #1
+        stp             q0,  q0,  [x6]
         stp             q0,  q0,  [x6, #32]
-        st1             {v1.16b}, [x0], x1
-        st1             {v0.16b}, [x6], x1
+        add             x6,  x6,  x1,  lsl #1
         b.gt            64b
         ret
 endfunc
