@@ -114,7 +114,7 @@ function ipred_v_8bpc_neon, export=1
         clz             w3,  w3
         movrel          x5,  ipred_v_tbl
         sub             w3,  w3,  #25
-        ldrsw           x3,  [x5, w3, uxtw #2]
+        ldrsw           x3,  [x5, x3, lsl #2]
         add             x2,  x2,  #1
         add             x5,  x5,  x3
         add             x6,  x0,  x1
@@ -122,13 +122,15 @@ function ipred_v_8bpc_neon, export=1
         br              x5
 40:
         AARCH64_VALID_JUMP_TARGET
-        ld1             {v0.s}[0],  [x2]
+        ldr             s0,  [x2]
 4:
-        st1             {v0.s}[0],  [x0], x1
-        st1             {v0.s}[0],  [x6], x1
+        str             s0,  [x0]
         subs            w4,  w4,  #4
-        st1             {v0.s}[0],  [x0], x1
-        st1             {v0.s}[0],  [x6], x1
+        str             s0,  [x6]
+        str             s0,  [x0, x1]
+        add             x0,  x0,  x1,  lsl #1
+        str             s0,  [x6, x1]
+        add             x6,  x6,  x1,  lsl #1
         b.gt            4b
         ret
 80:
