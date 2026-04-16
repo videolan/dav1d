@@ -28,7 +28,7 @@ project('dav1d', ['c'],
                       'warning_level=2',
                       'buildtype=release',
                       'b_ndebug=if-release'],
-    meson_version: '>= 0.49.0')
+    meson_version: '>= 0.54.0')
 
 dav1d_src_root = meson.current_source_dir()
 cc = meson.get_compiler('c')

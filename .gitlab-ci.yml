@@ -11,7 +11,7 @@ stages:
         - amd64
 
 .debian-amd64-minimum:
-    image: registry.videolan.org/dav1d-debian-minimum:20250207200301
+    image: registry.videolan.org/dav1d-debian-minimum:20260422185248
     stage: build
     tags:
         - docker
