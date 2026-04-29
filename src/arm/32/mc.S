@@ -948,21 +948,26 @@ L(prep_tbl):
         .word 640f  - L(prep_tbl) + CONFIG_THUMB
         .word 320f  - L(prep_tbl) + CONFIG_THUMB
         .word 160f  - L(prep_tbl) + CONFIG_THUMB
-        .word 8f    - L(prep_tbl) + CONFIG_THUMB
-        .word 4f    - L(prep_tbl) + CONFIG_THUMB
+        .word 80f   - L(prep_tbl) + CONFIG_THUMB
+        .word 40f   - L(prep_tbl) + CONFIG_THUMB
 
+40:
+        add             r9,  r1,  r2
+        lsl             r2,  r2,  #1
 4:
-        vld1.32         {d0[]}, [r1], r2
-        vld1.32         {d2[]}, [r1], r2
+        vld1.32         {d0[]},  [r1], r2
+        vld1.32         {d0[1]}, [r9], r2
         subs            r4,  r4,  #2
         vshll.u8        q0,  d0,  #4
-        vshll.u8        q1,  d2,  #4
-        vst1.16         {d1, d2}, [r0, :64]!
+        vst1.16         {d0, d1}, [r0, :64]!
         bgt             4b
         pop             {r4-r11,pc}
+80:
+        add             r9,  r1,  r2
+        lsl             r2,  r2,  #1
 8:
         vld1.8          {d0}, [r1], r2
-        vld1.8          {d2}, [r1], r2
+        vld1.8          {d2}, [r9], r2
         subs            r4,  r4,  #2
         vshll.u8        q0,  d0,  #4
         vshll.u8        q1,  d2,  #4
