@@ -933,7 +933,7 @@ L(put_tbl):
 endfunc
 
 
-// This has got the same signature as the put_8tap functions,
+// This has got the same signature as the prep_8tap functions,
 // assumes that the caller has loaded the h argument into r4,
 // and assumes that r8 is set to (clz(w)-24), and r7 to w*2.
 function prep_neon
