@@ -366,11 +366,8 @@ build-debian-aarch64-clang:
         - ninja -C build
         - cd build && meson test -v
 
-build-macos:
+.build-macos-common:
     stage: build
-    tags:
-        - amd64
-        - macos
     script:
         - meson setup build --buildtype release
                             -Ddefault_library=both
@@ -378,6 +375,17 @@ build-macos:
                             --werror
         - ninja -C build
         - cd build && meson test -v
+
+build-macos-x86_64:
+    extends: .build-macos-common
+    tags:
+        - amd64
+        - macos
+
+build-macos-arm64:
+    extends: .build-macos-common
+    tags:
+        - macos-xcode26
 
 build-debian-werror:
     extends: .debian-aarch64-common
