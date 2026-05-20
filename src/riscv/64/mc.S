@@ -1002,6 +1002,33 @@ w_mask_fn 420 vl256_
 .endm
 
 
+.macro filter_6tap_vector_plus_reg filter_v, row_v, pad_reg, output_v, scratch_v, scratch2_v, scratch_reg
+  vrgather.vi \scratch_v, \filter_v, 1
+  vrgather.vi \scratch2_v, \filter_v, 2
+  andi \scratch_reg, \pad_reg, 255
+  vmul.vv \output_v, \row_v, \scratch_v
+
+.irpc i, 12
+  srli \pad_reg, \pad_reg, 8
+  vslide1down.vx \row_v, \row_v, \scratch_reg
+  andi \scratch_reg, \pad_reg, 255
+  vrgather.vi \scratch_v, \filter_v, (2 * \i + 1)
+  vmacc.vv \output_v, \row_v, \scratch2_v
+
+  srli \pad_reg, \pad_reg, 8
+  vslide1down.vx \row_v, \row_v, \scratch_reg
+  andi \scratch_reg, \pad_reg, 255
+  vrgather.vi \scratch2_v, \filter_v, (2 * \i + 2)
+  vmacc.vv \output_v, \row_v, \scratch_v
+.endr
+
+  andi \scratch_reg, \pad_reg, 255
+  srli \pad_reg, \pad_reg, 8
+  vslide1down.vx \row_v, \row_v, \scratch_reg
+  vmacc.vv \output_v, \row_v, \scratch2_v
+.endm
+
+
 .macro filter_8tap_vector_plus_reg filter_v, row_v, pad_reg, output_v, scratch_v, scratch2_v, scratch_reg
   vrgather.vi \scratch_v, \filter_v, 0
   vrgather.vi \scratch2_v, \filter_v, 1
@@ -1026,7 +1053,6 @@ w_mask_fn 420 vl256_
   srli \pad_reg, \pad_reg, 8
   vslide1down.vx \row_v, \row_v, \scratch_reg
   vmacc.vv \output_v, \row_v, \scratch2_v
-
 .endm
 
 
@@ -1065,6 +1091,19 @@ function L(\type\()_filter_row_4tap_rvv), ext="v,zba,zbb"
   ret
 endfunc
 
+function L(\type\()_filter_row_6tap_rvv), ext="v,zba,zbb"
+  add t3, \chunk_w, \src
+  vle8.v v30, (\src)
+  ld t3, (t3)  // t3 - right end (incl. padding) of the row
+  vzext.vf2 v28, v30  // v28 - left padding + most of row
+  add \src, \src, \s_strd
+
+  filter_6tap_vector_plus_reg \hfilter_v, v28, t3, v22, v26, v24, t4
+
+  vssra.vi v22, v22, 2
+  ret
+endfunc
+
 function L(\type\()_filter_row_8tap_rvv), ext="v,zba,zbb"
   add t3, \chunk_w, \src
   vle8.v v30, (\src)
@@ -1081,7 +1120,6 @@ endfunc
 .endm
 
 // Possible speedups:
-// - 6tap mode (use the fact that boundary element of non-sharp filters are 0)
 // - ARM processes two rows at once - most likely faster
 // - separate implmentation for mx==0 - right now we get lots of unncecssary shifts
 // - LMUL==2 when width>=2*VLENB
@@ -1096,9 +1134,13 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .ifc \htap, 8tap
   addi \src, \src, -3
 .else
+.ifc \htap, 6tap
+  addi \src, \src, -2
+.else
 .ifc \htap, 4tap
   addi \src, \src, -1
 .endif // 4tap
+.endif // 6tap
 .endif // 8tap
 
   vsetvli t0, \chunk_w, e16, m1, ta, ma
@@ -1114,9 +1156,14 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
   sub \src, \src, \s_strd
   sub \src, \src, t4
 .else
+.ifc \vtap, 6tap
+  sub \src, \src, \s_strd
+  sub \src, \src, \s_strd
+.else
 .ifc \vtap, 4tap
   sub \src, \src, \s_strd
 .endif  // 4tap
+.endif  // 6tap
 .endif  // 8tap
 
   mv t5, \w  // t5 - loop index over rows.
@@ -1127,7 +1174,7 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .ifc \vtap, copy
 1:
   jal L(\type\()_filter_row_\htap\()_rvv)
-.else
+.else  // !copy
 .ifc \vtap, 8tap
   jal L(\type\()_filter_row_\htap\()_rvv)
   vmv.v.v v8, v22
@@ -1178,8 +1225,51 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .else
   // for good roudning, we need to shoft by 6+4 at once.
   vnclip.wi v22, v4, 10
-.endif
+.endif  // prep
+
+.else // !8tap
+.ifc \vtap, 6tap
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vmv.v.v v12, v22
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vmv.v.v v14, v22
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vmv.v.v v16, v22
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vmv.v.v v18, v22
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vmv.v.v v20, v22
+
+1:
+  jal L(\type\()_filter_row_\htap\()_rvv)
+  vrgather.vi v30, \vfilter_v, 1
+  vrgather.vi v28, \vfilter_v, 2
+  vwmul.vv v4, v12, v30
+  vmv.v.v v12, v14
+
+  vrgather.vi v30, \vfilter_v, 3
+  vwmacc.vv v4, v14, v28
+  vmv.v.v v14, v16
+  vrgather.vi v28, \vfilter_v, 4
+  vwmacc.vv v4, v16, v30
+  vmv.v.v v16, v18
+
+  vrgather.vi v30, \vfilter_v, 5
+  vwmacc.vv v4, v18, v28
+  vmv.v.v v18, v20
+  vrgather.vi v28, \vfilter_v, 6
+  vwmacc.vv v4, v20, v30
+  vwmacc.vv v4, v22, v28
+  vmv.v.v v20, v22
+
+.ifc \type, prep
+  vnclip.wi v22, v4, 6
 .else
+  // for good roudning, we need to shoft by 6+4 at once.
+  vnclip.wi v22, v4, 10
+.endif  // prep
+
+.else  // !6tap
 .ifc \vtap, 4tap
   jal L(\type\()_filter_row_\htap\()_rvv)
   vmv.v.v v16, v22
@@ -1190,14 +1280,14 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 
 1:
   jal L(\type\()_filter_row_\htap\()_rvv)
-  vrgather.vi v30, v2, 2
-  vrgather.vi v28, v2, 3
+  vrgather.vi v30, \vfilter_v, 2
+  vrgather.vi v28, \vfilter_v, 3
   vwmul.vv v4, v16, v30
   vmv.v.v v16, v18
-  vrgather.vi v30, v2, 4
+  vrgather.vi v30, \vfilter_v, 4
   vwmacc.vv v4, v18, v28
   vmv.v.v v18, v20
-  vrgather.vi v28, v2, 5
+  vrgather.vi v28, \vfilter_v, 5
   vwmacc.vv v4, v20, v30
   vwmacc.vv v4, v22, v28
   vmv.v.v v20, v22
@@ -1210,6 +1300,7 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .endif
 
 .endif  // 4tap
+.endif  // 6tap
 .endif  // 8tap
 .endif  // copy
 
@@ -1240,11 +1331,15 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .ifc \vtap, 8tap
   addi t0, \h, 7  // add vertical padding
 .else
+.ifc \vtap, 6tap
+  addi t0, \h, 5  // add vertical padding
+.else
 .ifc \vtap, 4tap
   addi t0, \h, 3
 .else
   mv t0, \h
 .endif  // 4tap
+.endif  // 6tap
 .endif  // 8tap
 
   mul t0, t0, \s_strd
@@ -1273,28 +1368,38 @@ filter_fn_helpers   put,   a0, a1, a2, a3, a4, a5, a6, v0, v2
 
 filter_fn       prep,  copy, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  copy, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
+filter_fn       prep,  copy, 6tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  copy, 8tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  4tap, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  4tap, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
+filter_fn       prep,  4tap, 6tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  4tap, 8tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
+filter_fn       prep,  6tap, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
+filter_fn       prep,  6tap, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
+filter_fn       prep,  6tap, 6tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  8tap, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  8tap, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  8tap, 8tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 
 filter_fn       put,   copy, copy, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   copy, 4tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
+filter_fn       put,   copy, 6tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   copy, 8tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   4tap, copy, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   4tap, 4tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
+filter_fn       put,   4tap, 6tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   4tap, 8tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
+filter_fn       put,   6tap, copy, a0, a1, a2, a3, a4, a5, a6, v0, v2
+filter_fn       put,   6tap, 4tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
+filter_fn       put,   6tap, 6tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   8tap, copy, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   8tap, 4tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   8tap, 8tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 
 
-.macro filter_fn_chooser type, dst, d_strd, src, s_strd, w, h, mx, my, hfilt_wide, hfilt_narrow_delta, vfilt_wide, vfilt_narrow_delta
+.macro filter_fn_chooser type, tap86, dst, d_strd, src, s_strd, w, h, mx, my, hfilt_wide, hfilt_narrow_delta, vfilt_wide, vfilt_narrow_delta
 
-function \type\()_8tap_chooser_rvv, export=1, ext="v,zba,zbb"
+function \type\()_\tap86\()_chooser_rvv, export=1, ext="v,zba,zbb"
   csrwi vxrm, 0  // Use round to nearest in right shifts
   vsetivli zero, 8, e16, m1, ta, ma  // Will always fit (VLEN >= 128)
 
@@ -1307,7 +1412,11 @@ function \type\()_8tap_chooser_rvv, export=1, ext="v,zba,zbb"
 10:
   add \mx, \mx, \hfilt_wide
   sh3add \mx, \mx, t5
+.ifc \tap86, tap8
   li t4, 3*4
+.else
+  li t4, 2*4
+.endif
   bgt \w, t6, 20f
   add \mx, \mx, \hfilt_narrow_delta
   li t4, 1*4
@@ -1319,10 +1428,18 @@ function \type\()_8tap_chooser_rvv, export=1, ext="v,zba,zbb"
   beq \my, zero, 31f
   add \my, \my, \vfilt_wide
   sh3add \my, \my, t5
+.ifc \tap86, tap8
   addi t4, t4, 3
+.else
+  addi t4, t4, 2
+.endif
   bgt \h, t6, 21f
   add \my, \my, \vfilt_narrow_delta
+.ifc \tap86, tap8
   addi t4, t4, -2
+.else
+  addi t4, t4, -1
+.endif
 21:
   vle8.v v18, (\my)
   vsext.vf2 v2, v18  // v2 - vertical filter as int16
@@ -1341,38 +1458,45 @@ function \type\()_8tap_chooser_rvv, export=1, ext="v,zba,zbb"
   add t2, t6, t5
   jr t2
 endfunc
+.endm
+
+.macro filter_fn_chooser_tbl type
 
 const \type\()_tbl
         // htap == copy
         .word \type\()_copy_copy_rvv - \type\()_tbl
         .word \type\()_copy_4tap_rvv - \type\()_tbl
-        .word 0
+        .word \type\()_copy_6tap_rvv - \type\()_tbl
         .word \type\()_copy_8tap_rvv - \type\()_tbl
         // htap == 4tap
         .word \type\()_4tap_copy_rvv - \type\()_tbl
         .word \type\()_4tap_4tap_rvv - \type\()_tbl
-        .word 0
+        .word \type\()_4tap_6tap_rvv - \type\()_tbl
         .word \type\()_4tap_8tap_rvv - \type\()_tbl
         // htap == 6tap
-        .word 0
-        .word 0
-        .word 0
-        .word 0
+        .word \type\()_6tap_copy_rvv - \type\()_tbl
+        .word \type\()_6tap_4tap_rvv - \type\()_tbl
+        .word \type\()_6tap_6tap_rvv - \type\()_tbl
+        .word 0  // rare combination we don't generate code for
         // htap == 8tap
         .word \type\()_8tap_copy_rvv - \type\()_tbl
         .word \type\()_8tap_4tap_rvv - \type\()_tbl
-        .word 0
+        .word 0  // rare combination we don't generate code for
         .word \type\()_8tap_8tap_rvv - \type\()_tbl
 endconst
 
 
 .endm
 
-filter_fn_chooser  prep, a0, zero, a1, a2, a3, a4, a5, a6, t0, t1, t2, t3
-filter_fn_chooser  put,  a0, a1,   a2, a3, a4, a5, a6, a7, t0, t1, t2, t3
+filter_fn_chooser_tbl prep
+filter_fn_chooser     prep, tap6, a0, zero, a1, a2, a3, a4, a5, a6, t0, t1, t2, t3
+filter_fn_chooser     prep, tap8, a0, zero, a1, a2, a3, a4, a5, a6, t0, t1, t2, t3
+filter_fn_chooser_tbl put
+filter_fn_chooser     put,  tap6, a0, a1,   a2, a3, a4, a5, a6, a7, t0, t1, t2, t3
+filter_fn_chooser     put,  tap8, a0, a1,   a2, a3, a4, a5, a6, a7, t0, t1, t2, t3
 
 
-.macro make_8tap_fn type, filters, id_h, id_v
+.macro make_8tap_fn type, filters, tap86, id_h, id_v
 // prep_8tap_c(int16_t *tmp /*a0*/, const pixel *src /*a1*/,
 //             ptrdiff_t src_stride /*a2*/, const int w /*a3*/, int h /*a4*/,
 //             const int mx /*a5*/, const int my /*a6*/)
@@ -1384,25 +1508,25 @@ function \type\()_8tap_\filters\()_8bpc_rvv, export=1, ext="v,zba,zbb"
   li t1, ((3 + (\id_h & 1) - \id_h)*15)*8
   li t2, \id_v*15
   li t3, ((3 + (\id_v & 1) - \id_v)*15)*8
-  j \type\()_8tap_chooser_rvv
+  j \type\()_\tap86\()_chooser_rvv
 endfunc
 .endm
 
-make_8tap_fn prep,  regular,         0, 0
-make_8tap_fn prep,  smooth_regular,  1, 0
-make_8tap_fn prep,  sharp_regular,   2, 0
-make_8tap_fn prep,  regular_smooth,  0, 1
-make_8tap_fn prep,  smooth,          1, 1
-make_8tap_fn prep,  sharp_smooth,    2, 1
-make_8tap_fn prep,  regular_sharp,   0, 2
-make_8tap_fn prep,  smooth_sharp,    1, 2
-make_8tap_fn prep,  sharp,           2, 2
-make_8tap_fn put,   regular,         0, 0
-make_8tap_fn put,   smooth_regular,  1, 0
-make_8tap_fn put,   sharp_regular,   2, 0
-make_8tap_fn put,   regular_smooth,  0, 1
-make_8tap_fn put,   smooth,          1, 1
-make_8tap_fn put,   sharp_smooth,    2, 1
-make_8tap_fn put,   regular_sharp,   0, 2
-make_8tap_fn put,   smooth_sharp,    1, 2
-make_8tap_fn put,   sharp,           2, 2
+make_8tap_fn prep,  regular,         tap6, 0, 0
+make_8tap_fn prep,  smooth_regular,  tap6, 1, 0
+make_8tap_fn prep,  sharp_regular,   tap8, 2, 0
+make_8tap_fn prep,  regular_smooth,  tap6, 0, 1
+make_8tap_fn prep,  smooth,          tap6, 1, 1
+make_8tap_fn prep,  sharp_smooth,    tap8, 2, 1
+make_8tap_fn prep,  regular_sharp,   tap8, 0, 2
+make_8tap_fn prep,  smooth_sharp,    tap8, 1, 2
+make_8tap_fn prep,  sharp,           tap8, 2, 2
+make_8tap_fn put,   regular,         tap6, 0, 0
+make_8tap_fn put,   smooth_regular,  tap6, 1, 0
+make_8tap_fn put,   sharp_regular,   tap8, 2, 0
+make_8tap_fn put,   regular_smooth,  tap6, 0, 1
+make_8tap_fn put,   smooth,          tap6, 1, 1
+make_8tap_fn put,   sharp_smooth,    tap8, 2, 1
+make_8tap_fn put,   regular_sharp,   tap8, 0, 2
+make_8tap_fn put,   smooth_sharp,    tap8, 1, 2
+make_8tap_fn put,   sharp,           tap8, 2, 2
