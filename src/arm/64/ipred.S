@@ -1125,14 +1125,14 @@ function ipred_smooth_v_8bpc_neon, export=1
         movi            v31.8b,  #128
         add             x2,  x2,  #1
         add             x7,  x7,  w4,  uxtw
-        add             x6,  x0,  x1
-        lsl             x1,  x1,  #1
         zip1            v31.16b, v31.16b, v4.16b  // bottom*256 + rnd
         cmp             w3,  #8
         b.gt            160f
         b.eq            80f
 40:
         ld1r            {v6.2s}, [x2]             // top
+        add             x6,  x0,  x1
+        lsl             x1,  x1,  #1
         usubl           v6.8h,   v6.8b,   v4.8b   // top-bottom
 4:
         ldr             s7,  [x7],  #4            // weights_ver
@@ -1153,6 +1153,8 @@ function ipred_smooth_v_8bpc_neon, export=1
         ret
 80:
         ld1             {v6.8b},  [x2]            // top
+        add             x6,  x0,  x1
+        lsl             x1,  x1,  #1
         usubl           v6.8h,   v6.8b,   v4.8b   // top-bottom
 8:
         ldr             s7,  [x7],  #4            // weights_ver
@@ -1173,51 +1175,43 @@ function ipred_smooth_v_8bpc_neon, export=1
         b.gt            8b
         ret
 160:
-        // Set up pointers for four rows in parallel; x0, x6, x5, x8
-        add             x5,  x0,  x1
-        add             x8,  x6,  x1
-        lsl             x1,  x1,  #1
-        mov             w9,  w3                   // x9 = uxtw(w3)
-        sub             x1,  x1,  w3, uxtw
-1:
-        ldr             s7,  [x7],  #4            // weights_ver
-        uxtl            v7.8h,   v7.8b            // weights_ver
-2:
-        ld1             {v3.16b}, [x2],   #16     // top
-        usubl           v2.8h,   v3.8b,   v4.8b   // top-bottom
-        usubl2          v3.8h,   v3.16b,  v4.16b
-        mul             v20.8h,  v2.8h,   v7.h[0] // bottom*256 + (top-bottom)*weights_ver
-        mul             v22.8h,  v2.8h,   v7.h[1]
-        mul             v21.8h,  v3.8h,   v7.h[0]
-        mul             v23.8h,  v3.8h,   v7.h[1]
-        subs            w3,  w3,  #16
+        ldr             q7,  [x2],  #16           // top
+        mov             x5,  x7
+        mov             w8,  w4
+        usubl           v6.8h,   v7.8b,   v4.8b   // top-bottom lower
+        usubl2          v7.8h,   v7.16b,  v4.16b  // top-bottom upper
+        mov             x9,  x0
+        add             x10, x0,  x1,  lsl #1
+16:
+        ldr             s5,  [x5],  #4            // weights_ver
+        uxtl            v5.8h,   v5.8b            // weights_ver
+        mul             v16.8h,  v6.8h,   v5.h[0] // bottom*256 + (top-bottom)*weights_ver
+        mul             v17.8h,  v6.8h,   v5.h[1]
+        mul             v18.8h,  v7.8h,   v5.h[0] // bottom*256 + (top-bottom)*weights_ver
+        mul             v19.8h,  v7.8h,   v5.h[1]
+        addhn           v16.8b,  v16.8h,  v31.8h
+        addhn           v17.8b,  v17.8h,  v31.8h
+        addhn2          v16.16b, v18.8h,  v31.8h
+        addhn2          v17.16b, v19.8h,  v31.8h
+        subs            w8,  w8,  #4
+        mul             v20.8h,  v6.8h,   v5.h[2]
+        mul             v21.8h,  v6.8h,   v5.h[3]
+        mul             v22.8h,  v7.8h,   v5.h[2]
+        mul             v23.8h,  v7.8h,   v5.h[3]
         addhn           v20.8b,  v20.8h,  v31.8h
-        addhn           v22.8b,  v22.8h,  v31.8h
-        addhn2          v20.16b, v21.8h,  v31.8h
-        addhn2          v22.16b, v23.8h,  v31.8h
-        mul             v24.8h,  v2.8h,   v7.h[2]
-        mul             v26.8h,  v2.8h,   v7.h[3]
-        mul             v25.8h,  v3.8h,   v7.h[2]
-        mul             v27.8h,  v3.8h,   v7.h[3]
-        addhn           v24.8b,  v24.8h,  v31.8h
-        addhn           v26.8b,  v26.8h,  v31.8h
-        st1             {v20.16b}, [x0],  #16
-        addhn2          v24.16b, v25.8h,  v31.8h
-        st1             {v22.16b}, [x6],  #16
-        addhn2          v26.16b, v27.8h,  v31.8h
-        st1             {v24.16b}, [x5],  #16
-        st1             {v26.16b}, [x8],  #16
-        b.gt            2b
-        subs            w4,  w4,  #4
-        b.le            9f
-        sub             x2,  x2,  x9
-        add             x0,  x0,  x1
-        add             x6,  x6,  x1
-        add             x5,  x5,  x1
-        add             x8,  x8,  x1
-        mov             w3,  w9
-        b               1b
-9:
+        addhn           v21.8b,  v21.8h,  v31.8h
+        addhn2          v20.16b, v22.8h,  v31.8h
+        addhn2          v21.16b, v23.8h,  v31.8h
+        str             q16, [x9]
+        str             q17, [x9,  x1]
+        add             x9,  x9,  x1,  lsl #2
+        str             q20, [x10]
+        str             q21, [x10, x1]
+        add             x10, x10, x1,  lsl #2
+        b.gt            16b
+        sub             w3,  w3,  #16
+        add             x0,  x0,  #16
+        cbnz            w3,  160b
         ret
 endfunc
 
