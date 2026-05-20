@@ -938,181 +938,160 @@ endjumptable
 //                             const int max_width, const int max_height);
 function ipred_smooth_8bpc_neon, export=1
         movrel          x10, X(sm_weights)
-        add             x11, x10, w4, uxtw
-        add             x10, x10, w3, uxtw
-        clz             w9,  w3
-        movrel          x5,  ipred_smooth_tbl
-        sub             x12, x2,  w4, uxtw
-        sub             w9,  w9,  #25
-        ldrsw           x9,  [x5, w9, uxtw #2]
-        ld1r            {v4.16b},  [x12] // bottom
+        sub             x12, x2,  w4,  uxtw
+        add             x11, x10, w4,  uxtw
+        add             x10, x10, w3,  uxtw
+        ld1r            {v4.16b},  [x12]          // bottom
         add             x8,  x2,  #1
-        add             x5,  x5,  x9
-        add             x6,  x0,  x1
-        lsl             x1,  x1,  #1
-        br              x5
-40:
-        AARCH64_VALID_JUMP_TARGET
-        ld1r            {v6.2s}, [x8]             // top
-        ld1r            {v7.2s}, [x10]            // weights_hor
-        sub             x2,  x2,  #4
-        mov             x7,  #-4
+        cmp             w3,  #8
+        b.gt            160f
+        b.eq            80f
+
+40:     // width = 4
+        ld1r            {v6.2s},   [x8]           // top
+        ld1r            {v7.2s},   [x10]          // weights_hor
+        movi            v28.8b,  #1
+        movi            v29.16b, #2
+        movi            v27.16b, #3
+        movi            v31.8b,  #128
+        add             v29.16b, v29.16b, v28.16b
         dup             v5.16b,  v6.b[3]          // right
         usubl           v6.8h,   v6.8b,   v4.8b   // top-bottom
+        uzp1            v29.4s,  v29.4s,  v28.4s
         uxtl            v7.8h,   v7.8b            // weights_hor
+        sub             v27.16b, v27.16b, v29.16b
+        zip1            v30.16b, v31.16b, v5.16b  // right*256  + rnd
+        zip1            v31.16b, v31.16b, v4.16b  // bottom*256 + rnd
+        add             x6,  x0,  x1
+        lsl             x1,  x1,  #1
 4:
-        ld4r            {v0.8b, v1.8b, v2.8b, v3.8b},  [x2], x7 // left
-        ld4r            {v16.8b, v17.8b, v18.8b, v19.8b},  [x11], #4 // weights_ver
-        shll            v20.8h,  v5.8b,   #8      // right*256
-        shll            v21.8h,  v5.8b,   #8
-        zip1            v1.2s,   v1.2s,   v0.2s   // left, flipped
-        zip1            v0.2s,   v3.2s,   v2.2s
-        zip1            v16.2s,  v16.2s,  v17.2s  // weights_ver
-        zip1            v18.2s,  v18.2s,  v19.2s
-        shll            v22.8h,  v4.8b,   #8      // bottom*256
-        shll            v23.8h,  v4.8b,   #8
-        usubl           v0.8h,   v0.8b,   v5.8b   // left-right
-        usubl           v1.8h,   v1.8b,   v5.8b
-        uxtl            v16.8h,  v16.8b           // weights_ver
-        uxtl            v18.8h,  v18.8b
-        mla             v20.8h,  v0.8h,   v7.8h   // right*256  + (left-right)*weights_hor
-        mla             v21.8h,  v1.8h,   v7.8h
-        mla             v22.8h,  v6.8h,   v16.8h  // bottom*256 + (top-bottom)*weights_ver
+        ldr             s0,  [x2, #-4]!
+        ldr             s1,  [x11], #4            // weights_ver
+        tbl             v0.16b,  {v0.16b},  v29.16b
+        tbl             v1.16b,  {v1.16b},  v27.16b
+        usubl           v17.8h,  v0.8b,   v5.8b   // left-right
+        uxtl            v16.8h,  v1.8b
+        usubl2          v19.8h,  v0.16b,  v5.16b  // left-right
+        uxtl2           v18.8h,  v1.16b
+        mov             v20.16b, v30.16b          // right*256  + rnd
+        mov             v22.16b, v31.16b          // bottom*256 + rnd
+        mla             v20.8h,  v7.8h,   v17.8h  // right*256  + (left-right)*weights_hor + rnd
+        mla             v22.8h,  v6.8h,   v16.8h  // bottom*256 + (top-bottom)*weights_ver + rnd
+        subs            w4,  w4,  #4
+        mov             v21.16b, v30.16b
+        mov             v23.16b, v31.16b
+        mla             v21.8h,  v7.8h,   v19.8h
         mla             v23.8h,  v6.8h,   v18.8h
         uhadd           v20.8h,  v20.8h,  v22.8h
         uhadd           v21.8h,  v21.8h,  v23.8h
-        rshrn           v20.8b,  v20.8h,  #8
-        rshrn           v21.8b,  v21.8h,  #8
+        uzp2            v20.16b, v20.16b, v21.16b
         st1             {v20.s}[0], [x0], x1
         st1             {v20.s}[1], [x6], x1
-        subs            w4,  w4,  #4
-        st1             {v21.s}[0], [x0], x1
-        st1             {v21.s}[1], [x6], x1
+        st1             {v20.s}[2], [x0], x1
+        st1             {v20.s}[3], [x6], x1
         b.gt            4b
         ret
-80:
-        AARCH64_VALID_JUMP_TARGET
-        ld1             {v6.8b}, [x8]             // top
-        ld1             {v7.8b}, [x10]            // weights_hor
-        sub             x2,  x2,  #4
-        mov             x7,  #-4
+
+80:     // width = 8
+        ld1             {v6.8b},   [x8]           // top
+        ld1             {v7.8b},   [x10]          // weights_hor
+        movi            v31.8b,  #128
         dup             v5.16b,  v6.b[7]          // right
-        usubl           v6.8h,   v6.8b,   v4.8b   // top-bottom
         uxtl            v7.8h,   v7.8b            // weights_hor
+        usubl           v6.8h,   v6.8b,   v4.8b   // top-bottom
+        zip1            v30.16b, v31.16b, v5.16b  // right*256  + rnd
+        zip1            v31.16b, v31.16b, v4.16b  // bottom*256 + rnd
+        add             x6,  x0,  x1
+        lsl             x1,  x1,  #1
 8:
-        ld4r            {v0.8b, v1.8b, v2.8b, v3.8b},  [x2], x7 // left
-        ld4r            {v16.8b, v17.8b, v18.8b, v19.8b},  [x11], #4 // weights_ver
-        shll            v20.8h,  v5.8b,   #8      // right*256
-        shll            v21.8h,  v5.8b,   #8
-        shll            v22.8h,  v5.8b,   #8
-        shll            v23.8h,  v5.8b,   #8
+        ldr             s0,  [x2, #-4]!           // left
+        ldr             s1,  [x11], #4            // weights_ver
+        mov             v20.16b, v30.16b          // right*256  + rnd
+        mov             v21.16b, v31.16b          // bottom*256 + rnd
         usubl           v0.8h,   v0.8b,   v5.8b   // left-right
-        usubl           v1.8h,   v1.8b,   v5.8b
-        usubl           v2.8h,   v2.8b,   v5.8b
-        usubl           v3.8h,   v3.8b,   v5.8b
-        shll            v24.8h,  v4.8b,   #8      // bottom*256
-        shll            v25.8h,  v4.8b,   #8
-        shll            v26.8h,  v4.8b,   #8
-        shll            v27.8h,  v4.8b,   #8
-        uxtl            v16.8h,  v16.8b           // weights_ver
-        uxtl            v17.8h,  v17.8b
-        uxtl            v18.8h,  v18.8b
-        uxtl            v19.8h,  v19.8b
-        mla             v20.8h,  v3.8h,   v7.8h   // right*256  + (left-right)*weights_hor
-        mla             v21.8h,  v2.8h,   v7.8h   // (left flipped)
-        mla             v22.8h,  v1.8h,   v7.8h
-        mla             v23.8h,  v0.8h,   v7.8h
-        mla             v24.8h,  v6.8h,   v16.8h  // bottom*256 + (top-bottom)*weights_ver
-        mla             v25.8h,  v6.8h,   v17.8h
-        mla             v26.8h,  v6.8h,   v18.8h
-        mla             v27.8h,  v6.8h,   v19.8h
-        uhadd           v20.8h,  v20.8h,  v24.8h
-        uhadd           v21.8h,  v21.8h,  v25.8h
-        uhadd           v22.8h,  v22.8h,  v26.8h
-        uhadd           v23.8h,  v23.8h,  v27.8h
-        rshrn           v20.8b,  v20.8h,  #8
-        rshrn           v21.8b,  v21.8h,  #8
-        rshrn           v22.8b,  v22.8h,  #8
-        rshrn           v23.8b,  v23.8h,  #8
-        st1             {v20.8b}, [x0], x1
-        st1             {v21.8b}, [x6], x1
+        uxtl            v1.8h,   v1.8b            // weights_ver
+        mov             v22.16b, v30.16b
+        mov             v23.16b, v31.16b
+        mla             v20.8h,  v7.8h,   v0.h[3] // right*256  + (left-right)*weights_hor + rnd
+        mla             v21.8h,  v6.8h,   v1.h[0] // bottom*256 + (top-bottom)*weights_ver + rnd
+        mla             v22.8h,  v7.8h,   v0.h[2] // (left flipped)
+        mla             v23.8h,  v6.8h,   v1.h[1]
+        mov             v24.16b, v30.16b
+        mov             v25.16b, v31.16b
+        mov             v26.16b, v30.16b
+        mov             v27.16b, v31.16b
         subs            w4,  w4,  #4
-        st1             {v22.8b}, [x0], x1
-        st1             {v23.8b}, [x6], x1
+        mla             v24.8h,  v7.8h,   v0.h[1]
+        mla             v25.8h,  v6.8h,   v1.h[2]
+        mla             v26.8h,  v7.8h,   v0.h[0]
+        mla             v27.8h,  v6.8h,   v1.h[3]
+        uhadd           v20.8h,  v20.8h,  v21.8h
+        uhadd           v22.8h,  v22.8h,  v23.8h
+        uhadd           v24.8h,  v24.8h,  v25.8h
+        uhadd           v26.8h,  v26.8h,  v27.8h
+        uzp2            v20.16b, v20.16b, v24.16b
+        uzp2            v22.16b, v22.16b, v26.16b
+        st1             {v20.8b},   [x0], x1
+        st1             {v22.8b},   [x6], x1
+        st1             {v20.d}[1], [x0], x1
+        st1             {v22.d}[1], [x6], x1
         b.gt            8b
         ret
-160:
-320:
-640:
-        AARCH64_VALID_JUMP_TARGET
-        add             x12, x2,  w3, uxtw
-        sub             x2,  x2,  #2
-        mov             x7,  #-2
-        ld1r            {v5.16b}, [x12]           // right
-        sub             x1,  x1,  w3, uxtw
-        mov             w9,  w3
 
-1:
-        ld2r            {v0.8b, v1.8b},   [x2],  x7 // left
-        ld2r            {v16.8b, v17.8b}, [x11], #2 // weights_ver
-        usubl           v0.8h,   v0.8b,   v5.8b   // left-right
-        usubl           v1.8h,   v1.8b,   v5.8b
-        uxtl            v16.8h,  v16.8b           // weights_ver
-        uxtl            v17.8h,  v17.8b
-2:
-        ld1             {v7.16b}, [x10],  #16     // weights_hor
-        ld1             {v3.16b}, [x8],   #16     // top
-        shll            v20.8h,  v5.8b,   #8      // right*256
-        shll            v21.8h,  v5.8b,   #8
-        shll            v22.8h,  v5.8b,   #8
-        shll            v23.8h,  v5.8b,   #8
+160:     // width >= 16
+        add             x12, x2,  w3,  uxtw
+        ld1r            {v5.16b}, [x12]           // right
+        movi            v31.8b,  #128
+        zip1            v30.16b, v31.16b, v5.16b  // right*256  + rnd
+        zip1            v31.16b, v31.16b, v4.16b  // bottom*256 + rnd
+161:
+        ldr             q7,  [x10], #16           // weights_hor
+        ldr             q3,  [x8],  #16           // top
+        mov             x14, x2
+        mov             x13, x11
         uxtl            v6.8h,   v7.8b            // weights_hor
-        uxtl2           v7.8h,   v7.16b
         usubl           v2.8h,   v3.8b,   v4.8b   // top-bottom
+        uxtl2           v7.8h,   v7.16b
         usubl2          v3.8h,   v3.16b,  v4.16b
-        mla             v20.8h,  v1.8h,   v6.8h   // right*256  + (left-right)*weights_hor
-        mla             v21.8h,  v1.8h,   v7.8h   // (left flipped)
-        mla             v22.8h,  v0.8h,   v6.8h
-        mla             v23.8h,  v0.8h,   v7.8h
-        shll            v24.8h,  v4.8b,   #8      // bottom*256
-        shll            v25.8h,  v4.8b,   #8
-        shll            v26.8h,  v4.8b,   #8
-        shll            v27.8h,  v4.8b,   #8
-        mla             v24.8h,  v2.8h,   v16.8h  // bottom*256 + (top-bottom)*weights_ver
-        mla             v25.8h,  v3.8h,   v16.8h
-        mla             v26.8h,  v2.8h,   v17.8h
-        mla             v27.8h,  v3.8h,   v17.8h
-        uhadd           v20.8h,  v20.8h,  v24.8h
-        uhadd           v21.8h,  v21.8h,  v25.8h
-        uhadd           v22.8h,  v22.8h,  v26.8h
-        uhadd           v23.8h,  v23.8h,  v27.8h
-        rshrn           v20.8b,  v20.8h,  #8
-        rshrn2          v20.16b, v21.8h,  #8
-        rshrn           v22.8b,  v22.8h,  #8
-        rshrn2          v22.16b, v23.8h,  #8
-        subs            w3,  w3,  #16
-        st1             {v20.16b}, [x0],  #16
-        st1             {v22.16b}, [x6],  #16
-        b.gt            2b
-        subs            w4,  w4,  #2
-        b.le            9f
-        sub             x8,  x8,  w9, uxtw
-        sub             x10, x10, w9, uxtw
-        add             x0,  x0,  x1
-        add             x6,  x6,  x1
-        mov             w3,  w9
-        b               1b
-9:
+        mov             w9,  w4
+        mov             x5,  x0
+16:
+        ldr             h0,  [x14, #-2]!          // left
+        ldr             h1,  [x13], #2            // weights_ver
+        mov             v16.16b, v30.16b          // right*256  + rnd
+        mov             v17.16b, v31.16b          // bottom*256 + rnd
+        usubl           v0.8h,   v0.8b,   v5.8b   // left-right
+        uxtl            v1.8h,   v1.8b            // weights_ver
+        mov             v18.16b, v30.16b
+        mov             v19.16b, v31.16b
+        mla             v16.8h,  v6.8h,   v0.h[1] // right*256  + (left-right)*weights_hor + rnd
+        mla             v17.8h,  v2.8h,   v1.h[0] // bottom*256 + (top-bottom)*weights_ver + rnd
+        mla             v18.8h,  v7.8h,   v0.h[1] // (left flipped)
+        mla             v19.8h,  v3.8h,   v1.h[0]
+        mov             v20.16b, v30.16b
+        mov             v21.16b, v31.16b
+        mov             v22.16b, v30.16b
+        mov             v23.16b, v31.16b
+        subs            w9,  w9,  #2
+        mla             v20.8h,  v6.8h,   v0.h[0]
+        mla             v21.8h,  v2.8h,   v1.h[1]
+        mla             v22.8h,  v7.8h,   v0.h[0]
+        mla             v23.8h,  v3.8h,   v1.h[1]
+        uhadd           v16.8h,  v16.8h,  v17.8h
+        uhadd           v18.8h,  v18.8h,  v19.8h
+        uhadd           v20.8h,  v20.8h,  v21.8h
+        uhadd           v22.8h,  v22.8h,  v23.8h
+        uzp2            v16.16b, v16.16b, v18.16b
+        uzp2            v20.16b, v20.16b, v22.16b
+        str             q16, [x5]
+        str             q20, [x5,  x1]
+        add             x5,  x5,  x1,  lsl #1
+        b.gt            16b
+        sub             w3,  w3,  #16
+        add             x0,  x0,  #16
+        cbnz            w3,  161b
         ret
 endfunc
-
-jumptable ipred_smooth_tbl
-        .word 640b - ipred_smooth_tbl
-        .word 320b - ipred_smooth_tbl
-        .word 160b - ipred_smooth_tbl
-        .word 80b  - ipred_smooth_tbl
-        .word 40b  - ipred_smooth_tbl
-endjumptable
 
 // void ipred_smooth_v_8bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                               const pixel *const topleft,
