@@ -974,8 +974,6 @@ w_mask_fn 422 vl256_
 w_mask_fn 420
 w_mask_fn 420 vl256_
 
-#define DEBUG
-
 
 .macro filter_4tap_vector_plus_reg filter_v, row_v, pad_reg, output_v, scratch_v, scratch2_v, scratch_reg
   vrgather.vi \scratch_v, \filter_v, 2
@@ -1053,18 +1051,6 @@ w_mask_fn 420 vl256_
   srli \pad_reg, \pad_reg, 8
   vslide1down.vx \row_v, \row_v, \scratch_reg
   vmacc.vv \output_v, \row_v, \scratch2_v
-.endm
-
-
-.macro filter_vector filter_v, row_v, pad_reg, output_v, scratch_v, scratch_reg
-  vrgather.vi \scratch_v, \filter_v, 0
-  vmul.vv \output_v, \row_v, \scratch_v
-
-.irpc i, 1234567
-  vslide1down.vx \row_v, \row_v, zero
-  vrgather.vi \scratch_v, \filter_v, \i
-  vmacc.vv \output_v, \row_v, \scratch_v
-.endr
 .endm
 
 
