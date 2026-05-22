@@ -1117,6 +1117,69 @@ function L(\type\()_filter_row_8tap_rvv), ext="v,zba,zbb"
   ret
 endfunc
 
+function \type\()_copy_copy_rvv, ext="v,zba,zbb"
+// TODO: wide blocks can be sped up with a higher LMUL
+.ifc \type, prep
+  vsetvli \chunk_w, \w, e16, m1, ta, ma
+.else
+  vsetvli \chunk_w, \w, e8, m1, ta, ma
+.endif
+
+  mv t5, \w  // t5 - loop index over column chunks.
+
+10:
+  mv t1, \src  // t1 - even row source pointer
+  add t2, \src, \s_strd  // t2 - odd row source pointer
+
+  mv t3, \dst  // t3 - even row dst pointer
+  add t4, \dst, \d_strd  // t4 - odd row dst pointer
+
+  mv t6, \h  // t6 - loop index over rows.
+
+11:
+
+  vle8.v v0, (t1)
+  vle8.v v8, (t2)
+
+  sh1add t1, \s_strd, t1
+  sh1add t2, \s_strd, t2
+
+.ifc \type, prep
+  vzext.vf2 v16, v0
+  vzext.vf2 v24, v8
+
+  vsll.vi v0, v16, 4
+  vsll.vi v8, v24, 4
+
+  vse16.v v0, (t3)
+  vse16.v v8, (t4)
+.else
+  vse8.v v0, (t3)
+  vse8.v v8, (t4)
+.endif
+
+  sh1add t3, \d_strd, t3
+  sh1add t4, \d_strd, t4
+
+  addi t6, t6, -2
+  bne t6, zero, 11b
+
+  beq t5, \chunk_w, 2f
+
+  sub t5, t5, \chunk_w
+
+.ifc \type, prep
+  sh1add \dst, \chunk_w, \dst
+.else
+  add \dst, \chunk_w, \dst
+.endif
+  add \src, \chunk_w, \src
+  j 10b
+
+2:
+  ret
+endfunc
+
 .endm
 
 // Possible speedups:
@@ -1166,7 +1229,7 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 .endif  // 6tap
 .endif  // 8tap
 
-  mv t5, \w  // t5 - loop index over rows.
+  mv t5, \w  // t5 - loop index over column chunks.
 
 10:
   mv t6, \h  // t6 - loop index over rows.
@@ -1324,8 +1387,8 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
   addi t6, t6, -1
   bne t6, zero, 1b
 
+  beq t5, \chunk_w, 2f
   sub t5, t5, \chunk_w
-  beq t5, zero, 2f
 
   // Reconstruct src and dst for next chunk
 .ifc \vtap, 8tap
@@ -1366,7 +1429,6 @@ endfunc
 filter_fn_helpers   prep,  a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn_helpers   put,   a0, a1, a2, a3, a4, a5, a6, v0, v2
 
-filter_fn       prep,  copy, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  copy, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  copy, 6tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  copy, 8tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
@@ -1381,7 +1443,6 @@ filter_fn       prep,  8tap, copy, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  8tap, 4tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 filter_fn       prep,  8tap, 8tap, a0, a5, a1, a2, a3, a4, a6, v0, v2
 
-filter_fn       put,   copy, copy, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   copy, 4tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   copy, 6tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
 filter_fn       put,   copy, 8tap, a0, a1, a2, a3, a4, a5, a6, v0, v2
