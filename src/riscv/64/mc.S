@@ -1070,7 +1070,7 @@ w_mask_fn 420 vl256_
 
 .macro filter_fn_helpers type, dst, d_strd, src, s_strd, w, h, chunk_w, hfilter_v, vfilter_v
 
-function L(\type\()_filter_row_copy_rvv), ext="v,zba,zbb"
+function \type\()_filter_row_copy_rvv, ext="v,zba,zbb"
   vle8.v v30, (\src)
   vzext.vf2 v22, v30
   add \src, \src, \s_strd
@@ -1078,7 +1078,7 @@ function L(\type\()_filter_row_copy_rvv), ext="v,zba,zbb"
   ret
 endfunc
 
-function L(\type\()_filter_row_4tap_rvv), ext="v,zba,zbb"
+function \type\()_filter_row_4tap_rvv, ext="v,zba,zbb"
   add t3, \chunk_w, \src
   vle8.v v30, (\src)
   ld t3, (t3)  // t3 - right end (incl. padding) of the row
@@ -1091,7 +1091,7 @@ function L(\type\()_filter_row_4tap_rvv), ext="v,zba,zbb"
   ret
 endfunc
 
-function L(\type\()_filter_row_6tap_rvv), ext="v,zba,zbb"
+function \type\()_filter_row_6tap_rvv, ext="v,zba,zbb"
   add t3, \chunk_w, \src
   vle8.v v30, (\src)
   ld t3, (t3)  // t3 - right end (incl. padding) of the row
@@ -1104,7 +1104,7 @@ function L(\type\()_filter_row_6tap_rvv), ext="v,zba,zbb"
   ret
 endfunc
 
-function L(\type\()_filter_row_8tap_rvv), ext="v,zba,zbb"
+function \type\()_filter_row_8tap_rvv, ext="v,zba,zbb"
   add t3, \chunk_w, \src
   vle8.v v30, (\src)
   ld t3, (t3)  // t3 - right end (incl. padding) of the row
@@ -1236,26 +1236,26 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 
 .ifc \vtap, copy
 1:
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
 .else  // !copy
 .ifc \vtap, 8tap
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v8, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v10, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v12, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v14, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v16, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v18, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v20, v22
 
 1:
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vrgather.vi v30, \vfilter_v, 0
   vrgather.vi v28, \vfilter_v, 1
   vwmul.vv v4, v8, v30
@@ -1292,19 +1292,19 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 
 .else // !8tap
 .ifc \vtap, 6tap
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v12, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v14, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v16, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v18, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v20, v22
 
 1:
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vrgather.vi v30, \vfilter_v, 1
   vrgather.vi v28, \vfilter_v, 2
   vwmul.vv v4, v12, v30
@@ -1334,15 +1334,15 @@ function \type\()_\htap\()_\vtap\()_rvv, ext="v,zba,zbb"
 
 .else  // !6tap
 .ifc \vtap, 4tap
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v16, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v18, v22
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vmv.v.v v20, v22
 
 1:
-  jal L(\type\()_filter_row_\htap\()_rvv)
+  jal \type\()_filter_row_\htap\()_rvv
   vrgather.vi v30, \vfilter_v, 2
   vrgather.vi v28, \vfilter_v, 3
   vwmul.vv v4, v16, v30
