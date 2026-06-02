@@ -342,6 +342,7 @@ build-debian-aarch64:
     extends: .debian-aarch64-common
     script:
         - meson setup build --buildtype debugoptimized
+                            -Dtrim_dsp=false
                             --werror
         - ninja -C build
         - cd build && meson test -v
@@ -353,6 +354,7 @@ build-debian-aarch64-clang-5:
         CFLAGS: '-integrated-as'
     script:
         - meson setup build --buildtype release
+                            -Dtrim_dsp=false
         - ninja -C build
         - cd build && meson test -v
 
@@ -400,6 +402,7 @@ build-debian-armv7:
     extends: .debian-armv7-common
     script:
         - linux32 meson setup build --buildtype debugoptimized
+                                    -Dtrim_dsp=false
                                     --werror
         - ninja -C build
         - cd build && meson test -v
@@ -411,6 +414,7 @@ build-debian-armv7-clang-5:
         CFLAGS: '-integrated-as'
     script:
         - linux32 meson setup build --buildtype release
+                                    -Dtrim_dsp=false
         - ninja -C build
         - cd build && meson test -v
 
