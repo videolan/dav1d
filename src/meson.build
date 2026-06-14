@@ -286,6 +286,7 @@ if is_asm_enabled
             libdav1d_sources += files(
                 'riscv/64/cpu.S',
                 'riscv/64/pal.S',
+                'riscv/64/cdef.S',
             )
 
             if dav1d_bitdepths.contains('8')
