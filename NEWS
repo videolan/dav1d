@@ -1,3 +1,15 @@
+Changes for 1.5.4 'Sonic':
+--------------------------
+
+1.5.4 is a minor release of dav1d, focused maintenance:
+ - Support for OS/2
+ - Switch to external checkasm
+ - Add Armv9.3-A GCS support
+ - AArch64: optimize ipred_*_8bpc & ipred_smooth_*_8bpc functions
+ - ARM32: optimize prep_neon
+ - RISC-V: add ipred_v,_h,_pal,_dc optimizations
+
+
 Changes for 1.5.3 'Sonic':
 --------------------------
 
