@@ -415,6 +415,9 @@ static void read_pal_indices(Dav1dTaskContext *const t,
         return;
     }
 
+    unsigned (*const symbol_adapt)(MsacContext *, uint16_t *, size_t) =
+        pal_sz <= 4 ? dav1d_msac_decode_symbol_adapt4 : dav1d_msac_decode_symbol_adapt8;
+
     for (int i = 1; i < 4 * (w4 + h4) - 1; i++) {
         // top/left-to-bottom/right diagonals ("wave-front")
         const int first = imin(i, w4 * 4 - 1);
@@ -457,8 +460,7 @@ static void read_pal_indices(Dav1dTaskContext *const t,
                     mask = (1u << tp) | (1u << l) | (1u << tl);
                 }
             }
-            const int color_idx = dav1d_msac_decode_symbol_adapt8(
-                &ts->msac, color_map_cdf[ctx], pal_sz - 1);
+            const int color_idx = symbol_adapt(&ts->msac, color_map_cdf[ctx], pal_sz - 1);
             pal_tmp[(i - j) * stride + j] =
                 resolve_pal_color(color_idx, p, prio_count, mask);
         }
