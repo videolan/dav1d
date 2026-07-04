@@ -378,6 +378,43 @@ static void read_pal_indices(Dav1dTaskContext *const t,
     uint16_t (*const color_map_cdf)[8] =
         ts->cdf.m.color_map[pl][pal_sz - 2];
 
+    if (pal_sz == 2) {
+        // Binary palette: ctx 1 is unreachable (needs 3 distinct neighbours),
+        // and resolve always toggles the single priority value. Use a bool
+        // decode instead of a symbol decode. ctx formula collapses to:
+        // border -> 0, interior -> 2 + same_t_l + (same_t_l & same_t_tl)
+        for (int i = 1; i < 4 * (w4 + h4) - 1; i++) {
+            const int first = imin(i, w4 * 4 - 1);
+            const int last = imax(0, i - h4 * 4 + 1);
+            int have_top = i > first;
+            const uint8_t *pal_row = pal_tmp + first + (i - first) * stride;
+            for (int j = first; j >= last; have_top = 1, j--, pal_row += stride - 1) {
+                const int have_left = j > 0;
+                int ctx, p0;
+                if (!have_left) {
+                    ctx = 0;
+                    p0 = pal_row[-stride];
+                } else if (!have_top) {
+                    ctx = 0;
+                    p0 = pal_row[-1];
+                } else {
+                    const int l = pal_row[-1], tp = pal_row[-stride];
+                    const int tl = pal_row[-(stride + 1)];
+                    const int same_t_l = tp == l;
+                    const int same_t_tl = tp == tl;
+                    ctx = 2 + same_t_l + (same_t_l & same_t_tl);
+                    p0 = same_t_l ? tp : tl;
+                }
+                const int bit = dav1d_msac_decode_bool_adapt(
+                    &ts->msac, color_map_cdf[ctx]);
+                pal_tmp[(i - j) * stride + j] = bit ^ p0;
+            }
+        }
+        t->c->pal_dsp.pal_idx_finish(pal_idx, pal_tmp, bw4 * 4, bh4 * 4,
+                                     w4 * 4, h4 * 4);
+        return;
+    }
+
     for (int i = 1; i < 4 * (w4 + h4) - 1; i++) {
         // top/left-to-bottom/right diagonals ("wave-front")
         const int first = imin(i, w4 * 4 - 1);
