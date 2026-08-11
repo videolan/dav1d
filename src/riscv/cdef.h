@@ -1,6 +1,7 @@
 #include "src/cpu.h"
 #include "src/cdef.h"
 
+decl_cdef_dir_fn(BF(dav1d_cdef_find_dir_vl128, rvv));
 decl_cdef_dir_fn(BF(dav1d_cdef_find_dir_vl256, rvv));
 decl_cdef_dir_fn(BF(dav1d_cdef_find_dir_vl512, rvv));
 decl_cdef_dir_fn(BF(dav1d_cdef_find_dir_vl1024, rvv));
@@ -13,7 +14,9 @@ static ALWAYS_INLINE void cdef_dsp_init_riscv(Dav1dCdefDSPContext *const c) {
     const unsigned flags = dav1d_get_cpu_flags();
     if (!(flags & DAV1D_RISCV_CPU_FLAG_V)) return;
 
-    if(dav1d_get_vlen() == 256)
+    if(dav1d_get_vlen() == 128)
+        c->dir   = BF(dav1d_cdef_find_dir_vl128, rvv);
+    else if(dav1d_get_vlen() == 256)
         c->dir   = BF(dav1d_cdef_find_dir_vl256, rvv);
     else if(dav1d_get_vlen() == 512)
         c->dir   = BF(dav1d_cdef_find_dir_vl512, rvv);

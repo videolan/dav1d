@@ -1288,3 +1288,543 @@ endfunc
 cdef_find_dir_fn  256, mf2, m1, m2
 cdef_find_dir_fn  512, mf4, mf2, m1
 cdef_find_dir_fn 1024, mf4, mf4, mf2
+
+.hidden cdef_find_dir_vl128_8bpc_rvv_epilogue
+.global cdef_find_dir_vl128_8bpc_rvv_epilogue
+
+function cdef_find_dir_vl128_8bpc_rvv, export=1, ext="v,zba,zbb"
+
+    // SEW <= LMUL * ELEN
+    vsetvli    a7, zero, e16, m1, ta, ma //max amount of elements
+    add              t0, a1, a0  # (a0) +   stride
+    li               a4, 128
+
+    // Preparing for vslideup + vadd operations
+    // Zero v24-v30
+    // Will always have some of its position as zero
+    // for efficient vslideup and vadd operations
+    // The registers will look like the following
+    // after slideup instructions
+
+    // Pattern we want to set:
+    //  [xxxxxxxx........]
+    //  [.xxxxxxxx.......]
+    //  [..xxxxxxxx......]
+    //  [...xxxxxxxx.....]
+    //  [....xxxxxxxx....]
+    //  [.....xxxxxxxx...]
+    //  [.......xxxxxxx..]
+    //  [........xxxxxxx.]
+
+    // Only zeroed first 8 elements as
+    // last 8 are already zeroed in the beginning
+
+    // Load all pixels of img
+    sh1add           t1, a1, a0  # (a0) + 2*stride
+    vmv.v.i          v16, 0
+    vle8.v           v0, (a0)
+    sh1add           t2, a1, t0  # (a0) + 3*stride
+    vmv.v.i          v17, 0
+    vle8.v           v1, (t0)
+    sh2add           t3, a1, a0  # (a0) + 4*stride
+    vmv2r.v          v18, v16
+    vle8.v           v2, (t1)
+    sh2add           t4, a1, t0  # (a0) + 5*stride
+    vmv4r.v          v20, v16
+    vle8.v           v3, (t2)
+
+    sh2add           t5, a1, t1  # (a0) + 6*stride
+    vmv8r.v          v24, v16
+    vid.v            v31
+    vle8.v           v4, (t3)
+    sh2add           t6, a1, t2  # (a0) + 7*stride
+
+    vle8.v           v5, (t4)
+    vle8.v           v6, (t5)
+    vle8.v           v7, (t6)
+
+    vxor.vi         v31,  v31, 7 # [7, 6, 5, 4, 3, 2, 1, 0]
+
+    vzext.vf2        v8,  v0
+    vzext.vf2        v9,  v1
+    vzext.vf2       v10,  v2
+    vzext.vf2       v11,  v3
+    vzext.vf2       v12,  v4
+    vzext.vf2       v13,  v5
+    vzext.vf2       v14,  v6
+    vzext.vf2       v15,  v7
+
+cdef_find_dir_vl128_8bpc_rvv_epilogue:
+    // const int px = (img[x] >> bitdepth_min_8) - 128;
+    vsub.vx          v8,   v8, a4
+    vsub.vx          v9,   v9, a4
+    vsub.vx         v10,  v10, a4
+    vsub.vx         v11,  v11, a4
+    vsub.vx         v12,  v12, a4
+    vsub.vx         v13,  v13, a4
+    vsub.vx         v14,  v14, a4
+    vsub.vx         v15,  v15, a4
+
+    // Calculating partial_sum_diag[0..1]
+
+    //        v22  first_reg [xxxxxxxx]     [........]  <- Also used for
+    //                   v24 [.xxxxxxx] v16 [x.......]  <- Reductions
+    // Also used for  -> v25 [..xxxxxx] v17 [xx......]  <- at the end of
+    // intermediate   -> v26 [...xxxxx] v18 [xxx.....]  <- Additions
+    // additions      -> v27 [....xxxx] v19 [xxxx....]
+    //                   v28 [.....xxx] v20 [xxxxx...]
+    //                   v29 [......xx] v21 [xxxxxx..]
+    //                   v30 [.......x] v23 [xxxxxxx.]
+
+    // vslideups for mapping them to register as shown
+    // Reversing the halfword positions using vrgather
+    // Both can execute independently of each other, thus interleaved
+    vrgather.vv      v0,  v8, v31
+    vslideup.vi     v24,  v9, 1
+    vrgather.vv      v1,  v9, v31
+    vslideup.vi     v25, v10, 2
+    vrgather.vv      v2, v10, v31
+    vslideup.vi     v26, v11, 3
+    vrgather.vv      v3, v11, v31
+    vslideup.vi     v27, v12, 4
+    vrgather.vv      v4, v12, v31
+    vslideup.vi     v28, v13, 5
+    vrgather.vv      v5, v13, v31
+    vslideup.vi     v29, v14, 6
+    vrgather.vv      v6, v14, v31
+    vslideup.vi     v30, v15, 7
+    vrgather.vv      v7, v15, v31
+
+    // Map for stack stores
+    /*NOTE:
+                                  0                31 32               63
+        partial_sum_diag[0..1] -  [xxxxxxxxxxxxxxx0]  [xxxxxxxxxxxxxxx0]
+                                  64               95 96               127
+        partial_sum_alt[2..3]  -  [xxxxxxxxxxx00000]  [xxxxxxxxxxx00000]
+                                 128               159
+        partial_sum_hv[1]  -      [xxxxxxxx00000000]
+
+    */
+
+    addi             sp,  sp, -160 # partial_sum_diag[0]
+
+    vslidedown.vi   v16,  v9, 7
+    vslidedown.vi   v17, v10, 6
+    vslidedown.vi   v18, v11, 5
+
+    addi             a0,  sp, 32   # partial_sum_diag[1]
+    vslidedown.vi   v19, v12, 4
+    vadd.vv         v22,  v8, v24
+    vslidedown.vi   v20, v13, 3
+    vadd.vv         v25, v25, v26
+    vslidedown.vi   v21, v14, 2
+    vadd.vv         v27, v27, v28
+    vslidedown.vi   v23, v15, 1
+    vadd.vv         v29, v29, v30
+
+    addi             a1,  sp, 64   # partial_sum_alt[2]
+    vadd.vv         v17, v16, v17
+    vadd.vv         v19, v18, v19
+    vadd.vv         v21, v20, v21
+
+    addi             a3,  sp, 96   # partial_sum_alt[3]
+    vadd.vv         v22, v22, v25
+    vadd.vv         v27, v27, v29
+
+    vslideup.vi     v24,  v1, 1
+    vadd.vv         v19, v17, v19
+    vslideup.vi     v25,  v2, 2
+    vadd.vv         v23, v21, v23
+
+    addi             a5,  sp, 128  # partial_sum_hv[1]
+    vslideup.vi     v26,  v3, 3
+    vadd.vv         v22, v22, v27
+    vslideup.vi     v27,  v4, 4
+    vadd.vv         v23, v19, v23
+    vslideup.vi     v28,  v5, 5
+    vslideup.vi     v29,  v6, 6
+    vslideup.vi     v30,  v7, 7
+
+    vslidedown.vi   v16,  v1, 7
+    vslidedown.vi   v17,  v2, 6
+    vs2r.v          v22, (sp)     # store partial_sum_diag[0]
+    vslidedown.vi   v18,  v3, 5
+
+    vadd.vv         v22,  v0, v24
+    vslidedown.vi   v19,  v4, 4
+    vadd.vv         v25, v25, v26
+    vslidedown.vi   v20,  v5, 3
+    vadd.vv         v27, v27, v28
+    vslidedown.vi   v21,  v6, 2
+    vadd.vv         v29, v29, v30
+    vslidedown.vi   v23,  v7, 1
+
+    vadd.vv         v17, v16, v17
+    vadd.vv         v19, v18, v19
+    vadd.vv         v21, v20, v21
+
+    vadd.vv         v22, v22, v25
+    vadd.vv         v27, v27, v29
+    vadd.vv         v19, v17, v19
+    vadd.vv         v23, v21, v23
+
+    // Calculating partial_sum_alt[2..3]
+
+    vadd.vv          v0,  v8,  v9
+    vadd.vv          v1, v10, v11
+    vadd.vv          v2, v12, v13
+    vadd.vv          v3, v14, v15
+
+    vslideup.vi     v24,  v1, 1
+    vadd.vv         v22, v22, v27
+    vslideup.vi     v25,  v2, 2
+    vadd.vv         v23, v19, v23
+    vslideup.vi     v26,  v3, 3
+
+    vslidedown.vi   v16,  v1, 7
+    vslidedown.vi   v17,  v2, 6
+    vslidedown.vi   v18,  v3, 5
+
+    vs2r.v          v22, (a0)     # store partial_sum_diag[1]
+
+    vadd.vv          v4,  v0, v24
+    vadd.vv          v5, v25, v26
+    vslideup.vi     v24,  v2, 1
+    vmv1r.v          v6, v16
+    vslideup.vi     v25,  v1, 2
+    vadd.vv          v7, v17, v18
+    vslideup.vi     v26,  v0, 3
+
+    li               a4, 0b01010101 # alt_mask
+    vslidedown.vi   v16,  v2, 7
+    vslidedown.vi   v17,  v1, 6
+    vadd.vv          v4,  v4,  v5
+    vslidedown.vi   v18,  v0, 5
+    vadd.vv          v5,  v6,  v7
+
+    vadd.vv          v3,  v3, v24
+    vmv1r.v          v1, v16
+
+    // Calculating partial_sum_hv[0..1]
+    //vsetivli    zero, 8, e16, mf2, ta, ma
+
+    vadd.vv          v2, v25, v26
+    vredsum.vs       v7,  v8, v24 # using v24 which already has a zero
+    vadd.vv          v0, v17, v18
+    vredsum.vs       v16,  v9, v24 # on the first element
+    vredsum.vs       v17, v10, v24
+    vs2r.v           v4, (a1)   # store partial_sum_alt[2]
+    vredsum.vs       v18, v11, v24
+    vredsum.vs       v20, v12, v24
+    vadd.vv          v2,  v2,  v3
+    vredsum.vs       v21, v13, v24
+    vadd.vv          v3,  v0,  v1
+    vredsum.vs       v25, v14, v24
+    vmv.s.x           v0,  a4      # alt_mask
+    vredsum.vs       v23, v15, v24
+
+    // Calculating partial_sum_alt[0..1]
+
+    // Finding sum of pairs for
+    // position [0,1][2,3][4,5][6,7]
+
+    // Only vslide1down.vx instructions are associated with
+    // partial_sum_alt here, and has been interleaved for performance
+
+    vmv.x.s           t0,  v7
+    vadd.vv           v7,  v8,  v9
+    vslide1down.vx    v31, v8, zero
+
+    vmv.x.s           t1, v16
+    vadd.vv           v6, v10, v11
+    vs2r.v            v2, (a3)   # store partial_sum_alt[3]
+    vslide1down.vx    v1,  v9, zero
+
+    vmv.x.s           t2, v17
+    vadd.vv           v5, v12, v13
+    vslide1down.vx    v2, v10, zero
+
+    li                a4, 105
+    vmv.x.s           t3, v18
+    vadd.vv          v22, v14, v15
+    vslide1down.vx    v3, v11, zero
+
+    vmv.x.s           t4, v20
+    vadd.vv           v7,  v6,  v7
+    vslide1down.vx    v4, v12, zero
+
+    vmv.x.s           t5,  v21
+    vadd.vv          v22,  v22,  v5
+    vslide1down.vx    v5,  v13, zero
+
+    vmv.x.s           t6,  v25
+    vadd.vv          v22,  v22,  v7
+    vslide1down.vx    v6,  v14, zero
+
+    vmv.x.s           a7,  v23
+
+    // Zero v8-v15 before vslideup and vadd operations
+    vadd.vv          v31, v31,  v8, v0.t
+    vslide1down.vx    v7, v15, zero
+
+    mul               t0,  t0,  t0
+    vmv.v.i           v8, 0
+    vadd.vv           v1,  v1,  v9, v0.t
+    vmv.v.i           v9, 0
+
+    mul               t1,  t1,  t1
+    vadd.vv           v2,  v2, v10, v0.t
+    vmv.v.i          v10, 0
+    vadd.vv           v3,  v3, v11, v0.t
+
+    vs1r.v           v22, (a5)   # store partial_sum_hv[1]
+
+    mul               t2,  t2,  t2
+    vmv.v.i          v11, 0
+    vadd.vv           v4,  v4, v12, v0.t
+    vmv.v.i          v12, 0
+
+    mul               t3,  t3,  t3
+    vadd.vv           v5,  v5, v13, v0.t
+    vmv.v.i          v13, 0
+    vadd.vv           v6,  v6, v14, v0.t
+
+    mul               t4,  t4,  t4
+    vmv.v.i          v14, 0
+    vadd.vv           v7,  v7, v15, v0.t
+    vmv.v.i          v15, 0
+
+    vsetvli    zero, zero, e16, m1, tu, ma
+    mul               t5,  t5,  t5
+    vcompress.vm      v8, v31,  v0
+    vcompress.vm      v9,  v1,  v0
+    vcompress.vm     v10,  v2,  v0
+
+    mul               t6,  t6,  t6
+    vmv.v.i          v25, 0
+    vcompress.vm     v11,  v3,  v0
+    vcompress.vm     v12,  v4,  v0
+
+    mul               a7,  a7,  a7
+    vcompress.vm     v13,  v5,  v0
+    vcompress.vm     v14,  v6,  v0
+    vcompress.vm     v15,  v7,  v0
+
+    vsetvli    zero, zero, e16, m1, ta, ma
+    vid.v           v0
+
+    add               t0,  t0,  t1
+    vslideup.vi      v24,  v9, 1
+    vslideup.vi      v25, v10, 2
+    vslideup.vi      v26, v11, 3
+
+    add               t1,  t2,  t3
+    vslideup.vi      v27, v12, 4
+    vslideup.vi      v28, v13, 5
+    vslideup.vi      v29, v14, 6
+
+    add               t2,  t4,  t5
+    vslideup.vi      v30, v15, 7
+
+    vxor.vi           v0,  v0, 3   # [3, 2, 1, 0]
+
+    vadd.vv          v22,  v8, v24
+
+    add               t3,  t6,  a7
+    vslidedown.vi    v20, v13, 3
+    vadd.vv          v25, v25, v26
+    vslidedown.vi    v21, v14, 2
+
+    add               t0,  t0,  t1
+    vadd.vv          v27, v27, v28
+    vslidedown.vi    v23, v15, 1
+    vadd.vv          v29, v29, v30 # The addition continues after inversing the element order
+                                   # to interleve the instruction
+
+    vsetivli     zero, 4, e16, mf2, tu, ma
+    add               t1,  t2,  t3
+
+    // Reversiong the halfword positions
+    vrgather.vv      v19,  v8, v0
+    vrgather.vv       v8,  v9, v0
+    vrgather.vv       v9, v10, v0
+
+    add               t2,  t0, t1
+    vrgather.vv      v10, v11, v0
+    vrgather.vv      v11, v12, v0
+    vrgather.vv      v12, v13, v0
+
+    mul               t2,  t2, a4  # cost[2]
+    vrgather.vv      v13, v14, v0
+    vrgather.vv      v14, v15, v0
+
+    vsetivli     zero, 8, e16, m1, ta, ma
+
+    vadd.vv          v21, v20, v21 # Addition continues
+    vslideup.vi      v24,  v8, 1
+    vadd.vv          v22, v22, v25
+
+    la a6, div_table_alt   # Moved away from vle16.v to reduce hazards
+    vslideup.vi      v25,  v9, 2
+    vadd.vv          v27, v27, v29
+
+    vl2re16.v         v8, (a1) # load partial_sum_alt[2]
+
+    vwadd.vv          v6, v21, v23
+    vslideup.vi      v26, v10, 3
+    vwadd.vv          v4, v22, v27
+    vslideup.vi      v27, v11, 4
+
+    vl2re16.v         v10, (a3) # load partial_sum_alt[3]
+
+    vslideup.vi      v28, v12, 5
+    vslideup.vi      v29, v13, 6
+    vslideup.vi      v30, v14, 7
+
+    vslidedown.vi    v20, v12, 3
+    vslidedown.vi    v21, v13, 2
+    vslidedown.vi    v23, v14, 1
+
+    vl2re16.v         v14, (a6) # div_table_alt
+
+    vadd.vv          v19, v19, v24
+    vadd.vv          v25, v25, v26
+    vadd.vv          v27, v27, v28
+    vadd.vv          v29, v29, v30
+
+    vadd.vv          v21, v20, v21
+
+    vadd.vv          v19, v19, v25
+    vadd.vv          v27, v27, v29
+
+    vwadd.vv         v22, v21, v23
+    vwadd.vv         v20, v19, v27
+
+    vsetivli    zero, 15, e32, m4, ta, ma
+    la a6, div_table_diag
+
+    vsext.vf2         v0,  v8
+    vsext.vf2         v8, v10
+    vsext.vf2        v12, v14 # div_table_alt
+
+    vmul.vv           v4,  v4,  v4 # cost[1]
+    vmul.vv          v20, v20, v20 # cost[3]
+    vmul.vv           v0,  v0,  v0 # cost[7]
+    vmul.vv           v8,  v8,  v8 # cost[5]
+
+    vl2re16.v        v16, (sp)      # partial_sum_diag[0]
+    vl2re16.v        v30, (a0)      # partial_sum_diag[1]
+
+    vmul.vv           v4,  v4,  v12 # cost[1]
+    vmul.vv          v20, v20,  v12 # cost[3]
+    vmul.vv           v0,  v0,  v12 # cost[7]
+    vmul.vv           v8,  v8,  v12 # cost[5]
+
+    sw                t2, 8(sp)    # best_cost calculation
+    vsext.vf2        v24, v16      # cost[0]
+    vsext.vf2        v16, v30      # cost[4]
+
+    vredsum.vs       v12,  v4, v28 # cost[1]
+    vredsum.vs        v4, v20, v28 # cost[3]
+    vredsum.vs       v20,  v0, v28 # cost[7]
+    vredsum.vs        v0,  v8, v28 # cost[5]
+
+    vl2re16.v         v8, (a6) //div
+    vmul.vv          v24, v24, v24 # cost[0]
+    vmul.vv          v16, v16, v16 # cost[4]
+
+    vmv.x.s           t1,  v12     # cost[1]
+    vmv.x.s           t3,  v4      # cost[3]
+
+    vsext.vf2         v4, v8       # div
+
+    slli              t2,  t2, 3   # best_cost calculation
+    vmv.x.s           a7, v20      # cost[7]
+    vmv.x.s           t5,  v0      # cost[5]
+
+    vmul.vv          v24, v24,  v4 # cost[0]
+    sw                t1,  4(sp)
+    vmul.vv          v16, v16,  v4 # cost[4]
+    sw                t3, 12(sp)
+
+    ori               t2,  t2,  5  # best_cost calculation
+    vl2re16.v        v20, (a5)     # cost[6]
+    sw                t5, 20(sp)
+
+    vredsum.vs        v8, v24, v28 # cost[0]
+    sw                a7, 28(sp)
+    vredsum.vs       v24, v16, v28 # cost[4]
+
+    li                a6, 105
+    vsetivli   zero, 8, e32, m2, ta, ma
+
+    vmv.x.s           t0,  v8      # cost[0]
+    vsext.vf2         v0, v20      # cost[6]
+
+    // Calculating best_cost, best_dir
+    // All costs in t0..t6,a7 are left shifted by 3
+    // Then, we set their priority using ori
+    // The priority is reversed from the position of cost
+    // Thus, for cost[0..7], priority -> 7..0
+
+    // Lower 3 priority bits don't affect max because comparison
+    // is weighted by higher bits
+
+    vmul.vv           v0,  v0,  v0
+    slli              t1,  t1, 3
+    //slli            t2,  t2, 3   # Completed by interleaving with vector inst.
+    vmv.x.s           t4, v24      # cost[4]
+    slli              t3,  t3, 3
+    slli              t5,  t5, 3
+    slli              a7,  a7, 3
+
+    vmul.vx           v0,  v0,  a6
+    ori               t1,  t1,  6
+    //ori             t2,  t2,  5  # Completed by interleaving with vector inst.
+    ori               t3,  t3,  4
+    ori               t5,  t5,  2
+    //ori             a7,  a7,  0
+
+    sw                t0,  0(sp)
+    slli              t0,  t0,  3
+    max               t1,  t1, a7
+    vredsum.vs        v8,  v0, v28 # cost[6]
+    //sw              t2,  8(sp)   # Completed by interleaving with vector inst.
+    sw                t4, 16(sp)
+    slli              t4,  t4,  3
+    max               t3,  t3, t5
+
+    max               t1,  t1, t2
+
+    vmv.x.s           t6, v8       # cost[6]
+    max               t1,  t1, t2
+
+    ori               t0,  t0,  7
+    ori               t4,  t4,  3
+
+    max               t1,  t1, t3
+
+    sw                t6,  24(sp)
+    max               t0,  t0, t4
+
+    slli              t6,  t6, 3
+    max               t0,  t0, t1
+
+    ori               t6,  t6,  1
+    max               t0,  t0, t6
+
+    // Calculating best_dir, best_cost and *var
+    andi             a0,  t0,  7  # 7 - best_dir; get last 3 bits
+    xori             a4,  a0,  3  # a4 = (7 - best_dir) ^ 3 = best_dir ^ 4
+    sh2add           a4,  a4, sp
+    lw               a4,  (a4)    # cost[best_dir ^ 4]
+    xori             a0,  a0,  7  # best_dir; xor by 0x7 to find complement
+    srli             a1,  t0,  3  # best_cost
+    addi             sp,  sp, 160
+    sub              a1,  a1, a4
+    srli             a1,  a1, 10
+    sw               a1, (a2)
+
+    ret
+
+endfunc
