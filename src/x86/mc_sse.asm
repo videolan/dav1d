@@ -8357,9 +8357,11 @@ ALIGN function_align
  %define blendmask [esp+gprsize+0x120]
  %define m10 m7
 %endif
+%if notcpuflag(sse4)
     pcmpeqd             m10, m10
     pslld               m10, 16
     mova          blendmask, m10
+%endif
     BLENDHWDW            m2, m0 ; 0
     BLENDHWDW            m3, m1 ; 2
     mova [rsp+gprsize+0x00], m2
@@ -8369,7 +8371,9 @@ ALIGN function_align
     mova                 m4, [esp+gprsize+0x20]
     mova                 m5, [esp+gprsize+0x30]
 %endif
+%if notcpuflag(sse4)
     mova                m10, blendmask
+%endif
     BLENDHWDW            m4, m0 ; 1
     BLENDHWDW            m5, m1 ; 3
     mova [rsp+gprsize+0x20], m4
@@ -8381,7 +8385,9 @@ ALIGN function_align
 %endif
     psrld                m6, m2, 16
     psrld                m7, m3, 16
+%if notcpuflag(sse4)
     mova                m10, blendmask
+%endif
     BLENDHWDW            m6, m0 ; 2
     BLENDHWDW            m7, m1 ; 4
     mova [rsp+gprsize+0x40], m6
@@ -8393,7 +8399,9 @@ ALIGN function_align
 %endif
     psrld               m2, m4, 16
     psrld               m3, m5, 16
+%if notcpuflag(sse4)
     mova                m10, blendmask
+%endif
     BLENDHWDW           m2, m0 ; 3
     BLENDHWDW           m3, m1 ; 5
     mova [rsp+gprsize+0x60], m2
@@ -8406,7 +8414,9 @@ ALIGN function_align
 %endif
     psrld                m4, m6, 16
     psrld                m5, m7, 16
+%if notcpuflag(sse4)
     mova                m10, blendmask
+%endif
     BLENDHWDW            m4, m0 ; 4
     BLENDHWDW            m5, m1 ; 6
 %if ARCH_X86_64
@@ -8429,7 +8439,9 @@ ALIGN function_align
 %endif
     psrld                m6, 16
     psrld                m7, 16
+%if notcpuflag(sse4)
     mova                m10, blendmask
+%endif
     BLENDHWDW            m6, m0 ; 5
     BLENDHWDW            m7, m1 ; 7
 %if ARCH_X86_64
