@@ -3479,31 +3479,31 @@ function emu_edge_8bpc_neon, export=1
 .if \need_left
         ld1r            {v0.16b}, [x8]
         mov             x12, x6                // out = dst
-        mov             x3,  x4
+        add             x3,  x6,  x4
 1:
-        subs            x3,  x3,  #16
-        st1             {v0.16b}, [x12], #16
-        b.gt            1b
+        str             q0,  [x12], #16
+        cmp             x12, x3
+        b.lt            1b
 .endif
         mov             x13, x8
         add             x12, x6,  x4           // out = dst + left_ext
-        mov             x3,  x2
+        add             x3,  x13, x2
 1:
-        ld1             {v0.16b, v1.16b}, [x13], #32
-        subs            x3,  x3,  #32
-        st1             {v0.16b, v1.16b}, [x12], #32
-        b.gt            1b
+        ldp             q0,  q1,  [x13], #32
+        stp             q0,  q1,  [x12], #32
+        cmp             x13, x3
+        b.lt            1b
 .if \need_right
         add             x3,  x8,  x2           // in + center_w
         sub             x3,  x3,  #1           // in + center_w - 1
         add             x12, x6,  x4           // dst + left_ext
         ld1r            {v0.16b}, [x3]
         add             x12, x12, x2           // out = dst + left_ext + center_w
-        mov             x3,  x11
+        add             x3,  x12, x11
 1:
-        subs            x3,  x3,  #16
-        st1             {v0.16b}, [x12], #16
-        b.gt            1b
+        str             q0,  [x12], #16
+        cmp             x12, x3
+        b.lt            1b
 .endif
 
         subs            x1,  x1,  #1           // center_h--
@@ -3542,12 +3542,12 @@ function emu_edge_8bpc_neon, export=1
         sub             x8,  x6,  x7           // ref = dst - stride
         mov             x4,  x0
 1:
-        ld1             {v0.16b, v1.16b}, [x8], #32
-        mov             x3,  x10
+        ldp             q0,  q1,  [x8], #32
+        madd            x3,  x7,  x10, x6
 2:
-        subs            x3,  x3,  #1
         st1             {v0.16b, v1.16b}, [x6], x7
-        b.gt            2b
+        cmp             x6,  x3
+        b.lt            2b
         msub            x6,  x7,  x10,  x6     // dst -= bottom_ext * stride
         subs            x4,  x4,  #32          // bw -= 32
         add             x6,  x6,  #32          // dst += 32
@@ -3559,11 +3559,11 @@ function emu_edge_8bpc_neon, export=1
         msub            x6,  x7,  x5,  x14     // dst = stored_dst - top_ext * stride
 1:
         ld1             {v0.16b, v1.16b}, [x14], #32
-        mov             x3,  x5
+        madd            x3,  x7,  x5,  x6
 2:
-        subs            x3,  x3,  #1
         st1             {v0.16b, v1.16b}, [x6], x7
-        b.gt            2b
+        cmp             x6,  x3
+        b.lt            2b
         msub            x6,  x7,  x5,  x6      // dst -= top_ext * stride
         subs            x0,  x0,  #32          // bw -= 32
         add             x6,  x6,  #32          // dst += 32
