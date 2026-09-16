@@ -299,17 +299,16 @@ endjumptable
 //                           const int col_start8, const int col_end8,
 //                           const int row_start8, int row_end8)
 function load_tmvs_neon, export=1
-        rf              .req x0
-        tile_row_idx    .req w1
-        col_start8      .req w2
-        col_end8        .req w3
-        row_start8      .req w4
-        row_end8        .req w5
-        col_start8i     .req w6
-        col_end8i       .req w7
-        rp_proj         .req x8
-        stride5         .req x9
-        wstride5        .req w9
+        alias_gpr       rf,           x, 0
+        alias_gpr       tile_row_idx, w, 1
+        alias_gpr       col_start8,   w, 2
+        alias_gpr       col_end8,     w, 3
+        alias_gpr       row_start8,   w, 4
+        alias_gpr       row_end8,     w, 5
+        alias_gpr       col_start8i,  w, 6
+        alias_gpr       col_end8i,    w, 7
+        alias_gpr       rp_proj,      x, 8
+        alias_gpr       stride5,      x, 9
         stp             x28, x27, [sp, #-96]!
         stp             x26, x25, [sp, #16]
         stp             x24, x23, [sp, #32]
@@ -321,7 +320,7 @@ function load_tmvs_neon, export=1
         ldp             w16, w17, [rf, #RMVSF_IW8]          // include rf->ih8 too
         sub             col_start8i, col_start8, #8         // col_start8 - 8
         add             col_end8i, col_end8, #8             // col_end8 + 8
-        ldr             wstride5, [rf, #RMVSF_RP_STRIDE]
+        ldr             w(stride5), [rf, #RMVSF_RP_STRIDE]
         ldr             rp_proj, [rf, #RMVSF_RP_PROJ]
 
         cmp             w15, #1
@@ -336,11 +335,11 @@ function load_tmvs_neon, export=1
         cmp             row_end8, w17
         csel            row_end8, row_end8, w17, lt         // imin(row_end8, rf->ih8)
 
-        add             wstride5, wstride5, wstride5, lsl #2    // stride * sizeof(refmvs_temporal_block)
+        add             w(stride5), w(stride5), w(stride5), lsl #2  // stride * sizeof(refmvs_temporal_block)
         and             w15, row_start8, #15                // row_start8 & 15
         add             w10, col_start8, col_start8, lsl #2 // col_start8 * sizeof(refmvs_temporal_block)
-        smaddl          rp_proj, tile_row_idx, wstride5, rp_proj    // &rf->rp_proj[16 * stride * tile_row_idx]
-        smaddl          x10, w15, wstride5, x10             // ((row_start8 & 15) * stride + col_start8) * sizeof(refmvs_temporal_block)
+        smaddl          rp_proj, tile_row_idx, w(stride5), rp_proj  // &rf->rp_proj[16 * stride * tile_row_idx]
+        smaddl          x10, w15, w(stride5), x10           // ((row_start8 & 15) * stride + col_start8) * sizeof(refmvs_temporal_block)
         mov             w15, #INVALID_MV
         sub             w11, col_end8, col_start8           // xfill loop count
         add             x10, x10, rp_proj                   // &rf->rp_proj[16 * stride * tile_row_idx + (row_start8 & 15) * stride + col_start8]
@@ -394,7 +393,7 @@ function load_tmvs_neon, export=1
         ldrb            w17, [x29, x17]         // ref = rf->mfmv_ref[n]
         ldr             x13, [x29, #(RMVSF_RP_REF - RMVSF_MFMV_REF2CUR)]
         sub             x21, x10, x10, lsl #3   // -(n * 7)
-        smaddl          x20, row_start8, wstride5, x20  // row_start8 * stride * sizeof(refmvs_temporal_block) + 4
+        smaddl          x20, row_start8, w(stride5), x20    // row_start8 * stride * sizeof(refmvs_temporal_block) + 4
         mov             w12, row_start8         // y = row_start8
         add             x28, x29, #(RMVSF_MFMV_REF2REF - RMVSF_MFMV_REF2CUR - 1)    // &rf->mfmv_ref2ref - 1
         ldr             x13, [x13, x17, lsl #3] // rf->rp_ref[ref]
@@ -452,7 +451,7 @@ function load_tmvs_neon, export=1
         add             x26, x11, x20, asr #32  // pos_x = x + offset.x
         and             w27, w21, #15           // pos_y & 15
         add             x21, x26, x26, lsl #2   // pos_x * sizeof(refmvs_temporal_block)
-        umaddl          x27, w27, wstride5, rp_proj // &rp_proj[(pos_y & 15) * stride]
+        umaddl          x27, w27, w(stride5), rp_proj   // &rp_proj[(pos_y & 15) * stride]
         add             x27, x27, x21           // &rp_proj[(pos_y & 15) * stride + pos_x]
 
 3:      // copy loop
@@ -524,17 +523,8 @@ function load_tmvs_neon, export=1
         ldp             x26, x25, [sp, #16]
         ldp             x28, x27, [sp], #96
         ret
-        .unreq          rf
-        .unreq          tile_row_idx
-        .unreq          col_start8
-        .unreq          col_end8
-        .unreq          row_start8
-        .unreq          row_end8
-        .unreq          col_start8i
-        .unreq          col_end8i
-        .unreq          rp_proj
-        .unreq          stride5
-        .unreq          wstride5
+        unalias_gpr     rf, tile_row_idx, col_start8, col_end8, row_start8, \
+                        row_end8, col_start8i, col_end8i, rp_proj, stride5
 endfunc
 
 const div_mult_tbl
