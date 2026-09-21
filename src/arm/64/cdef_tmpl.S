@@ -277,7 +277,7 @@ const alt_fact
         .short         420, 210, 140, 105, 105, 105, 105, 105, 140, 210, 420, 0
 endconst
 
-.macro cost_alt d1, s1, s2, s3, s4
+.macro cost_alt s1, s2, s3, s4
         smull           v22.4s,  \s1\().4h, \s1\().4h // sum_alt[n]*sum_alt[n]
         smull2          v23.4s,  \s1\().8h, \s1\().8h
         smull           v24.4s,  \s2\().4h, \s2\().4h
@@ -290,8 +290,6 @@ endconst
         mul             v25.4s,  v25.4s,  v29.4s      // sum_alt[n]^2*fact
         mla             v25.4s,  v26.4s,  v30.4s
         mla             v25.4s,  v27.4s,  v31.4s
-        addp            \d1\().4s, v22.4s,    v25.4s
-        addp            \d1\().4s, \d1\().4s, \d1\().4s // cost1, cost2, cost1, cost2
 .endm
 
 // Steps for loading and preparing each row
@@ -416,17 +414,12 @@ function cdef_find_dir_\bpc\()bpc_neon, export=1
         smlal2          v26.4s,  v4.8h,   v4.8h
         smull           v27.4s,  v5.4h,   v5.4h       // sum_hv[1]*sum_hv[1]
         smlal2          v27.4s,  v5.8h,   v5.8h
+        rev64           v1.8h,   v1.8h                // partial sum_diag[0][14-n]
+        rev64           v3.8h,   v3.8h                // partial sum_diag[1][14-n]
         mul             v26.4s,  v26.4s,  v31.4s      // cost[2] *= 105
         mul             v27.4s,  v27.4s,  v31.4s      // cost[6] *= 105
-        addp            v4.4s,   v26.4s,  v27.4s
-        addp            v4.4s,   v4.4s,   v4.4s       // cost[2], cost[6], cost[2], cost[6]
-
-        rev64           v1.8h,   v1.8h
-        rev64           v3.8h,   v3.8h
-        fmov            x8,  d4                       // cost[2], cost[6]
         ext             v1.16b,  v1.16b,  v1.16b, #10 // sum_diag[0][14-n]
         ext             v3.16b,  v3.16b,  v3.16b, #10 // sum_diag[1][14-n]
-        lsr             x9,  x8,  #32                 // cost[6]
 
         ldrel           q31, x4,  div_table
 
@@ -444,24 +437,33 @@ function cdef_find_dir_\bpc\()bpc_neon, export=1
         mla             v22.4s,  v23.4s,  v31.4s      // cost[0]
         mul             v24.4s,  v24.4s,  v30.4s      // cost[4]
         mla             v24.4s,  v25.4s,  v31.4s      // cost[4]
-        addp            v0.4s,   v22.4s,  v24.4s
-        addp            v0.4s,   v0.4s,   v0.4s       // cost[0], cost[4], cost[0], cost[4]
 
         movrel          x5,  alt_fact
-        ld1             {v29.4h, v30.4h, v31.4h}, [x5]// div_table[2*m+1] + 105
+        ldr             q30, [x5]                     // div_table[2*m+1] + 105
+        ldr             d31, [x5, #16]
 
+        addp            v4.4s,   v26.4s,  v27.4s      // partial cost[2], cost[6]
+        addp            v0.4s,   v22.4s,  v24.4s      // partial cost[0], cost[4]
+        uxtl            v29.4s,  v30.4h               // div_table[2*m+1] + 105
+        uxtl2           v30.4s,  v30.8h               // div_table[2*m+1] + 105
+        uxtl            v31.4s,  v31.4h               // div_table[2*m+1] + 105
+        addp            v4.4s,   v4.4s,   v4.4s       // cost[2], cost[6], cost[2], cost[6]
+        addp            v0.4s,   v0.4s,   v0.4s       // cost[0], cost[4], cost[0], cost[4]
+
+        cost_alt        v6,  v7,  v16, v17            // cost[1], cost[3]
+        addp            v6.4s,   v22.4s,  v25.4s      // partial cost[1], cost[3]
+        cost_alt        v18, v19, v20, v21            // cost[5], cost[7]
+        addp            v18.4s,  v22.4s,  v25.4s      // partial cost[5], cost[7]
+        fmov            x8,  d4                       // cost[2], cost[6]
+        addp            v6.4s,   v6.4s,   v6.4s       // cost[1], cost[3], cost[1], cost[3]
         fmov            x10, d0                       // cost[0], cost[4]
-        uxtl            v29.4s,  v29.4h               // div_table[2*m+1] + 105
-        uxtl            v30.4s,  v30.4h
-        uxtl            v31.4s,  v31.4h
-        lsr             x11, x10, #32                 // cost[4]
-
-        cost_alt        v6,  v6,  v7,  v16, v17       // cost[1], cost[3]
-        cost_alt        v18, v18, v19, v20, v21       // cost[5], cost[7]
+        addp            v18.4s,  v18.4s,  v18.4s      // cost[5], cost[7], cost[5], cost[7]
 
         fmov            x12, d6                       // cost[1], cost[3]
-        mov             w0,  #0                       // best_dir = 0
+        lsr             x9,  x8,  #32                 // cost[6]
         fmov            x14, d18                      // cost[5], cost[7]
+        mov             w0,  #0                       // best_dir = 0
+        lsr             x11, x10, #32                 // cost[4]
         lsr             x13, x12, #32                 // cost[3]
         lsr             x15, x14, #32                 // cost[7]
         sub             w4,  w10, w11                 // best_cost - cost[best_dir ^ 4] = cost[0] - cost[4]
