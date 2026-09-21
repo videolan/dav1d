@@ -229,9 +229,10 @@ function cdef_filter\w\suffix\()_\bpc\()bpc_neon
 .endif
 .else
 .if \bpc == 8
-        st1             {v0.s}[0], [x0], x1
+        str             s0,  [x0]
+        add             x0,  x0,  x1
 .else
-        st1             {v0.d}[0], [x0], x1
+        st1             {v0.8b},  [x0], x1
 .endif
         add             x2,  x2,  #2*16             // tmp += 2*tmp_stride
         subs            w7,  w7,  #2                // h -= 2
