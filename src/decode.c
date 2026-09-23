@@ -724,9 +724,11 @@ static int decode_b(Dav1dTaskContext *const t,
                     r[x].bs = bs;
                 }
                 refmvs_block *const *rr = &t->rt.r[(t->by & 31) + 5];
+                const int bx = t->bx + bw4 - 1;
                 for (int y = 0; y < bh4 - 1; y++) {
-                    rr[y][t->bx + bw4 - 1].ref.ref[0] = 0;
-                    rr[y][t->bx + bw4 - 1].bs = bs;
+                    refmvs_block *d = &rr[y][bx];
+                    d->ref.ref[0] = 0;
+                    d->bs = bs;
                 }
             }
 
@@ -791,10 +793,12 @@ static int decode_b(Dav1dTaskContext *const t,
                     r[x].bs = bs;
                 }
                 refmvs_block *const *rr = &t->rt.r[(t->by & 31) + 5];
+                const int bx = t->bx + bw4 - 1;
                 for (int y = 0; y < bh4 - 1; y++) {
-                    rr[y][t->bx + bw4 - 1].ref.ref[0] = ref1;
-                    rr[y][t->bx + bw4 - 1].mv.mv[0] = mv1;
-                    rr[y][t->bx + bw4 - 1].bs = bs;
+                    refmvs_block* d = &rr[y][bx];
+                    d->ref.ref[0] = ref1;
+                    d->mv.mv[0] = mv1;
+                    d->bs = bs;
                 }
             }
 
