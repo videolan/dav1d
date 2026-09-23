@@ -57,21 +57,19 @@ const pri_taps
 endconst
 .endm
 
-.macro load_px d1, d2, w
+.macro load_px d1, d2, w, t1, t2
+        add             x6,  x2,  x9, lsl #1        // x + off
+        sub             x9,  x2,  x9, lsl #1        // x - off
 .if \w == 8
-        add             x6,  x2,  w9, sxtb #1       // x + off
-        sub             x9,  x2,  w9, sxtb #1       // x - off
-        ld1             {\d1\().8h}, [x6]           // p0
-        ld1             {\d2\().8h}, [x9]           // p1
+        ldr             q(\d1), [x6]                // p0
+        ldr             q(\d2), [x9]                // p1
 .else
-        add             x6,  x2,  w9, sxtb #1       // x + off
-        sub             x9,  x2,  w9, sxtb #1       // x - off
-        ld1             {\d1\().4h}, [x6]           // p0
-        add             x6,  x6,  #2*8              // += stride
-        ld1             {\d2\().4h}, [x9]           // p1
-        add             x9,  x9,  #2*8              // += stride
-        ld1             {\d1\().d}[1], [x6]         // p0
-        ld1             {\d2\().d}[1], [x9]         // p1
+        ldr             d(\d1), [x6]                // p0
+        ldr             d(\t1), [x6, #16]           // p0
+        ldr             d(\d2), [x9]                // p1
+        ldr             d(\t2), [x9, #16]           // p1
+        uzp1            \d1\().2d,  \d1\().2d,  \t1\().2d
+        uzp1            \d2\().2d,  \d2\().2d,  \t2\().2d
 .endif
 .endm
 .macro handle_pixel s1, s2, thresh_vec, shift, tap, min
@@ -125,7 +123,7 @@ function cdef_filter\w\suffix\()_\bpc\()bpc_neon
 .else
         and             w9,  w3,  #1
 .endif
-        add             x8,  x8,  w9, uxtw #1
+        add             x8,  x8,  x9, lsl #1
 .endif
         movrel          x9,  directions\w
         add             x5,  x9,  w5, uxtw #1
@@ -152,11 +150,11 @@ function cdef_filter\w\suffix\()_\bpc\()bpc_neon
 
 1:
 .if \w == 8
-        ld1             {v0.8h}, [x2]               // px
+        ldr             q0,  [x2]                   // px
 .else
-        add             x12, x2,  #2*8
-        ld1             {v0.4h},   [x2]             // px
-        ld1             {v0.d}[1], [x12]            // px
+        ldr             d0,  [x2]                   // px
+        ldr             d1,  [x2, #16]              // px
+        uzp1            v0.2d,   v0.2d,   v1.2d
 .endif
 
         movi            v1.8h,  #0                  // sum
@@ -172,15 +170,14 @@ function cdef_filter\w\suffix\()_\bpc\()bpc_neon
 
 2:
 .if \pri
-        ldrb            w9,  [x5]                   // off1
+        ldrsb           x9,  [x5]                   // off1
 
-        load_px         v4,  v5, \w
+        load_px         v4,  v5, \w, v16, v17
 .endif
 
 .if \sec
-        add             x5,  x5,  #4                // +2*2
-        ldrb            w9,  [x5]                   // off2
-        load_px         v6,  v7,  \w
+        ldrsb           x9,  [x5, #4]!              // off2
+        load_px         v6,  v7,  \w, v16, v17
 .endif
 
 .if \pri
@@ -190,9 +187,8 @@ function cdef_filter\w\suffix\()_\bpc\()bpc_neon
 .endif
 
 .if \sec
-        add             x5,  x5,  #8                // +2*4
-        ldrb            w9,  [x5]                   // off3
-        load_px         v4,  v5,  \w
+        ldrsb           x9,  [x5, #8]!              // off3
+        load_px         v4,  v5,  \w, v16, v17
 
         handle_pixel    v6,  v7,  v27.8h, v26.8h, w11, \min
 
