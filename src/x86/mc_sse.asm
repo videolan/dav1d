@@ -8726,23 +8726,21 @@ cglobal w_avg_8bpc, 4, 7, 6, dst, stride, tmp1, tmp2, w, h, stride3
     mova                 m3,     [maskq+(%1+0)*(mmsize/2)]
     mova                 m0,     [tmp2q+(%1+0)*mmsize] ; b
     psubw                m1, m0, [tmp1q+(%1+0)*mmsize] ; b - a
-    mova                 m6, m3      ; m
-    psubb                m3, m4, m6  ; -m
+    psubb                m6, m4, m3 ; -m
     paddw                m1, m1     ; (b - a) << 1
-    paddb                m3, m3     ; -m << 1
-    punpcklbw            m2, m4, m3 ; -m << 9 (<< 8 when ext as uint16)
+    paddb                m6, m6     ; -m << 1
+    punpcklbw            m2, m4, m6 ; -m << 9 (<< 8 when ext as uint16)
     pmulhw               m1, m2     ; (-m * (b - a)) << 10
     paddw                m0, m1     ; + b
     mova                 m1,     [tmp2q+(%1+1)*mmsize] ; b
     psubw                m2, m1, [tmp1q+(%1+1)*mmsize] ; b - a
-    paddw                m2, m2  ; (b - a) << 1
-    mova                 m6, m3  ; (-m << 1)
+    paddw                m2, m2     ; (b - a) << 1
     punpckhbw            m3, m4, m6 ; (-m << 9)
-    pmulhw               m2, m3 ; (-m << 9)
-    paddw                m1, m2 ; (-m * (b - a)) << 10
-    pmulhrsw             m0, m5 ; round
-    pmulhrsw             m1, m5 ; round
-    packuswb             m0, m1 ; interleave 16 -> 8
+    pmulhw               m2, m3     ; (-m << 9)
+    paddw                m1, m2     ; (-m * (b - a)) << 10
+    pmulhrsw             m0, m5     ; round
+    pmulhrsw             m1, m5     ; round
+    packuswb             m0, m1     ; interleave 16 -> 8
 %endmacro
 
 %macro MASK_INC_PTR 1
