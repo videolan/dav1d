@@ -151,8 +151,7 @@ SECTION .text
 ;                                    const int width, const int height, const int a);
 ;---------------------------------------------------------------------------------------
 %macro IPRED_SET   3                                          ; width, stride, stride size pshuflw_imm8
-    pshuflw                      m1, m0, %3                   ; extend 8 byte for 2 pos
-    punpcklqdq                   m1, m1
+    pshufd                       m1, m0, %3                   ; broadcast dword to all 4 dwords
     mova           [dstq +      %2], m1
 %if %1 > 16
     mova           [dstq + 16 + %2], m1
@@ -186,6 +185,7 @@ SECTION .text
     movq           [dstq+stride3q ], m0
     movhps         [dstq+strideq*2], m0
 %else
+    punpcklwd                    m0, m0                     ; extend 4 byte (each byte in its own dword)
     IPRED_SET                    %1,         0, q3333
     IPRED_SET                    %1,   strideq, q2222
     IPRED_SET                    %1, strideq*2, q1111
