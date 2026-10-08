@@ -69,10 +69,10 @@ static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /*
             rep_macro(txa[0][0][y], 0, lw); \
             rep_macro(txa[1][0][y], 0, lh); \
             txa[0][1][y][0] = t_dim->w; \
-        }
+        } \
+        rep_macro(txa[1][1][0], 0, t_dim->h);
         case_set_upto16(t_dim->lw);
 #undef set_ctx
-        dav1d_memset_pow2[t_dim->lw](txa[1][1][0], t_dim->h);
     }
 }
 
