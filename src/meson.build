@@ -99,6 +99,7 @@ if is_asm_enabled
             libdav1d_sources_asm = files(
                 # itx.S is used for both 8 and 16 bpc.
                 'arm/64/itx.S',
+                'arm/64/lf_mask.S',
                 'arm/64/looprestoration_common.S',
                 'arm/64/msac.S',
                 'arm/64/refmvs.S',
@@ -175,6 +176,7 @@ if is_asm_enabled
         # NASM source files
         libdav1d_sources_asm = files(
             'x86/cpuid.asm',
+            'x86/lf_mask.asm',
             'x86/msac.asm',
             'x86/pal.asm',
             'x86/refmvs.asm',
