@@ -35,8 +35,8 @@ SECTION_RODATA 16
 %define PIC_sym(a) pic_regq+a-PIC_base
 %endif
 
-pb_4x1_4x5_4x9_4x13: times 4 db 0, 1
-                     times 4 db 8, 9
+pb_4x1_4x3_4x5_4x7: times 4 db 0, -1
+                    times 4 db 2, -1
 
 pw_1: times 8 dw 1
 pw_2: times 8 dw 2
@@ -595,26 +595,15 @@ ASSERT ARCH_X86_32
 %endif
 %endif
 %ifidn %2, v
-%if cpuflag(sse4)
-    pmovzxbd      m1, [lq]
-    pmovzxbd      m0, [lq+l_strideq]
-    pxor          m2, m2
-%else ; ssse3
     movd          m1, [lq]
     movd          m0, [lq+l_strideq]
     pxor          m2, m2
-    REPX {punpcklbw x, m2}, m1, m0
-    REPX {punpcklwd x, m2}, m1, m0
-%endif ; ssse3/sse4
 %else ; %2 != v
-    movd          m0, [lq]                      ; l0, l1
-    movd          m1, [lq+l_strideq]            ; l2, l3
-    punpcklwd     m0, m0
-    punpcklwd     m1, m1
-    punpckldq     m0, m1                        ; l0, l2, l1, l3
+    movd          m1, [lq]                      ; l0, l1
+    movd          m0, [lq+l_strideq]            ; l2, l3
+    punpcklwd     m1, m0                        ; l0, l2
+    psrlq         m0, m1, 32                    ; l1, l3
     pxor          m2, m2
-    punpcklbw     m1, m0, m2                    ; l0, l2
-    punpckhbw     m0, m2                        ; l1, l3
 %endif ; %2==/!=v
 %if ARCH_X86_32
 %ifidn %2, v
@@ -622,10 +611,10 @@ ASSERT ARCH_X86_32
     mov     mstrideq, mstridem
 %endif
 %endif
-    pcmpeqw       m5, m2, m0
+    pcmpeqb       m5, m2, m0
     pand          m1, m5
     por           m0, m1                        ; l[x][] ? l[x][] : l[x-stride][]
-    pshufb        m0, [PIC_sym(pb_4x1_4x5_4x9_4x13)] ; l[x][1]
+    pshufb        m0, [PIC_sym(pb_4x1_4x3_4x5_4x7)] ; l[x][1]
     pcmpeqw       m5, m2, m0                    ; !L
     psrlw         m5, 1
 %if ARCH_X86_64
