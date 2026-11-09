@@ -203,7 +203,7 @@
 #if CONFIG_ASM_DEBUG
 .macro call_c func, line, msg, first, last, ptr, offset
         push            {lr}
-        mov             lr,  sp
+        add             lr,  sp,  #4
         push            {lr}
         push            {r0-r12}
         mrs             lr,  cpsr
