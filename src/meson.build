@@ -89,11 +89,6 @@ if is_asm_enabled
         libdav1d_sources += files(
             'arm/cpu.c',
         )
-        if get_option('asm_debug')
-            libdav1d_sources += files(
-                'arm/asm_debug.c',
-            )
-        endif
         if (host_machine.cpu_family() == 'aarch64' or
             host_machine.cpu() == 'arm64')
             libdav1d_sources_asm = files(
@@ -129,6 +124,12 @@ if is_asm_enabled
                     'arm/64/mc16_sve.S',
                 )
             endif
+
+            if get_option('asm_debug')
+                libdav1d_sources += files(
+                    'arm/64/asm_debug.c',
+                )
+            endif
         elif host_machine.cpu_family().startswith('arm')
             libdav1d_sources_asm = files(
                 # itx.S is used for both 8 and 16 bpc.
@@ -158,6 +159,12 @@ if is_asm_enabled
                     'arm/32/loopfilter16.S',
                     'arm/32/looprestoration16.S',
                     'arm/32/mc16.S',
+                )
+            endif
+
+            if get_option('asm_debug')
+                libdav1d_sources += files(
+                    'arm/32/asm_debug.c',
                 )
             endif
         endif
