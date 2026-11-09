@@ -243,6 +243,11 @@
 #define DUMP_SIMD_S16(msg, first, last) CALL_C(dump_simd_s16, msg, first, last, sp, 0)
 #define DUMP_SIMD_U16(msg, first, last) CALL_C(dump_simd_u16, msg, first, last, sp, 0)
 #define DUMP_SIMD_S32(msg, first, last) CALL_C(dump_simd_s32, msg, first, last, sp, 0)
+#define DUMP_SIMD_U32(msg, first, last) CALL_C(dump_simd_u32, msg, first, last, sp, 0)
+#define DUMP_SIMD_S64(msg, first, last) CALL_C(dump_simd_s64, msg, first, last, sp, 0)
+#define DUMP_SIMD_U64(msg, first, last) CALL_C(dump_simd_u64, msg, first, last, sp, 0)
+#define DUMP_SIMD_F32(msg, first, last) CALL_C(dump_simd_f32, msg, first, last, sp, 0)
+#define DUMP_SIMD_F64(msg, first, last) CALL_C(dump_simd_f64, msg, first, last, sp, 0)
 #define DUMP_MEM_S16(msg, reg, n)       CALL_C(dump_simd_s16, msg, 0, n-1, reg, 0)
 #define DUMP_GPR(msg, first, last)      CALL_C(dump_gpr,      msg, first, last, sp, 260)
 

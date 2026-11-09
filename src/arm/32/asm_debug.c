@@ -99,6 +99,76 @@ void dav1d_dump_simd_s32(int line, const char *msg, int first, int last, const i
     fflush(stderr);
 }
 
+void dav1d_dump_simd_u32(int line, const char *msg, int first, int last, const uint32_t *ptr);
+void dav1d_dump_simd_u32(int line, const char *msg, int first, int last, const uint32_t *ptr)
+{
+    fprintf(stderr, "%d: %s:\n", line, msg);
+    for (int v = first; v <= last; v++) {
+        const uint32_t *vec = &ptr[2*v];
+        fprintf(stderr, "d%02d = {", v);
+        for (int i = 0; i < 2; i++)
+            fprintf(stderr, "%s %u", i > 0 ? "," : "", vec[i]);
+        fprintf(stderr, " }\n");
+    }
+    fflush(stderr);
+}
+
+void dav1d_dump_simd_s64(int line, const char *msg, int first, int last, const int64_t *ptr);
+void dav1d_dump_simd_s64(int line, const char *msg, int first, int last, const int64_t *ptr)
+{
+    fprintf(stderr, "%d: %s:\n", line, msg);
+    for (int v = first; v <= last; v++) {
+        const int64_t *vec = &ptr[1*v];
+        fprintf(stderr, "d%02d = {", v);
+        for (int i = 0; i < 1; i++)
+            fprintf(stderr, "%s %"PRId64, i > 0 ? "," : "", vec[i]);
+        fprintf(stderr, " }\n");
+    }
+    fflush(stderr);
+}
+
+void dav1d_dump_simd_u64(int line, const char *msg, int first, int last, const uint64_t *ptr);
+void dav1d_dump_simd_u64(int line, const char *msg, int first, int last, const uint64_t *ptr)
+{
+    fprintf(stderr, "%d: %s:\n", line, msg);
+    for (int v = first; v <= last; v++) {
+        const uint64_t *vec = &ptr[1*v];
+        fprintf(stderr, "d%02d = {", v);
+        for (int i = 0; i < 1; i++)
+            fprintf(stderr, "%s %"PRIu64, i > 0 ? "," : "", vec[i]);
+        fprintf(stderr, " }\n");
+    }
+    fflush(stderr);
+}
+
+void dav1d_dump_simd_f32(int line, const char *msg, int first, int last, const float *ptr);
+void dav1d_dump_simd_f32(int line, const char *msg, int first, int last, const float *ptr)
+{
+    fprintf(stderr, "%d: %s:\n", line, msg);
+    for (int v = first; v <= last; v++) {
+        const float *vec = &ptr[2*v];
+        fprintf(stderr, "d%02d = {", v);
+        for (int i = 0; i < 2; i++)
+            fprintf(stderr, "%s %f", i > 0 ? "," : "", vec[i]);
+        fprintf(stderr, " }\n");
+    }
+    fflush(stderr);
+}
+
+void dav1d_dump_simd_f64(int line, const char *msg, int first, int last, const double *ptr);
+void dav1d_dump_simd_f64(int line, const char *msg, int first, int last, const double *ptr)
+{
+    fprintf(stderr, "%d: %s:\n", line, msg);
+    for (int v = first; v <= last; v++) {
+        const double *vec = &ptr[1*v];
+        fprintf(stderr, "d%02d = {", v);
+        for (int i = 0; i < 1; i++)
+            fprintf(stderr, "%s %f", i > 0 ? "," : "", vec[i]);
+        fprintf(stderr, " }\n");
+    }
+    fflush(stderr);
+}
+
 void dav1d_dump_gpr(int line, const char *msg, int first, int last, const size_t *ptr);
 void dav1d_dump_gpr(int line, const char *msg, int first, int last, const size_t *ptr)
 {
