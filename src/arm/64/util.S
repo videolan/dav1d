@@ -379,8 +379,8 @@
 #endif
 
 #define CALL_C(func, msg, first, last, ptr, offset) \
-        call_c func, __LINE__, msg, first, last, ptr, offset SEP \
-        b 778f SEP \
+        call_c          func, __LINE__, msg, first, last, ptr, offset SEP \
+        b               778f SEP \
     777: \
         .asciz msg SEP \
         .align 2 SEP \

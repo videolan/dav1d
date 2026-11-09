@@ -228,8 +228,8 @@
 .endm
 
 #define CALL_C(func, msg, first, last, ptr, offset) \
-        call_c func, __LINE__, msg, first, last, ptr, offset; \
-        b 778f; \
+        call_c          func, __LINE__, msg, first, last, ptr, offset; \
+        b               778f; \
     777: \
         .asciz msg; \
         .align 2; \

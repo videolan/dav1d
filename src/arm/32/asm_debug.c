@@ -30,7 +30,8 @@
 #include <inttypes.h>
 
 void dav1d_dump_simd_s8(int line, const char *msg, int first, int last, const int8_t *ptr);
-void dav1d_dump_simd_s8(int line, const char *msg, int first, int last, const int8_t *ptr) {
+void dav1d_dump_simd_s8(int line, const char *msg, int first, int last, const int8_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int v = first; v <= last; v++) {
         const int8_t *vec = &ptr[8*v];
@@ -43,7 +44,8 @@ void dav1d_dump_simd_s8(int line, const char *msg, int first, int last, const in
 }
 
 void dav1d_dump_simd_u8(int line, const char *msg, int first, int last, const uint8_t *ptr);
-void dav1d_dump_simd_u8(int line, const char *msg, int first, int last, const uint8_t *ptr) {
+void dav1d_dump_simd_u8(int line, const char *msg, int first, int last, const uint8_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int v = first; v <= last; v++) {
         const uint8_t *vec = &ptr[8*v];
@@ -56,7 +58,8 @@ void dav1d_dump_simd_u8(int line, const char *msg, int first, int last, const ui
 }
 
 void dav1d_dump_simd_s16(int line, const char *msg, int first, int last, const int16_t *ptr);
-void dav1d_dump_simd_s16(int line, const char *msg, int first, int last, const int16_t *ptr) {
+void dav1d_dump_simd_s16(int line, const char *msg, int first, int last, const int16_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int v = first; v <= last; v++) {
         const int16_t *vec = &ptr[4*v];
@@ -69,7 +72,8 @@ void dav1d_dump_simd_s16(int line, const char *msg, int first, int last, const i
 }
 
 void dav1d_dump_simd_u16(int line, const char *msg, int first, int last, const uint16_t *ptr);
-void dav1d_dump_simd_u16(int line, const char *msg, int first, int last, const uint16_t *ptr) {
+void dav1d_dump_simd_u16(int line, const char *msg, int first, int last, const uint16_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int v = first; v <= last; v++) {
         const uint16_t *vec = &ptr[4*v];
@@ -82,7 +86,8 @@ void dav1d_dump_simd_u16(int line, const char *msg, int first, int last, const u
 }
 
 void dav1d_dump_simd_s32(int line, const char *msg, int first, int last, const int32_t *ptr);
-void dav1d_dump_simd_s32(int line, const char *msg, int first, int last, const int32_t *ptr) {
+void dav1d_dump_simd_s32(int line, const char *msg, int first, int last, const int32_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int v = first; v <= last; v++) {
         const int32_t *vec = &ptr[2*v];
@@ -95,7 +100,8 @@ void dav1d_dump_simd_s32(int line, const char *msg, int first, int last, const i
 }
 
 void dav1d_dump_gpr(int line, const char *msg, int first, int last, const size_t *ptr);
-void dav1d_dump_gpr(int line, const char *msg, int first, int last, const size_t *ptr) {
+void dav1d_dump_gpr(int line, const char *msg, int first, int last, const size_t *ptr)
+{
     fprintf(stderr, "%d: %s:\n", line, msg);
     for (int r = first; r <= last; r++)
         if (r < 13)
