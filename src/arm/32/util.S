@@ -211,13 +211,15 @@
         vpush           {d16-d31}
         vpush           {d0-d15}
         add             r0,  \ptr, #\offset
-        push            {r0}
+        // r0 is parameter 5 to the function, pushed on the stack.
+        // r1 is unused, but pushed to keep the stack aligned to 8 bytes.
+        push            {r0-r1}
         ldr             r0,  =\line
         adr             r1,  777f
         mov             r2,  \first
         mov             r3,  \last
         bl              X(\func)
-        pop             {r0}
+        pop             {r0-r1}
         vpop            {d0-d15}
         vpop            {d16-d31}
         pop             {lr}
