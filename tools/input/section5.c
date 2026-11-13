@@ -36,6 +36,8 @@
 #include <sys/types.h>
 #endif
 
+#include "common/intops.h"
+
 #include "dav1d/headers.h"
 
 #include "input/demuxer.h"
@@ -62,7 +64,7 @@ static int section5_probe(const uint8_t *data) {
                                &obu_size, &type, 0);
         if (ret < 0)
             return 0;
-        cnt += ret;
+        cnt += imin(ret, PROBE_SIZE - cnt);
 
         switch (type) {
         case DAV1D_OBU_SEQ_HDR:

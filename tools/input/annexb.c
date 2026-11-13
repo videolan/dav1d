@@ -74,11 +74,12 @@ static int annexb_probe(const uint8_t *data) {
     // Check that the first OBU is a Temporal Delimiter.
     size_t obu_size;
     enum Dav1dObuType type;
-    ret = parse_obu_header(data + cnt, imin(PROBE_SIZE - cnt, (int) obu_unit_size),
+    int obu_unit_probe_size = (int) umin((unsigned) obu_unit_size, PROBE_SIZE - cnt);
+    ret = parse_obu_header(data + cnt, obu_unit_probe_size,
                            &obu_size, &type, 1);
     if (ret < 0 || type != DAV1D_OBU_TD || obu_size > 0)
         return 0;
-    cnt += (int)obu_unit_size;
+    cnt += obu_unit_probe_size;
 
     // look for first frame and accompanying sequence header
     int seq = 0;
@@ -90,11 +91,12 @@ static int annexb_probe(const uint8_t *data) {
         temporal_unit_size -= ret;
         frame_unit_size -= ret;
 
-        ret = parse_obu_header(data + cnt, imin(PROBE_SIZE - cnt, (int) obu_unit_size),
+        obu_unit_probe_size = (int) umin((unsigned) obu_unit_size, PROBE_SIZE - cnt);
+        ret = parse_obu_header(data + cnt, obu_unit_probe_size,
                                &obu_size, &type, 1);
         if (ret < 0)
             return 0;
-        cnt += (int)obu_unit_size;
+        cnt += obu_unit_probe_size;
 
         switch (type) {
         case DAV1D_OBU_SEQ_HDR:
