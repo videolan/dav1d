@@ -66,20 +66,8 @@ static const Muxer *muxers[] = {
 };
 
 static const char *find_extension(const char *const f) {
-    const size_t l = strlen(f);
-
-    if (l == 0) return NULL;
-
-    const char *const end = &f[l - 1], *step = end;
-    while ((*step >= 'a' && *step <= 'z') ||
-           (*step >= 'A' && *step <= 'Z') ||
-           (*step >= '0' && *step <= '9'))
-    {
-        step--;
-    }
-
-    return (step < end && step > f && *step == '.' && step[-1] != '/') ?
-           &step[1] : NULL;
+    const char *const ext = strrchr(f, '.');
+    return (ext && ext > f && ext[1] && !strchr(ext - 1, '/')) ? &ext[1] : NULL;
 }
 
 int output_open(MuxerContext **const c_out,
