@@ -224,15 +224,16 @@ int output_write(MuxerContext *const ctx, Dav1dPicture *const p) {
         char filename[1024];
         assemble_filename(ctx, filename, sizeof(filename), &p->p);
         res = ctx->impl->write_header(ctx->data, filename, &p->p, ctx->fps);
-        if (res < 0)
+        if (res < 0) {
+            dav1d_picture_unref(p);
             return res;
+        }
     }
-    if ((res = ctx->impl->write_picture(ctx->data, p)) < 0)
-        return res;
+    res = ctx->impl->write_picture(ctx->data, p);
     if (ctx->one_file_per_frame && ctx->impl->write_trailer)
         ctx->impl->write_trailer(ctx->data);
 
-    return 0;
+    return res;
 }
 
 void output_close(MuxerContext *const ctx) {
