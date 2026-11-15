@@ -3355,7 +3355,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
                 }
             }
             pthread_mutex_unlock(&f->task_thread.ttd->lock);
-            res = f->task_thread.retval;
+            if (!res) res = f->task_thread.retval;
         } else {
             res = dav1d_decode_frame_main(f);
             if (!res && f->frame_hdr->refresh_context && f->task_thread.update_set) {
