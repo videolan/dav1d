@@ -45,13 +45,15 @@
 
 #define PROBE_SIZE 2048
 
-static int section5_probe(const uint8_t *data) {
+static int section5_probe(const uint8_t *data, int size) {
     int ret, cnt = 0;
+
+    size = imin(size, PROBE_SIZE);
 
     // Check that the first OBU is a Temporal Delimiter.
     size_t obu_size;
     enum Dav1dObuType type;
-    ret = parse_obu_header(data + cnt, PROBE_SIZE - cnt,
+    ret = parse_obu_header(data + cnt, size - cnt,
                            &obu_size, &type, 0);
     if (ret < 0 || type != DAV1D_OBU_TD || obu_size > 0)
         return 0;
@@ -59,12 +61,12 @@ static int section5_probe(const uint8_t *data) {
 
     // look for first frame and accompanying sequence header
     int seq = 0;
-    while (cnt < PROBE_SIZE) {
-        ret = parse_obu_header(data + cnt, PROBE_SIZE - cnt,
+    while (cnt < size) {
+        ret = parse_obu_header(data + cnt, size - cnt,
                                &obu_size, &type, 0);
         if (ret < 0)
             return 0;
-        cnt += imin(ret, PROBE_SIZE - cnt);
+        cnt += imin(ret, size - cnt);
 
         switch (type) {
         case DAV1D_OBU_SEQ_HDR:
@@ -81,7 +83,7 @@ static int section5_probe(const uint8_t *data) {
         }
     }
 
-    return seq;
+    return seq && size == PROBE_SIZE;
 }
 
 typedef struct DemuxerPriv {
