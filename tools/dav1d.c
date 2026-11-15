@@ -260,8 +260,11 @@ int main(const int argc, char *const *const argv) {
     if (cli_settings.limit != 0 && cli_settings.limit < total)
         total = cli_settings.limit;
 
-    if ((res = dav1d_open(&c, &lib_settings)))
+    if ((res = dav1d_open(&c, &lib_settings))) {
+        dav1d_data_unref(&data);
+        input_close(in);
         return EXIT_FAILURE;
+    }
 
     if (cli_settings.frametimes)
         frametimes = fopen(cli_settings.frametimes, "w");
@@ -318,8 +321,8 @@ int main(const int argc, char *const *const argv) {
                                        cli_settings.outputfile,
                                        &p.p, fps)) < 0)
                 {
-                    if (frametimes) fclose(frametimes);
-                    return EXIT_FAILURE;
+                    dav1d_picture_unref(&p);
+                    break;
                 }
             }
             if ((res = output_write(out, &p)) < 0)
@@ -358,8 +361,8 @@ int main(const int argc, char *const *const argv) {
                                        cli_settings.outputfile,
                                        &p.p, fps)) < 0)
                 {
-                    if (frametimes) fclose(frametimes);
-                    return EXIT_FAILURE;
+                    dav1d_picture_unref(&p);
+                    break;
                 }
             }
             if ((res = output_write(out, &p)) < 0)
