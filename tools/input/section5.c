@@ -114,19 +114,23 @@ static int section5_open(Section5InputContext *const c, const char *const file,
             (*num_frames)++;
         const int has_length_field = byte[0] & 0x2;
         if (!has_length_field)
-            return -1;
+            goto error;
         const int has_extension = byte[0] & 0x4;
         if (has_extension && fread(&byte[1], 1, 1, c->f) < 1)
-            return -1;
+            goto error;
         size_t len;
         const int res = leb128(c->f, &len);
         if (res < 0)
-            return -1;
+            goto error;
         fseeko(c->f, len, SEEK_CUR); // skip packet
     }
     fseeko(c->f, 0, SEEK_SET);
 
     return 0;
+
+error:
+    fclose(c->f);
+    return -1;
 }
 
 static int section5_read(Section5InputContext *const c, Dav1dData *const data) {
