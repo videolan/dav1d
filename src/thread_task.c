@@ -343,6 +343,7 @@ void dav1d_task_frame_init(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
 
     atomic_store(&f->task_thread.init_done, 0);
+    f->task_thread.task_cur_prev = NULL;
     // schedule init task, which will schedule the remaining tasks
     Dav1dTask *const t = &f->task_thread.init_task;
     t->type = DAV1D_TASK_TYPE_INIT;
