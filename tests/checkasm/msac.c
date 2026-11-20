@@ -72,7 +72,7 @@ static int msac_cmp(const MsacContext *const a, const MsacContext *const b) {
     }
 
     /* Only check valid dif bits, ignoring partial bytes at the end */
-    const ec_win dif_mask = ~((~(ec_win)0) >> (imax(a->cnt, 0) + 16));
+    const ec_win dif_mask = ~((~(ec_win)0 >> 16) >> imax(a->cnt, 0));
     return !!((a->dif ^ b->dif) & dif_mask);
 }
 
