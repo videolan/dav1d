@@ -322,7 +322,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
     }
     prev_t->next = NULL;
 
-    atomic_store(&f->task_thread.done[pass & 1], 0);
+    f->task_thread.done[pass & 1] = 0;
 
     if (!(pass & 1)) {
         assert(f->task_thread.pending_tasks.head == NULL);
@@ -454,9 +454,9 @@ static inline int get_frame_progress(const Dav1dContext *const c,
 
 static inline void abort_frame(Dav1dFrameContext *const f, const int error) {
     atomic_store(&f->task_thread.error, error == DAV1D_ERR(EINVAL) ? 1 : -1);
-    atomic_store(&f->task_thread.task_counter, 0);
-    atomic_store(&f->task_thread.done[0], 1);
-    atomic_store(&f->task_thread.done[1], 1);
+    f->task_thread.task_counter = 0;
+    f->task_thread.done[0] = 1;
+    f->task_thread.done[1] = 1;
     atomic_store(&f->sr_cur.progress[0], FRAME_ERROR);
     atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
     dav1d_decode_frame_exit(f, error);
@@ -603,7 +603,7 @@ void *dav1d_worker_task(void *data) {
                 } else if (t->recon_progress) {
                     const int p = t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS;
                     int error = atomic_load(&f->task_thread.error);
-                    assert(!atomic_load(&f->task_thread.done[p]) || error);
+                    assert(!f->task_thread.done[p] || error);
                     const int tile_row_base = f->frame_hdr->tiling.cols *
                                               f->frame_thread.next_tile_row[p];
                     if (p) {
@@ -759,9 +759,9 @@ void *dav1d_worker_task(void *data) {
                 pthread_mutex_lock(&ttd->lock);
                 atomic_store(&ts->progress[p], progress);
                 reset_task_cur(c, ttd, t->frame_idx);
-                if (atomic_fetch_sub(&f->task_thread.task_counter, 1) - 1 == 0 &&
-                    atomic_load(&f->task_thread.done[0]) &&
-                    (!uses_2pass || atomic_load(&f->task_thread.done[1])))
+                if (--f->task_thread.task_counter == 0 &&
+                    f->task_thread.done[0] &&
+                    (!uses_2pass || f->task_thread.done[1]))
                 {
                     error = atomic_load(&f->task_thread.error);
                     dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
@@ -769,7 +769,7 @@ void *dav1d_worker_task(void *data) {
                     f->n_tile_data = 0;
                     pthread_cond_signal(&f->task_thread.cond);
                 }
-                assert(atomic_load(&f->task_thread.task_counter) >= 0);
+                assert(f->task_thread.task_counter >= 0);
             }
             continue;
         }
@@ -846,16 +846,15 @@ void *dav1d_worker_task(void *data) {
             atomic_store(&f->sr_cur.progress[0], error ? FRAME_ERROR : y);
             atomic_store(&f->frame_thread.entropy_progress,
                          error ? TILE_ERROR : sby + 1);
-            if (sby + 1 == sbh)
-                atomic_store(&f->task_thread.done[1], 1);
             pthread_mutex_lock(&ttd->lock);
-            const int num_tasks = atomic_fetch_sub(&f->task_thread.task_counter, 1) - 1;
+            if (sby + 1 == sbh)
+                f->task_thread.done[1] = 1;
+            const int num_tasks = --f->task_thread.task_counter;
             if (sby + 1 < sbh && num_tasks) {
                 reset_task_cur(c, ttd, t->frame_idx);
                 continue;
             }
-            if (!num_tasks && atomic_load(&f->task_thread.done[0]) &&
-                atomic_load(&f->task_thread.done[1]))
+            if (!num_tasks && f->task_thread.done[0] && f->task_thread.done[1])
             {
                 error = atomic_load(&f->task_thread.error);
                 dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
@@ -876,16 +875,16 @@ void *dav1d_worker_task(void *data) {
         if (c->n_fc > 1)
             atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);
         pthread_mutex_unlock(&f->task_thread.lock);
-        if (sby + 1 == sbh)
-            atomic_store(&f->task_thread.done[0], 1);
         pthread_mutex_lock(&ttd->lock);
-        const int num_tasks = atomic_fetch_sub(&f->task_thread.task_counter, 1) - 1;
+        if (sby + 1 == sbh)
+            f->task_thread.done[0] = 1;
+        const int num_tasks = --f->task_thread.task_counter;
         if (sby + 1 < sbh && num_tasks) {
             reset_task_cur(c, ttd, t->frame_idx);
             continue;
         }
-        if (!num_tasks && atomic_load(&f->task_thread.done[0]) &&
-            (!uses_2pass || atomic_load(&f->task_thread.done[1])))
+        if (!num_tasks && f->task_thread.done[0] &&
+            (!uses_2pass || f->task_thread.done[1]))
         {
             error = atomic_load(&f->task_thread.error);
             dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :

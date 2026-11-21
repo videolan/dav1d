@@ -327,10 +327,10 @@ struct Dav1dFrameContext {
         struct Dav1dTask *tasks, *tile_tasks[2], init_task;
         int num_tasks, num_tile_tasks;
         atomic_int init_done;
-        atomic_int done[2];
+        int done[2];
         int retval;
         atomic_int error;
-        atomic_int task_counter;
+        int task_counter;
         struct Dav1dTask *task_head, *task_tail;
         // Points to the task directly before the cur pointer in the queue.
         // This cur pointer is theoretical here, we actually keep track of the
