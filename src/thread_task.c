@@ -861,8 +861,7 @@ void *dav1d_worker_task(void *data) {
             error = atomic_load(&f->task_thread.error);
             const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
             assert(c->n_fc > 1);
-            if (f->sr_cur.p.data[0] /* upon flush, this can be free'ed already */)
-                atomic_store(&f->sr_cur.progress[0], error ? FRAME_ERROR : y);
+            atomic_store(&f->sr_cur.progress[0], error ? FRAME_ERROR : y);
             atomic_store(&f->frame_thread.entropy_progress,
                          error ? TILE_ERROR : sby + 1);
             if (sby + 1 == sbh)
@@ -892,7 +891,7 @@ void *dav1d_worker_task(void *data) {
         sby = get_frame_progress(c, f);
         error = atomic_load(&f->task_thread.error);
         const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
-        if (c->n_fc > 1 && f->sr_cur.p.data[0] /* upon flush, this can be free'ed already */)
+        if (c->n_fc > 1)
             atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);
         pthread_mutex_unlock(&f->task_thread.lock);
         if (sby + 1 == sbh)
