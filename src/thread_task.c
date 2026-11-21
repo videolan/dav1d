@@ -719,8 +719,6 @@ void *dav1d_worker_task(void *data) {
             int res = DAV1D_ERR(EINVAL);
             if (!atomic_load(&f->task_thread.error))
                 res = dav1d_decode_frame_init_cdf(f);
-            if (f->frame_hdr->refresh_context && !f->task_thread.update_set)
-                atomic_store(f->out_cdf.progress, res < 0 ? TILE_ERROR : 1);
             for (int p = 1; p <= 2 && !res; p++)
                 res = dav1d_task_create_tile_sbrow(f, p, 0);
             pthread_mutex_lock(&ttd->lock);
@@ -766,7 +764,7 @@ void *dav1d_worker_task(void *data) {
                 reset_task_cur(c, ttd, t->frame_idx);
                 error = atomic_load(&f->task_thread.error);
                 if (f->frame_hdr->refresh_context &&
-                    tc->frame_thread.pass <= 1 && f->task_thread.update_set &&
+                    tc->frame_thread.pass <= 1 &&
                     f->frame_hdr->tiling.update == tile_idx)
                 {
                     if (!error)

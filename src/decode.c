@@ -3197,7 +3197,6 @@ int dav1d_decode_frame_init_cdf(Dav1dFrameContext *const f) {
 
     // parse individual tiles per tile group
     int tile_row = 0, tile_col = 0;
-    f->task_thread.update_set = 0;
     for (int i = 0; i < f->n_tile_data; i++) {
         const uint8_t *data = f->tile[i].data.data;
         size_t size = f->tile[i].data.sz;
@@ -3223,8 +3222,6 @@ int dav1d_decode_frame_init_cdf(Dav1dFrameContext *const f) {
                 tile_col = 0;
                 tile_row++;
             }
-            if (j == f->frame_hdr->tiling.update && f->frame_hdr->refresh_context)
-                f->task_thread.update_set = 1;
             data += tile_sz;
             size -= tile_sz;
         }
@@ -3355,7 +3352,7 @@ int dav1d_decode_frame(Dav1dFrameContext *const f) {
             if (!res) res = f->task_thread.retval;
         } else {
             res = dav1d_decode_frame_main(f);
-            if (!res && f->frame_hdr->refresh_context && f->task_thread.update_set) {
+            if (!res && f->frame_hdr->refresh_context) {
                 dav1d_cdf_thread_update(f->frame_hdr, f->out_cdf.data.cdf,
                                         &f->ts[f->frame_hdr->tiling.update].cdf);
             }

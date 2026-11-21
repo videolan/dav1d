@@ -329,7 +329,6 @@ struct Dav1dFrameContext {
         atomic_int init_done;
         atomic_int done[2];
         int retval;
-        int update_set; // whether we need to update CDF reference
         atomic_int error;
         atomic_int task_counter;
         struct Dav1dTask *task_head, *task_tail;
