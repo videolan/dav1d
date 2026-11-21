@@ -552,6 +552,18 @@ static Dav1dTask *find_task(const Dav1dContext *const c,
     return NULL;
 }
 
+static int has_ready_task(const Dav1dContext *const c,
+                          struct TaskThreadData *const ttd)
+{
+    if (ttd->delayed_fg.exec) return 1;
+    Dav1dFrameContext *f;
+    Dav1dTask *prev_t;
+    if (c->n_fc > 1 && find_init_task(c, ttd, &f)) return 1;
+    merge_pending(c);
+    reset_task_cur(c, ttd, UINT_MAX);
+    return !!find_task(c, ttd, &f, &prev_t);
+}
+
 static inline void finish_frame(Dav1dFrameContext *const f, const int res) {
     dav1d_decode_frame_exit(f, res);
     f->n_tile_data = 0;
@@ -727,12 +739,16 @@ void *dav1d_worker_task(void *data) {
         if (t->type > DAV1D_TASK_TYPE_INIT_CDF && !f->task_thread.task_head)
             ttd->cur++;
         t->next = NULL;
-        // we don't need to check cond_signaled here, since we found a task
-        // after the last signal so we want to re-signal the next waiting thread
-        // and again won't need to signal after that
-        atomic_store(&ttd->cond_signaled, 1);
-        pthread_cond_signal(&ttd->cond);
+        // Only wake up another thread if there's more work available, since
+        // waking up threads only for them to go straight back to sleep is
+        // expensive and causes a lot of lock contention. If there isn't, clear
+        // cond_signaled so that the next thread signaling progress wakes one.
+        // Since we always come back here after executing the task, not waking
+        // anyone can't cause tasks to get stuck in the queue.
+        const int signal = has_ready_task(c, ttd);
+        atomic_store(&ttd->cond_signaled, signal);
         pthread_mutex_unlock(&ttd->lock);
+        if (signal) pthread_cond_signal(&ttd->cond);
     found_unlocked:;
         if (atomic_load(c->flush)) atomic_fetch_or(&f->task_thread.error, 1);
         int error = atomic_load(&f->task_thread.error);
