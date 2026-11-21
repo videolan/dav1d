@@ -811,13 +811,8 @@ void *dav1d_worker_task(void *data) {
             }
             // fall-through
         case DAV1D_TASK_TYPE_CDEF:
-            if (f->seq_hdr->cdef) {
-                if (!atomic_load(&f->task_thread.error))
-                    f->bd_fn.filter_sbrow_cdef(tc, sby);
-                reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
-                if (!atomic_fetch_or(&ttd->cond_signaled, 1))
-                    pthread_cond_signal(&ttd->cond);
-            }
+            if (f->seq_hdr->cdef && !atomic_load(&f->task_thread.error))
+                f->bd_fn.filter_sbrow_cdef(tc, sby);
             // fall-through
         case DAV1D_TASK_TYPE_SUPER_RESOLUTION:
             if (f->frame_hdr->width[0] != f->frame_hdr->width[1])
