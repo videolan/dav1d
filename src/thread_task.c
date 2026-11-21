@@ -452,6 +452,22 @@ static inline int get_frame_progress(const Dav1dContext *const c,
     return ((idx << 5) | prog) - 1;
 }
 
+static inline void finish_frame(Dav1dFrameContext *const f, const int res) {
+    dav1d_decode_frame_exit(f, res);
+    f->n_tile_data = 0;
+    pthread_cond_signal(&f->task_thread.cond);
+}
+
+static inline void complete_task(Dav1dFrameContext *const f) {
+    if (--f->task_thread.task_counter || !f->task_thread.done[0] ||
+        (f->c->n_fc > 1 && !f->task_thread.done[1]))
+    {
+        return;
+    }
+    const int error = atomic_load(&f->task_thread.error);
+    finish_frame(f, error == 1 ? DAV1D_ERR(EINVAL) : error ? DAV1D_ERR(ENOMEM) : 0);
+}
+
 static inline void abort_frame(Dav1dFrameContext *const f, const int error) {
     atomic_store(&f->task_thread.error, error == DAV1D_ERR(EINVAL) ? 1 : -1);
     f->task_thread.task_counter = 0;
@@ -459,9 +475,7 @@ static inline void abort_frame(Dav1dFrameContext *const f, const int error) {
     f->task_thread.done[1] = 1;
     atomic_store(&f->sr_cur.progress[0], FRAME_ERROR);
     atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
-    dav1d_decode_frame_exit(f, error);
-    f->n_tile_data = 0;
-    pthread_cond_signal(&f->task_thread.cond);
+    finish_frame(f, error);
 }
 
 static inline void delayed_fg_task(const Dav1dContext *const c,
@@ -759,16 +773,7 @@ void *dav1d_worker_task(void *data) {
                 pthread_mutex_lock(&ttd->lock);
                 atomic_store(&ts->progress[p], progress);
                 reset_task_cur(c, ttd, t->frame_idx);
-                if (--f->task_thread.task_counter == 0 &&
-                    f->task_thread.done[0] &&
-                    (!uses_2pass || f->task_thread.done[1]))
-                {
-                    error = atomic_load(&f->task_thread.error);
-                    dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
-                                            error ? DAV1D_ERR(ENOMEM) : 0);
-                    f->n_tile_data = 0;
-                    pthread_cond_signal(&f->task_thread.cond);
-                }
+                complete_task(f);
                 assert(f->task_thread.task_counter >= 0);
             }
             continue;
@@ -831,7 +836,6 @@ void *dav1d_worker_task(void *data) {
         default: abort();
         }
         // if task completed [typically LR], signal picture progress as per below
-        const int uses_2pass = c->n_fc > 1;
         const int sbh = f->sbh;
         const int sbsz = f->sb_step * 4;
         if (t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS) {
@@ -844,19 +848,7 @@ void *dav1d_worker_task(void *data) {
             pthread_mutex_lock(&ttd->lock);
             if (sby + 1 == sbh)
                 f->task_thread.done[1] = 1;
-            const int num_tasks = --f->task_thread.task_counter;
-            if (sby + 1 < sbh && num_tasks) {
-                reset_task_cur(c, ttd, t->frame_idx);
-                continue;
-            }
-            if (!num_tasks && f->task_thread.done[0] && f->task_thread.done[1])
-            {
-                error = atomic_load(&f->task_thread.error);
-                dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
-                                        error ? DAV1D_ERR(ENOMEM) : 0);
-                f->n_tile_data = 0;
-                pthread_cond_signal(&f->task_thread.cond);
-            }
+            complete_task(f);
             reset_task_cur(c, ttd, t->frame_idx);
             continue;
         }
@@ -871,20 +863,7 @@ void *dav1d_worker_task(void *data) {
             atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);
         if (sby + 1 == sbh)
             f->task_thread.done[0] = 1;
-        const int num_tasks = --f->task_thread.task_counter;
-        if (sby + 1 < sbh && num_tasks) {
-            reset_task_cur(c, ttd, t->frame_idx);
-            continue;
-        }
-        if (!num_tasks && f->task_thread.done[0] &&
-            (!uses_2pass || f->task_thread.done[1]))
-        {
-            error = atomic_load(&f->task_thread.error);
-            dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
-                                    error ? DAV1D_ERR(ENOMEM) : 0);
-            f->n_tile_data = 0;
-            pthread_cond_signal(&f->task_thread.cond);
-        }
+        complete_task(f);
         reset_task_cur(c, ttd, t->frame_idx);
     }
     pthread_mutex_unlock(&ttd->lock);
