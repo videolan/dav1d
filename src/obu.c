@@ -1500,7 +1500,8 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                 c->itut_t35_ref = dav1d_ref_init(&itut_t35_ctx->ref, c->itut_t35,
                                                  dav1d_picture_free_itut_t35, itut_t35_ctx, 0);
             } else {
-                assert(c->itut_t35_ref && atomic_load(&c->itut_t35_ref->ref_cnt) == 1);
+                assert(c->itut_t35_ref &&
+                       atomic_load_explicit(&c->itut_t35_ref->ref_cnt, memory_order_relaxed) == 1);
                 itut_t35_ctx = c->itut_t35_ref->user_data;
                 c->itut_t35_ref->const_data = (uint8_t *)c->itut_t35;
             }

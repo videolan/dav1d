@@ -77,7 +77,7 @@ void dav1d_ref_dec(Dav1dRef **const pref) {
     if (!ref) return;
 
     *pref = NULL;
-    if (atomic_fetch_sub(&ref->ref_cnt, 1) == 1) {
+    if (atomic_fetch_sub_explicit(&ref->ref_cnt, 1, memory_order_acq_rel) == 1) {
         const int free_ref = ref->free_ref;
         ref->free_callback(ref->const_data, ref->user_data);
         if (free_ref) dav1d_free(ref);

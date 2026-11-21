@@ -71,7 +71,7 @@ static inline void dav1d_ref_inc(Dav1dRef *const ref) {
 }
 
 static inline int dav1d_ref_is_writable(Dav1dRef *const ref) {
-    return atomic_load(&ref->ref_cnt) == 1 && ref->data;
+    return atomic_load_explicit(&ref->ref_cnt, memory_order_acquire) == 1 && ref->data;
 }
 
 #endif /* DAV1D_SRC_REF_H */
