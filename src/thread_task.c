@@ -394,13 +394,13 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
     Dav1dTileState *const ts = &f->ts[tile_idx];
     const int p1 = atomic_load(&ts->progress[tp]);
     if (p1 < t->sby) return 1;
-    int error = p1 == TILE_ERROR;
-    error |= atomic_fetch_or(&f->task_thread.error, error);
+    if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+    int error = atomic_load(&f->task_thread.error);
     if (!error && frame_mt && !tp) {
         const int p2 = atomic_load(&ts->progress[1]);
         if (p2 <= t->sby) return 1;
-        error = p2 == TILE_ERROR;
-        error |= atomic_fetch_or(&f->task_thread.error, error);
+        if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+        error = atomic_load(&f->task_thread.error);
     }
     if (!error && frame_mt && !IS_KEY_OR_INTRA(f->frame_hdr)) {
         // check reference state
@@ -428,7 +428,7 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
             }
             const unsigned p3 = atomic_load(&f->refp[n].progress[!tp]);
             if (p3 < lowest) return 1;
-            atomic_fetch_or(&f->task_thread.error, p3 == FRAME_ERROR);
+            if (p3 == FRAME_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
         }
     }
     return 0;
@@ -580,7 +580,7 @@ void *dav1d_worker_task(void *data) {
                 const int p1 = f->in_cdf.progress ?
                     atomic_load(f->in_cdf.progress) : 1;
                 if (p1) {
-                    atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
+                    if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
                     goto found;
                 }
             }
@@ -610,13 +610,13 @@ void *dav1d_worker_task(void *data) {
                         atomic_int *const prog = &f->frame_thread.entropy_progress;
                         const int p1 = atomic_load(prog);
                         if (p1 < t->sby) goto next;
-                        atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
+                        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
                     }
                     for (int tc = 0; tc < f->frame_hdr->tiling.cols; tc++) {
                         Dav1dTileState *const ts = &f->ts[tile_row_base + tc];
                         const int p2 = atomic_load(&ts->progress[p]);
                         if (p2 < t->recon_progress) goto next;
-                        atomic_fetch_or(&f->task_thread.error, p2 == TILE_ERROR);
+                        if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
                     }
                     if (t->sby + 1 < f->sbh) {
                         // add sby+1 to list to replace this one
@@ -640,7 +640,7 @@ void *dav1d_worker_task(void *data) {
                     assert(t->deblock_progress);
                     const int p1 = atomic_load(&f->frame_thread.deblock_progress);
                     if (p1 >= t->deblock_progress) {
-                        atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
+                        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
                         goto found;
                     }
                 }
@@ -678,8 +678,8 @@ void *dav1d_worker_task(void *data) {
         pthread_cond_signal(&ttd->cond);
         pthread_mutex_unlock(&ttd->lock);
     found_unlocked:;
-        const int flush = atomic_load(c->flush);
-        int error = atomic_fetch_or(&f->task_thread.error, flush) | flush;
+        if (atomic_load(c->flush)) atomic_fetch_or(&f->task_thread.error, 1);
+        int error = atomic_load(&f->task_thread.error);
 
         // run it
         tc->f = f;
@@ -731,7 +731,7 @@ void *dav1d_worker_task(void *data) {
             const int progress = error ? TILE_ERROR : 1 + sby;
 
             // signal progress
-            atomic_fetch_or(&f->task_thread.error, error);
+            if (error) atomic_fetch_or(&f->task_thread.error, error);
             if (((sby + 1) << f->sb_shift) < ts->tiling.row_end) {
                 t->sby++;
                 t->deps_skip = 0;
