@@ -652,7 +652,7 @@ static inline void delayed_fg_task(const Dav1dContext *const c,
         ttd->delayed_fg.exec = 1;
         // fall-through
     case DAV1D_TASK_TYPE_FG_APPLY:;
-        int row = atomic_fetch_add(&ttd->delayed_fg.progress[0], 1);
+        int row = atomic_fetch_add_explicit(&ttd->delayed_fg.progress[0], 1, memory_order_relaxed);
         pthread_mutex_unlock(&ttd->lock);
         int progmax = (out->p.h + FG_BLOCK_SIZE - 1) / FG_BLOCK_SIZE;
         while (row < progmax) {
@@ -681,13 +681,14 @@ static inline void delayed_fg_task(const Dav1dContext *const c,
 #endif
             default: abort();
             }
-            row = atomic_fetch_add(&ttd->delayed_fg.progress[0], 1);
-            atomic_fetch_add(&ttd->delayed_fg.progress[1], 1);
+            row = atomic_fetch_add_explicit(&ttd->delayed_fg.progress[0], 1, memory_order_relaxed);
+            atomic_fetch_add_explicit(&ttd->delayed_fg.progress[1], 1, memory_order_release);
         }
         pthread_mutex_lock(&ttd->lock);
         ttd->delayed_fg.exec = 0;
-        int done = atomic_fetch_add(&ttd->delayed_fg.progress[1], 1) + 1;
-        progmax = atomic_load(&ttd->delayed_fg.progress[0]);
+        int done = atomic_fetch_add_explicit(&ttd->delayed_fg.progress[1], 1,
+                                             memory_order_acquire) + 1;
+        progmax = atomic_load_explicit(&ttd->delayed_fg.progress[0], memory_order_relaxed);
         // signal for completion only once the last runner reaches this
         if (done >= progmax) {
             ttd->delayed_fg.finished = 1;
