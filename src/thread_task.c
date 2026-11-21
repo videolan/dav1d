@@ -783,8 +783,6 @@ void *dav1d_worker_task(void *data) {
                     pthread_cond_signal(&f->task_thread.cond);
                 }
                 assert(atomic_load(&f->task_thread.task_counter) >= 0);
-                if (!atomic_fetch_or(&ttd->cond_signaled, 1))
-                    pthread_cond_signal(&ttd->cond);
             }
             continue;
         }
