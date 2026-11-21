@@ -324,17 +324,12 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
 
     atomic_store(&f->task_thread.done[pass & 1], 0);
 
-    // XXX in theory this could be done locklessly, at this point they are no
-    // tasks in the frameQ, so no other runner should be using this lock, but
-    // we must add both passes at once
     if (!(pass & 1)) {
-        pthread_mutex_lock(&f->task_thread.pending_tasks.lock);
         assert(f->task_thread.pending_tasks.head == NULL);
         f->task_thread.pending_tasks.head = f->task_thread.tile_tasks[pass == 2];
         f->task_thread.pending_tasks.tail = prev_t;
-        atomic_store(&f->task_thread.pending_tasks.merge, 1);
         atomic_store(&f->task_thread.init_done, 1);
-        pthread_mutex_unlock(&f->task_thread.pending_tasks.lock);
+        atomic_store(&f->task_thread.pending_tasks.merge, 1);
     }
     return 0;
 }
@@ -581,20 +576,12 @@ void *dav1d_worker_task(void *data) {
                 t = f->task_thread.task_head;
                 if (!t) continue;
                 if (t->type == DAV1D_TASK_TYPE_INIT) goto found;
-                if (t->type == DAV1D_TASK_TYPE_INIT_CDF) {
-                    // XXX This can be a simple else, if adding tasks of both
-                    // passes at once (in dav1d_task_create_tile_sbrow).
-                    // Adding the tasks to the pending Q can result in a
-                    // thread merging them before setting init_done.
-                    // We will need to set init_done before adding to the
-                    // pending Q, so maybe return the tasks, set init_done,
-                    // and add to pending Q only then.
-                    const int p1 = f->in_cdf.progress ?
-                        atomic_load(f->in_cdf.progress) : 1;
-                    if (p1) {
-                        atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
-                        goto found;
-                    }
+                assert(t->type == DAV1D_TASK_TYPE_INIT_CDF);
+                const int p1 = f->in_cdf.progress ?
+                    atomic_load(f->in_cdf.progress) : 1;
+                if (p1) {
+                    atomic_fetch_or(&f->task_thread.error, p1 == TILE_ERROR);
+                    goto found;
                 }
             }
         }
