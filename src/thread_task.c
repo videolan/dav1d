@@ -452,6 +452,106 @@ static inline int get_frame_progress(const Dav1dContext *const c,
     return ((idx << 5) | prog) - 1;
 }
 
+// Returns the first executable init task, if any.
+static inline Dav1dTask *find_init_task(const Dav1dContext *const c,
+                                        struct TaskThreadData *const ttd,
+                                        Dav1dFrameContext **const res_f)
+{
+    const unsigned first = atomic_load(&ttd->first);
+    for (unsigned i = 0; i < c->n_fc; i++) {
+        Dav1dFrameContext *const f = &c->fc[(first + i) % c->n_fc];
+        if (atomic_load(&f->task_thread.init_done)) continue;
+        Dav1dTask *const t = f->task_thread.task_head;
+        if (!t) continue;
+        if (t->type == DAV1D_TASK_TYPE_INIT) {
+            *res_f = f;
+            return t;
+        }
+        assert(t->type == DAV1D_TASK_TYPE_INIT_CDF);
+        const int p1 = f->in_cdf.progress ?
+            atomic_load(f->in_cdf.progress) : 1;
+        if (p1) {
+            if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+            *res_f = f;
+            return t;
+        }
+    }
+    return NULL;
+}
+
+// Checks whether the dependencies of a (non-init) task are satisfied.
+static inline int task_ready(const Dav1dContext *const c,
+                             Dav1dFrameContext *const f, Dav1dTask *const t)
+{
+    if (t->type == DAV1D_TASK_TYPE_INIT_CDF) return 0;
+    if (t->type == DAV1D_TASK_TYPE_TILE_ENTROPY ||
+        t->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION)
+    {
+        // if not bottom sbrow of tile, this task will be re-added
+        // after it's finished
+        return !check_tile(t, f, c->n_fc > 1);
+    }
+    if (t->recon_progress) {
+        const int p = t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS;
+        int error = atomic_load(&f->task_thread.error);
+        assert(!f->task_thread.done[p] || error);
+        const int tile_row_base = f->frame_hdr->tiling.cols *
+                                  f->frame_thread.next_tile_row[p];
+        if (p) {
+            atomic_int *const prog = &f->frame_thread.entropy_progress;
+            const int p1 = atomic_load(prog);
+            if (p1 < t->sby) return 0;
+            if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+        }
+        for (int tc = 0; tc < f->frame_hdr->tiling.cols; tc++) {
+            Dav1dTileState *const ts = &f->ts[tile_row_base + tc];
+            const int p2 = atomic_load(&ts->progress[p]);
+            if (p2 < t->recon_progress) return 0;
+            if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+        }
+        return 1;
+    }
+    if (t->type == DAV1D_TASK_TYPE_CDEF) {
+        atomic_uint *prog = f->frame_thread.copy_lpf_progress;
+        const int p1 = atomic_load(&prog[(t->sby - 1) >> 5]);
+        return !!(p1 & (1U << ((t->sby - 1) & 31)));
+    }
+    assert(t->deblock_progress);
+    const int p1 = atomic_load(&f->frame_thread.deblock_progress);
+    if (p1 >= t->deblock_progress) {
+        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+        return 1;
+    }
+    return 0;
+}
+
+// Scans the task queue, starting at the cur pointer, for the first executable
+// decoding task. Non-executable tasks that are skipped advance the cur pointer.
+static Dav1dTask *find_task(const Dav1dContext *const c,
+                            struct TaskThreadData *const ttd,
+                            Dav1dFrameContext **const res_f,
+                            Dav1dTask **const res_prev_t)
+{
+    const unsigned first = atomic_load(&ttd->first);
+    while (ttd->cur < c->n_fc) {
+        Dav1dFrameContext *const f = &c->fc[(first + ttd->cur) % c->n_fc];
+        merge_pending_frame(f);
+        Dav1dTask *prev_t = f->task_thread.task_cur_prev;
+        for (Dav1dTask *t = prev_t ? prev_t->next : f->task_thread.task_head;
+             t; prev_t = t, t = t->next)
+        {
+            if (task_ready(c, f, t)) {
+                *res_f = f;
+                *res_prev_t = prev_t;
+                return t;
+            }
+            f->task_thread.task_cur_prev = t;
+        }
+        ttd->cur++;
+    }
+    return NULL;
+}
+
 static inline void finish_frame(Dav1dFrameContext *const f, const int res) {
     dav1d_decode_frame_exit(f, res);
     f->n_tile_data = 0;
@@ -583,87 +683,29 @@ void *dav1d_worker_task(void *data) {
         Dav1dFrameContext *f;
         Dav1dTask *t, *prev_t = NULL;
         if (c->n_fc > 1) { // run init tasks second
-            for (unsigned i = 0; i < c->n_fc; i++) {
-                const unsigned first = atomic_load(&ttd->first);
-                f = &c->fc[(first + i) % c->n_fc];
-                if (atomic_load(&f->task_thread.init_done)) continue;
-                t = f->task_thread.task_head;
-                if (!t) continue;
-                if (t->type == DAV1D_TASK_TYPE_INIT) goto found;
-                assert(t->type == DAV1D_TASK_TYPE_INIT_CDF);
-                const int p1 = f->in_cdf.progress ?
-                    atomic_load(f->in_cdf.progress) : 1;
-                if (p1) {
-                    if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-                    goto found;
-                }
-            }
+            t = find_init_task(c, ttd, &f);
+            if (t) goto found;
         }
-        while (ttd->cur < c->n_fc) { // run decoding tasks last
-            const unsigned first = atomic_load(&ttd->first);
-            f = &c->fc[(first + ttd->cur) % c->n_fc];
-            merge_pending_frame(f);
-            prev_t = f->task_thread.task_cur_prev;
-            t = prev_t ? prev_t->next : f->task_thread.task_head;
-            while (t) {
-                if (t->type == DAV1D_TASK_TYPE_INIT_CDF) goto next;
-                else if (t->type == DAV1D_TASK_TYPE_TILE_ENTROPY ||
-                         t->type == DAV1D_TASK_TYPE_TILE_RECONSTRUCTION)
-                {
-                    // if not bottom sbrow of tile, this task will be re-added
-                    // after it's finished
-                    if (!check_tile(t, f, c->n_fc > 1))
-                        goto found;
-                } else if (t->recon_progress) {
-                    const int p = t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS;
-                    int error = atomic_load(&f->task_thread.error);
-                    assert(!f->task_thread.done[p] || error);
-                    const int tile_row_base = f->frame_hdr->tiling.cols *
-                                              f->frame_thread.next_tile_row[p];
-                    if (p) {
-                        atomic_int *const prog = &f->frame_thread.entropy_progress;
-                        const int p1 = atomic_load(prog);
-                        if (p1 < t->sby) goto next;
-                        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-                    }
-                    for (int tc = 0; tc < f->frame_hdr->tiling.cols; tc++) {
-                        Dav1dTileState *const ts = &f->ts[tile_row_base + tc];
-                        const int p2 = atomic_load(&ts->progress[p]);
-                        if (p2 < t->recon_progress) goto next;
-                        if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-                    }
-                    if (t->sby + 1 < f->sbh) {
-                        // add sby+1 to list to replace this one
-                        Dav1dTask *next_t = &t[1];
-                        *next_t = *t;
-                        next_t->sby++;
-                        const int ntr = f->frame_thread.next_tile_row[p] + 1;
-                        const int start = f->frame_hdr->tiling.row_start_sb[ntr];
-                        if (next_t->sby == start)
-                            f->frame_thread.next_tile_row[p] = ntr;
-                        next_t->recon_progress = next_t->sby + 1;
-                        insert_task(f, next_t, 0);
-                    }
-                    goto found;
-                } else if (t->type == DAV1D_TASK_TYPE_CDEF) {
-                    atomic_uint *prog = f->frame_thread.copy_lpf_progress;
-                    const int p1 = atomic_load(&prog[(t->sby - 1) >> 5]);
-                    if (p1 & (1U << ((t->sby - 1) & 31)))
-                        goto found;
-                } else {
-                    assert(t->deblock_progress);
-                    const int p1 = atomic_load(&f->frame_thread.deblock_progress);
-                    if (p1 >= t->deblock_progress) {
-                        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-                        goto found;
-                    }
-                }
-            next:
-                prev_t = t;
-                t = t->next;
-                f->task_thread.task_cur_prev = prev_t;
+        t = find_task(c, ttd, &f, &prev_t); // run decoding tasks last
+        if (t) {
+            if (t->type > DAV1D_TASK_TYPE_INIT_CDF && t->recon_progress &&
+                t->type != DAV1D_TASK_TYPE_TILE_ENTROPY &&
+                t->type != DAV1D_TASK_TYPE_TILE_RECONSTRUCTION &&
+                t->sby + 1 < f->sbh)
+            {
+                // add sby+1 to list to replace this one
+                const int p = t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS;
+                Dav1dTask *next_t = &t[1];
+                *next_t = *t;
+                next_t->sby++;
+                const int ntr = f->frame_thread.next_tile_row[p] + 1;
+                const int start = f->frame_hdr->tiling.row_start_sb[ntr];
+                if (next_t->sby == start)
+                    f->frame_thread.next_tile_row[p] = ntr;
+                next_t->recon_progress = next_t->sby + 1;
+                insert_task(f, next_t, 0);
             }
-            ttd->cur++;
+            goto found;
         }
         if (reset_task_cur(c, ttd, UINT_MAX)) continue;
         if (merge_pending(c)) continue;
