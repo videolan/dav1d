@@ -102,6 +102,16 @@ if host_machine.system() in ['linux', 'gnu', 'emscripten']
     add_project_arguments('-D_GNU_SOURCE', language: 'c')
 endif
 
+if cc.get_id() == 'msvc'
+    # MSVC requires C11 for stdatomic.h, and currently also an experimental flag
+    msvc_c11_args = get_option('c_std') == 'c99' ? ['/std:c11'] : []
+    if cc.has_multi_arguments(msvc_c11_args + ['/experimental:c11atomics'])
+        msvc_c11_args += '/experimental:c11atomics'
+    endif
+    test_args += msvc_c11_args
+    add_project_arguments(msvc_c11_args, language: 'c')
+endif
+
 have_clock_gettime = false
 have_sigaction = false
 have_posix_memalign = false
@@ -204,14 +214,9 @@ libm_dependency = cc.find_library('m', required: false)
 # Header checks
 
 stdatomic_dependencies = []
-if not cc.check_header('stdatomic.h')
-    if cc.get_id() == 'msvc'
-        # we have a custom replacement for MSVC
-        stdatomic_dependencies += declare_dependency(
-            include_directories : include_directories('include/compat/msvc'),
-        )
-    elif cc.compiles('''int main() { int v = 0; return __atomic_fetch_add(&v, 1, __ATOMIC_SEQ_CST); }''',
-                     name : 'GCC-style atomics', args : test_args)
+if not cc.check_header('stdatomic.h', args : test_args)
+    if cc.compiles('''int main() { int v = 0; return __atomic_fetch_add(&v, 1, __ATOMIC_SEQ_CST); }''',
+                   name : 'GCC-style atomics', args : test_args)
         stdatomic_dependencies += declare_dependency(
             include_directories : include_directories('include/compat/gcc'),
         )
