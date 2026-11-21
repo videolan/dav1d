@@ -101,7 +101,7 @@ static void insert_tasks_between(Dav1dFrameContext *const f,
                                  const int cond_signal)
 {
     struct TaskThreadData *const ttd = f->task_thread.ttd;
-    if (atomic_load(f->c->flush)) return;
+    if (atomic_load_explicit(f->c->flush, memory_order_relaxed)) return;
     assert(!a || a->next == b);
     if (!a) f->task_thread.task_head = first;
     else a->next = first;
@@ -705,7 +705,7 @@ void *dav1d_worker_task(void *data) {
     pthread_mutex_lock(&ttd->lock);
     for (;;) {
         if (tc->task_thread.die) break;
-        if (atomic_load(c->flush)) goto park;
+        if (atomic_load_explicit(c->flush, memory_order_relaxed)) goto park;
 
         merge_pending(c);
         if (ttd->delayed_fg.exec) { // run delayed film grain first
@@ -768,7 +768,7 @@ void *dav1d_worker_task(void *data) {
         // task, not waking anyone can't cause tasks to get stuck in the queue.
         unlock_and_signal(c, ttd);
     found_unlocked:;
-        if (atomic_load(c->flush))
+        if (atomic_load_explicit(c->flush, memory_order_relaxed))
             atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
         int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
 

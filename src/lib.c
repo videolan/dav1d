@@ -544,7 +544,7 @@ void dav1d_flush(Dav1dContext *const c) {
     dav1d_data_props_unref_internal(&c->cached_error_props);
 
     if (c->n_fc == 1 && c->n_tc == 1) return;
-    atomic_store(c->flush, 1);
+    atomic_store_explicit(c->flush, 1, memory_order_relaxed);
 
     if (c->n_tc > 1) {
         pthread_mutex_lock(&c->task_thread.lock);
@@ -583,7 +583,7 @@ void dav1d_flush(Dav1dContext *const c) {
         }
         c->frame_thread.next = 0;
     }
-    atomic_store(c->flush, 0);
+    atomic_store_explicit(c->flush, 0, memory_order_relaxed);
 }
 
 COLD void dav1d_close(Dav1dContext **const c_out) {

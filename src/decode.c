@@ -2667,7 +2667,7 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
              t->a = f->a + off_2pass + col_sb128_start + tile_row * f->sb128w;
              t->bx < ts->tiling.col_end; t->bx += sb_step)
         {
-            if (atomic_load_explicit(c->flush, memory_order_acquire))
+            if (atomic_load_explicit(c->flush, memory_order_relaxed))
                 return 1;
             if (decode_sb(t, root_bl, dav1d_intra_edge_tree[root_bl]))
                 return 1;
@@ -2689,7 +2689,7 @@ int dav1d_decode_tile_sbrow(Dav1dTaskContext *const t) {
          t->lf_mask = f->lf.mask + sb128y * f->sb128w + col_sb128_start;
          t->bx < ts->tiling.col_end; t->bx += sb_step)
     {
-        if (atomic_load_explicit(c->flush, memory_order_acquire))
+        if (atomic_load_explicit(c->flush, memory_order_relaxed))
             return 1;
         if (root_bl == BL_128X128) {
             t->cur_sb_cdef_idx_ptr = t->lf_mask->cdef_idx;
