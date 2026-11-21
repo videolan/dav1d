@@ -274,14 +274,9 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
         t->c = c;
         memset(t->cf_16bpc, 0, sizeof(t->cf_16bpc));
         if (c->n_tc > 1) {
-            if (pthread_mutex_init(&t->task_thread.td.lock, NULL)) goto error;
-            if (pthread_cond_init(&t->task_thread.td.cond, NULL)) {
-                pthread_mutex_destroy(&t->task_thread.td.lock);
-                goto error;
-            }
+            if (pthread_cond_init(&t->task_thread.td.cond, NULL)) goto error;
             if (pthread_create(&t->task_thread.td.thread, &thread_attr, dav1d_worker_task, t)) {
                 pthread_cond_destroy(&t->task_thread.td.cond);
-                pthread_mutex_destroy(&t->task_thread.td.lock);
                 goto error;
             }
             t->task_thread.td.inited = 1;
@@ -627,7 +622,6 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
                 if (!pf->task_thread.td.inited) break;
                 pthread_join(pf->task_thread.td.thread, NULL);
                 pthread_cond_destroy(&pf->task_thread.td.cond);
-                pthread_mutex_destroy(&pf->task_thread.td.lock);
             }
             pthread_cond_destroy(&ttd->delayed_fg.cond);
             pthread_cond_destroy(&ttd->cond);
