@@ -230,7 +230,7 @@ static int create_filter_sbrow(Dav1dFrameContext *const f,
     tasks += f->sbh * (pass & 1);
 
     if (pass & 1) {
-        f->frame_thread.entropy_progress = 0;
+        atomic_store_explicit(&f->frame_thread.entropy_progress, 0, memory_order_relaxed);
     } else {
         const int prog_sz = ((f->sbh + 31) & ~31) >> 5;
         if (prog_sz > f->frame_thread.prog_sz) {
@@ -422,7 +422,8 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
                 if (max == INT_MIN) continue;
                 lowest = iclip(max, 1, f->refp[n].p.p.h);
             }
-            const unsigned p3 = atomic_load(&f->refp[n].progress[!tp]);
+            const unsigned p3 = atomic_load_explicit(&f->refp[n].progress[!tp],
+                                                     memory_order_acquire);
             if (p3 < lowest) return 1;
             if (p3 == FRAME_ERROR)
                 atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
@@ -434,14 +435,15 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
 static inline int get_frame_progress(const Dav1dContext *const c,
                                      const Dav1dFrameContext *const f)
 {
-    unsigned frame_prog = c->n_fc > 1 ? atomic_load(&f->sr_cur.progress[1]) : 0;
+    unsigned frame_prog = c->n_fc > 1 ?
+        atomic_load_explicit(&f->sr_cur.progress[1], memory_order_relaxed) : 0;
     if (frame_prog >= FRAME_ERROR)
         return f->sbh - 1;
     int idx = frame_prog >> (f->sb_shift + 7);
     int prog;
     do {
         atomic_uint *state = &f->frame_thread.frame_progress[idx];
-        const unsigned val = ~atomic_load(state);
+        const unsigned val = ~atomic_load_explicit(state, memory_order_acquire);
         prog = val ? ctz(val) : 32;
         if (prog != 32) break;
         prog = 0;
@@ -497,7 +499,7 @@ static inline int task_ready(const Dav1dContext *const c,
                                   f->frame_thread.next_tile_row[p];
         if (p) {
             atomic_int *const prog = &f->frame_thread.entropy_progress;
-            const int p1 = atomic_load(prog);
+            const int p1 = atomic_load_explicit(prog, memory_order_acquire);
             if (p1 < t->sby) return 0;
             if (p1 == TILE_ERROR)
                 atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
@@ -610,8 +612,8 @@ static inline void abort_frame(Dav1dFrameContext *const f, const int error) {
     f->task_thread.task_counter = 0;
     f->task_thread.done[0] = 1;
     f->task_thread.done[1] = 1;
-    atomic_store(&f->sr_cur.progress[0], FRAME_ERROR);
-    atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
+    atomic_store_explicit(&f->sr_cur.progress[0], FRAME_ERROR, memory_order_relaxed);
+    atomic_store_explicit(&f->sr_cur.progress[1], FRAME_ERROR, memory_order_relaxed);
     finish_frame(f, error);
 }
 
@@ -930,9 +932,10 @@ void *dav1d_worker_task(void *data) {
             error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
             const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
             assert(c->n_fc > 1);
-            atomic_store(&f->sr_cur.progress[0], error ? FRAME_ERROR : y);
-            atomic_store(&f->frame_thread.entropy_progress,
-                         error ? TILE_ERROR : sby + 1);
+            atomic_store_explicit(&f->sr_cur.progress[0], error ? FRAME_ERROR : y,
+                                  memory_order_release);
+            atomic_store_explicit(&f->frame_thread.entropy_progress,
+                                  error ? TILE_ERROR : sby + 1, memory_order_release);
             pthread_mutex_lock(&ttd->lock);
             if (sby + 1 == sbh)
                 f->task_thread.done[1] = 1;
@@ -941,14 +944,15 @@ void *dav1d_worker_task(void *data) {
             continue;
         }
     // t->type != DAV1D_TASK_TYPE_ENTROPY_PROGRESS
-        atomic_fetch_or(&f->frame_thread.frame_progress[sby >> 5],
-                        1U << (sby & 31));
+        atomic_fetch_or_explicit(&f->frame_thread.frame_progress[sby >> 5],
+                                 1U << (sby & 31), memory_order_release);
         pthread_mutex_lock(&ttd->lock);
         sby = get_frame_progress(c, f);
         error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
         const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
         if (c->n_fc > 1)
-            atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);
+            atomic_store_explicit(&f->sr_cur.progress[1], error ? FRAME_ERROR : y,
+                                  memory_order_relaxed);
         if (sby + 1 == sbh)
             f->task_thread.done[0] = 1;
         complete_task(f);

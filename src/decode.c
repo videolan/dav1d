@@ -3298,11 +3298,11 @@ void dav1d_decode_frame_exit(Dav1dFrameContext *const f, int retval) {
     for (int i = 0; i < 7; i++) {
         if (f->refp[i].p.frame_hdr) {
             if (!retval && c->n_fc > 1 && c->strict_std_compliance &&
-                atomic_load(&f->refp[i].progress[1]) == FRAME_ERROR)
+                atomic_load_explicit(&f->refp[i].progress[1], memory_order_relaxed) == FRAME_ERROR)
             {
                 retval = DAV1D_ERR(EINVAL);
                 atomic_store_explicit(&f->task_thread.error, 1, memory_order_relaxed);
-                atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
+                atomic_store_explicit(&f->sr_cur.progress[1], FRAME_ERROR, memory_order_relaxed);
             }
             dav1d_thread_picture_unref(&f->refp[i]);
         }
