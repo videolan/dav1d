@@ -386,13 +386,13 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
     const int tp = t->type == DAV1D_TASK_TYPE_TILE_ENTROPY;
     const int tile_idx = (int)(t - f->task_thread.tile_tasks[tp]);
     Dav1dTileState *const ts = &f->ts[tile_idx];
-    const int p1 = atomic_load(&ts->progress[tp]);
+    const int p1 = atomic_load_explicit(&ts->progress[tp], memory_order_relaxed);
     if (p1 < t->sby) return 1;
     if (p1 == TILE_ERROR)
         atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
     int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
     if (!error && frame_mt && !tp) {
-        const int p2 = atomic_load(&ts->progress[1]);
+        const int p2 = atomic_load_explicit(&ts->progress[1], memory_order_acquire);
         if (p2 <= t->sby) return 1;
         if (p2 == TILE_ERROR)
             atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
@@ -504,7 +504,7 @@ static inline int task_ready(const Dav1dContext *const c,
         }
         for (int tc = 0; tc < f->frame_hdr->tiling.cols; tc++) {
             Dav1dTileState *const ts = &f->ts[tile_row_base + tc];
-            const int p2 = atomic_load(&ts->progress[p]);
+            const int p2 = atomic_load_explicit(&ts->progress[p], memory_order_acquire);
             if (p2 < t->recon_progress) return 0;
             if (p2 == TILE_ERROR)
                 atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
@@ -832,7 +832,7 @@ void *dav1d_worker_task(void *data) {
             if (((sby + 1) << f->sb_shift) < ts->tiling.row_end) {
                 t->sby++;
                 t->deps_skip = 0;
-                atomic_store(&ts->progress[p], progress);
+                atomic_store_explicit(&ts->progress[p], progress, memory_order_release);
                 if (p && !check_tile(t, f, uses_2pass)) {
                     reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
                     signal_if_ready(c, ttd);
@@ -854,7 +854,7 @@ void *dav1d_worker_task(void *data) {
                                               memory_order_release);
                 }
                 pthread_mutex_lock(&ttd->lock);
-                atomic_store(&ts->progress[p], progress);
+                atomic_store_explicit(&ts->progress[p], progress, memory_order_relaxed);
                 reset_task_cur(c, ttd, t->frame_idx);
                 complete_task(f);
                 assert(f->task_thread.task_counter >= 0);
