@@ -868,14 +868,12 @@ void *dav1d_worker_task(void *data) {
     // t->type != DAV1D_TASK_TYPE_ENTROPY_PROGRESS
         atomic_fetch_or(&f->frame_thread.frame_progress[sby >> 5],
                         1U << (sby & 31));
-        pthread_mutex_lock(&f->task_thread.lock);
+        pthread_mutex_lock(&ttd->lock);
         sby = get_frame_progress(c, f);
         error = atomic_load(&f->task_thread.error);
         const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
         if (c->n_fc > 1)
             atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);
-        pthread_mutex_unlock(&f->task_thread.lock);
-        pthread_mutex_lock(&ttd->lock);
         if (sby + 1 == sbh)
             f->task_thread.done[0] = 1;
         const int num_tasks = --f->task_thread.task_counter;

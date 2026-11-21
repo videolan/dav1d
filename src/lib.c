@@ -251,14 +251,9 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     for (unsigned n = 0; n < c->n_fc; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
         if (c->n_tc > 1) {
-            if (pthread_mutex_init(&f->task_thread.lock, NULL)) goto error;
-            if (pthread_cond_init(&f->task_thread.cond, NULL)) {
-                pthread_mutex_destroy(&f->task_thread.lock);
-                goto error;
-            }
+            if (pthread_cond_init(&f->task_thread.cond, NULL)) goto error;
             if (pthread_mutex_init(&f->task_thread.pending_tasks.lock, NULL)) {
                 pthread_cond_destroy(&f->task_thread.cond);
-                pthread_mutex_destroy(&f->task_thread.lock);
                 goto error;
             }
         }
@@ -646,7 +641,6 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         if (c->n_tc > 1) {
             pthread_mutex_destroy(&f->task_thread.pending_tasks.lock);
             pthread_cond_destroy(&f->task_thread.cond);
-            pthread_mutex_destroy(&f->task_thread.lock);
         }
         dav1d_free(f->frame_thread.frame_progress);
         dav1d_free(f->task_thread.tasks);

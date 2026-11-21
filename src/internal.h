@@ -321,7 +321,6 @@ struct Dav1dFrameContext {
     } lf;
 
     struct {
-        pthread_mutex_t lock;
         pthread_cond_t cond;
         struct TaskThreadData *ttd;
         struct Dav1dTask *tasks, *tile_tasks[2], init_task;
