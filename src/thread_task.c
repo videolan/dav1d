@@ -564,6 +564,15 @@ static int has_ready_task(const Dav1dContext *const c,
     return !!find_task(c, ttd, &f, &prev_t);
 }
 
+static void unlock_and_signal(const Dav1dContext *const c,
+                              struct TaskThreadData *const ttd)
+{
+    const int signal = !atomic_load(&ttd->cond_signaled) && has_ready_task(c, ttd);
+    if (signal) atomic_store(&ttd->cond_signaled, 1);
+    pthread_mutex_unlock(&ttd->lock);
+    if (signal) pthread_cond_signal(&ttd->cond);
+}
+
 static inline void finish_frame(Dav1dFrameContext *const f, const int res) {
     dav1d_decode_frame_exit(f, res);
     f->n_tile_data = 0;
@@ -603,9 +612,7 @@ static inline void delayed_fg_task(const Dav1dContext *const c,
     switch (ttd->delayed_fg.type) {
     case DAV1D_TASK_TYPE_FG_PREP:
         ttd->delayed_fg.exec = 0;
-        if (atomic_load(&ttd->cond_signaled))
-            pthread_cond_signal(&ttd->cond);
-        pthread_mutex_unlock(&ttd->lock);
+        unlock_and_signal(c, ttd);
         switch (out->p.bpc) {
 #if CONFIG_8BPC
         case 8:
@@ -727,6 +734,7 @@ void *dav1d_worker_task(void *data) {
         // we want to be woken up next time progress is signaled
         atomic_store(&ttd->cond_signaled, 0);
         pthread_cond_wait(&ttd->cond, &ttd->lock);
+        atomic_store(&ttd->cond_signaled, 0);
         tc->task_thread.flushed = 0;
         reset_task_cur(c, ttd, UINT_MAX);
         continue;
@@ -739,16 +747,13 @@ void *dav1d_worker_task(void *data) {
         if (t->type > DAV1D_TASK_TYPE_INIT_CDF && !f->task_thread.task_head)
             ttd->cur++;
         t->next = NULL;
-        // Only wake up another thread if there's more work available, since
-        // waking up threads only for them to go straight back to sleep is
-        // expensive and causes a lot of lock contention. If there isn't, clear
-        // cond_signaled so that the next thread signaling progress wakes one.
-        // Since we always come back here after executing the task, not waking
-        // anyone can't cause tasks to get stuck in the queue.
-        const int signal = has_ready_task(c, ttd);
-        atomic_store(&ttd->cond_signaled, signal);
-        pthread_mutex_unlock(&ttd->lock);
-        if (signal) pthread_cond_signal(&ttd->cond);
+        // Only wake up another thread if there's more work available and no
+        // other thread is already in the process of being woken up (it will
+        // in turn wake up the next one if needed). Waking up threads only for
+        // them to go straight back to sleep is expensive and causes a lot of
+        // lock contention. Since we always come back here after executing the
+        // task, not waking anyone can't cause tasks to get stuck in the queue.
+        unlock_and_signal(c, ttd);
     found_unlocked:;
         if (atomic_load(c->flush)) atomic_fetch_or(&f->task_thread.error, 1);
         int error = atomic_load(&f->task_thread.error);
