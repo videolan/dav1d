@@ -320,7 +320,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
     f->task_thread.done[pass & 1] = 0;
 
     if (!(pass & 1)) {
-        atomic_store(&f->task_thread.init_done, 1);
+        atomic_store_explicit(&f->task_thread.init_done, 1, memory_order_relaxed);
         add_pending(f, f->task_thread.tile_tasks[pass == 2], prev_t);
     }
     return 0;
@@ -329,7 +329,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
 void dav1d_task_frame_init(Dav1dFrameContext *const f) {
     const Dav1dContext *const c = f->c;
 
-    atomic_store(&f->task_thread.init_done, 0);
+    atomic_store_explicit(&f->task_thread.init_done, 0, memory_order_relaxed);
     f->task_thread.task_cur_prev = NULL;
     // schedule init task, which will schedule the remaining tasks
     Dav1dTask *const t = &f->task_thread.init_task;
@@ -455,7 +455,7 @@ static inline Dav1dTask *find_init_task(const Dav1dContext *const c,
     const unsigned first = atomic_load(&ttd->first);
     for (unsigned i = 0; i < c->n_fc; i++) {
         Dav1dFrameContext *const f = &c->fc[(first + i) % c->n_fc];
-        if (atomic_load(&f->task_thread.init_done)) continue;
+        if (atomic_load_explicit(&f->task_thread.init_done, memory_order_relaxed)) continue;
         Dav1dTask *const t = f->task_thread.task_head;
         if (!t) continue;
         if (t->type == DAV1D_TASK_TYPE_INIT) {
@@ -804,7 +804,7 @@ void *dav1d_worker_task(void *data) {
             if (res) {
                 abort_frame(f, res);
                 reset_task_cur(c, ttd, t->frame_idx);
-                atomic_store(&f->task_thread.init_done, 1);
+                atomic_store_explicit(&f->task_thread.init_done, 1, memory_order_relaxed);
             }
             continue;
         }
