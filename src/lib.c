@@ -564,7 +564,7 @@ void dav1d_flush(Dav1dContext *const c) {
         atomic_init(&c->task_thread.first, 0);
         c->task_thread.cur = c->n_fc;
         atomic_store(&c->task_thread.reset_task_cur, UINT_MAX);
-        atomic_store(&c->task_thread.cond_signaled, 0);
+        atomic_store_explicit(&c->task_thread.cond_signaled, 0, memory_order_relaxed);
         pthread_mutex_unlock(&c->task_thread.lock);
     }
 

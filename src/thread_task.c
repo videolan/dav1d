@@ -108,7 +108,7 @@ static void insert_tasks_between(Dav1dFrameContext *const f,
     if (!b) f->task_thread.task_tail = last;
     last->next = b;
     reset_task_cur(f->c, ttd, first->frame_idx);
-    if (cond_signal && !atomic_fetch_or(&ttd->cond_signaled, 1))
+    if (cond_signal && !atomic_fetch_or_explicit(&ttd->cond_signaled, 1, memory_order_relaxed))
         pthread_cond_signal(&ttd->cond);
 }
 
@@ -566,8 +566,9 @@ static int has_ready_task(const Dav1dContext *const c,
 static void unlock_and_signal(const Dav1dContext *const c,
                               struct TaskThreadData *const ttd)
 {
-    const int signal = !atomic_load(&ttd->cond_signaled) && has_ready_task(c, ttd);
-    if (signal) atomic_store(&ttd->cond_signaled, 1);
+    const int signal = !atomic_load_explicit(&ttd->cond_signaled, memory_order_relaxed) &&
+                       has_ready_task(c, ttd);
+    if (signal) atomic_store_explicit(&ttd->cond_signaled, 1, memory_order_relaxed);
     pthread_mutex_unlock(&ttd->lock);
     if (signal) pthread_cond_signal(&ttd->cond);
 }
@@ -578,10 +579,10 @@ static void unlock_and_signal(const Dav1dContext *const c,
 static void signal_if_ready(const Dav1dContext *const c,
                             struct TaskThreadData *const ttd)
 {
-    if (atomic_load(&ttd->cond_signaled)) return;
+    if (atomic_load_explicit(&ttd->cond_signaled, memory_order_relaxed)) return;
     if (!pthread_mutex_trylock(&ttd->lock))
         unlock_and_signal(c, ttd);
-    else if (!atomic_fetch_or(&ttd->cond_signaled, 1))
+    else if (!atomic_fetch_or_explicit(&ttd->cond_signaled, 1, memory_order_relaxed))
         pthread_cond_signal(&ttd->cond);
 }
 
@@ -745,9 +746,9 @@ void *dav1d_worker_task(void *data) {
         tc->task_thread.flushed = 1;
         pthread_cond_signal(&tc->task_thread.td.cond);
         // we want to be woken up next time progress is signaled
-        atomic_store(&ttd->cond_signaled, 0);
+        atomic_store_explicit(&ttd->cond_signaled, 0, memory_order_relaxed);
         pthread_cond_wait(&ttd->cond, &ttd->lock);
-        atomic_store(&ttd->cond_signaled, 0);
+        atomic_store_explicit(&ttd->cond_signaled, 0, memory_order_relaxed);
         tc->task_thread.flushed = 0;
         reset_task_cur(c, ttd, UINT_MAX);
         continue;
