@@ -29,22 +29,33 @@
 
 #if !defined(__cplusplus)
 
+#include <stdint.h>
+
 typedef int atomic_int;
 typedef unsigned int atomic_uint;
+typedef uintptr_t atomic_uintptr_t;
 
 #define memory_order_relaxed __ATOMIC_RELAXED
 #define memory_order_acquire __ATOMIC_ACQUIRE
+#define memory_order_release __ATOMIC_RELEASE
+#define memory_order_acq_rel __ATOMIC_ACQ_REL
 
 #define atomic_init(p_a, v)           do { *(p_a) = (v); } while(0)
 #define atomic_store(p_a, v)          __atomic_store_n(p_a, v, __ATOMIC_SEQ_CST)
+#define atomic_store_explicit(p_a, v, mo) __atomic_store_n(p_a, v, mo)
 #define atomic_load(p_a)              __atomic_load_n(p_a, __ATOMIC_SEQ_CST)
 #define atomic_load_explicit(p_a, mo) __atomic_load_n(p_a, mo)
 #define atomic_fetch_add(p_a, inc)    __atomic_fetch_add(p_a, inc, __ATOMIC_SEQ_CST)
 #define atomic_fetch_add_explicit(p_a, inc, mo) __atomic_fetch_add(p_a, inc, mo)
 #define atomic_fetch_sub(p_a, dec)    __atomic_fetch_sub(p_a, dec, __ATOMIC_SEQ_CST)
+#define atomic_fetch_sub_explicit(p_a, dec, mo) __atomic_fetch_sub(p_a, dec, mo)
 #define atomic_exchange(p_a, v)       __atomic_exchange_n(p_a, v, __ATOMIC_SEQ_CST)
+#define atomic_exchange_explicit(p_a, v, mo) __atomic_exchange_n(p_a, v, mo)
 #define atomic_fetch_or(p_a, v)       __atomic_fetch_or(p_a, v, __ATOMIC_SEQ_CST)
+#define atomic_fetch_or_explicit(p_a, v, mo) __atomic_fetch_or(p_a, v, mo)
 #define atomic_compare_exchange_strong(p_a, expected, desired) __atomic_compare_exchange_n(p_a, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#define atomic_compare_exchange_strong_explicit(p_a, expected, desired, mo_s, mo_f) __atomic_compare_exchange_n(p_a, expected, desired, 0, mo_s, mo_f)
+#define atomic_compare_exchange_weak_explicit(p_a, expected, desired, mo_s, mo_f) __atomic_compare_exchange_n(p_a, expected, desired, 1, mo_s, mo_f)
 
 #endif /* !defined(__cplusplus) */
 
