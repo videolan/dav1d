@@ -758,20 +758,20 @@ void *dav1d_worker_task(void *data) {
                 add_pending(f, t);
                 pthread_mutex_lock(&ttd->lock);
             } else {
-                pthread_mutex_lock(&ttd->lock);
-                atomic_store(&ts->progress[p], progress);
-                reset_task_cur(c, ttd, t->frame_idx);
-                error = atomic_load(&f->task_thread.error);
                 if (f->frame_hdr->refresh_context &&
                     tc->frame_thread.pass <= 1 &&
                     f->frame_hdr->tiling.update == tile_idx)
                 {
+                    error = atomic_load(&f->task_thread.error);
                     if (!error)
                         dav1d_cdf_thread_update(f->frame_hdr, f->out_cdf.data.cdf,
                                                 &f->ts[f->frame_hdr->tiling.update].cdf);
                     if (c->n_fc > 1)
                         atomic_store(f->out_cdf.progress, error ? TILE_ERROR : 1);
                 }
+                pthread_mutex_lock(&ttd->lock);
+                atomic_store(&ts->progress[p], progress);
+                reset_task_cur(c, ttd, t->frame_idx);
                 if (atomic_fetch_sub(&f->task_thread.task_counter, 1) - 1 == 0 &&
                     atomic_load(&f->task_thread.done[0]) &&
                     (!uses_2pass || atomic_load(&f->task_thread.done[1])))
