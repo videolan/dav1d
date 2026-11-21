@@ -243,7 +243,7 @@ static int create_filter_sbrow(Dav1dFrameContext *const f,
         f->frame_thread.prog_sz = prog_sz;
         memset(f->frame_thread.frame_progress, 0, prog_sz * sizeof(atomic_uint));
         memset(f->frame_thread.copy_lpf_progress, 0, prog_sz * sizeof(atomic_uint));
-        atomic_store(&f->frame_thread.deblock_progress, 0);
+        atomic_store_explicit(&f->frame_thread.deblock_progress, 0, memory_order_relaxed);
     }
     f->frame_thread.next_tile_row[pass & 1] = 0;
 
@@ -368,7 +368,7 @@ static inline int ensure_progress(struct TaskThreadData *const ttd,
 {
     // deblock_rows (non-LR portion) depends on deblock of previous sbrow,
     // so ensure that completed. if not, re-add to task-queue; else, fall-through
-    int p1 = atomic_load(state);
+    int p1 = atomic_load_explicit(state, memory_order_acquire);
     if (p1 < t->sby) {
         t->type = type;
         t->recon_progress = t->deblock_progress = 0;
@@ -515,11 +515,11 @@ static inline int task_ready(const Dav1dContext *const c,
     }
     if (t->type == DAV1D_TASK_TYPE_CDEF) {
         atomic_uint *prog = f->frame_thread.copy_lpf_progress;
-        const int p1 = atomic_load(&prog[(t->sby - 1) >> 5]);
+        const int p1 = atomic_load_explicit(&prog[(t->sby - 1) >> 5], memory_order_acquire);
         return !!(p1 & (1U << ((t->sby - 1) & 31)));
     }
     assert(t->deblock_progress);
-    const int p1 = atomic_load(&f->frame_thread.deblock_progress);
+    const int p1 = atomic_load_explicit(&f->frame_thread.deblock_progress, memory_order_acquire);
     if (p1 >= t->deblock_progress) {
         if (p1 == TILE_ERROR)
             atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
@@ -878,17 +878,19 @@ void *dav1d_worker_task(void *data) {
                 f->frame_hdr->loopfilter.level_y[1])
             {
                 error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
-                atomic_store(&f->frame_thread.deblock_progress,
-                             error ? TILE_ERROR : sby + 1);
+                atomic_store_explicit(&f->frame_thread.deblock_progress,
+                                      error ? TILE_ERROR : sby + 1, memory_order_release);
                 reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
                 signal_if_ready(c, ttd);
             } else if (f->seq_hdr->cdef || f->lf.restore_planes) {
-                atomic_fetch_or(&f->frame_thread.copy_lpf_progress[sby >> 5],
-                                1U << (sby & 31));
+                atomic_fetch_or_explicit(&f->frame_thread.copy_lpf_progress[sby >> 5],
+                                         1U << (sby & 31), memory_order_release);
                 // CDEF needs the top buffer to be saved by lr_copy_lpf of the
                 // previous sbrow
                 if (sby) {
-                    int prog = atomic_load(&f->frame_thread.copy_lpf_progress[(sby - 1) >> 5]);
+                    int prog =
+                        atomic_load_explicit(&f->frame_thread.copy_lpf_progress[(sby - 1) >> 5],
+                                             memory_order_acquire);
                     if (~prog & (1U << ((sby - 1) & 31))) {
                         t->type = DAV1D_TASK_TYPE_CDEF;
                         t->recon_progress = t->deblock_progress = 0;
