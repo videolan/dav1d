@@ -349,7 +349,9 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
                               &f->task_thread.ttd->lock);
         Dav1dThreadPicture *const out_delayed =
             &c->frame_thread.out_delayed[next];
-        if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
+        if (out_delayed->p.data[0] ||
+            atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
+        {
             unsigned first = atomic_load(&c->task_thread.first);
             if (first + 1U < c->n_fc)
                 atomic_fetch_add(&c->task_thread.first, 1U);
@@ -573,7 +575,7 @@ void dav1d_flush(Dav1dContext *const c) {
             dav1d_decode_frame_exit(f, -1);
             f->n_tile_data = 0;
             f->task_thread.retval = 0;
-            f->task_thread.error = 0;
+            atomic_store_explicit(&f->task_thread.error, 0, memory_order_relaxed);
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
             if (out_delayed->p.frame_hdr) {
                 dav1d_thread_picture_unref(out_delayed);

@@ -1596,7 +1596,9 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
                                       &f->task_thread.ttd->lock);
                 Dav1dThreadPicture *const out_delayed =
                     &c->frame_thread.out_delayed[next];
-                if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
+                if (out_delayed->p.data[0] ||
+                    atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
+                {
                     unsigned first = atomic_load(&c->task_thread.first);
                     if (first + 1U < c->n_fc)
                         atomic_fetch_add(&c->task_thread.first, 1U);

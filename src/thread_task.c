@@ -386,13 +386,15 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
     Dav1dTileState *const ts = &f->ts[tile_idx];
     const int p1 = atomic_load(&ts->progress[tp]);
     if (p1 < t->sby) return 1;
-    if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-    int error = atomic_load(&f->task_thread.error);
+    if (p1 == TILE_ERROR)
+        atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
+    int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
     if (!error && frame_mt && !tp) {
         const int p2 = atomic_load(&ts->progress[1]);
         if (p2 <= t->sby) return 1;
-        if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
-        error = atomic_load(&f->task_thread.error);
+        if (p2 == TILE_ERROR)
+            atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
+        error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
     }
     if (!error && frame_mt && !IS_KEY_OR_INTRA(f->frame_hdr)) {
         // check reference state
@@ -420,7 +422,8 @@ static inline int check_tile(Dav1dTask *const t, Dav1dFrameContext *const f,
             }
             const unsigned p3 = atomic_load(&f->refp[n].progress[!tp]);
             if (p3 < lowest) return 1;
-            if (p3 == FRAME_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+            if (p3 == FRAME_ERROR)
+                atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
         }
     }
     return 0;
@@ -463,7 +466,8 @@ static inline Dav1dTask *find_init_task(const Dav1dContext *const c,
         const int p1 = f->in_cdf.progress ?
             atomic_load(f->in_cdf.progress) : 1;
         if (p1) {
-            if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+            if (p1 == TILE_ERROR)
+                atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
             *res_f = f;
             return t;
         }
@@ -485,7 +489,7 @@ static inline int task_ready(const Dav1dContext *const c,
     }
     if (t->recon_progress) {
         const int p = t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS;
-        int error = atomic_load(&f->task_thread.error);
+        int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
         assert(!f->task_thread.done[p] || error);
         const int tile_row_base = f->frame_hdr->tiling.cols *
                                   f->frame_thread.next_tile_row[p];
@@ -493,13 +497,15 @@ static inline int task_ready(const Dav1dContext *const c,
             atomic_int *const prog = &f->frame_thread.entropy_progress;
             const int p1 = atomic_load(prog);
             if (p1 < t->sby) return 0;
-            if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+            if (p1 == TILE_ERROR)
+                atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
         }
         for (int tc = 0; tc < f->frame_hdr->tiling.cols; tc++) {
             Dav1dTileState *const ts = &f->ts[tile_row_base + tc];
             const int p2 = atomic_load(&ts->progress[p]);
             if (p2 < t->recon_progress) return 0;
-            if (p2 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+            if (p2 == TILE_ERROR)
+                atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
         }
         return 1;
     }
@@ -511,7 +517,8 @@ static inline int task_ready(const Dav1dContext *const c,
     assert(t->deblock_progress);
     const int p1 = atomic_load(&f->frame_thread.deblock_progress);
     if (p1 >= t->deblock_progress) {
-        if (p1 == TILE_ERROR) atomic_fetch_or(&f->task_thread.error, 1);
+        if (p1 == TILE_ERROR)
+            atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
         return 1;
     }
     return 0;
@@ -590,12 +597,13 @@ static inline void complete_task(Dav1dFrameContext *const f) {
     {
         return;
     }
-    const int error = atomic_load(&f->task_thread.error);
+    const int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
     finish_frame(f, error == 1 ? DAV1D_ERR(EINVAL) : error ? DAV1D_ERR(ENOMEM) : 0);
 }
 
 static inline void abort_frame(Dav1dFrameContext *const f, const int error) {
-    atomic_store(&f->task_thread.error, error == DAV1D_ERR(EINVAL) ? 1 : -1);
+    atomic_store_explicit(&f->task_thread.error, error == DAV1D_ERR(EINVAL) ? 1 : -1,
+                          memory_order_relaxed);
     f->task_thread.task_counter = 0;
     f->task_thread.done[0] = 1;
     f->task_thread.done[1] = 1;
@@ -760,8 +768,9 @@ void *dav1d_worker_task(void *data) {
         // task, not waking anyone can't cause tasks to get stuck in the queue.
         unlock_and_signal(c, ttd);
     found_unlocked:;
-        if (atomic_load(c->flush)) atomic_fetch_or(&f->task_thread.error, 1);
-        int error = atomic_load(&f->task_thread.error);
+        if (atomic_load(c->flush))
+            atomic_fetch_or_explicit(&f->task_thread.error, 1, memory_order_relaxed);
+        int error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
 
         // run it
         tc->f = f;
@@ -786,7 +795,7 @@ void *dav1d_worker_task(void *data) {
         case DAV1D_TASK_TYPE_INIT_CDF: {
             assert(c->n_fc > 1);
             int res = DAV1D_ERR(EINVAL);
-            if (!atomic_load(&f->task_thread.error))
+            if (!atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
                 res = dav1d_decode_frame_init_cdf(f);
             for (int p = 1; p <= 2 && !res; p++)
                 res = dav1d_task_create_tile_sbrow(f, p, 0);
@@ -813,7 +822,8 @@ void *dav1d_worker_task(void *data) {
             const int progress = error ? TILE_ERROR : 1 + sby;
 
             // signal progress
-            if (error) atomic_fetch_or(&f->task_thread.error, error);
+            if (error)
+                atomic_fetch_or_explicit(&f->task_thread.error, error, memory_order_relaxed);
             if (((sby + 1) << f->sb_shift) < ts->tiling.row_end) {
                 t->sby++;
                 t->deps_skip = 0;
@@ -830,7 +840,7 @@ void *dav1d_worker_task(void *data) {
                     tc->frame_thread.pass <= 1 &&
                     f->frame_hdr->tiling.update == tile_idx)
                 {
-                    error = atomic_load(&f->task_thread.error);
+                    error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
                     if (!error)
                         dav1d_cdf_thread_update(f->frame_hdr, f->out_cdf.data.cdf,
                                                 &f->ts[f->frame_hdr->tiling.update].cdf);
@@ -846,20 +856,20 @@ void *dav1d_worker_task(void *data) {
             continue;
         }
         case DAV1D_TASK_TYPE_DEBLOCK_COLS:
-            if (!atomic_load(&f->task_thread.error))
+            if (!atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
                 f->bd_fn.filter_sbrow_deblock_cols(f, sby);
             if (ensure_progress(ttd, f, t, DAV1D_TASK_TYPE_DEBLOCK_ROWS,
                                 &f->frame_thread.deblock_progress,
                                 &t->deblock_progress)) continue;
             // fall-through
         case DAV1D_TASK_TYPE_DEBLOCK_ROWS:
-            if (!atomic_load(&f->task_thread.error))
+            if (!atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
                 f->bd_fn.filter_sbrow_deblock_rows(f, sby);
             // signal deblock progress
             if (f->frame_hdr->loopfilter.level_y[0] ||
                 f->frame_hdr->loopfilter.level_y[1])
             {
-                error = atomic_load(&f->task_thread.error);
+                error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
                 atomic_store(&f->frame_thread.deblock_progress,
                              error ? TILE_ERROR : sby + 1);
                 reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
@@ -882,17 +892,23 @@ void *dav1d_worker_task(void *data) {
             }
             // fall-through
         case DAV1D_TASK_TYPE_CDEF:
-            if (f->seq_hdr->cdef && !atomic_load(&f->task_thread.error))
+            if (f->seq_hdr->cdef &&
+                !atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
+            {
                 f->bd_fn.filter_sbrow_cdef(tc, sby);
+            }
             // fall-through
         case DAV1D_TASK_TYPE_SUPER_RESOLUTION:
             if (f->frame_hdr->width[0] != f->frame_hdr->width[1])
-                if (!atomic_load(&f->task_thread.error))
+                if (!atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
                     f->bd_fn.filter_sbrow_resize(f, sby);
             // fall-through
         case DAV1D_TASK_TYPE_LOOP_RESTORATION:
-            if (!atomic_load(&f->task_thread.error) && f->lf.restore_planes)
+            if (!atomic_load_explicit(&f->task_thread.error, memory_order_relaxed) &&
+                f->lf.restore_planes)
+            {
                 f->bd_fn.filter_sbrow_lr(f, sby);
+            }
             // fall-through
         case DAV1D_TASK_TYPE_RECONSTRUCTION_PROGRESS:
             // dummy to cover for no post-filters
@@ -905,7 +921,7 @@ void *dav1d_worker_task(void *data) {
         const int sbh = f->sbh;
         const int sbsz = f->sb_step * 4;
         if (t->type == DAV1D_TASK_TYPE_ENTROPY_PROGRESS) {
-            error = atomic_load(&f->task_thread.error);
+            error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
             const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
             assert(c->n_fc > 1);
             atomic_store(&f->sr_cur.progress[0], error ? FRAME_ERROR : y);
@@ -923,7 +939,7 @@ void *dav1d_worker_task(void *data) {
                         1U << (sby & 31));
         pthread_mutex_lock(&ttd->lock);
         sby = get_frame_progress(c, f);
-        error = atomic_load(&f->task_thread.error);
+        error = atomic_load_explicit(&f->task_thread.error, memory_order_relaxed);
         const unsigned y = sby + 1 == sbh ? UINT_MAX : (unsigned)(sby + 1) * sbsz;
         if (c->n_fc > 1)
             atomic_store(&f->sr_cur.progress[1], error ? FRAME_ERROR : y);

@@ -3301,7 +3301,7 @@ void dav1d_decode_frame_exit(Dav1dFrameContext *const f, int retval) {
                 atomic_load(&f->refp[i].progress[1]) == FRAME_ERROR)
             {
                 retval = DAV1D_ERR(EINVAL);
-                atomic_store(&f->task_thread.error, 1);
+                atomic_store_explicit(&f->task_thread.error, 1, memory_order_relaxed);
                 atomic_store(&f->sr_cur.progress[1], FRAME_ERROR);
             }
             dav1d_thread_picture_unref(&f->refp[i]);
@@ -3387,7 +3387,9 @@ int dav1d_submit_frame(Dav1dContext *const c) {
             pthread_cond_wait(&f->task_thread.cond,
                               &c->task_thread.lock);
         out_delayed = &c->frame_thread.out_delayed[next];
-        if (out_delayed->p.data[0] || atomic_load(&f->task_thread.error)) {
+        if (out_delayed->p.data[0] ||
+            atomic_load_explicit(&f->task_thread.error, memory_order_relaxed))
+        {
             unsigned first = atomic_load(&c->task_thread.first);
             if (first + 1U < c->n_fc)
                 atomic_fetch_add(&c->task_thread.first, 1U);
