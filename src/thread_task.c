@@ -48,8 +48,9 @@ static inline int reset_task_cur(const Dav1dContext *const c,
                                  struct TaskThreadData *const ttd,
                                  unsigned frame_idx)
 {
-    const unsigned first = atomic_load(&ttd->first);
-    unsigned reset_frame_idx = atomic_exchange(&ttd->reset_task_cur, UINT_MAX);
+    const unsigned first = atomic_load_explicit(&ttd->first, memory_order_relaxed);
+    unsigned reset_frame_idx = atomic_exchange_explicit(&ttd->reset_task_cur, UINT_MAX,
+                                                        memory_order_acquire);
     if (reset_frame_idx < first) {
         if (frame_idx == UINT_MAX) return 0;
         reset_frame_idx = UINT_MAX;
@@ -82,16 +83,17 @@ cur_found:
 static inline void reset_task_cur_async(struct TaskThreadData *const ttd,
                                         unsigned frame_idx, unsigned n_frames)
 {
-    const unsigned first = atomic_load(&ttd->first);
+    const unsigned first = atomic_load_explicit(&ttd->first, memory_order_relaxed);
     if (frame_idx < first) frame_idx += n_frames;
     unsigned last_idx = frame_idx;
     do {
         frame_idx = last_idx;
-        last_idx = atomic_exchange(&ttd->reset_task_cur, frame_idx);
+        last_idx = atomic_exchange_explicit(&ttd->reset_task_cur, frame_idx, memory_order_release);
     } while (last_idx < frame_idx);
-    if (frame_idx == first && atomic_load(&ttd->first) != first) {
+    if (frame_idx == first && atomic_load_explicit(&ttd->first, memory_order_relaxed) != first) {
         unsigned expected = frame_idx;
-        atomic_compare_exchange_strong(&ttd->reset_task_cur, &expected, UINT_MAX);
+        atomic_compare_exchange_strong_explicit(&ttd->reset_task_cur, &expected, UINT_MAX,
+                                                memory_order_relaxed, memory_order_relaxed);
     }
 }
 
@@ -452,7 +454,7 @@ static inline Dav1dTask *find_init_task(const Dav1dContext *const c,
                                         struct TaskThreadData *const ttd,
                                         Dav1dFrameContext **const res_f)
 {
-    const unsigned first = atomic_load(&ttd->first);
+    const unsigned first = atomic_load_explicit(&ttd->first, memory_order_relaxed);
     for (unsigned i = 0; i < c->n_fc; i++) {
         Dav1dFrameContext *const f = &c->fc[(first + i) % c->n_fc];
         if (atomic_load_explicit(&f->task_thread.init_done, memory_order_relaxed)) continue;
@@ -531,7 +533,7 @@ static Dav1dTask *find_task(const Dav1dContext *const c,
                             Dav1dFrameContext **const res_f,
                             Dav1dTask **const res_prev_t)
 {
-    const unsigned first = atomic_load(&ttd->first);
+    const unsigned first = atomic_load_explicit(&ttd->first, memory_order_relaxed);
     while (ttd->cur < c->n_fc) {
         Dav1dFrameContext *const f = &c->fc[(first + ttd->cur) % c->n_fc];
         merge_pending_frame(f);
