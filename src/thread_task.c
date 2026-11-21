@@ -748,14 +748,13 @@ void *dav1d_worker_task(void *data) {
             if (((sby + 1) << f->sb_shift) < ts->tiling.row_end) {
                 t->sby++;
                 t->deps_skip = 0;
-                if (!check_tile(t, f, uses_2pass)) {
-                    atomic_store(&ts->progress[p], progress);
+                atomic_store(&ts->progress[p], progress);
+                if (p && !check_tile(t, f, uses_2pass)) {
                     reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
                     if (!atomic_fetch_or(&ttd->cond_signaled, 1))
                         pthread_cond_signal(&ttd->cond);
                     goto found_unlocked;
                 }
-                atomic_store(&ts->progress[p], progress);
                 add_pending(f, t);
                 pthread_mutex_lock(&ttd->lock);
             } else {
