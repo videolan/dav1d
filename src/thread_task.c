@@ -573,6 +573,19 @@ static void unlock_and_signal(const Dav1dContext *const c,
     if (signal) pthread_cond_signal(&ttd->cond);
 }
 
+// Wakes up another thread if there's a task ready for execution and no other
+// thread is already in the process of being woken up. If the lock is busy,
+// signal without checking for work rather than waiting for it.
+static void signal_if_ready(const Dav1dContext *const c,
+                            struct TaskThreadData *const ttd)
+{
+    if (atomic_load(&ttd->cond_signaled)) return;
+    if (!pthread_mutex_trylock(&ttd->lock))
+        unlock_and_signal(c, ttd);
+    else if (!atomic_fetch_or(&ttd->cond_signaled, 1))
+        pthread_cond_signal(&ttd->cond);
+}
+
 static inline void finish_frame(Dav1dFrameContext *const f, const int res) {
     dav1d_decode_frame_exit(f, res);
     f->n_tile_data = 0;
@@ -815,8 +828,7 @@ void *dav1d_worker_task(void *data) {
                 atomic_store(&ts->progress[p], progress);
                 if (p && !check_tile(t, f, uses_2pass)) {
                     reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
-                    if (!atomic_fetch_or(&ttd->cond_signaled, 1))
-                        pthread_cond_signal(&ttd->cond);
+                    signal_if_ready(c, ttd);
                     goto found_unlocked;
                 }
                 add_pending(f, t);
@@ -859,8 +871,7 @@ void *dav1d_worker_task(void *data) {
                 atomic_store(&f->frame_thread.deblock_progress,
                              error ? TILE_ERROR : sby + 1);
                 reset_task_cur_async(ttd, t->frame_idx, c->n_fc);
-                if (!atomic_fetch_or(&ttd->cond_signaled, 1))
-                    pthread_cond_signal(&ttd->cond);
+                signal_if_ready(c, ttd);
             } else if (f->seq_hdr->cdef || f->lf.restore_planes) {
                 atomic_fetch_or(&f->frame_thread.copy_lpf_progress[sby >> 5],
                                 1U << (sby & 31));
