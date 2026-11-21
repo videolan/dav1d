@@ -336,11 +336,7 @@ struct Dav1dFrameContext {
         // "prev_t" variable. This is needed to not loose the tasks in
         // [head;cur-1] when picking one for execution.
         struct Dav1dTask *task_cur_prev;
-        struct { // async task insertion
-            atomic_int merge;
-            pthread_mutex_t lock;
-            Dav1dTask *head, *tail;
-        } pending_tasks;
+        atomic_uintptr_t pending_tasks; // async task insertion
     } task_thread;
 
     // threading (refer to tc[] for per-thread things)

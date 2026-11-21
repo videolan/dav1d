@@ -173,34 +173,29 @@ static inline void insert_task(Dav1dFrameContext *const f,
     insert_tasks(f, t, t, cond_signal);
 }
 
-static inline void add_pending(Dav1dFrameContext *const f, Dav1dTask *const t) {
-    pthread_mutex_lock(&f->task_thread.pending_tasks.lock);
-    t->next = NULL;
-    if (!f->task_thread.pending_tasks.head)
-        f->task_thread.pending_tasks.head = t;
-    else
-        f->task_thread.pending_tasks.tail->next = t;
-    f->task_thread.pending_tasks.tail = t;
-    atomic_store(&f->task_thread.pending_tasks.merge, 1);
-    pthread_mutex_unlock(&f->task_thread.pending_tasks.lock);
+static inline void add_pending(Dav1dFrameContext *const f,
+                               Dav1dTask *const first, Dav1dTask *const last)
+{
+    uintptr_t head = atomic_load_explicit(&f->task_thread.pending_tasks,
+                                          memory_order_relaxed);
+    do {
+        last->next = (Dav1dTask *) head;
+    } while (!atomic_compare_exchange_weak_explicit(&f->task_thread.pending_tasks,
+                                                    &head, (uintptr_t) first,
+                                                    memory_order_release,
+                                                    memory_order_relaxed));
 }
 
 static inline int merge_pending_frame(Dav1dFrameContext *const f) {
-    int const merge = atomic_load(&f->task_thread.pending_tasks.merge);
-    if (merge) {
-        pthread_mutex_lock(&f->task_thread.pending_tasks.lock);
-        Dav1dTask *t = f->task_thread.pending_tasks.head;
-        f->task_thread.pending_tasks.head = NULL;
-        f->task_thread.pending_tasks.tail = NULL;
-        atomic_store(&f->task_thread.pending_tasks.merge, 0);
-        pthread_mutex_unlock(&f->task_thread.pending_tasks.lock);
-        while (t) {
-            Dav1dTask *const tmp = t->next;
-            insert_task(f, t, 0);
-            t = tmp;
-        }
+    if (!atomic_load_explicit(&f->task_thread.pending_tasks, memory_order_relaxed)) return 0;
+    Dav1dTask *t = (Dav1dTask *) atomic_exchange_explicit(&f->task_thread.pending_tasks, 0,
+                                                          memory_order_acquire);
+    while (t) {
+        Dav1dTask *const tmp = t->next;
+        insert_task(f, t, 0);
+        t = tmp;
     }
-    return merge;
+    return 1;
 }
 
 static inline int merge_pending(const Dav1dContext *const c) {
@@ -325,11 +320,8 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
     f->task_thread.done[pass & 1] = 0;
 
     if (!(pass & 1)) {
-        assert(f->task_thread.pending_tasks.head == NULL);
-        f->task_thread.pending_tasks.head = f->task_thread.tile_tasks[pass == 2];
-        f->task_thread.pending_tasks.tail = prev_t;
         atomic_store(&f->task_thread.init_done, 1);
-        atomic_store(&f->task_thread.pending_tasks.merge, 1);
+        add_pending(f, f->task_thread.tile_tasks[pass == 2], prev_t);
     }
     return 0;
 }
@@ -379,7 +371,7 @@ static inline int ensure_progress(struct TaskThreadData *const ttd,
         t->type = type;
         t->recon_progress = t->deblock_progress = 0;
         *target = t->sby;
-        add_pending(f, t);
+        add_pending(f, t, t);
         pthread_mutex_lock(&ttd->lock);
         return 1;
     }
@@ -786,7 +778,7 @@ void *dav1d_worker_task(void *data) {
             } else {
                 t->type = DAV1D_TASK_TYPE_INIT_CDF;
                 if (p1) goto found_unlocked;
-                add_pending(f, t);
+                add_pending(f, t, t);
                 pthread_mutex_lock(&ttd->lock);
             }
             continue;
@@ -831,7 +823,7 @@ void *dav1d_worker_task(void *data) {
                     signal_if_ready(c, ttd);
                     goto found_unlocked;
                 }
-                add_pending(f, t);
+                add_pending(f, t, t);
                 pthread_mutex_lock(&ttd->lock);
             } else {
                 if (f->frame_hdr->refresh_context &&
@@ -882,7 +874,7 @@ void *dav1d_worker_task(void *data) {
                     if (~prog & (1U << ((sby - 1) & 31))) {
                         t->type = DAV1D_TASK_TYPE_CDEF;
                         t->recon_progress = t->deblock_progress = 0;
-                        add_pending(f, t);
+                        add_pending(f, t, t);
                         pthread_mutex_lock(&ttd->lock);
                         continue;
                     }
