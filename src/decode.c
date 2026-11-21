@@ -3314,7 +3314,8 @@ void dav1d_decode_frame_exit(Dav1dFrameContext *const f, int retval) {
     dav1d_cdf_thread_unref(&f->in_cdf);
     if (f->frame_hdr && f->frame_hdr->refresh_context) {
         if (f->out_cdf.progress)
-            atomic_store(f->out_cdf.progress, retval == 0 ? 1 : TILE_ERROR);
+            atomic_store_explicit(f->out_cdf.progress, retval == 0 ? 1 : TILE_ERROR,
+                                  memory_order_release);
         dav1d_cdf_thread_unref(&f->out_cdf);
     }
     dav1d_ref_dec(&f->cur_segmap_ref);
