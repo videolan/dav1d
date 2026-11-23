@@ -634,7 +634,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
         cul_level = dc_tok;
         dc_dq >>= dq_shift;
         dc_dq = umin(dc_dq, cf_max + dc_sign);
-        cf[0] = (coef) (dc_sign ? -dc_dq : dc_dq);
+        cf[0] = (coef) apply_sign_bool(dc_dq, dc_sign);
 
         if (rc) ac_qm: {
             const unsigned ac_dq = dq_tbl[1];
@@ -662,7 +662,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
                 cul_level += tok;
                 dq >>= dq_shift;
                 dq_sat = umin(dq, cf_max + sign);
-                cf[rc] = (coef) (sign ? -dq_sat : dq_sat);
+                cf[rc] = (coef) apply_sign_bool(dq_sat, sign);
 
                 rc = rc_tok & 0x3ff;
             } while (rc);
@@ -683,7 +683,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
             assert(dc_dq <= cf_max);
         }
         cul_level = dc_tok;
-        cf[0] = (coef) (dc_sign ? -dc_dq : dc_dq);
+        cf[0] = (coef) apply_sign_bool(dc_dq, dc_sign);
 
         if (rc) ac_noqm: {
             const unsigned ac_dq = dq_tbl[1];
@@ -715,7 +715,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
                     assert(dq <= cf_max);
                 }
                 cul_level += tok;
-                cf[rc] = (coef) (sign ? -dq : dq);
+                cf[rc] = (coef) apply_sign_bool(dq, sign);
 
                 rc = rc_tok & 0x3ff; // next non-zero rc, zero if eob
             } while (rc);
@@ -2294,7 +2294,10 @@ void bytefn(dav1d_read_pal_uv)(Dav1dTaskContext *const t, Av1Block *const b,
         const int max = (1 << bpc) - 1;
         for (int i = 1; i < b->pal_sz[1]; i++) {
             int delta = dav1d_msac_decode_bools(&ts->msac, bits);
-            if (delta && dav1d_msac_decode_bool_equi(&ts->msac)) delta = -delta;
+            if (delta) {
+                const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
+                delta = apply_sign_bool(delta, sign);
+            }
             prev = pal[i] = (prev + delta) & max;
         }
     } else {

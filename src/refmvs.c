@@ -237,6 +237,10 @@ static void add_temporal_candidate(const refmvs_frame *const rf,
     }
 }
 
+static inline mv mv_apply_sign_bool(const mv v, const int s) {
+    return (mv) { .y = apply_sign_bool(v.y, s), .x = apply_sign_bool(v.x, s) };
+}
+
 static void add_compound_extended_candidate(refmvs_candidate *const same,
                                             int *const same_count,
                                             const refmvs_block *const cand_b,
@@ -252,43 +256,30 @@ static void add_compound_extended_candidate(refmvs_candidate *const same,
 
         if (cand_ref <= 0) break;
 
-        mv cand_mv = cand_b->mv.mv[n];
+        const mv cand_mv = cand_b->mv.mv[n];
         if (cand_ref == ref.ref[0]) {
             if (same_count[0] < 2)
                 same[same_count[0]++].mv.mv[0] = cand_mv;
             if (diff_count[1] < 2) {
-                if (sign1 ^ sign_bias[cand_ref - 1]) {
-                    cand_mv.y = -cand_mv.y;
-                    cand_mv.x = -cand_mv.x;
-                }
-                diff[diff_count[1]++].mv.mv[1] = cand_mv;
+                diff[diff_count[1]++].mv.mv[1] =
+                    mv_apply_sign_bool(cand_mv, sign1 ^ sign_bias[cand_ref - 1]);
             }
         } else if (cand_ref == ref.ref[1]) {
             if (same_count[1] < 2)
                 same[same_count[1]++].mv.mv[1] = cand_mv;
             if (diff_count[0] < 2) {
-                if (sign0 ^ sign_bias[cand_ref - 1]) {
-                    cand_mv.y = -cand_mv.y;
-                    cand_mv.x = -cand_mv.x;
-                }
-                diff[diff_count[0]++].mv.mv[0] = cand_mv;
+                diff[diff_count[0]++].mv.mv[0] =
+                    mv_apply_sign_bool(cand_mv, sign0 ^ sign_bias[cand_ref - 1]);
             }
         } else {
-            mv i_cand_mv = (union mv) {
-                .x = -cand_mv.x,
-                .y = -cand_mv.y
-            };
-
             if (diff_count[0] < 2) {
                 diff[diff_count[0]++].mv.mv[0] =
-                    sign0 ^ sign_bias[cand_ref - 1] ?
-                    i_cand_mv : cand_mv;
+                    mv_apply_sign_bool(cand_mv, sign0 ^ sign_bias[cand_ref - 1]);
             }
 
             if (diff_count[1] < 2) {
                 diff[diff_count[1]++].mv.mv[1] =
-                    sign1 ^ sign_bias[cand_ref - 1] ?
-                    i_cand_mv : cand_mv;
+                    mv_apply_sign_bool(cand_mv, sign1 ^ sign_bias[cand_ref - 1]);
             }
         }
     }
@@ -308,11 +299,8 @@ static void add_single_extended_candidate(refmvs_candidate mvstack[8], int *cons
         // FIXME if scan_{row,col}() returned a mask for the nearest
         // edge, we could skip the appropriate ones here
 
-        mv cand_mv = cand_b->mv.mv[n];
-        if (sign ^ sign_bias[cand_ref - 1]) {
-            cand_mv.y = -cand_mv.y;
-            cand_mv.x = -cand_mv.x;
-        }
+        const mv cand_mv = mv_apply_sign_bool(cand_b->mv.mv[n],
+                                              sign ^ sign_bias[cand_ref - 1]);
 
         int m;
         const int last = *cnt;

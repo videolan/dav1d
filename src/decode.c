@@ -100,8 +100,7 @@ static int read_mv_component_diff(MsacContext *const msac,
     }
 
     const int diff = ((up << 3) | (fp << 1) | hp) + 1;
-
-    return sign ? -diff : diff;
+    return apply_sign_bool(diff, sign);
 }
 
 static void read_mv_residual(Dav1dTileState *const ts, mv *const ref_mv,
@@ -1018,7 +1017,8 @@ static int decode_b(Dav1dTaskContext *const t,
                           1 + (1 << n_bits);
             }
             if (delta_q) {
-                if (dav1d_msac_decode_bool_equi(&ts->msac)) delta_q = -delta_q;
+                const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
+                delta_q = apply_sign_bool(delta_q, sign);
                 delta_q *= 1 << f->frame_hdr->delta.q.res_log2;
             }
             ts->last_qidx = iclip(ts->last_qidx + delta_q, 1, 255);
@@ -1039,8 +1039,8 @@ static int decode_b(Dav1dTaskContext *const t,
                                    1 + (1 << n_bits);
                     }
                     if (delta_lf) {
-                        if (dav1d_msac_decode_bool_equi(&ts->msac))
-                            delta_lf = -delta_lf;
+                        const int sign = dav1d_msac_decode_bool_equi(&ts->msac);
+                        delta_lf = apply_sign_bool(delta_lf, sign);
                         delta_lf *= 1 << f->frame_hdr->delta.lf.res_log2;
                     }
                     ts->last_delta_lf.i8[i] =
@@ -1123,28 +1123,26 @@ static int decode_b(Dav1dTaskContext *const t,
 
             b->uv_angle = 0;
             if (b->uv_mode == CFL_PRED) {
-#define SIGN(a) (!!(a) + ((a) > 0))
                 const int sign = dav1d_msac_decode_symbol_adapt8(&ts->msac,
                                      ts->cdf.m.cfl_sign, 7) + 1;
                 const int sign_u = sign * 0x56 >> 8, sign_v = sign - sign_u * 3;
                 assert(sign_u == sign / 3);
                 if (sign_u) {
                     const int ctx = (sign_u == 2) * 3 + sign_v;
-                    b->cfl_alpha[0] = dav1d_msac_decode_symbol_adapt16(&ts->msac,
+                    const int alpha = dav1d_msac_decode_symbol_adapt16(&ts->msac,
                                           ts->cdf.m.cfl_alpha[ctx], 15) + 1;
-                    if (sign_u == 1) b->cfl_alpha[0] = -b->cfl_alpha[0];
+                    b->cfl_alpha[0] = apply_sign_bool(alpha, sign_u & 1);
                 } else {
                     b->cfl_alpha[0] = 0;
                 }
                 if (sign_v) {
                     const int ctx = (sign_v == 2) * 3 + sign_u;
-                    b->cfl_alpha[1] = dav1d_msac_decode_symbol_adapt16(&ts->msac,
+                    const int alpha = dav1d_msac_decode_symbol_adapt16(&ts->msac,
                                           ts->cdf.m.cfl_alpha[ctx], 15) + 1;
-                    if (sign_v == 1) b->cfl_alpha[1] = -b->cfl_alpha[1];
+                    b->cfl_alpha[1] = apply_sign_bool(alpha, sign_v & 1);
                 } else {
                     b->cfl_alpha[1] = 0;
                 }
-#undef SIGN
                 if (DEBUG_BLOCK_INFO)
                     printf("Post-uvalphas[%d/%d]: r=%d\n",
                            b->cfl_alpha[0], b->cfl_alpha[1], ts->msac.rng);
