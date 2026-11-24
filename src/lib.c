@@ -659,7 +659,7 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         dav1d_free(f->task_thread.tile_tasks[0]);
         dav1d_free_aligned(f->ts);
         dav1d_free_aligned(f->ipred_edge[0]);
-        dav1d_free(f->a);
+        dav1d_free_aligned(f->a);
         dav1d_free(f->tile);
         dav1d_free(f->lf.mask);
         dav1d_free_aligned(f->lf.level[0]);

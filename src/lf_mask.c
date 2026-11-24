@@ -32,6 +32,7 @@
 #include "common/intops.h"
 
 #include "src/ctx.h"
+#include "src/internal.h"
 #include "src/levels.h"
 #include "src/lf_mask.h"
 #include "src/tables.h"
@@ -84,24 +85,54 @@ static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /*
     }
 }
 
-static inline void mask_edges_inter(uint16_t (*const masks)[32][3][2],
-                                    const int by4, const int bx4,
-                                    const int w4, const int h4, const int skip,
-                                    const enum RectTxfmSize max_tx,
-                                    const uint16_t *const tx_masks,
-                                    uint8_t *const a, uint8_t *const l)
+static ALWAYS_INLINE
+void mask_edges_inter_inner(const int by4, const int bx4,
+                            const int w4, const int h4,
+                            uint16_t (*const masks)[32][3][2],
+                            const uint8_t txa[2][2][32][32])
 {
-    const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[max_tx];
+    unsigned mask;
+    int x, y;
+    // inner (tx) left|right edges
+    for (y = 0, mask = 1U << by4; y < h4; y++, mask <<= 1) {
+        const int sidx = mask >= 0x10000U;
+        const unsigned smask = mask >> (sidx << 4);
+        int ltx = txa[0][0][y][0];
+        int step = txa[0][1][y][0];
+        for (x = step; x < w4; x += step) {
+            const int rtx = txa[0][0][y][x];
+            masks[0][bx4 + x][imin(rtx, ltx)][sidx] |= smask;
+            ltx = rtx;
+            step = txa[0][1][y][x];
+        }
+    }
+
+    //            top
+    // inner (tx) --- edges
+    //           bottom
+    for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1) {
+        const int sidx = mask >= 0x10000U;
+        const unsigned smask = mask >> (sidx << 4);
+        int ttx = txa[1][0][0][x];
+        int step = txa[1][1][0][x];
+        for (y = step; y < h4; y += step) {
+            const int btx = txa[1][0][y][x];
+            masks[1][by4 + y][imin(ttx, btx)][sidx] |= smask;
+            ttx = btx;
+            step = txa[1][1][y][x];
+        }
+    }
+}
+
+static void mask_edges_inter_outer_c(uint8_t *const a, uint8_t *const l,
+                                            const int by4, const int bx4,
+                                            const int w4, const int h4,
+                                            uint16_t (*const masks)[32][3][2],
+                                            const uint8_t txa[2][2][32][32])
+{
     int y, x;
-
-    ALIGN_STK_16(uint8_t, txa, 2 /* edge */, [2 /* txsz, step */][32 /* y */][32 /* x */]);
-    for (int y_off = 0, y = 0; y < h4; y += t_dim->h, y_off++)
-        for (int x_off = 0, x = 0; x < w4; x += t_dim->w, x_off++)
-            decomp_tx((uint8_t(*)[2][32][32]) &txa[0][0][y][x],
-                      max_tx, 0, y_off, x_off, tx_masks);
-
-    // left block edge
     unsigned mask = 1U << by4;
+    // left block edge
     for (y = 0; y < h4; y++, mask <<= 1) {
         const int sidx = mask >= 0x10000;
         const unsigned smask = mask >> (sidx << 4);
@@ -115,40 +146,10 @@ static inline void mask_edges_inter(uint16_t (*const masks)[32][3][2],
         masks[1][by4][imin(txa[1][0][0][x], a[x])][sidx] |= smask;
     }
 
-    if (!skip) {
-        // inner (tx) left|right edges
-        for (y = 0, mask = 1U << by4; y < h4; y++, mask <<= 1) {
-            const int sidx = mask >= 0x10000U;
-            const unsigned smask = mask >> (sidx << 4);
-            int ltx = txa[0][0][y][0];
-            int step = txa[0][1][y][0];
-            for (x = step; x < w4; x += step) {
-                const int rtx = txa[0][0][y][x];
-                masks[0][bx4 + x][imin(rtx, ltx)][sidx] |= smask;
-                ltx = rtx;
-                step = txa[0][1][y][x];
-            }
-        }
-
-        //            top
-        // inner (tx) --- edges
-        //           bottom
-        for (x = 0, mask = 1U << bx4; x < w4; x++, mask <<= 1) {
-            const int sidx = mask >= 0x10000U;
-            const unsigned smask = mask >> (sidx << 4);
-            int ttx = txa[1][0][0][x];
-            int step = txa[1][1][0][x];
-            for (y = step; y < h4; y += step) {
-                const int btx = txa[1][0][y][x];
-                masks[1][by4 + y][imin(ttx, btx)][sidx] |= smask;
-                ttx = btx;
-                step = txa[1][1][y][x];
-            }
-        }
-    }
-
+    // right block edge
     for (y = 0; y < h4; y++)
         l[y] = txa[0][0][y][w4 - 1];
+    // bottom block edge
     memcpy(a, txa[1][0][h4 - 1], w4);
 }
 
@@ -334,12 +335,10 @@ void dav1d_create_lf_mask_intra(const Dav1dLfMaskDSPContext* dsp,
                       auv, luv, ss_hor, ss_ver);
 }
 
-void dav1d_create_lf_mask_inter(const Dav1dLfMaskDSPContext* dsp,
-                                Av1Filter *const lflvl,
+void dav1d_create_lf_mask_inter(Dav1dTaskContext *const t,
                                 uint8_t (*const level_cache[2])[2],
                                 const ptrdiff_t b4_stride,
                                 const uint8_t (*filter_level)[8][2],
-                                const int bx, const int by,
                                 const int iw, const int ih,
                                 const int skip, const enum BlockSize bs,
                                 const enum RectTxfmSize max_ytx,
@@ -349,6 +348,9 @@ void dav1d_create_lf_mask_inter(const Dav1dLfMaskDSPContext* dsp,
                                 uint8_t *const ay, uint8_t *const ly,
                                 uint8_t *const auv, uint8_t *const luv)
 {
+    const Dav1dLfMaskDSPContext *const dsp = &t->c->lf_mask_dsp;
+    Av1Filter *const lflvl = t->lf_mask;
+    const int bx = t->bx, by = t->by;
     const uint8_t *const b_dim = dav1d_block_dimensions[bs];
     const int bw4 = imin(iw - bx, b_dim[0]);
     const int bh4 = imin(ih - by, b_dim[1]);
@@ -361,8 +363,17 @@ void dav1d_create_lf_mask_inter(const Dav1dLfMaskDSPContext* dsp,
 
         dsp->fill_levelcache_block(level_cache_ptr, b4_stride, bw4, bh4,
                                    filter_level[0][0][0], filter_level[1][0][0]);
-        mask_edges_inter(lflvl->filter_y, by4, bx4, bw4, bh4, skip,
-                         max_ytx, tx_masks, ay, ly);
+
+        const TxfmInfo *const t_dim = &dav1d_txfm_dimensions[max_ytx];
+        uint8_t (*const txa)[2][32][32] = t->scratch.txa;
+        for (int y_off = 0, y = 0; y < bh4; y += t_dim->h, y_off++)
+            for (int x_off = 0, x = 0; x < bw4; x += t_dim->w, x_off++)
+                decomp_tx((uint8_t(*)[2][32][32]) &txa[0][0][y][x],
+                          max_ytx, 0, y_off, x_off, tx_masks);
+
+        dsp->mask_edges_inter_outer(ay, ly, by4, bx4, bw4, bh4, lflvl->filter_y, txa);
+        if (!skip)
+            mask_edges_inter_inner(by4, bx4, bw4, bh4, lflvl->filter_y, txa);
     }
 
     if (!auv) return;
@@ -477,6 +488,7 @@ void dav1d_calc_lf_values(uint8_t (*const lflvl_values)[4][8][2],
 COLD void dav1d_lf_mask_dsp_init(Dav1dLfMaskDSPContext *const c)
 {
     c->fill_levelcache_block = fill_levelcache_block_c;
+    c->mask_edges_inter_outer = mask_edges_inter_outer_c;
 #if HAVE_ASM
 #if ARCH_X86_64
     lf_mask_dsp_init_x86(c);

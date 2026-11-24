@@ -34,15 +34,19 @@ void dav1d_fill_levelcache_block_sse2(uint8_t (*level_cache_ptr)[2], ptrdiff_t b
                                       int bw, int bh, unsigned v0, unsigned v1);
 void dav1d_fill_levelcache_block_avx2(uint8_t (*level_cache_ptr)[2], ptrdiff_t b_stride,
                                       int bw, int bh, unsigned v0, unsigned v1);
+decl_mask_edges_inter_outer_fn(dav1d_mask_edges_inter_outer_sse2);
+decl_mask_edges_inter_outer_fn(dav1d_mask_edges_inter_outer_avx2);
 
 static ALWAYS_INLINE void lf_mask_dsp_init_x86(Dav1dLfMaskDSPContext *const s) {
     const unsigned flags = dav1d_get_cpu_flags();
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSE2)) return;
     s->fill_levelcache_block = dav1d_fill_levelcache_block_sse2;
+    s->mask_edges_inter_outer = dav1d_mask_edges_inter_outer_sse2;
 
     if (!(flags & DAV1D_X86_CPU_FLAG_AVX2)) return;
     s->fill_levelcache_block = dav1d_fill_levelcache_block_avx2;
+    s->mask_edges_inter_outer = dav1d_mask_edges_inter_outer_avx2;
 }
 #endif
 

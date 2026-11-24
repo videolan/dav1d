@@ -33,13 +33,21 @@
 
 #include "src/levels.h"
 
+struct Dav1dTaskContext;
+
 #define decl_fill_levelcache_block_fn(name) \
 void (name)(uint8_t (*level_cache_ptr)[2], ptrdiff_t b_stride, \
             int bw, int bh, unsigned v0, unsigned v1)
 typedef decl_fill_levelcache_block_fn(*fill_levelcache_block_fn);
 
+#define decl_mask_edges_inter_outer_fn(name) \
+void (name)(uint8_t *a, uint8_t *l, int by4, int bx4, int w4, int h4, \
+            uint16_t (*masks)[32][3][2], const uint8_t txa[2][2][32][32])
+typedef decl_mask_edges_inter_outer_fn(*mask_edges_inter_outer_fn);
+
 typedef struct Dav1dLfMaskDSPContext {
     fill_levelcache_block_fn fill_levelcache_block;
+    mask_edges_inter_outer_fn mask_edges_inter_outer;
 } Dav1dLfMaskDSPContext;
 
 typedef struct Av1FilterLUT {
@@ -78,10 +86,10 @@ void dav1d_create_lf_mask_intra(const Dav1dLfMaskDSPContext* dsp,
                                 enum RectTxfmSize ytx, enum RectTxfmSize uvtx,
                                 enum Dav1dPixelLayout layout, uint8_t *ay,
                                 uint8_t *ly, uint8_t *auv, uint8_t *luv);
-void dav1d_create_lf_mask_inter(const Dav1dLfMaskDSPContext* dsp,
-                                Av1Filter *lflvl, uint8_t (*const level_cache[2])[2],
+void dav1d_create_lf_mask_inter(struct Dav1dTaskContext *t,
+                                uint8_t (*const level_cache[2])[2],
                                 const ptrdiff_t b4_stride,
-                                const uint8_t (*level)[8][2], int bx, int by,
+                                const uint8_t (*level)[8][2],
                                 int iw, int ih, int skip_inter,
                                 enum BlockSize bs, enum RectTxfmSize max_ytx,
                                 const uint16_t *tx_mask, enum RectTxfmSize uvtx,
