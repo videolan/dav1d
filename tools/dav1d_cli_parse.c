@@ -428,6 +428,8 @@ void parse(const int argc, char *const *const argv,
                 parse_unsigned(optarg, ARG_THREADS, argv[0]);
             break;
         case ARG_VERIFY:
+            if (strspn(optarg, "0123456789ABCDEFabcdef") != 32 || optarg[32])
+                error(argv[0], optarg, ARG_VERIFY, "a 32-digit hexadecimal checksum");
             cli_settings->verify = optarg;
             break;
         case ARG_FILM_GRAIN:
