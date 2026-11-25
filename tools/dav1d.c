@@ -230,6 +230,11 @@ int main(const int argc, char *const *const argv) {
     }
     for (unsigned i = 0; i <= cli_settings.skip; i++) {
         if ((res = input_read(in, &data)) < 0) {
+            if (cli_settings.skip)
+                fprintf(stderr, "Nothing to decode after skipping %u frame%s "
+                        "(only %u frame%s in input)\n",
+                        cli_settings.skip, cli_settings.skip == 1 ? "" : "s",
+                        i, i == 1 ? "" : "s");
             input_close(in);
             return EXIT_FAILURE;
         }
@@ -246,6 +251,9 @@ int main(const int argc, char *const *const argv) {
         while (dav1d_parse_sequence_header(&seq, data.data, data.sz)) {
             dav1d_data_unref(&data);
             if ((res = input_read(in, &data)) < 0) {
+                fprintf(stderr, "No sequence header found after skipping "
+                        "%u frame%s\n", cli_settings.skip,
+                        cli_settings.skip == 1 ? "" : "s");
                 input_close(in);
                 return EXIT_FAILURE;
             }
