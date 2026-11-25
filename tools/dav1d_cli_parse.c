@@ -28,6 +28,7 @@
 #include "config.h"
 #include "cli_config.h"
 
+#include <errno.h>
 #include <getopt.h>
 #include <limits.h>
 #include <math.h>
@@ -184,6 +185,18 @@ static uint64_t str_to_u64(const char *const str, char **const end) {
     return UINT64_MAX;
 }
 
+static double str_to_double(const char *const str, char **const end) {
+    if (((*str >= '0' && *str <= '9') || *str == '.') &&
+        str[1] != 'x' && str[1] != 'X')
+    {
+        errno = 0;
+        const double res = strtod(str, end);
+        if (errno != ERANGE) return res;
+    }
+    *end = (char *) str;
+    return -1.0;
+}
+
 static unsigned parse_unsigned(const char *const optarg, const int option,
                                const char *const app)
 {
@@ -206,14 +219,15 @@ static int parse_optional_fraction(const char *const optarg, const int option,
 {
     if (optarg == NULL) return 0;
     char *end;
-    *value = strtod(optarg, &end);
-    if (*end == '/' && end != optarg) {
-        const char *optarg2 = end + 1;
-        *value /= strtod(optarg2, &end);
-        if (*end || end == optarg2) error(app, optarg, option, "a fraction");
-    } else if (*end || end == optarg) {
-        error(app, optarg, option, "a fraction");
+    const double num = str_to_double(optarg, &end);
+    const double den = *end == '/' ? str_to_double(end + 1, &end) : 1.0;
+    // the frame duration in nanoseconds must be non-zero and fit in a uint64_t
+    if (*end || !(den > 0) || num / 1000000000.0 > den ||
+        num / den <= 1000000000.0 / (double) UINT64_MAX)
+    {
+        error(app, optarg, option, "a positive fraction");
     }
+    *value = num / den;
     return 1;
 }
 
