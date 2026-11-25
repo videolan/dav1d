@@ -266,8 +266,17 @@ int main(const int argc, char *const *const argv) {
         return EXIT_FAILURE;
     }
 
-    if (cli_settings.frametimes)
+    if (cli_settings.frametimes) {
         frametimes = fopen(cli_settings.frametimes, "w");
+        if (!frametimes) {
+            fprintf(stderr, "Failed to open %s: %s\n",
+                    cli_settings.frametimes, strerror(errno));
+            dav1d_data_unref(&data);
+            input_close(in);
+            dav1d_close(&c);
+            return EXIT_FAILURE;
+        }
+    }
 
     if (cli_settings.realtime != REALTIME_CUSTOM) {
         if (fps[1] == 0) {
