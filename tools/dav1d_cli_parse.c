@@ -43,7 +43,7 @@
 #include "dav1d_cli_parse.h"
 #include "src/cpu.h"
 
-static const char short_opts[] = "i:o:vql:s:";
+static const char short_opts[] = "i:o:hvql:s:";
 
 enum {
     ARG_DEMUXER = 256,
@@ -72,6 +72,7 @@ static const struct option long_opts[] = {
     { "quiet",           0, NULL, 'q' },
     { "demuxer",         1, NULL, ARG_DEMUXER },
     { "muxer",           1, NULL, ARG_MUXER },
+    { "help",            0, NULL, 'h' },
     { "version",         0, NULL, 'v' },
     { "frametimes",      1, NULL, ARG_FRAME_TIMES },
     { "limit",           1, NULL, 'l' },
@@ -116,17 +117,9 @@ static const struct option long_opts[] = {
 #define ALLOWED_CPU_MASKS ""
 #endif
 
-static void usage(const char *const app, const char *const reason, ...) {
-    if (reason) {
-        va_list args;
-
-        va_start(args, reason);
-        vfprintf(stderr, reason, args);
-        va_end(args);
-        fprintf(stderr, "\n\n");
-    }
-    fprintf(stderr, "Usage: %s [options]\n\n", app);
-    fprintf(stderr, "Supported options:\n"
+static void print_help(FILE *const f, const char *const app) {
+    fprintf(f, "Usage: %s [options]\n\n", app);
+    fprintf(f, "Supported options:\n"
             " --input/-i $file:        input file\n"
             " --output/-o $file:       output file (%%n, %%w, or %%h will be filled in for\n"
             "                          per-frame files)\n"
@@ -145,6 +138,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             "                          framerate (e.g. 30 or 30000/1001)\n"
             " --realtimecache $num:    set the size of the cache in realtime mode\n"
             "                          (default: 0)\n"
+            " --help/-h:               print this help text and exit\n"
             " --version/-v:            print version and exit\n"
             " --threads $num:          number of threads (default: 0 = auto)\n"
             " --framedelay $num:       maximum frame delay, capped at $threads; set to 1 for\n"
@@ -174,6 +168,18 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --decodeframetype $str:  which frame types to decode (reference, intra, key,\n"
             "                          or all; default: all)\n"
             );
+}
+
+static void usage(const char *const app, const char *const reason, ...) {
+    if (reason) {
+        va_list args;
+
+        va_start(args, reason);
+        vfprintf(stderr, reason, args);
+        va_end(args);
+        fprintf(stderr, "\n\n");
+    }
+    print_help(stderr, app);
     exit(1);
 }
 
@@ -453,8 +459,11 @@ void parse(const int argc, char *const *const argv,
             lib_settings->strict_std_compliance =
                 parse_bool(optarg, ARG_STRICT_STD_COMPLIANCE, argv[0]);
             break;
+        case 'h':
+            print_help(stdout, argv[0]);
+            exit(0);
         case 'v':
-            fprintf(stderr, "%s\n", dav1d_version());
+            printf("%s\n", dav1d_version());
             exit(0);
         case ARG_CPU_MASK:
             dav1d_set_cpu_flags_mask(parse_enum(optarg, cpu_mask_tbl, ARRAY_SIZE(cpu_mask_tbl),
