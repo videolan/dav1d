@@ -495,6 +495,8 @@ void parse(const int argc, char *const *const argv,
 
     if (optind < argc)
         usage(argv[0], "Extra/unused arguments found, e.g. '%s'", argv[optind]);
+    if (cli_settings->realtime_cache && cli_settings->realtime == REALTIME_DISABLE)
+        usage(argv[0], "Realtime cache (--realtimecache) requires realtime mode (--realtime)");
     if (cli_settings->verify) {
         if (cli_settings->outputfile)
             usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not be set");
