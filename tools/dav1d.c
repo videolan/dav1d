@@ -392,10 +392,15 @@ int main(const int argc, char *const *const argv) {
     if (out) {
         if (!cli_settings.quiet && istty)
             fprintf(stderr, "\n");
-        if (cli_settings.verify)
-            res |= output_verify(out, cli_settings.verify);
-        else
+        if (cli_settings.verify) {
+            if (output_verify(out, cli_settings.verify)) {
+                fprintf(stderr, "Verification failed: %s mismatch\n",
+                        cli_settings.muxer);
+                res = 1;
+            }
+        } else {
             output_close(out);
+        }
     } else {
         fprintf(stderr, "No data decoded\n");
         res = 1;
