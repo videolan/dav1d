@@ -95,24 +95,25 @@ static const struct option long_opts[] = {
 };
 
 #if HAVE_XXHASH_H
-#define AVAILABLE_MUXERS "'md5', 'xxh3', 'yuv', 'yuv4mpeg2' or 'null'"
+#define AVAILABLE_MUXERS "'md5', 'xxh3', 'yuv', 'yuv4mpeg2', or 'null'"
 #else
-#define AVAILABLE_MUXERS "'md5', 'yuv', 'yuv4mpeg2' or 'null'"
+#define AVAILABLE_MUXERS "'md5', 'yuv', 'yuv4mpeg2', or 'null'"
 #endif
 
-#if ARCH_AARCH64 || ARCH_ARM
-#define ALLOWED_CPU_MASKS ", 'neon', 'dotprod' or 'i8mm'"
+#if ARCH_AARCH64
+#define ALLOWED_CPU_MASKS ", 'neon', 'dotprod', 'i8mm', 'sve', 'sve2',"
+#elif ARCH_ARM
+#define ALLOWED_CPU_MASKS ", 'neon', 'dotprod', 'i8mm',"
 #elif ARCH_LOONGARCH
-#define ALLOWED_CPU_MASKS ", 'lsx' or 'lasx'"
+#define ALLOWED_CPU_MASKS ", 'lsx', 'lasx',"
 #elif ARCH_PPC64LE
-#define ALLOWED_CPU_MASKS ", 'vsx' or 'pwr9'"
+#define ALLOWED_CPU_MASKS ", 'vsx', 'pwr9',"
 #elif ARCH_RISCV
-#define ALLOWED_CPU_MASKS " or 'rvv'"
+#define ALLOWED_CPU_MASKS ", 'rvv',"
 #elif ARCH_X86
-#define ALLOWED_CPU_MASKS \
-    ", 'sse2', 'ssse3', 'sse41', 'avx2' or 'avx512icl'"
+#define ALLOWED_CPU_MASKS ", 'sse2', 'ssse3', 'sse41', 'avx2', 'avx512icl',"
 #else
-#define ALLOWED_CPU_MASKS "not yet implemented for this architecture"
+#define ALLOWED_CPU_MASKS ""
 #endif
 
 static void usage(const char *const app, const char *const reason, ...) {
@@ -126,34 +127,52 @@ static void usage(const char *const app, const char *const reason, ...) {
     }
     fprintf(stderr, "Usage: %s [options]\n\n", app);
     fprintf(stderr, "Supported options:\n"
-            " --input/-i $file:     input file\n"
-            " --output/-o $file:    output file (%%n, %%w or %%h will be filled in for per-frame files)\n"
-            " --demuxer $name:      force demuxer type ('ivf', 'section5' or 'annexb'; default: detect from content)\n"
-            " --muxer $name:        force muxer type (" AVAILABLE_MUXERS "; default: detect from extension)\n"
-            "                       use 'frame' as prefix to write per-frame files; if filename contains %%n, will default to writing per-frame files\n"
-            " --quiet/-q:           disable status messages\n"
-            " --frametimes $file:   dump frame times to file\n"
-            " --limit/-l $num:      stop decoding after $num frames\n"
-            " --skip/-s $num:       skip decoding of the first $num frames\n"
-            " --realtime [$fract]:  limit framerate, optional argument to override input framerate\n"
-            " --realtimecache $num: set the size of the cache in realtime mode (default: 0)\n"
-            " --version/-v:         print version and exit\n"
-            " --threads $num:       number of threads (default: 0)\n"
-            " --framedelay $num:    maximum frame delay, capped at $threads (default: 0);\n"
-            "                       set to 1 for low-latency decoding\n"
-            " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5 or xxh3)\n"
-            " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
-            " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
-            " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
-            " --strict $num:        whether to abort decoding on standard compliance violations\n"
-            "                       that don't affect bitstream decoding (default: 1)\n"
-            " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
-            " --cpumask $mask:      restrict permitted CPU instruction sets (0" ALLOWED_CPU_MASKS "; default: -1)\n"
-            " --negstride:          use negative picture strides\n"
-            "                       this is mostly meant as a developer option\n"
-            " --outputinvisible $num: whether to output invisible (alt-ref) frames (default: 0)\n"
-            " --inloopfilters $str: which in-loop filters to enable (none, (no)deblock, (no)cdef, (no)restoration or all; default: all)\n"
-            " --decodeframetype $str: which frame types to decode (reference, intra, key or all; default: all)\n"
+            " --input/-i $file:        input file\n"
+            " --output/-o $file:       output file (%%n, %%w, or %%h will be filled in for\n"
+            "                          per-frame files)\n"
+            " --demuxer $name:         force demuxer type ('ivf', 'section5', or 'annexb';\n"
+            "                          default: detect from content)\n"
+            " --muxer $name:           force muxer type\n"
+            "                          (" AVAILABLE_MUXERS ";\n"
+            "                          default: detect from extension); use 'frame' as\n"
+            "                          prefix to write per-frame files; if filename\n"
+            "                          contains %%n, will default to writing per-frame files\n"
+            " --quiet/-q:              disable status messages\n"
+            " --frametimes $file:      dump frame times to file\n"
+            " --limit/-l $num:         stop decoding after $num frames\n"
+            " --skip/-s $num:          skip decoding of the first $num frames\n"
+            " --realtime [$fract]:     limit framerate, optional argument to override input\n"
+            "                          framerate (e.g. 30 or 30000/1001)\n"
+            " --realtimecache $num:    set the size of the cache in realtime mode\n"
+            "                          (default: 0)\n"
+            " --version/-v:            print version and exit\n"
+            " --threads $num:          number of threads (default: 0 = auto)\n"
+            " --framedelay $num:       maximum frame delay, capped at $threads; set to 1 for\n"
+            "                          low-latency decoding (default: 0 = auto)\n"
+            " --filmgrain $bool:       enable film grain application (default: 1, except if\n"
+            "                          muxer is md5 or xxh3)\n"
+            " --oppoint $num:          select an operating point of a scalable AV1 bitstream\n"
+            "                          (0 - 31; default: 0)\n"
+            " --alllayers $bool:       output all spatial layers of a scalable AV1 bitstream\n"
+            "                          (default: 1)\n"
+            " --sizelimit $size:       stop decoding if the frame size exceeds $size pixels;\n"
+            "                          can also be specified as WxH, e.g. 1920x1080\n"
+            "                          (default: 0 = unlimited)\n"
+            " --strict $bool:          whether to abort decoding on standard compliance\n"
+            "                          violations that don't affect bitstream decoding\n"
+            "                          (default: 1)\n"
+            " --verify $hash:          verify the decoded checksum; implies no output\n"
+            "                          (md5 by default, or xxh3 with --muxer xxh3)\n"
+            " --cpumask $mask:         restrict permitted CPU instruction sets\n"
+            "                          (0" ALLOWED_CPU_MASKS "\n"
+            "                          or a hex mask starting with 0x; default: -1 = all)\n"
+            " --negstride:             use negative picture strides\n"
+            "                          this is mostly meant as a developer option\n"
+            " --outputinvisible $bool: output invisible (alt-ref) frames (default: 0)\n"
+            " --inloopfilters $str:    which in-loop filters to enable (none, (no)deblock,\n"
+            "                          (no)cdef, (no)restoration, or all; default: all)\n"
+            " --decodeframetype $str:  which frame types to decode (reference, intra, key,\n"
+            "                          or all; default: all)\n"
             );
     exit(1);
 }
@@ -323,13 +342,8 @@ static unsigned parse_enum(char *optarg, const EnumParseTable *const tbl,
         if (!strcmp(tbl[n].str, optarg))
             return tbl[n].val;
 
-        if (n) {
-            if (n < tbl_sz - 1)
-                strcat(str, ", ");
-            else
-                strcat(str, " or ");
-        }
         strcat(str, tbl[n].str);
+        strcat(str, ", ");
     }
 
     if (!strcmp(optarg, "-1"))
@@ -340,7 +354,7 @@ static unsigned parse_enum(char *optarg, const EnumParseTable *const tbl,
                                                   : strtoull(optarg, &end, 16);
 
     if (*end || res > UINT_MAX) {
-        strcat(str, ", a hexadecimal (starting with 0x), or an integer");
+        strcat(str, "a hexadecimal (starting with 0x), or an integer");
         error(app, optarg, option, str);
     }
 
@@ -469,10 +483,10 @@ void parse(const int argc, char *const *const argv,
     }
 
     if (optind < argc)
-        usage(argv[0], "Extra/unused arguments found, e.g. '%s'\n", argv[optind]);
+        usage(argv[0], "Extra/unused arguments found, e.g. '%s'", argv[optind]);
     if (cli_settings->verify) {
         if (cli_settings->outputfile)
-            usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not set");
+            usage(argv[0], "Verification (--verify) requires output file (-o/--output) to not be set");
         if (cli_settings->muxer && strcmp(cli_settings->muxer, "md5") &&
             strcmp(cli_settings->muxer, "xxh3"))
         {
