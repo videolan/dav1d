@@ -318,20 +318,19 @@ static unsigned parse_enum(char *optarg, const EnumParseTable *const tbl,
         strcat(str, tbl[n].str);
     }
 
-    char *end;
-    unsigned res;
-    if (!strncmp(optarg, "0x", 2)) {
-        res = (unsigned) strtoul(&optarg[2], &end, 16);
-    } else {
-        res = (unsigned) strtoul(optarg, &end, 0);
-    }
+    if (!strcmp(optarg, "-1"))
+        return UINT_MAX;
 
-    if (*end || end == optarg) {
+    char *end;
+    const uint64_t res = strncmp(optarg, "0x", 2) ? str_to_u64(optarg, &end)
+                                                  : strtoull(optarg, &end, 16);
+
+    if (*end || res > UINT_MAX) {
         strcat(str, ", a hexadecimal (starting with 0x), or an integer");
         error(app, optarg, option, str);
     }
 
-    return res;
+    return (unsigned) res;
 }
 
 void parse(const int argc, char *const *const argv,
