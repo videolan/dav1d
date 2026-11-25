@@ -177,13 +177,28 @@ static void error(const char *const app, const char *const optarg,
           optarg, optname, shouldbe);
 }
 
+static uint64_t str_to_u64(const char *const str, char **const end) {
+    if (*str >= '0' && *str <= '9')
+        return strtoull(str, end, 10);
+    *end = (char *) str;
+    return UINT64_MAX;
+}
+
 static unsigned parse_unsigned(const char *const optarg, const int option,
                                const char *const app)
 {
     char *end;
-    const unsigned res = (unsigned) strtoul(optarg, &end, 0);
-    if (*end || end == optarg) error(app, optarg, option, "an integer");
-    return res;
+    const uint64_t res = str_to_u64(optarg, &end);
+    if (*end || res > UINT_MAX) error(app, optarg, option, "an integer");
+    return (unsigned) res;
+}
+
+static int parse_bool(const char *const optarg, const int option,
+                      const char *const app)
+{
+    if (strcmp(optarg, "0") && strcmp(optarg, "1"))
+        error(app, optarg, option, "0 or 1");
+    return *optarg == '1';
 }
 
 static int parse_optional_fraction(const char *const optarg, const int option,
@@ -384,7 +399,7 @@ void parse(const int argc, char *const *const argv,
             break;
         case ARG_FILM_GRAIN:
             lib_settings->apply_grain =
-                !!parse_unsigned(optarg, ARG_FILM_GRAIN, argv[0]);
+                parse_bool(optarg, ARG_FILM_GRAIN, argv[0]);
             grain_specified = 1;
             break;
         case ARG_OPPOINT:
@@ -393,23 +408,23 @@ void parse(const int argc, char *const *const argv,
             break;
         case ARG_ALL_LAYERS:
             lib_settings->all_layers =
-                !!parse_unsigned(optarg, ARG_ALL_LAYERS, argv[0]);
+                parse_bool(optarg, ARG_ALL_LAYERS, argv[0]);
             break;
         case ARG_SIZE_LIMIT: {
-            char *arg = optarg, *end;
-            uint64_t res = strtoul(arg, &end, 0);
-            if (*end == 'x' && res < UINT_MAX) { // NxM
-                const uint64_t h = strtoul((arg = end + 1), &end, 0);
-                res = h < UINT_MAX ? res * h : UINT_MAX;
+            char *end;
+            uint64_t res = str_to_u64(optarg, &end);
+            if (*end == 'x' && res && res < UINT_MAX) { // WxH, both non-zero
+                const uint64_t h = str_to_u64(end + 1, &end);
+                res = h && h < UINT_MAX ? res * h : UINT_MAX;
             }
-            if (*end || end == arg || res >= UINT_MAX)
+            if (*end || res >= UINT_MAX)
                 error(argv[0], optarg, ARG_SIZE_LIMIT, "an integer or dimension");
             lib_settings->frame_size_limit = (unsigned) res;
             break;
         }
         case ARG_STRICT_STD_COMPLIANCE:
             lib_settings->strict_std_compliance =
-                parse_unsigned(optarg, ARG_STRICT_STD_COMPLIANCE, argv[0]);
+                parse_bool(optarg, ARG_STRICT_STD_COMPLIANCE, argv[0]);
             break;
         case 'v':
             fprintf(stderr, "%s\n", dav1d_version());
@@ -423,7 +438,7 @@ void parse(const int argc, char *const *const argv,
             break;
         case ARG_OUTPUT_INVISIBLE:
             lib_settings->output_invisible_frames =
-                !!parse_unsigned(optarg, ARG_OUTPUT_INVISIBLE, argv[0]);
+                parse_bool(optarg, ARG_OUTPUT_INVISIBLE, argv[0]);
             break;
         case ARG_INLOOP_FILTERS:
             lib_settings->inloop_filters =
